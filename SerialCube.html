@@ -420,7 +420,9 @@
     }
 
     .status-pill-copy {
-      min-width: 0;
+      /* v4.1.6: min-width: 92px 抗压保护, 防止 logo 区在窄 viewport 下被挤
+         (SerialCube 标题 16px + 状态文字 9px 完整一行) */
+      min-width: 92px;
       display: grid;
       line-height: 1.05;
       align-content: center;
@@ -2005,16 +2007,22 @@
       display: block;
       background: var(--bg);
     }
-    /* mode-switch 第 3 项 active 态 (1x3 横排, indicator 横滑到 col 3) */
+    /* mode-switch 第 3 项 active 态 (1x3 横排, indicator 横滑到 col 3)
+       v4.1.6: 仪表盘 active 文字颜色跟监视/解析 active 一致 (#eef2ff),
+       之前用 var(--text) (深色) 在蓝底上对比度低, 小屏/zoom 下像"被压扁" */
     body.mode-dashboard #logo-mode-switch::before {
       transform: translateX(80px);
     }
-    body.mode-dashboard #dashboard-mode-btn .logo-mode-icon,
-    body.mode-dashboard #dashboard-mode-btn .logo-mode-text {
-      color: var(--text);
+    body.mode-dashboard #dashboard-mode-btn.is-active .logo-mode-icon,
+    body.mode-dashboard #dashboard-mode-btn.is-active .logo-mode-text,
+    body.mode-dashboard #dashboard-mode-btn.is-active {
+      color: #eef2ff;
     }
-    body.mode-dashboard #dashboard-mode-btn {
-      color: var(--text);
+    /* v4.1.6: dashboard 模式未 active 时, 监视/解析按钮文字颜色保持 text-soft,
+       避免在 logo 区域出现"active 浅色 + 蓝底"的对比错位 */
+    body.mode-dashboard #serial-mode-btn,
+    body.mode-dashboard #parser-mode-btn {
+      color: var(--text-soft);
     }
 
     .left-column {
