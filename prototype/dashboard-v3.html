@@ -285,6 +285,38 @@
     .card-add-slot:hover { border-color: var(--accent); color: var(--accent); }
     .card-add-slot .hint { font-size: 11px; font-weight: 500; margin-top: 8px; }
 
+    .card-group-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-small);
+      margin-bottom: 4px;
+    }
+    .card-group-head.grid { width: 100%; flex-basis: 100%; }
+    .card-group-head.list { width: 100%; }
+    .card-group-head .badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 20px;
+      font-family: var(--font-mono);
+      font-size: 11px; font-weight: 700;
+      border-radius: 4px;
+    }
+    .card-group-head .badge.rx { background: var(--signal-soft); color: var(--signal); }
+    .card-group-head .badge.tx { background: var(--accent-soft); color: var(--accent); }
+    .card-group-head .name {
+      font-size: 13px; font-weight: 700; color: var(--text);
+    }
+    .card-group-head .count {
+      font-size: 11px; color: var(--text-soft);
+      font-family: var(--font-mono);
+    }
+    .card-group-sep {
+      width: 1px; min-height: 200px;
+      background: var(--border);
+      margin: 0 6px;
+    }
+
     .card-default {
       width: 280px; height: 200px;
       padding: 10px 12px;
@@ -1414,7 +1446,7 @@
     { id: 'c4', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_4_v',    title: 'Cell 4 电压', unit: 'V', range: [2.8, 4.2], precision: 3, fromOtherCmd: true },
     { id: 'c5', type: 'trend', cmd: 0x02, dir: 'rx', field: 'pack_i',      title: 'Pack 电流',  unit: 'A', range: [-50, 50], precision: 2, fromOtherCmd: true },
     { id: 'c6', type: 'trend', cmd: 0x03, dir: 'rx', field: 'temperature', title: '温度',      unit: '°C', range: [-20, 60], precision: 1, fromOtherCmd: true },
-    { id: 'c7', type: 'pair',  pairId: 'charge_v',                          title: '充电电压',  unit: 'V', fromOtherCmd: false },
+    { id: 'c7', type: 'pair',  cmd: 0x10, dir: 'tx', pairId: 'charge_v',     title: '充电电压',  unit: 'V', fromOtherCmd: false },
     { id: 'c8', type: 'trend', cmd: 0x10, dir: 'tx', field: 'charge_v_set', title: '充电设定',  unit: 'V', range: [0, 60], precision: 1, fromOtherCmd: false }
   ];
 
@@ -1667,6 +1699,63 @@
     const el = document.getElementById('card-grid');
     el.innerHTML = '';
     const filtered = CARDS.filter(c => selectedCmd === 'all' || matchCard(c, selectedCmd));
+
+    // 全部命令时,按 cmd 分组,每组前加命令标题分隔
+    if (selectedCmd === 'all') {
+      const groups = new Map();
+      filtered.forEach(c => {
+        const cmdKey = c.cmd || 0;
+        if (!groups.has(cmdKey)) groups.set(cmdKey, []);
+        groups.get(cmdKey).push(c);
+      });
+      // 排序:按 cmd id 升序
+      const sortedKeys = Array.from(groups.keys()).sort((a, b) => a - b);
+
+      if (cardLayout === 'list') {
+        el.style.display = 'grid';
+        el.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
+        el.style.gap = '8px';
+        el.style.alignItems = 'stretch';
+        sortedKeys.forEach(cmdKey => {
+          const cmd = COMMANDS.find(c => c.id === cmdKey);
+          const cmdHex = cmdKey.toString(16).padStart(2, '0').toUpperCase();
+          const cmdName = cmd ? cmd.name : '0x' + cmdHex;
+          const dir = cmd ? cmd.direction : 'rx';
+          const group = groups.get(cmdKey);
+          el.appendChild(renderGroupHeader(cmdHex, cmdName, dir, group.length, cardLayout));
+          group.forEach(c => el.appendChild(renderListCard(c)));
+        });
+      } else {
+        el.style.display = 'flex';
+        el.style.flexDirection = 'row';
+        el.style.alignItems = 'flex-start';
+        el.style.gap = '12px';
+        el.style.flexWrap = 'wrap';
+        sortedKeys.forEach((cmdKey, idx) => {
+          const cmd = COMMANDS.find(c => c.id === cmdKey);
+          const cmdHex = cmdKey.toString(16).padStart(2, '0').toUpperCase();
+          const cmdName = cmd ? cmd.name : '0x' + cmdHex;
+          const dir = cmd ? cmd.direction : 'rx';
+          const group = groups.get(cmdKey);
+          el.appendChild(renderGroupHeader(cmdHex, cmdName, dir, group.length, cardLayout));
+          group.forEach(c => el.appendChild(renderCard(c)));
+          // 在每组最后(最后一组除外)加分隔
+          if (idx < sortedKeys.length - 1) {
+            const sep = document.createElement('div');
+            sep.className = 'card-group-sep';
+            el.appendChild(sep);
+          }
+        });
+        const add = document.createElement('div');
+        add.className = 'card-add-slot';
+        add.innerHTML = `<div style="font-size: 24px;">+</div><div class="hint">${editMode ? '添加卡片' : '编辑模式下添加'}</div>`;
+        add.onclick = () => { if (editMode) openModal('card-config'); else toast('先开启"编辑模式"', 'info'); };
+        el.appendChild(add);
+      }
+      return;
+    }
+
+    // 单独命令(原逻辑)
     if (cardLayout === 'list') {
       el.style.display = 'grid';
       el.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
@@ -1686,6 +1775,22 @@
       add.onclick = () => { if (editMode) openModal('card-config'); else toast('先开启"编辑模式"', 'info'); };
       el.appendChild(add);
     }
+  }
+
+  function renderGroupHeader(cmdHex, cmdName, dir, count, layout) {
+    const head = document.createElement('div');
+    head.className = 'card-group-head';
+    if (layout === 'list') {
+      head.classList.add('list');
+    } else {
+      head.classList.add('grid');
+    }
+    head.innerHTML = `
+      <span class="badge ${dir}">${cmdHex}</span>
+      <span class="name">${escapeHtml(cmdName)}</span>
+      <span class="count">${count} 字段</span>
+    `;
+    return head;
   }
 
   function renderCard(c) {
@@ -1910,16 +2015,8 @@
     PROTOCOLS.forEach(p => {
       const tab = document.createElement('button');
       tab.className = 'proto-tab' + (p.id === activeProtoId ? ' active' : '');
-      tab.innerHTML = `<span>${escapeHtml(p.name)}</span>${p.id === activeProtoId ? `<span class="del-btn" title="删除此协议">×</span>` : ''}`;
-      tab.onclick = (e) => {
-        if (e.target.classList.contains('del-btn')) {
-          if (PROTOCOLS.length <= 1) { toast('至少保留 1 个协议', 'warn'); return; }
-          PROTOCOLS = PROTOCOLS.filter(x => x.id !== p.id);
-          activeProtoId = PROTOCOLS[0].id;
-          renderProtoEditor();
-          toast(`已删除协议 ${p.name}`, 'success');
-          return;
-        }
+      tab.innerHTML = `<span>${escapeHtml(p.name)}</span>`;
+      tab.onclick = () => {
         activeProtoId = p.id;
         renderProtoEditor();
       };
@@ -1954,11 +2051,13 @@
     bodyEl.innerHTML = `
       <!-- 协议基本信息 -->
       <div class="proto-section">
-        <div class="form-row col-2" style="margin-bottom: 0;">
+        <div class="form-row" style="margin-bottom: 8px;">
           <label>协议名</label>
           <input class="form-input" id="proto-name" value="${escapeHtml(proto.name)}" placeholder="(必填)">
-          <label style="grid-column: auto; margin-left: 8px;">默认字节序</label>
-          <select class="form-select" id="proto-endian">
+        </div>
+        <div class="form-row" style="margin-bottom: 0;">
+          <label>默认字节序</label>
+          <select class="form-select" id="proto-endian" style="max-width: 240px;">
             <option value="BE" ${proto.byteOrder === 'BE' ? 'selected' : ''}>BE 大端 (Motorola)</option>
             <option value="LE" ${proto.byteOrder === 'LE' ? 'selected' : ''}>LE 小端 (Intel)</option>
           </select>
