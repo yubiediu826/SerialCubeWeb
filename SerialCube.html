@@ -5739,12 +5739,19 @@
 .dashboard-host     .cmd-chip.tx .dir-badge { background: var(--accent-soft); color: var(--accent-strong); }
 .dashboard-host     .cmd-chip-label { font-size: 11px; color: var(--text-soft); margin-right: 4px; font-weight: 600; }
 
-    /* Card Grid (大卡 280x200) */
+    /* Card Grid (大卡 280x200)
+       v4.4 修复: 改为 grid 布局 (auto-fill minmax 280px), 之前 flex-wrap: wrap + 280px 固定卡片
+       在窄视口 (635px) 下 5 个 card 横向排, 触发横向滚动.
+       grid auto-fill 会自动按容器宽度排版, 635px → 2 列, 928px → 3 列, 1200px+ → 4 列
+       v4.4 修复: 不设 grid-auto-rows: 200px (那样 group header 也变 200px 高),
+       改为让 grid-auto-rows auto (grid 容器自动算每行高度, group header 30px, card 200px) */
 .dashboard-host     .card-grid-area {
       flex: 1; min-height: 0; overflow-y: auto;
       padding: 14px;
-      display: flex; flex-wrap: wrap; align-content: flex-start;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 12px;
+      align-content: flex-start;
     }
 .dashboard-host     .card-add-slot {
       width: 280px; height: 200px;
@@ -5793,6 +5800,7 @@
 
 .dashboard-host     .card-default {
       width: 280px; height: 200px;
+      min-width: 0;  /* v4.4 修复: 防止 card 内部 min-content (canvas 等) 撑大 grid track, 导致单列超大 */
       padding: 10px 12px;
       background: var(--bg-panel);
       border: 1px solid var(--border);
@@ -6385,10 +6393,13 @@
 .dashboard-host     .alert-list::-webkit-scrollbar-thumb, .modal-body::-webkit-scrollbar-thumb, .command-panel::-webkit-scrollbar-thumb, .proto-tabs::-webkit-scrollbar-thumb, .sidebar-content::-webkit-scrollbar-thumb, .card-grid-area::-webkit-scrollbar-thumb, .data-field-list::-webkit-scrollbar-thumb { background: rgba(86, 114, 205, 0.46); border-radius: 3px; }
   
 
-    /* v4.1 dashboard-host 布局覆盖 (嵌入主应用, 不依赖 height: 100vh, 改用 flex/grid 自适应) */
+    /* v4.4 dashboard-host 布局覆盖 (嵌入主应用, 不依赖 height: 100vh, 改用 flex/grid 自适应)
+       v4.4 修复: 恢复 .app-shell 为 grid 2 行 (topbar + main-row), .main-row 改为 grid 1 列 (无 sidebar, 占满),
+       之前 v4.1 强制 .main-row flex column + 没设 grid-template-rows, 导致 dashboard 内部高度/宽度错乱,
+       card-grid-area 子项 (group head + cards) 总 natural width 超过容器, 触发横向滚动 */
     .dashboard-host { position: absolute; inset: 0; display: flex; flex-direction: column; }
-    .dashboard-host .app-shell { flex: 1; min-height: 0; }
-    .dashboard-host .app-shell > .main-row { min-height: 0; display: flex; flex-direction: column; }
+    .dashboard-host .app-shell { flex: 1; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+    .dashboard-host .app-shell > .main-row { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
     .dashboard-host .app-shell > .main-row > .content { min-height: 0; overflow: auto; display: flex; flex-direction: column; }
     /* v4.1.2 仪表盘模式: 复用主应用 .left-column (设备连接管理), .dashboard-view 移入 .workspace 替换 .right-column */
     body.mode-dashboard .workspace { display: grid; grid-template-columns: 286px 1fr; }
@@ -9287,29 +9298,303 @@
           NS.updateAll();
         };
 
-        // === 渲染: KPI 卡片 (v4.2 阶段只画 4 个, 复用 dashboard-host .card 样式) ===
-        NS.updateAll = function () {
-          // 更新 4 个 KPI 卡的值 + sparkline
-          NS._v42KpiCardIds.forEach((cid) => {
-            const card = NS.CARDS.find((c) => c.id === cid);
-            if (!card) return;
-            const valEl = document.getElementById('dh-kpi-value-' + card.id);
-            if (valEl) {
-              const v = NS.currentVals[card.field];
-              if (typeof v === 'number') {
-                valEl.textContent = v.toFixed(card.precision || 2);
-                // 越界标红 (range 之外)
-                if (card.range) {
-                  const outOfRange = v < card.range[0] || v > card.range[1];
-                  valEl.classList.toggle('is-alert', outOfRange);
-                }
-              }
-            }
-            const canvas = document.getElementById('dh-kpi-trend-' + card.id);
-            if (canvas) NS.renderSparkline(canvas, card);
+        // === v4.4: 完整 8 卡片渲染 (替换 v4.2 阶段 4 个 KPI 演示) ===
+        NS.nowStr = function () { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`; };
+        NS.matchCard = function (c, cmdHex) { if (c.type === 'pair') return true; if (!c.cmd) return true; return c.cmd.toString(16).padStart(2, '0').toUpperCase() === cmdHex; };
+        NS.checkAlert = function (v, range) {
+          if (!range) return null;
+          const lo = range[0], hi = range[1];
+          if (v < lo * 0.85 || v > hi * 1.05) return 'danger';
+          if (v < lo * 0.95 || v > hi * 1.02) return 'warning';
+          return null;
+        };
+
+        NS.renderCommandPanel = function () {
+          const el = document.getElementById('dh-command-panel');
+          if (!el) return;
+          // 保留第一个 label ("命令:"), 替换后续 chip
+          el.innerHTML = '<span class="cmd-chip-label">命令:</span>';
+          const allChip = document.createElement('button');
+          allChip.className = 'cmd-chip rx' + (NS.selectedCmd === 'all' ? ' selected' : '');
+          allChip.innerHTML = '<span class="dir-badge">ALL</span><span>全部命令</span>';
+          allChip.onclick = () => { NS.selectedCmd = 'all'; NS.renderCommandPanel(); NS.renderCardGrid(); };
+          el.appendChild(allChip);
+          NS.COMMANDS.forEach((cmd) => {
+            const chip = document.createElement('button');
+            const idHex = cmd.id.toString(16).padStart(2, '0').toUpperCase();
+            chip.className = 'cmd-chip ' + cmd.direction + (NS.selectedCmd === idHex ? ' selected' : '');
+            chip.innerHTML = '<span class="dir-badge">' + cmd.direction.toUpperCase() + '</span><span class="cmd-id">' + idHex + '</span><span>' + NS.escapeHtml(cmd.name) + '</span>';
+            chip.onclick = () => { NS.selectedCmd = idHex; NS.renderCommandPanel(); NS.renderCardGrid(); };
+            el.appendChild(chip);
           });
         };
 
+        NS.renderGroupHeader = function (cmdHex, cmdName, dir, count, layout) {
+          const head = document.createElement('div');
+          head.className = 'card-group-head ' + (layout === 'list' ? 'list' : 'grid');
+          head.innerHTML = '<span class="badge ' + dir + '">' + cmdHex + '</span>'
+            + '<span class="name">' + NS.escapeHtml(cmdName) + '</span>'
+            + '<span class="count">' + count + ' 字段</span>';
+          return head;
+        };
+
+        NS._buildTrendCanvas = function (card) {
+          return '<div class="card-trend" onclick="window.__serialWebDashboard.__openDetail(\'' + card.id + '\')"><canvas id="dh-trend-' + card.id + '"></canvas><span class="card-trend-label">' + (card.cmd ? card.cmd.toString(16).padStart(2, '0').toUpperCase() : '00') + ' ' + (card.dir || 'rx') + '</span></div>';
+        };
+
+        NS.renderCard = function (c) {
+          const card = document.createElement('div');
+          if (c.type === 'pair') {
+            card.className = 'card-default pair';
+            const set = NS.currentVals.charge_v_set != null ? NS.currentVals.charge_v_set : 0;
+            const act = (NS.currentVals.pack_v_avg != null ? NS.currentVals.pack_v_avg : 0) * 15;
+            const delta = act - set;
+            const dCls = Math.abs(delta) < 0.5 ? 'ok' : (Math.abs(delta) < 1.0 ? 'warn' : 'bad');
+            const pairState = Math.abs(delta) < 0.5 ? 'ok' : 'warn';
+            card.classList.add('alert-' + pairState);
+            card.innerHTML = '<div class="card-header">'
+              + '<div class="card-title-group">'
+              + '<span class="status-ring ' + pairState + '"></span>'
+              + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="card-unit">' + NS.escapeHtml(c.unit || '') + '</span>'
+              + '</div>'
+              + '<div class="card-actions">'
+              + '<button class="card-action" title="Pair 详情" data-action="detail">⇄</button>'
+              + '<button class="card-action edit-btn" title="编辑" data-action="edit">✎</button>'
+              + '</div></div>'
+              + '<div class="card-value pair" data-action="detail">'
+              + '<div class="pair-cell setpoint"><div class="label">SET</div><div class="val">' + set.toFixed(1) + '</div></div>'
+              + '<div class="pair-cell actual"><div class="label">ACT</div><div class="val">' + act.toFixed(1) + '</div></div>'
+              + '<div class="pair-cell delta"><div class="label">Δ</div><div class="val ' + dCls + '">' + (delta > 0 ? '+' : '') + delta.toFixed(1) + '</div></div>'
+              + '</div>'
+              + '<div class="card-trend" data-action="detail"><canvas id="dh-trend-' + c.id + '"></canvas><span class="card-trend-label">↔ pair</span></div>'
+              + '<div class="card-footer">'
+              + '<span class="range">容差 ±0.5' + NS.escapeHtml(c.unit || '') + '</span>'
+              + '<span class="status-text ' + pairState + '">' + (pairState === 'ok' ? '✓ 在范围内' : '⚠ 偏离') + '</span>'
+              + '</div>';
+          } else {
+            const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
+            const range = c.range || [0, 100];
+            const alert = NS.checkAlert(v, range);
+            const ring = c.fromOtherCmd ? 'rx' : (alert || 'normal');
+            const stateLabel = c.fromOtherCmd ? 'RX' : (alert === 'danger' ? '⚠ 越限' : (alert === 'warning' ? '⚠ 警告' : '✓ 正常'));
+            const stateClass = c.fromOtherCmd ? 'rx' : (alert || 'ok');
+            const cmdHex = c.cmd ? c.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
+            if (alert) card.classList.add('alert-' + alert);
+            const flashClass = (NS.lastValues[c.field] !== undefined && Math.abs(v - NS.lastValues[c.field]) > 0.001) ? ' flash' : '';
+            card.innerHTML = '<div class="card-header">'
+              + '<div class="card-title-group">'
+              + '<span class="status-ring ' + ring + '"></span>'
+              + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="card-unit">' + NS.escapeHtml(c.unit || '') + '</span>'
+              + '</div>'
+              + '<div class="card-actions">'
+              + '<button class="card-action ' + (c.fromOtherCmd ? 'disabled' : '') + '" ' + (c.fromOtherCmd ? 'disabled title="RX-only, 不可写入"' : 'title="触发" data-action="trigger"') + '>' + (c.fromOtherCmd ? '🔒' : '↗') + '</button>'
+              + '<button class="card-action edit-btn" title="编辑" data-action="edit">✎</button>'
+              + '</div></div>'
+              + (c.fromOtherCmd ? '<span class="rx-badge">RX</span>' : '')
+              + '<div class="card-value' + flashClass + '" data-action="detail">' + v.toFixed(c.precision || 2) + '<span class="unit">' + NS.escapeHtml(c.unit || '') + '</span></div>'
+              + '<div class="card-trend" data-action="detail"><canvas id="dh-trend-' + c.id + '"></canvas><span class="card-trend-label">' + cmdHex + ' ' + (c.dir || 'rx') + '</span></div>'
+              + '<div class="card-footer">'
+              + '<span class="range">' + (c.range ? '范围 ' + c.range[0] + ' - ' + c.range[1] + NS.escapeHtml(c.unit || '') : '') + '</span>'
+              + '<span class="status-text ' + stateClass + '">' + stateLabel + '</span>'
+              + '</div>';
+            setTimeout(() => { const v2 = card.querySelector('.card-value'); if (v2) v2.classList.remove('flash'); }, 400);
+          }
+          // edit 模式加 × 按钮
+          if (NS.editMode && c.type !== 'pair') {
+            const del = document.createElement('button');
+            del.className = 'card-delete-btn';
+            del.textContent = '×';
+            del.title = '删除卡片';
+            del.onclick = (e) => { e.stopPropagation(); NS.CARDS = NS.CARDS.filter((x) => x.id !== c.id); NS.renderCardGrid(); NS.renderCardEditList(); NS.toast('已删除卡片 ' + c.id, 'success'); };
+            card.appendChild(del);
+          }
+          // 绑定 card 内部 data-action 按钮
+          card.querySelectorAll('[data-action]').forEach((btn) => {
+            const act = btn.getAttribute('data-action');
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (act === 'edit') NS.openCardEdit(c.id);
+              else if (act === 'detail') NS.__openDetail(c.id);
+              else if (act === 'trigger') NS.toast('触发 ' + c.title + ' (v4.4 占位)', 'info');
+            });
+          });
+          return card;
+        };
+
+        NS.renderListCard = function (c) {
+          const card = document.createElement('div');
+          card.className = 'list-card';
+          if (c.type === 'pair') {
+            const set = NS.currentVals.charge_v_set != null ? NS.currentVals.charge_v_set : 0;
+            const act = (NS.currentVals.pack_v_avg != null ? NS.currentVals.pack_v_avg : 0) * 15;
+            const delta = act - set;
+            const dCls = Math.abs(delta) < 0.5 ? 'ok' : (Math.abs(delta) < 1.0 ? 'warn' : 'bad');
+            if (Math.abs(delta) >= 0.5) card.classList.add(Math.abs(delta) >= 1 ? 'alert-danger' : 'alert-warning');
+            card.innerHTML = '<span class="lc-status-ring ' + dCls + '"></span>'
+              + '<span class="lc-label">' + NS.escapeHtml(c.title) + ' <span class="lc-field">pair</span></span>'
+              + '<span class="lc-value">SET ' + set.toFixed(1) + ' / ACT ' + act.toFixed(1) + '</span>'
+              + '<span class="lc-range">Δ ' + (delta > 0 ? '+' : '') + delta.toFixed(1) + ' · ' + (c.range ? c.range[0] + '-' + c.range[1] + NS.escapeHtml(c.unit || '') : '—') + '</span>'
+              + '<span class="lc-actions"><button class="card-action edit-btn" title="编辑" data-action="edit">✎</button></span>';
+          } else {
+            const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
+            const range = c.range || [0, 100];
+            const alert = NS.checkAlert(v, range);
+            const ring = c.fromOtherCmd ? 'rx' : (alert || 'normal');
+            if (alert) card.classList.add('alert-' + alert);
+            const cmdHex = c.cmd ? c.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
+            const flashClass = (NS.lastValues[c.field] !== undefined && Math.abs(v - NS.lastValues[c.field]) > 0.001) ? ' flash' : '';
+            card.innerHTML = '<span class="lc-status-ring ' + ring + '"></span>'
+              + '<span class="lc-label">' + NS.escapeHtml(c.title) + ' <span class="lc-field">' + cmdHex + '·' + c.field + '</span></span>'
+              + '<span class="lc-value' + flashClass + '">' + v.toFixed(c.precision || 2) + '<span class="unit">' + NS.escapeHtml(c.unit || '') + '</span></span>'
+              + '<span class="lc-range">' + (c.range ? c.range[0] + '-' + c.range[1] + NS.escapeHtml(c.unit || '') : '—') + '</span>'
+              + '<span class="lc-actions">'
+              + (NS.editMode ? '<button class="card-action del-btn" title="删除" data-action="del">×</button>' : '')
+              + '<button class="card-action edit-btn" title="编辑" data-action="edit">✎</button>'
+              + '</span>';
+            setTimeout(() => { const v2 = card.querySelector('.lc-value'); if (v2) v2.classList.remove('flash'); }, 400);
+          }
+          card.addEventListener('click', () => NS.__openDetail(c.id));
+          card.querySelectorAll('[data-action]').forEach((btn) => {
+            const act = btn.getAttribute('data-action');
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (act === 'edit') NS.openCardEdit(c.id);
+              else if (act === 'del') {
+                NS.CARDS = NS.CARDS.filter((x) => x.id !== c.id);
+                NS.renderCardGrid();
+                NS.renderCardEditList();
+                NS.toast('已删除卡片 ' + c.id, 'success');
+              }
+            });
+          });
+          if (NS.editMode && c.type !== 'pair') {
+            const del = document.createElement('button');
+            del.className = 'card-delete-btn';
+            del.textContent = '×';
+            del.title = '删除卡片';
+            del.onclick = (e) => { e.stopPropagation(); NS.CARDS = NS.CARDS.filter((x) => x.id !== c.id); NS.renderCardGrid(); NS.renderCardEditList(); NS.toast('已删除卡片 ' + c.id, 'success'); };
+            card.appendChild(del);
+          }
+          return card;
+        };
+
+        NS.renderCardGrid = function () {
+          const el = document.getElementById('dh-card-grid');
+          if (!el) return;
+          el.innerHTML = '';
+          const filtered = NS.CARDS.filter((c) => NS.selectedCmd === 'all' || NS.matchCard(c, NS.selectedCmd));
+          // 全部命令时按 cmd 分组
+          if (NS.selectedCmd === 'all') {
+            const groups = new Map();
+            filtered.forEach((c) => {
+              const k = c.cmd || 0;
+              if (!groups.has(k)) groups.set(k, []);
+              groups.get(k).push(c);
+            });
+            const sortedKeys = Array.from(groups.keys()).sort((a, b) => a - b);
+            if (NS.cardLayout === 'list') {
+              el.style.display = 'grid';
+              el.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
+              el.style.gap = '8px';
+              el.style.alignItems = 'stretch';
+              sortedKeys.forEach((k) => {
+                const cmd = NS.COMMANDS.find((c) => c.id === k);
+                const cmdHex = k.toString(16).padStart(2, '0').toUpperCase();
+                const dir = cmd ? cmd.direction : 'rx';
+                const group = groups.get(k);
+                el.appendChild(NS.renderGroupHeader(cmdHex, cmd ? cmd.name : ('0x' + cmdHex), dir, group.length, 'list'));
+                group.forEach((c) => el.appendChild(NS.renderListCard(c)));
+              });
+            } else {
+              // v4.4 修复: 用 grid 布局 (auto-fill minmax 280px), 不再用 flex-wrap
+              // 因为 280px 固定卡片在 flex-wrap 容器中, 子项 min-width:auto 不可压缩,
+              // 5 个 cards 横向排, 触发横向滚动
+              el.style.display = 'grid';
+              el.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
+              el.style.gap = '12px';
+              el.style.alignItems = 'stretch';
+              sortedKeys.forEach((k, idx) => {
+                const cmd = NS.COMMANDS.find((c) => c.id === k);
+                const cmdHex = k.toString(16).padStart(2, '0').toUpperCase();
+                const dir = cmd ? cmd.direction : 'rx';
+                const group = groups.get(k);
+                const grpHead = NS.renderGroupHeader(cmdHex, cmd ? cmd.name : ('0x' + cmdHex), dir, group.length, 'card');
+                grpHead.style.gridColumn = '1 / -1';
+                el.appendChild(grpHead);
+                group.forEach((c) => el.appendChild(NS.renderCard(c)));
+              });
+              const add = document.createElement('div');
+              add.className = 'card-add-slot';
+              add.innerHTML = '<div style="font-size: 24px;">+</div><div class="hint">' + (NS.editMode ? '添加卡片' : '编辑模式下添加') + '</div>';
+              add.onclick = () => { if (NS.editMode) NS.openModal('dh-card-config'); else NS.toast('先开启"编辑模式"', 'info'); };
+              el.appendChild(add);
+            }
+            return;
+          }
+          // 单独命令
+          if (NS.cardLayout === 'list') {
+            el.style.display = 'grid';
+            el.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
+            el.style.gap = '8px';
+            el.style.alignItems = 'stretch';
+            filtered.forEach((c) => el.appendChild(NS.renderListCard(c)));
+          } else {
+            // v4.4 修复: 单独命令 (按 cmd 过滤后) 也用 grid
+            el.style.display = 'grid';
+            el.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
+            el.style.gap = '12px';
+            el.style.alignItems = 'stretch';
+            filtered.forEach((c) => el.appendChild(NS.renderCard(c)));
+            const add = document.createElement('div');
+            add.className = 'card-add-slot';
+            add.innerHTML = '<div style="font-size: 24px;">+</div><div class="hint">' + (NS.editMode ? '添加卡片' : '编辑模式下添加') + '</div>';
+            add.onclick = () => { if (NS.editMode) NS.openModal('dh-card-config'); else NS.toast('先开启"编辑模式"', 'info'); };
+            el.appendChild(add);
+          }
+        };
+
+        NS.renderAlerts = function () {
+          const el = document.getElementById('dh-alert-list');
+          if (!el) return;
+          const v = NS.currentVals.cell_1_v || 0;
+          const items = [];
+          if (v > 4.2 * 1.05) items.push({ time: NS.nowStr(), cmd: '0x01', dir: 'rx', msg: 'Cell 1 电压 ' + v.toFixed(2) + 'V > 4.41V', level: 'danger' });
+          else if (v > 4.2 * 1.02) items.push({ time: NS.nowStr(), cmd: '0x01', dir: 'rx', msg: 'Cell 1 电压 ' + v.toFixed(2) + 'V > 4.28V', level: 'warning' });
+          if (NS.cmdMismatchEnabled) items.push({ time: '11:42:15', cmd: '0x10', dir: 'tx', msg: 'cmd 0x10 期望响应 0x90, 实际收到 0x91', level: 'danger', mismatch: true });
+          items.push({ time: '11:40:02', cmd: '0x01', dir: 'rx', msg: 'Cell 3 电压 ' + (NS.currentVals.cell_3_v || 0).toFixed(2) + 'V 在范围内', level: 'recovered' });
+          const head = document.querySelector('.alert-drawer-head span');
+          if (head) head.textContent = '告警 (' + items.length + ')';
+          el.innerHTML = items.map((a) => '<div class="alert-item ' + (a.mismatch ? 'mismatch' : '') + '">'
+            + '<div><div class="alert-time">' + a.time + '</div><span class="alert-cmd ' + a.dir + '">' + a.cmd + ' ' + a.dir + '</span></div>'
+            + '<div class="alert-msg">' + a.msg + '</div>'
+            + '<div style="display:flex; align-items:center; gap:4px;">'
+            + (a.level === 'recovered' ? '<span style="color: var(--success); font-size: 9px;">✓ OK</span>' : '<span class="alert-level ' + a.level + '">' + a.level.toUpperCase() + '</span>')
+            + '<button class="ack-btn" title="确认">✓</button>'
+            + '</div></div>').join('');
+        };
+
+        // v4.4: updateAll 重写 - 重渲染卡片网格 + 画 sparkline + 告警
+        NS.updateAll = function () {
+          NS.renderCardGrid();
+          NS.renderAlerts();
+          requestAnimationFrame(() => {
+            NS.CARDS.forEach((c) => {
+              if (c.type === 'pair') {
+                // pair 用 trend-canvas 画双线
+                const cv = document.getElementById('dh-trend-' + c.id);
+                if (cv && cv.clientWidth) NS.renderPairSparkline(cv, c);
+              } else {
+                const cv = document.getElementById('dh-trend-' + c.id);
+                if (cv && cv.clientWidth) NS.renderSparkline(cv, c);
+              }
+            });
+          });
+          Object.keys(NS.currentVals).forEach((k) => { NS.lastValues[k] = NS.currentVals[k]; });
+        };
+
+        // === v4.2 保留: 单线 sparkline (trend) ===
         NS.renderSparkline = function (canvas, card) {
           if (!canvas || !canvas.clientWidth || !canvas.clientHeight) return;
           const dpr = window.devicePixelRatio || 1;
@@ -9318,14 +9603,14 @@
           const ctx = canvas.getContext('2d');
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
           ctx.clearRect(0, 0, w, h);
-          const cmdHex = card.cmd.toString(16).padStart(2, '0').toUpperCase();
-          const data = NS.trendData[`${cmdHex}.${card.field}`] || [];
+          const cmdHex = card.cmd ? card.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
+          const data = NS.trendData[cmdHex + '.' + card.field] || [];
           if (data.length < 2) return;
           const minV = Math.min(...data.map((p) => p.v), ...(card.range || []));
           const maxV = Math.max(...data.map((p) => p.v), ...(card.range || []));
           const color = card.fromOtherCmd
-            ? getComputedStyle(canvas).getPropertyValue('--signal').trim() || '#3a5ccc'
-            : getComputedStyle(canvas).getPropertyValue('--accent').trim() || '#5672cd';
+            ? (getComputedStyle(canvas).getPropertyValue('--signal').trim() || '#3a5ccc')
+            : (getComputedStyle(canvas).getPropertyValue('--accent').trim() || '#5672cd');
           const range = (maxV - minV) || 1;
           const xStep = w / (data.length - 1);
           ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash([]);
@@ -9336,13 +9621,11 @@
             if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
           });
           ctx.stroke();
-          // 最后点高亮
           const last = data[data.length - 1];
           const lx = (data.length - 1) * xStep;
           const ly = h - ((last.v - minV) / range) * h;
           ctx.fillStyle = color;
           ctx.beginPath(); ctx.arc(lx, ly, 2.5, 0, Math.PI * 2); ctx.fill();
-          // 范围虚线 (上限)
           if (card.range) {
             ctx.setLineDash([2, 3]);
             ctx.strokeStyle = 'rgba(224, 87, 94, 0.35)';
@@ -9353,44 +9636,58 @@
           }
         };
 
+        // v4.4 新增: pair 类型双线 sparkline (SET 虚线 + ACT 实线)
+        NS.renderPairSparkline = function (canvas, card) {
+          if (!canvas || !canvas.clientWidth || !canvas.clientHeight) return;
+          const dpr = window.devicePixelRatio || 1;
+          const w = canvas.clientWidth, h = canvas.clientHeight;
+          canvas.width = w * dpr; canvas.height = h * dpr;
+          const ctx = canvas.getContext('2d');
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.clearRect(0, 0, w, h);
+          const setData = NS.trendData['0A.charge_v_set'] || [];
+          const actData = (NS.trendData['01.pack_v_avg'] || []).map((p) => ({ t: p.t, v: p.v * 15 }));
+          const all = [...setData, ...actData];
+          if (all.length < 2) return;
+          const minV = Math.min(...all.map((p) => p.v));
+          const maxV = Math.max(...all.map((p) => p.v));
+          const range = (maxV - minV) || 1;
+          const xStep = (data) => w / Math.max(data.length - 1, 1);
+          // SET 虚线 (灰色)
+          if (setData.length >= 2) {
+            ctx.strokeStyle = getComputedStyle(canvas).getPropertyValue('--text-soft').trim() || '#67676c';
+            ctx.lineWidth = 1.5; ctx.setLineDash([3, 2]);
+            ctx.beginPath();
+            setData.forEach((p, i) => { const x = i * xStep(setData); const y = h - ((p.v - minV) / range) * h; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+          // ACT 实线 (accent)
+          if (actData.length >= 2) {
+            ctx.strokeStyle = getComputedStyle(canvas).getPropertyValue('--accent').trim() || '#5672cd';
+            ctx.lineWidth = 1.5; ctx.setLineDash([]);
+            ctx.beginPath();
+            actData.forEach((p, i) => { const x = i * xStep(actData); const y = h - ((p.v - minV) / range) * h; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+            ctx.stroke();
+            // 末尾点
+            const last = actData[actData.length - 1];
+            const lx = (actData.length - 1) * xStep(actData);
+            const ly = h - ((last.v - minV) / range) * h;
+            ctx.fillStyle = getComputedStyle(canvas).getPropertyValue('--accent').trim() || '#5672cd';
+            ctx.beginPath(); ctx.arc(lx, ly, 2.5, 0, Math.PI * 2); ctx.fill();
+          }
+        };
+
+        // v4.4: 详情 modal (占位, v4.4b 接图表)
+        NS.__openDetail = function (id) {
+          // v4.4 阶段: 暂时 toast 提示, v4.4b 接完整 detail modal
+          NS.toast('详情: ' + id + ' (v4.4b 接入图表)', 'info');
+        };
+
         NS.renderKpiCards = function () {
-          const grid = document.getElementById('dh-card-grid');
-          if (!grid) return;
-          const cards = NS._v42KpiCardIds.map((id) => NS.CARDS.find((c) => c.id === id)).filter(Boolean);
-          grid.innerHTML = `
-            <div class="dh-kpi-row" style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%;">
-              ${cards.map((c) => `
-                <div class="dh-kpi-card" data-card-id="${c.id}" style="
-                  flex: 1 1 220px; min-width: 220px; max-width: 320px;
-                  background: var(--bg, #fff); border: 1px solid var(--border, #e5e7eb);
-                  border-radius: 14px; padding: 14px;
-                  display: flex; flex-direction: column; gap: 6px;
-                  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-                ">
-                  <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <span style="font-size: 11px; font-weight: 700; color: var(--text-soft, #67676c); text-transform: uppercase; letter-spacing: 0.04em;">${c.title}</span>
-                    <span style="font-size: 10px; color: var(--text-soft, #67676c); font-family: var(--font-mono, monospace);">0x${c.cmd.toString(16).padStart(2,'0').toUpperCase()} · ${c.dir.toUpperCase()}</span>
-                  </div>
-                  <div style="display: flex; align-items: baseline; gap: 4px;">
-                    <span id="dh-kpi-value-${c.id}" style="font-family: var(--font-mono, monospace); font-size: 28px; font-weight: 800; color: var(--text, #3c3c43); line-height: 1;">—</span>
-                    <span style="font-size: 13px; color: var(--text-soft, #67676c); font-weight: 600;">${c.unit}</span>
-                  </div>
-                  <div style="position: relative; height: 56px; margin-top: 2px;">
-                    <canvas id="dh-kpi-trend-${c.id}" style="width: 100%; height: 100%; display: block;"></canvas>
-                  </div>
-                  <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: var(--text-soft, #67676c);">
-                    <span>范围 ${c.range[0]} ~ ${c.range[1]} ${c.unit}</span>
-                    <span>60s · 800ms</span>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-            <style>
-              .dh-kpi-card .is-alert { color: var(--danger, #e0575e) !important; }
-              .dh-kpi-card { transition: transform 0.18s ease, box-shadow 0.18s ease; }
-              .dh-kpi-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
-            </style>
-          `;
+          // v4.4: 替换为完整命令面板 + 卡片网格 (兼容 v4.2 调用点)
+          NS.renderCommandPanel();
+          NS.renderCardGrid();
         };
 
         // === 控制: start / stop ===
@@ -10211,6 +10508,56 @@
           if (debounceEl) debounceEl.onchange = (e) => { NS.alertDebounceMs = parseInt(e.target.value) || 1000; };
           const mismatchEl = document.getElementById('dh-alert-cmd-mismatch');
           if (mismatchEl) mismatchEl.onchange = (e) => { NS.cmdMismatchEnabled = !!e.target.checked; };
+
+          // v4.4: 布局切换 (大卡 / 列表)
+          bind('dh-layout-card', () => {
+            NS.cardLayout = 'card';
+            const a = document.getElementById('dh-layout-card'); const b = document.getElementById('dh-layout-list');
+            if (a) a.classList.add('active'); if (b) b.classList.remove('active');
+            NS.renderCardGrid();
+            setTimeout(() => NS.CARDS.forEach((c) => { const cv = document.getElementById('dh-trend-' + c.id); if (cv) c.type === 'pair' ? NS.renderPairSparkline(cv, c) : NS.renderSparkline(cv, c); }), 60);
+            NS.toast('已切换到大卡布局', 'info');
+          });
+          bind('dh-layout-list', () => {
+            NS.cardLayout = 'list';
+            const a = document.getElementById('dh-layout-card'); const b = document.getElementById('dh-layout-list');
+            if (a) a.classList.remove('active'); if (b) b.classList.add('active');
+            NS.renderCardGrid();
+            NS.toast('已切换到列表布局: 单页可显示更多字段', 'info');
+          });
+
+          // v4.4: 编辑模式 toggle
+          bind('dh-toggle-edit', () => {
+            NS.editMode = !NS.editMode;
+            const host = document.getElementById('dashboard-host');
+            if (host) host.classList.toggle('edit-mode', NS.editMode);
+            const btn = document.getElementById('dh-toggle-edit');
+            if (btn) btn.classList.toggle('active', NS.editMode);
+            const toastEl = document.getElementById('dh-edit-toast');
+            if (toastEl) toastEl.style.display = NS.editMode ? 'flex' : 'none';
+            NS.renderCardGrid();
+            NS.toast(NS.editMode ? '编辑模式: 可删除/添加/编辑卡片' : '已退出编辑模式', NS.editMode ? 'info' : 'success');
+          });
+          bind('dh-close-edit', () => {
+            NS.editMode = false;
+            const host = document.getElementById('dashboard-host');
+            if (host) host.classList.remove('edit-mode');
+            const btn = document.getElementById('dh-toggle-edit');
+            if (btn) btn.classList.remove('active');
+            const toastEl = document.getElementById('dh-edit-toast');
+            if (toastEl) toastEl.style.display = 'none';
+            NS.renderCardGrid();
+          });
+
+          // v4.4: 告警 drawer toggle
+          const alertToggle = document.getElementById('dh-alert-toggle');
+          if (alertToggle) alertToggle.onclick = () => {
+            const drawer = document.getElementById('dh-alert-drawer');
+            if (!drawer) return;
+            const collapsed = drawer.classList.toggle('collapsed');
+            alertToggle.textContent = collapsed ? '+' : '−';
+          };
+
           // Esc 关闭任何打开的 modal
           document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
