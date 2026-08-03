@@ -8904,8 +8904,8 @@
         refs.dashboardModeBtn?.classList.add('is-active');
         refs.serialModeBtn?.classList.remove('is-active');
         refs.parserModeBtn?.classList.remove('is-active');
-        // v4.1: dashboard-host 是 .dashboard-view 内的静态 DOM, 切换 class 即可显示
-        // v4.2+ 接入数据后, 这里会启动模拟数据 tick / 串口数据订阅
+        // v4.2: 启动仪表盘状态层 + 模拟数据 tick
+        window.__serialWebDashboard?.start?.();
       }
       function exitDashboardMode() {
         if (!appEl.classList.contains('mode-dashboard')) return;
@@ -8918,6 +8918,8 @@
           document.querySelector('.app-shell').appendChild(dashboardView);
         }
         // v4.1: 没有 iframe 需要卸载 (iframe 节点保留, v4.5 才删)
+        // v4.2: 停止仪表盘 tick, 状态保留 (再次进入继续更新)
+        window.__serialWebDashboard?.stop?.();
         if (state.layoutExpanded) refs.parserModeBtn?.classList.add('is-active');
         else refs.serialModeBtn?.classList.add('is-active');
       }
@@ -8933,6 +8935,283 @@
             toggleBtn.textContent = collapsed ? '›' : '‹';
           });
         }
+      })();
+
+      // ============================================================
+      // v4.2: Dashboard 状态层 + 实时数据接入 (JS 接入里程碑)
+      // 命名空间: window.__serialWebDashboard
+      // 状态/数据/渲染/控制全在该命名空间内, 避免污染主应用全局
+      // ============================================================
+      (function initDashboardState() {
+        const NS = window.__serialWebDashboard = window.__serialWebDashboard || {};
+
+        // === 状态层: 三层数据模型 (协议帧 → 字段类型 → 命令 → 卡片) ===
+        NS.PROTOCOLS = [
+          {
+            id: 'proto_bms', name: 'BMS TLV v1', byteOrder: 'BE', crcRange: 'all',
+            crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE',
+            fields: [
+              { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
+              { id: 'f2', name: 'addr',   type: 'addr',   size: 1, byteOrder: null, default: '0x01' },
+              { id: 'f3', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
+              { id: 'f4', name: 'length', type: 'length', size: 1, byteOrder: 'BE', default: 'auto' },
+              { id: 'f4d',name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
+              { id: 'f5', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' },
+              { id: 'f6', name: 'tail',   type: 'tail',   size: 1, byteOrder: null, default: '0x55' }
+            ]
+          },
+          {
+            id: 'proto_modbus', name: 'Modbus RTU', byteOrder: 'LE', crcRange: 'no_header',
+            crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE',
+            fields: [
+              { id: 'm1', name: 'addr',   type: 'addr', size: 1, byteOrder: null, default: '0x01' },
+              { id: 'm2', name: 'func',   type: 'cmd',  size: 1, byteOrder: null, default: '0x03' },
+              { id: 'm3', name: 'reg_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+              { id: 'm4', name: 'reg_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+              { id: 'm5', name: 'qty_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+              { id: 'm6', name: 'qty_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+              { id: 'm7', name: 'crc',    type: 'crc',  size: 2, byteOrder: 'LE', default: 'auto' }
+            ]
+          }
+        ];
+
+        NS.DATA_FIELDS = [
+          { name: 'cell_1_v', type: 'u16', default: '0x0000' },
+          { name: 'cell_2_v', type: 'u16', default: '0x0000' },
+          { name: 'cell_3_v', type: 'u16', default: '0x0000' },
+          { name: 'cell_4_v', type: 'u16', default: '0x0000' },
+          { name: 'pack_v_avg', type: 'u16', default: '0x0000' },
+          { name: 'pack_i', type: 'u16', default: '0x0000' },
+          { name: 'temperature', type: 'u16', default: '0x0000' },
+          { name: 'soc', type: 'u16', default: '0x0000' }
+        ];
+
+        NS.COMMANDS = [
+          { id: 0x01, name: 'Read Voltage', direction: 'rx', frameType: 'query',   cadence: 200,  protocol: 'proto_bms', dataFields: ['cell_1_v', 'cell_2_v', 'cell_3_v', 'cell_4_v', 'pack_v_avg'], dataSize: 10, expectResponse: 0x80 },
+          { id: 0x02, name: 'Read Current', direction: 'rx', frameType: 'query',   cadence: 500,  protocol: 'proto_bms', dataFields: ['pack_i'], dataSize: 2, expectResponse: 0x80 },
+          { id: 0x03, name: 'Read Temp',    direction: 'rx', frameType: 'query',   cadence: 1000, protocol: 'proto_bms', dataFields: ['temperature'], dataSize: 2, expectResponse: 0x80 },
+          { id: 0x04, name: 'Read SOC',     direction: 'rx', frameType: 'query',   cadence: 2000, protocol: 'proto_bms', dataFields: ['soc'], dataSize: 2, expectResponse: 0x80 }
+        ];
+
+        // v4.2 阶段: 8 个完整卡片定义, 但 v4.2 只渲染前 4 个作为 KPI 演示
+        // v4.4 接入完整卡片渲染后会全部展示
+        NS.CARDS = [
+          { id: 'c1', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_1_v',    title: 'Cell 1 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true },
+          { id: 'c2', type: 'trend', cmd: 0x02, dir: 'rx', field: 'pack_i',      title: 'Pack 电流',   unit: 'A',   range: [-50, 50],  precision: 2, fromOtherCmd: true },
+          { id: 'c3', type: 'trend', cmd: 0x03, dir: 'rx', field: 'temperature', title: '温度',        unit: '°C',  range: [-20, 60],  precision: 1, fromOtherCmd: true },
+          { id: 'c4', type: 'trend', cmd: 0x04, dir: 'rx', field: 'soc',         title: 'SOC',         unit: '%',   range: [0, 100],   precision: 1, fromOtherCmd: true },
+          { id: 'c5', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_2_v',    title: 'Cell 2 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true },
+          { id: 'c6', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_3_v',    title: 'Cell 3 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true },
+          { id: 'c7', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_4_v',    title: 'Cell 4 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true },
+          { id: 'c8', type: 'trend', cmd: 0x01, dir: 'rx', field: 'pack_v_avg',  title: 'Pack 平均电压', unit: 'V', range: [10, 17],   precision: 3, fromOtherCmd: true }
+        ];
+
+        // === UI 状态 ===
+        NS.activeProtoId = NS.PROTOCOLS[0].id;
+        NS.selectedCmd = 'all';
+        NS.cardLayout = 'card';
+        NS._tickHandle = null;
+        NS._initialized = false;
+        NS._v42KpiCardIds = ['c1', 'c2', 'c3', 'c4'];  // v4.2 演示的 4 个 KPI
+
+        // === 数据池 (currentVals: 实时值, trendData: 历史, lastValues: 上一次) ===
+        NS.currentVals = {};
+        NS.trendData = {};
+        NS.lastValues = {};
+
+        // === 数据生成 ===
+        NS.jitter = function (base, field) {
+          const ranges = {
+            'cell_1_v': 0.04, 'cell_2_v': 0.04, 'cell_3_v': 0.04, 'cell_4_v': 0.04,
+            'pack_v_avg': 0.06, 'pack_i': 0.5, 'temperature': 0.6, 'soc': 0.3
+          };
+          const r = ranges[field] || 0.05;
+          return base + (Math.random() - 0.5) * 2 * r;
+        };
+
+        NS.initMockData = function () {
+          const initVals = {
+            'cell_1_v': 3.71, 'cell_2_v': 3.72, 'cell_3_v': 3.69, 'cell_4_v': 3.73,
+            'pack_i': 1.2, 'temperature': 25.3, 'soc': 87.5
+          };
+          const now = Date.now();
+          NS.COMMANDS.forEach((cmd) => {
+            cmd.dataFields.forEach((field) => {
+              NS.currentVals[field] = (field in initVals) ? initVals[field] : 0;
+              const key = `${cmd.id.toString(16).padStart(2, '0').toUpperCase()}.${field}`;
+              NS.trendData[key] = NS.trendData[key] || [];
+              for (let i = 60; i >= 1; i--) {
+                NS.trendData[key].push({ t: now - i * 1000, v: NS.jitter(NS.currentVals[field], field) });
+              }
+              NS.lastValues[field] = NS.currentVals[field];
+            });
+          });
+        };
+
+        NS.tickData = function () {
+          NS.COMMANDS.forEach((cmd) => {
+            cmd.dataFields.forEach((field) => {
+              if (field === 'pack_v_avg') return;  // pack_v_avg 由 cell 派生, 单独处理
+              const newVal = NS.jitter(NS.currentVals[field], field);
+              // Cell 1 偶尔冲到过压 (>4.2V) 模拟告警
+              if (field === 'cell_1_v' && Math.random() < 0.05) {
+                NS.currentVals[field] = 4.25 + Math.random() * 0.05;
+              } else {
+                NS.currentVals[field] = newVal;
+              }
+              const key = `${cmd.id.toString(16).padStart(2, '0').toUpperCase()}.${field}`;
+              NS.trendData[key].push({ t: Date.now(), v: NS.currentVals[field] });
+              if (NS.trendData[key].length > 60) NS.trendData[key].shift();
+            });
+          });
+          // pack_v_avg = 4 cell 平均, 同步写入 01.pack_v_avg trend
+          NS.currentVals.pack_v_avg =
+            (NS.currentVals.cell_1_v + NS.currentVals.cell_2_v + NS.currentVals.cell_3_v + NS.currentVals.cell_4_v) / 4;
+          const keyAvg = '01.pack_v_avg';
+          NS.trendData[keyAvg] = NS.trendData[keyAvg] || [];
+          NS.trendData[keyAvg].push({ t: Date.now(), v: NS.currentVals.pack_v_avg });
+          if (NS.trendData[keyAvg].length > 60) NS.trendData[keyAvg].shift();
+          NS.updateAll();
+        };
+
+        // === 渲染: KPI 卡片 (v4.2 阶段只画 4 个, 复用 dashboard-host .card 样式) ===
+        NS.updateAll = function () {
+          // 更新 4 个 KPI 卡的值 + sparkline
+          NS._v42KpiCardIds.forEach((cid) => {
+            const card = NS.CARDS.find((c) => c.id === cid);
+            if (!card) return;
+            const valEl = document.getElementById('dh-kpi-value-' + card.id);
+            if (valEl) {
+              const v = NS.currentVals[card.field];
+              if (typeof v === 'number') {
+                valEl.textContent = v.toFixed(card.precision || 2);
+                // 越界标红 (range 之外)
+                if (card.range) {
+                  const outOfRange = v < card.range[0] || v > card.range[1];
+                  valEl.classList.toggle('is-alert', outOfRange);
+                }
+              }
+            }
+            const canvas = document.getElementById('dh-kpi-trend-' + card.id);
+            if (canvas) NS.renderSparkline(canvas, card);
+          });
+        };
+
+        NS.renderSparkline = function (canvas, card) {
+          if (!canvas || !canvas.clientWidth || !canvas.clientHeight) return;
+          const dpr = window.devicePixelRatio || 1;
+          const w = canvas.clientWidth, h = canvas.clientHeight;
+          canvas.width = w * dpr; canvas.height = h * dpr;
+          const ctx = canvas.getContext('2d');
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.clearRect(0, 0, w, h);
+          const cmdHex = card.cmd.toString(16).padStart(2, '0').toUpperCase();
+          const data = NS.trendData[`${cmdHex}.${card.field}`] || [];
+          if (data.length < 2) return;
+          const minV = Math.min(...data.map((p) => p.v), ...(card.range || []));
+          const maxV = Math.max(...data.map((p) => p.v), ...(card.range || []));
+          const color = card.fromOtherCmd
+            ? getComputedStyle(canvas).getPropertyValue('--signal').trim() || '#3a5ccc'
+            : getComputedStyle(canvas).getPropertyValue('--accent').trim() || '#5672cd';
+          const range = (maxV - minV) || 1;
+          const xStep = w / (data.length - 1);
+          ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash([]);
+          ctx.beginPath();
+          data.forEach((p, i) => {
+            const x = i * xStep;
+            const y = h - ((p.v - minV) / range) * h;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+          // 最后点高亮
+          const last = data[data.length - 1];
+          const lx = (data.length - 1) * xStep;
+          const ly = h - ((last.v - minV) / range) * h;
+          ctx.fillStyle = color;
+          ctx.beginPath(); ctx.arc(lx, ly, 2.5, 0, Math.PI * 2); ctx.fill();
+          // 范围虚线 (上限)
+          if (card.range) {
+            ctx.setLineDash([2, 3]);
+            ctx.strokeStyle = 'rgba(224, 87, 94, 0.35)';
+            ctx.lineWidth = 1;
+            const yHi = h - ((card.range[1] - minV) / range) * h;
+            ctx.beginPath(); ctx.moveTo(0, yHi); ctx.lineTo(w, yHi); ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        };
+
+        NS.renderKpiCards = function () {
+          const grid = document.getElementById('dh-card-grid');
+          if (!grid) return;
+          const cards = NS._v42KpiCardIds.map((id) => NS.CARDS.find((c) => c.id === id)).filter(Boolean);
+          grid.innerHTML = `
+            <div class="dh-kpi-row" style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%;">
+              ${cards.map((c) => `
+                <div class="dh-kpi-card" data-card-id="${c.id}" style="
+                  flex: 1 1 220px; min-width: 220px; max-width: 320px;
+                  background: var(--bg, #fff); border: 1px solid var(--border, #e5e7eb);
+                  border-radius: 14px; padding: 14px;
+                  display: flex; flex-direction: column; gap: 6px;
+                  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+                ">
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 11px; font-weight: 700; color: var(--text-soft, #67676c); text-transform: uppercase; letter-spacing: 0.04em;">${c.title}</span>
+                    <span style="font-size: 10px; color: var(--text-soft, #67676c); font-family: var(--font-mono, monospace);">0x${c.cmd.toString(16).padStart(2,'0').toUpperCase()} · ${c.dir.toUpperCase()}</span>
+                  </div>
+                  <div style="display: flex; align-items: baseline; gap: 4px;">
+                    <span id="dh-kpi-value-${c.id}" style="font-family: var(--font-mono, monospace); font-size: 28px; font-weight: 800; color: var(--text, #3c3c43); line-height: 1;">—</span>
+                    <span style="font-size: 13px; color: var(--text-soft, #67676c); font-weight: 600;">${c.unit}</span>
+                  </div>
+                  <div style="position: relative; height: 56px; margin-top: 2px;">
+                    <canvas id="dh-kpi-trend-${c.id}" style="width: 100%; height: 100%; display: block;"></canvas>
+                  </div>
+                  <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: var(--text-soft, #67676c);">
+                    <span>范围 ${c.range[0]} ~ ${c.range[1]} ${c.unit}</span>
+                    <span>60s · 800ms</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            <style>
+              .dh-kpi-card .is-alert { color: var(--danger, #e0575e) !important; }
+              .dh-kpi-card { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+              .dh-kpi-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+            </style>
+          `;
+        };
+
+        // === 控制: start / stop ===
+        // start: 首次启动时 init 数据 + 渲染 KPI 卡, 后续 enterDashboardMode 调用时
+        //        只重启 tick (避免重置历史趋势), 但 sparkline 仍重新画一次 (canvas 可能被浏览器回收)
+        // stop:  只清 tick handle, 保留所有数据/状态
+        NS.start = function () {
+          if (!NS._initialized) {
+            NS._initialized = true;
+            NS.initMockData();
+            NS.renderKpiCards();
+          }
+          // 取消旧 handle (重入防护, 避免双 tick)
+          if (NS._tickHandle) clearInterval(NS._tickHandle);
+          // 等待 canvas layout 完成 + 画 sparkline
+          requestAnimationFrame(() => {
+            NS._v42KpiCardIds.forEach((cid) => {
+              const card = NS.CARDS.find((c) => c.id === cid);
+              const canvas = document.getElementById('dh-kpi-trend-' + card.id);
+              if (canvas) NS.renderSparkline(canvas, card);
+            });
+            NS.updateAll();
+          });
+          NS._tickHandle = setInterval(NS.tickData, 800);
+        };
+        NS.stop = function () {
+          if (NS._tickHandle) { clearInterval(NS._tickHandle); NS._tickHandle = null; }
+        };
+        NS.reset = function () {
+          NS.stop();
+          NS._initialized = false;
+          NS.currentVals = {}; NS.trendData = {}; NS.lastValues = {};
+          NS.start();
+        };
       })();
 
       function arrangeWorkspacePanels() {
