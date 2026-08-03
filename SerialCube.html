@@ -5865,12 +5865,12 @@
       grid-area: value;
       display: flex; align-items: center; justify-content: center;
       font-family: var(--font-mono);
-      font-size: 26px; font-weight: 800; line-height: 1;
+      font-size: 32px; font-weight: 800; line-height: 1;  /* v4.4.1: 26→32 数值更突出 */
       color: var(--text);
       transition: color 0.4s ease;
     }
 .dashboard-host     .card-value.flash { color: var(--accent); }
-.dashboard-host     .card-value .unit { font-size: 12px; color: var(--text-soft); margin-left: 3px; font-weight: 600; }
+.dashboard-host     .card-value .unit { font-size: 13px; color: var(--text-soft); margin-left: 4px; font-weight: 600; }  /* v4.4.1: 12→13 */
 .dashboard-host     .card-value.pair {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -5952,11 +5952,11 @@
 .dashboard-host     .list-card .lc-label .lc-field { font-family: var(--font-mono); font-size: 10px; color: var(--text-soft); font-weight: 500; }
 .dashboard-host     .list-card .lc-value {
       font-family: var(--font-mono);
-      font-size: 18px; font-weight: 800;
+      font-size: 22px; font-weight: 800;  /* v4.4.1: 18→22 列表卡数字更可读 */
       color: var(--text);
       line-height: 1.1;
     }
-.dashboard-host     .list-card .lc-value .unit { font-size: 11px; color: var(--text-soft); margin-left: 3px; font-weight: 600; }
+.dashboard-host     .list-card .lc-value .unit { font-size: 12px; color: var(--text-soft); margin-left: 3px; font-weight: 600; }  /* v4.4.1: 11→12 */
 .dashboard-host     .list-card .lc-range {
       font-family: var(--font-mono);
       font-size: 10px; color: var(--text-soft);
@@ -6968,16 +6968,16 @@
                 <span class="spacer"></span>
                 <span style="font-size: 11px; color: var(--text-soft); font-weight: 600;">布局</span>
                 <div class="layout-toggle">
-                  <button id="dh-layout-card" class="active" title="大卡 (趋势/对比)">
+                  <button id="dh-layout-card" class="active" title="趋势 (大卡 + sparkline)">
                     <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true">
                       <rect x="1" y="1" width="6" height="6" rx="1"></rect>
                       <rect x="9" y="1" width="6" height="6" rx="1"></rect>
                       <rect x="1" y="9" width="14" height="6" rx="1"></rect>
                       <rect x="1" y="9" width="6" height="6" rx="1"></rect>
                     </svg>
-                    大卡
+                    趋势
                   </button>
-                  <button id="dh-layout-list" title="小卡 (列表紧凑)">
+                  <button id="dh-layout-list" title="列表 (小卡紧凑)">
                     <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true">
                       <rect x="1" y="1" width="14" height="3" rx="0.5"></rect>
                       <rect x="1" y="6" width="14" height="3" rx="0.5"></rect>
@@ -9504,7 +9504,11 @@
                 const cmdHex = k.toString(16).padStart(2, '0').toUpperCase();
                 const dir = cmd ? cmd.direction : 'rx';
                 const group = groups.get(k);
-                el.appendChild(NS.renderGroupHeader(cmdHex, cmd ? cmd.name : ('0x' + cmdHex), dir, group.length, 'list'));
+                // v4.4.1 修复: 列表布局全部命令模式, group header 跨满列 (跟趋势布局一致)
+                // 之前 .card-group-head.list { width: 100% } 在 grid 容器中只占 1 列 (180px), 跟 cards 挤在一起
+                const grpHead = NS.renderGroupHeader(cmdHex, cmd ? cmd.name : ('0x' + cmdHex), dir, group.length, 'list');
+                grpHead.style.gridColumn = '1 / -1';
+                el.appendChild(grpHead);
                 group.forEach((c) => el.appendChild(NS.renderListCard(c)));
               });
             } else {
