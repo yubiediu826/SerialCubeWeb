@@ -586,6 +586,7 @@
   const DATA_INIT_TS = Date.now();
 
   function initMockData() {
+    // 1) 协议字段 (来自 COMMANDS)
     COMMANDS.forEach(cmd => {
       cmd.fields.forEach(field => {
         const key = `${cmd.id.toString(16).padStart(2, '0').toUpperCase()}.${field}`;
@@ -598,8 +599,6 @@
         else if (field === 'cell_4_v') currentVals[field] = 3.73;
         else if (field === 'pack_i') currentVals[field] = 1.2;
         else if (field === 'temperature') currentVals[field] = 25.3;
-        else if (field === 'pack_v_avg') currentVals[field] = 3.71;
-        else if (field === 'soc') currentVals[field] = 87.5;
         else currentVals[field] = 0;
         trendData[key] = [];
         const now = Date.now();
@@ -608,6 +607,24 @@
           trendData[key].push({ t, v: jitter(currentVals[field], field) });
         }
       });
+    });
+
+    // 2) 额外字段 (KPI/Cards 引用但不在 COMMANDS 里: 派生/聚合)
+    const extraFields = {
+      'pack_v_avg': { base: 3.71, jitter: 0.03 },
+      'soc':        { base: 87.5, jitter: 0.3 }
+    };
+    Object.entries(extraFields).forEach(([field, cfg]) => {
+      if (!(field in currentVals)) {
+        currentVals[field] = cfg.base;
+        const key = `00_NA.${field}`;
+        trendData[key] = trendData[key] || [];
+        const now = Date.now();
+        for (let i = 60; i >= 1; i--) {
+          const t = now - i * 1000;
+          trendData[key].push({ t, v: cfg.base + (Math.random() - 0.5) * 2 * cfg.jitter });
+        }
+      }
     });
   }
 
@@ -700,7 +717,7 @@
           </div>
         `;
       } else {
-        const v = currentVals[k.field] || 0;
+        const v = currentVals[k.field] ?? 0;
         const range = getFieldRange(k.field);
         const alert = checkAlert(v, range);
         const cmd = COMMANDS.find(c => c.fields.includes(k.field));
@@ -770,7 +787,7 @@
         </div>
       `;
     } else {
-      const v = currentVals[c.field] || 0;
+      const v = currentVals[c.field] ?? 0;
       const alert = checkAlert(v, c.range);
       const ring = c.fromOtherCmd ? 'rx' : (alert || 'normal');
       const stateLabel = c.fromOtherCmd ? 'RX' : (alert === 'danger' ? '⚠ 越限' : alert === 'warning' ? '⚠ 警告' : '✓ 正常');
