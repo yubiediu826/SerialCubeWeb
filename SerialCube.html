@@ -6378,13 +6378,18 @@
     /* v4.1 dashboard-host 布局覆盖 (嵌入主应用, 不依赖 height: 100vh, 改用 flex/grid 自适应) */
     .dashboard-host { position: absolute; inset: 0; display: flex; flex-direction: column; }
     .dashboard-host .app-shell { flex: 1; min-height: 0; }
-    .dashboard-host .app-shell > .main-row { min-height: 0; display: grid; grid-template-columns: 286px 1fr; gap: 6px; }
-    .dashboard-host .app-shell > .main-row > .sidebar { min-height: 0; overflow: hidden; }
+    .dashboard-host .app-shell > .main-row { min-height: 0; display: flex; flex-direction: column; }
     .dashboard-host .app-shell > .main-row > .content { min-height: 0; overflow: auto; display: flex; flex-direction: column; }
-    /* 折叠 sidebar (dashboard 内部独立, 不影响主应用其他 sidebar) */
-    .dashboard-host.sidebar-collapsed .app-shell > .main-row { grid-template-columns: 32px 1fr; }
-    .dashboard-host.sidebar-collapsed .app-shell > .main-row > .sidebar .sidebar-content { display: none; }
-    .dashboard-host.sidebar-collapsed .app-shell > .main-row > .sidebar { align-items: center; padding-top: 8px; }
+    /* v4.1.2 仪表盘模式: 复用主应用 .left-column (设备连接管理), .dashboard-view 移入 .workspace 替换 .right-column */
+    body.mode-dashboard .workspace { display: grid; grid-template-columns: 286px 1fr; }
+    body.mode-dashboard .workspace > .right-column { display: none; }
+    body.mode-dashboard .workspace > .dashboard-view {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      position: relative;
+    }
   </style>
 </head>
 <body spellcheck="false">
@@ -6900,36 +6905,6 @@
       <div class="dashboard-host" id="dashboard-host">
         <div class="app-shell">
           <div class="main-row">
-            <aside class="sidebar" id="dh-sidebar">
-              <button class="sidebar-toggle" id="dh-sidebar-toggle" title="折叠/展开">‹</button>
-              <div class="sidebar-content" id="dh-sidebar-content">
-                <div class="sidebar-section-title">设备连接管理</div>
-                <div class="sidebar-row">
-                  <label>VID·PID</label>
-                  <div class="select-mock">— —</div>
-                </div>
-                <div style="margin-bottom: 12px;">
-                  <button class="toolbar-btn primary" style="width: 100%; height: 32px;">⚡ 连接设备 | 当前未连接</button>
-                </div>
-                <div class="sidebar-row"><label>波特率</label><div class="select-mock">115200</div></div>
-                <div class="sidebar-row"><label>数据位</label><div class="select-mock">8</div></div>
-                <div class="sidebar-row"><label>停止位</label><div class="select-mock">1</div></div>
-                <div class="sidebar-row"><label>校验位</label><div class="select-mock">无</div></div>
-                <div class="sidebar-divider"></div>
-                <div class="sidebar-section-title">流控与硬件信号</div>
-                <div class="sidebar-row"><label class="check-mock"><input type="checkbox"> 失焦自动断连</label></div>
-                <div class="sidebar-row"><label class="check-mock"><input type="checkbox"> RTS/CTS 流控</label></div>
-                <div class="sidebar-row"><label class="check-mock"><input type="checkbox"> DTR</label></div>
-                <div class="sidebar-row"><label class="check-mock"><input type="checkbox"> RTS</label></div>
-                <div class="sidebar-divider"></div>
-                <div class="sidebar-section-title">字符编码</div>
-                <div class="sidebar-row"><label>字符编码</label><div class="select-mock">UTF-8</div></div>
-                <div class="sidebar-row"><label>换行</label><div class="select-mock">\r\n</div></div>
-                <div class="sidebar-row"><label class="check-mock"><input type="checkbox" checked> 显示时间</label></div>
-                <div class="sidebar-row"><label class="check-mock"><input type="checkbox" checked> 结尾补换行</label></div>
-              </div>
-              <div class="sidebar-collapsed-label">设备</div>
-            </aside>
             <main class="content">
               <div class="toolbar">
                 <button class="toolbar-btn" id="dh-open-proto-editor">⚙ 协议编辑器</button>
@@ -8833,8 +8808,16 @@
       }
 
       // Dashboard v4 模式切换 (v4.1: dashboard-host 静态骨架已嵌入主应用, 不再加载 iframe)
+      // v4.1.2: 把 .dashboard-view 移进 .workspace, 复用 .left-column (设备连接管理), 隐藏 .right-column
       function enterDashboardMode() {
         if (appEl.classList.contains('mode-dashboard')) return;
+        const dashboardView = document.getElementById('dashboard-view');
+        const rightColumn = document.querySelector('.workspace > .right-column');
+        if (dashboardView && rightColumn && dashboardView.parentElement !== document.querySelector('.workspace')) {
+          // 记录原 parent 用于退出时还原
+          dashboardView.dataset.originalParent = '_appended';
+          document.querySelector('.workspace').insertBefore(dashboardView, rightColumn);
+        }
         appEl.classList.add('mode-dashboard');
         refs.dashboardModeBtn?.classList.add('is-active');
         refs.serialModeBtn?.classList.remove('is-active');
@@ -8846,6 +8829,12 @@
         if (!appEl.classList.contains('mode-dashboard')) return;
         appEl.classList.remove('mode-dashboard');
         refs.dashboardModeBtn?.classList.remove('is-active');
+        // v4.1.2: 把 .dashboard-view 移回 .app-shell 末尾 (原位置)
+        const dashboardView = document.getElementById('dashboard-view');
+        if (dashboardView && dashboardView.dataset.originalParent === '_appended') {
+          delete dashboardView.dataset.originalParent;
+          document.querySelector('.app-shell').appendChild(dashboardView);
+        }
         // v4.1: 没有 iframe 需要卸载 (iframe 节点保留, v4.5 才删)
         if (state.layoutExpanded) refs.parserModeBtn?.classList.add('is-active');
         else refs.serialModeBtn?.classList.add('is-active');
