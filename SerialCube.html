@@ -2005,9 +2005,9 @@
       display: block;
       background: var(--bg);
     }
-    /* mode-switch 第 3 项 active 态 */
+    /* mode-switch 第 3 项 active 态 (仪表盘在 row 2 col 1, indicator 跳到 row 2) */
     body.mode-dashboard #logo-mode-switch::before {
-      left: calc(50% + 60px);
+      transform: translate(0, 40px);
     }
     body.mode-dashboard #dashboard-mode-btn .logo-mode-icon,
     body.mode-dashboard #dashboard-mode-btn .logo-mode-text {
