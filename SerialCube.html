@@ -1980,6 +1980,42 @@
       gap: 8px;
     }
 
+    /* Dashboard v3 prototype view (隐藏, body.mode-dashboard 时显示) */
+    .dashboard-view {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      background: var(--bg);
+    }
+    body.mode-dashboard .workspace { display: none; }
+    body.mode-dashboard .dashboard-view { display: flex; }
+    .dashboard-view-frame-wrap {
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      display: flex;
+    }
+    #dashboard-iframe {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      border: 0;
+      background: var(--bg);
+    }
+    /* mode-switch 第 3 项 active 态 */
+    body.mode-dashboard #logo-mode-switch::before {
+      left: calc(50% + 60px);
+    }
+    body.mode-dashboard #dashboard-mode-btn .logo-mode-icon,
+    body.mode-dashboard #dashboard-mode-btn .logo-mode-text {
+      color: var(--text);
+    }
+    body.mode-dashboard #dashboard-mode-btn {
+      color: var(--text);
+    }
+
     .left-column {
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
@@ -5464,6 +5500,17 @@
               </span>
               <span class="logo-mode-text">解析</span>
             </button>
+            <button id="dashboard-mode-btn" class="logo-mode-btn" type="button" title="仪表盘 v3 prototype (可交互体验)">
+              <span class="logo-mode-icon" aria-hidden="true">
+                <svg viewBox="0 0 16 16">
+                  <rect x="2" y="2.5" width="5" height="5" rx="1"></rect>
+                  <rect x="9" y="2.5" width="5" height="5" rx="1"></rect>
+                  <rect x="2" y="9" width="5" height="5" rx="1"></rect>
+                  <rect x="9" y="9" width="5" height="5" rx="1"></rect>
+                </svg>
+              </span>
+              <span class="logo-mode-text">仪表盘</span>
+            </button>
           </div>
         </div>
       </section>
@@ -5924,6 +5971,12 @@
         </section>
       </section>
     </main>
+
+    <section id="dashboard-view" class="dashboard-view" aria-hidden="true">
+      <div class="dashboard-view-frame-wrap">
+        <iframe id="dashboard-iframe" src="about:blank" title="SerialCube Dashboard v3 Prototype" loading="lazy"></iframe>
+      </div>
+    </section>
   </div>
 
   <input id="timeline-file-input" type="file" class="hidden" accept=".csv,.txt,.bin,.timeline">
@@ -6065,6 +6118,9 @@
         topbar: document.getElementById('app-topbar'),
         serialModeBtn: document.getElementById('serial-mode-btn'),
         parserModeBtn: document.getElementById('parser-mode-btn'),
+        dashboardModeBtn: document.getElementById('dashboard-mode-btn'),
+        dashboardView: document.getElementById('dashboard-view'),
+        dashboardIframe: document.getElementById('dashboard-iframe'),
         statusPill: document.querySelector('.status-pill'),
         logoModeSwitch: document.getElementById('logo-mode-switch'),
         serialStatusDot: document.getElementById('serial-status-dot'),
@@ -7770,6 +7826,28 @@
         applyLayout();
         scheduleRefresh();
         scheduleLocalPrefsSave();
+      }
+
+      // Dashboard v3 prototype 模式切换 (v3 设计, 加载 prototype/dashboard-v3.html)
+      function enterDashboardMode() {
+        if (appEl.classList.contains('mode-dashboard')) return;
+        appEl.classList.add('mode-dashboard');
+        refs.dashboardModeBtn?.classList.add('is-active');
+        refs.serialModeBtn?.classList.remove('is-active');
+        refs.parserModeBtn?.classList.remove('is-active');
+        if (refs.dashboardIframe && (!refs.dashboardIframe.src || refs.dashboardIframe.src.endsWith('about:blank'))) {
+          refs.dashboardIframe.src = 'prototype/dashboard-v3.html';
+        }
+      }
+      function exitDashboardMode() {
+        if (!appEl.classList.contains('mode-dashboard')) return;
+        appEl.classList.remove('mode-dashboard');
+        refs.dashboardModeBtn?.classList.remove('is-active');
+        // 卸载 iframe 释放内存
+        if (refs.dashboardIframe) refs.dashboardIframe.src = 'about:blank';
+        // 恢复默认 active
+        if (state.layoutExpanded) refs.parserModeBtn?.classList.add('is-active');
+        else refs.serialModeBtn?.classList.add('is-active');
       }
 
       function arrangeWorkspacePanels() {
@@ -15279,6 +15357,13 @@
         refs.layoutToggleBtn.addEventListener('click', toggleLayoutMode);
         refs.serialModeBtn?.addEventListener('click', toggleLayoutMode);
         refs.parserModeBtn?.addEventListener('click', toggleLayoutMode);
+        refs.dashboardModeBtn?.addEventListener('click', () => {
+          if (appEl.classList.contains('mode-dashboard')) {
+            exitDashboardMode();
+          } else {
+            enterDashboardMode();
+          }
+        });
         refs.mobileConfigBackdrop.addEventListener('click', () => {
           closeTimelinePicker();
           setCompactConfigOpen(false);

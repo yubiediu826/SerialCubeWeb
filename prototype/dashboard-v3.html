@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SerialCube Dashboard v3 Prototype</title>
+  <style>
+    /* ============================================
+       Design Tokens (from DESIGN.md "The Engineer's Workbench")
+       ============================================ */
+    :root {
+      color-scheme: light;
+      --bg: #ffffff;
+      --bg-elevated: rgba(255, 255, 255, 0.92);
+      --bg-panel: rgba(255, 255, 255, 0.84);
+      --bg-panel-strong: rgba(255, 255, 255, 0.94);
+      --bg-terminal: #f6f6f7;
+      --border: rgba(60, 60, 67, 0.16);
+      --border-strong: rgba(60, 60, 67, 0.24);
+      --text: #3c3c43;
+      --text-soft: #67676c;
+      --accent: #5672cd;
+      --accent-strong: #3451b2;
+      --accent-soft: rgba(100, 108, 255, 0.14);
+      --signal: #3a5ccc;
+      --success: #22c55e;            /* ⭐ v3 NEW */
+      --warning: #d97706;
+      --danger: #e0575e;
+      --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.07);
+      --shadow-ambient: 0 18px 48px rgba(0, 0, 0, 0.10);
+      --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      --grid-gap: 10px;
+      --radius: 14px;
+      --radius-small: 10px;
+    }
+    body.theme-dark {
+      --bg: #1b1b1f;
+      --bg-elevated: rgba(32, 33, 39, 0.92);
+      --bg-panel: rgba(32, 33, 39, 0.86);
+      --bg-panel-strong: rgba(32, 33, 39, 0.96);
+      --bg-terminal: #161618;
+      --border: rgba(60, 63, 68, 0.32);
+      --border-strong: rgba(60, 63, 68, 0.44);
+      --text: #dfdfd6;
+      --text-soft: #98989f;
+      --accent: #818cf8;
+      --accent-strong: #c7d2fe;
+      --accent-soft: rgba(129, 140, 248, 0.16);
+      --signal: #6366f1;
+      --success: #4ade80;
+      --warning: #ffb14d;
+      --danger: #f87171;
+      --shadow-ambient: 0 24px 54px rgba(0, 0, 0, 0.38);
+    }
+
+    /* ============================================
+       Base Layout
+       ============================================ */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh;
+    }
+
+    .app-shell { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* Topbar (简化) */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 52px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-panel);
+    }
+    .brand-title { font-size: 16px; font-weight: 800; letter-spacing: 0.03em; }
+    .brand-subtitle { font-size: 11px; color: var(--text-soft); margin-left: 8px; }
+    .topbar-actions { display: flex; gap: 8px; }
+    .icon-btn {
+      width: 32px; height: 32px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 14px; color: var(--text-soft);
+      transition: color 0.18s ease, border-color 0.18s ease;
+    }
+    .icon-btn:hover { color: var(--accent); border-color: var(--border-strong); }
+    .icon-btn.primary { background: var(--accent); color: white; border-color: transparent; }
+    .icon-btn.primary:hover { background: var(--accent-strong); }
+
+    /* Command Panel */
+    .command-panel {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .cmd-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 11px; font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .cmd-chip .cmd-id {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+      padding: 1px 5px; border-radius: 4px;
+      background: var(--bg-terminal); color: var(--text);
+    }
+    .cmd-chip.rx.selected .cmd-id { background: var(--signal); color: white; }
+    .cmd-chip.tx.selected .cmd-id { background: var(--accent); color: white; }
+    .cmd-chip.rx:hover { border-color: var(--signal); }
+    .cmd-chip.tx:hover { border-color: var(--accent); }
+    .cmd-chip.selected { background: var(--accent-soft); border-color: var(--accent); }
+    .cmd-chip .dir-badge {
+      font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+      padding: 1px 4px; border-radius: 3px; letter-spacing: 0.04em;
+    }
+    .cmd-chip.rx .dir-badge { background: rgba(58, 92, 204, 0.12); color: var(--signal); }
+    .cmd-chip.tx .dir-badge { background: var(--accent-soft); color: var(--accent-strong); }
+    .cmd-chip-label { font-size: 11px; color: var(--text-soft); margin-right: 4px; }
+
+    /* KPI Stat Strip (96px 等高) */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: var(--grid-gap);
+      padding: 12px 16px;
+      background: var(--bg);
+    }
+    .kpi-card {
+      height: 72px;
+      padding: 10px 12px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex; flex-direction: column; justify-content: space-between;
+      cursor: pointer;
+      transition: border-color 0.15s ease;
+    }
+    .kpi-card:hover { border-color: var(--border-strong); }
+    .kpi-card.alert-warning { border-color: var(--warning); }
+    .kpi-card.alert-danger { border-color: var(--danger); }
+    .kpi-head { display: flex; align-items: center; justify-content: space-between; }
+    .kpi-title { font-size: 10px; font-weight: 700; color: var(--text-soft); letter-spacing: 0.04em; text-transform: uppercase; }
+    .kpi-cmd { font-family: var(--font-mono); font-size: 9px; color: var(--text-soft); padding: 1px 4px; background: var(--bg-terminal); border-radius: 3px; }
+    .kpi-value { font-family: var(--font-mono); font-size: 22px; font-weight: 800; line-height: 1; color: var(--text); }
+    .kpi-value .unit { font-size: 11px; color: var(--text-soft); margin-left: 3px; font-weight: 600; }
+    .kpi-card.pair .kpi-pair-row { display: flex; gap: 6px; font-family: var(--font-mono); }
+    .kpi-card.pair .kpi-pair-row .label { font-size: 9px; color: var(--text-soft); font-weight: 700; }
+    .kpi-card.pair .kpi-pair-row .val-set { font-size: 12px; color: var(--text-soft); font-weight: 700; }
+    .kpi-card.pair .kpi-pair-row .val-act { font-size: 12px; color: var(--text); font-weight: 800; }
+    .kpi-card.pair .kpi-delta { font-family: var(--font-mono); font-size: 11px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+    .kpi-card.pair .kpi-delta.ok { background: rgba(34, 197, 94, 0.14); color: var(--success); }
+    .kpi-card.pair .kpi-delta.warn { background: rgba(217, 119, 6, 0.14); color: var(--warning); }
+    .kpi-card.pair .kpi-delta.bad { background: rgba(224, 87, 94, 0.14); color: var(--danger); }
+
+    /* Card Grid */
+    .card-grid-area {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--grid-gap);
+      padding: 0 16px 16px;
+      flex: 1;
+      align-content: start;
+    }
+    .card-add-slot {
+      height: 200px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-soft); font-size: 32px; font-weight: 200;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .card-add-slot:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Default Card (200px 强约束等高) */
+    .card-default {
+      height: 200px;
+      padding: 12px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: grid;
+      grid-template-rows: 28px 1fr 44px 24px;
+      grid-template-areas:
+        "header"
+        "value"
+        "trend"
+        "footer";
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .card-default:hover { box-shadow: var(--shadow-soft); }
+    .card-default.alert-warning { border-color: var(--warning); }
+    .card-default.alert-danger { border-color: var(--danger); }
+    .card-default.rx-only { /* border stays normal but badge shows */ }
+    .card-header {
+      grid-area: header;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 6px;
+    }
+    .card-title-group { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .status-ring {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+      background: var(--success);
+    }
+    .status-ring.warn { background: var(--warning); }
+    .status-ring.danger { background: var(--danger); }
+    .status-ring.offline { background: var(--text-soft); }
+    .status-ring.rx { background: var(--signal); }
+    .card-title {
+      font-size: 12px; font-weight: 700; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .card-unit { font-size: 10px; color: var(--text-soft); font-weight: 600; }
+    .card-actions { display: flex; gap: 2px; }
+    .card-action {
+      width: 22px; height: 22px;
+      background: transparent; border: none; border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--text-soft); font-size: 11px;
+      transition: all 0.15s ease;
+    }
+    .card-action:hover { background: var(--accent-soft); color: var(--accent); }
+    .card-action.disabled, .card-action:disabled {
+      opacity: 0.4; cursor: not-allowed; pointer-events: none;
+    }
+    .rx-badge {
+      position: absolute; top: 8px; right: 8px;
+      font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+      padding: 2px 5px;
+      background: var(--signal); color: white;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+    .card-value {
+      grid-area: value;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 28px; font-weight: 800; line-height: 1;
+      color: var(--text);
+    }
+    .card-value .unit { font-size: 13px; color: var(--text-soft); margin-left: 4px; font-weight: 600; }
+    .card-value.pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 4px;
+      font-size: 14px;
+    }
+    .pair-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .pair-cell .label { font-size: 9px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; }
+    .pair-cell .val { font-family: var(--font-mono); font-size: 16px; font-weight: 800; }
+    .pair-cell.setpoint .val { color: var(--text-soft); font-weight: 700; }
+    .pair-cell.actual .val { color: var(--text); font-weight: 800; }
+    .pair-cell.delta .val { font-size: 13px; padding: 2px 6px; border-radius: 4px; }
+    .pair-cell.delta .val.ok { background: rgba(34, 197, 94, 0.14); color: var(--success); }
+    .pair-cell.delta .val.warn { background: rgba(217, 119, 6, 0.14); color: var(--warning); }
+    .pair-cell.delta .val.bad { background: rgba(224, 87, 94, 0.14); color: var(--danger); }
+    .card-trend {
+      grid-area: trend;
+      width: 100%; height: 100%;
+      position: relative;
+    }
+    .card-trend canvas { width: 100%; height: 100%; display: block; }
+    .card-footer {
+      grid-area: footer;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-soft);
+    }
+    .card-footer .range { font-family: var(--font-mono); }
+    .card-footer .status-text { font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    .card-footer .status-text.ok { color: var(--success); }
+    .card-footer .status-text.warn { color: var(--warning); }
+    .card-footer .status-text.bad { color: var(--danger); }
+
+    /* Alert Drawer (右侧 320px) */
+    .alert-drawer {
+      position: fixed;
+      right: 16px; bottom: 16px;
+      width: 320px;
+      max-height: 50vh;
+      background: var(--bg-panel-strong);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .alert-drawer-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      color: var(--text-soft);
+    }
+    .alert-list { overflow-y: auto; flex: 1; }
+    .alert-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 6px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      align-items: center;
+    }
+    .alert-item .alert-time { font-family: var(--font-mono); font-size: 10px; color: var(--text-soft); }
+    .alert-item .alert-msg { color: var(--text); }
+    .alert-item .alert-cmd { font-family: var(--font-mono); font-size: 9px; padding: 1px 4px; border-radius: 3px; background: var(--bg-terminal); }
+    .alert-item .alert-cmd.rx { background: rgba(58, 92, 204, 0.12); color: var(--signal); }
+    .alert-item .alert-cmd.tx { background: var(--accent-soft); color: var(--accent-strong); }
+    .alert-item .alert-level {
+      font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+      padding: 2px 5px; border-radius: 3px; letter-spacing: 0.04em;
+    }
+    .alert-item .alert-level.warn { background: rgba(217, 119, 6, 0.14); color: var(--warning); }
+    .alert-item .alert-level.danger { background: rgba(224, 87, 94, 0.14); color: var(--danger); }
+    .alert-item.mismatch { background: rgba(224, 87, 94, 0.06); }
+    .alert-item .ack-btn {
+      width: 22px; height: 22px;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 6px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--text-soft); font-size: 10px;
+    }
+    .alert-item .ack-btn:hover { background: var(--accent-soft); color: var(--accent); }
+
+    /* Detail Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(2px);
+      display: none;
+      z-index: 100;
+    }
+    .modal-backdrop.open { display: block; }
+    .detail-modal {
+      position: fixed;
+      top: 5vh; left: 50%; transform: translateX(-50%);
+      width: min(1440px, calc(100vw - 64px));
+      max-height: 90vh;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-ambient);
+      display: none;
+      flex-direction: column;
+      z-index: 101;
+      overflow: hidden;
+    }
+    .detail-modal.open { display: flex; }
+    .detail-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-header .close-btn {
+      width: 28px; height: 28px;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 8px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 14px; color: var(--text-soft);
+    }
+    .detail-header .close-btn:hover { background: var(--accent-soft); color: var(--accent); }
+    .detail-title { font-size: 16px; font-weight: 800; }
+    .detail-cmd-badge {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+      padding: 3px 8px; border-radius: 6px;
+      background: rgba(58, 92, 204, 0.12); color: var(--signal);
+    }
+    .detail-cmd-badge.tx { background: var(--accent-soft); color: var(--accent-strong); }
+    .detail-range { font-family: var(--font-mono); font-size: 11px; color: var(--text-soft); }
+    .detail-status-badge {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+      padding: 3px 8px; border-radius: 4px;
+      background: rgba(34, 197, 94, 0.14); color: var(--success);
+      text-transform: uppercase;
+    }
+    .detail-status-badge.warn { background: rgba(217, 119, 6, 0.14); color: var(--warning); }
+    .detail-status-badge.danger { background: rgba(224, 87, 94, 0.14); color: var(--danger); }
+    .detail-tabs-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-subtabs { display: flex; gap: 0; }
+    .detail-subtab {
+      padding: 12px 16px;
+      background: transparent; border: none; cursor: pointer;
+      font-size: 12px; font-weight: 600;
+      color: var(--text-soft);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+    }
+    .detail-subtab:hover { color: var(--text); }
+    .detail-subtab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .detail-toolbar { display: flex; align-items: center; gap: 12px; }
+    .time-toggle {
+      display: inline-flex; background: var(--bg-terminal);
+      border: 1px solid var(--border); border-radius: 8px; padding: 2px;
+    }
+    .time-toggle button {
+      padding: 4px 10px;
+      background: transparent; border: none; cursor: pointer;
+      font-size: 11px; font-weight: 600; color: var(--text-soft);
+      border-radius: 6px;
+    }
+    .time-toggle button.active { background: var(--bg); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .chart-type-select {
+      padding: 5px 10px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; font-size: 11px; font-weight: 600;
+      color: var(--text); cursor: pointer;
+    }
+    .detail-body { flex: 1; overflow: auto; padding: 20px; }
+    .detail-chart-area {
+      width: 100%; height: 280px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .detail-chart-area canvas { width: 100%; height: 100%; display: block; }
+    .detail-stats {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .stat-cell {
+      padding: 12px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .stat-cell .stat-label { font-size: 10px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    .stat-cell .stat-value { font-family: var(--font-mono); font-size: 20px; font-weight: 800; margin-top: 4px; }
+    .stat-cell .stat-value .unit { font-size: 11px; color: var(--text-soft); margin-left: 3px; font-weight: 600; }
+    .detail-kv-list { display: grid; grid-template-columns: 200px 1fr; gap: 8px 16px; }
+    .detail-kv-list .kv-key { font-size: 11px; color: var(--text-soft); font-weight: 700; }
+    .detail-kv-list .kv-val { font-family: var(--font-mono); font-size: 12px; color: var(--text); }
+
+    /* Theme toggle */
+    .theme-toggle-btn { font-size: 12px; }
+
+    /* Hide native scrollbar styling */
+    .alert-list::-webkit-scrollbar, .detail-body::-webkit-scrollbar, .command-panel::-webkit-scrollbar { width: 6px; height: 6px; }
+    .alert-list::-webkit-scrollbar-thumb, .detail-body::-webkit-scrollbar-thumb, .command-panel::-webkit-scrollbar-thumb { background: rgba(86, 114, 205, 0.46); border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <span class="brand-title">SerialCube</span>
+        <span class="brand-subtitle">Dashboard v3 Prototype</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn theme-toggle-btn" id="theme-toggle" title="切换主题">☀</button>
+        <button class="icon-btn" id="reset-btn" title="重置数据">↻</button>
+      </div>
+    </header>
+
+    <div class="command-panel" id="command-panel">
+      <span class="cmd-chip-label">命令:</span>
+      <!-- 动态填充 -->
+    </div>
+
+    <div class="kpi-strip" id="kpi-strip">
+      <!-- 动态填充 -->
+    </div>
+
+    <div class="card-grid-area" id="card-grid">
+      <!-- 动态填充 -->
+    </div>
+  </div>
+
+  <div class="alert-drawer" id="alert-drawer">
+    <div class="alert-drawer-head">
+      <span>告警 (3)</span>
+      <button class="icon-btn" id="alert-toggle" style="width:24px; height:24px; font-size:11px;">−</button>
+    </div>
+    <div class="alert-list" id="alert-list">
+      <!-- 动态填充 -->
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-backdrop"></div>
+  <div class="detail-modal" id="detail-modal">
+    <div class="detail-header">
+      <button class="close-btn" id="detail-close">×</button>
+      <span class="detail-title" id="detail-title">—</span>
+      <span class="detail-cmd-badge" id="detail-cmd">—</span>
+      <span class="detail-range" id="detail-range">—</span>
+      <span style="flex: 1;"></span>
+      <span class="detail-status-badge" id="detail-status">OK</span>
+    </div>
+    <div class="detail-tabs-row">
+      <div class="detail-subtabs">
+        <button class="detail-subtab active" data-subtab="realtime">实时</button>
+        <button class="detail-subtab" data-subtab="modbus">通用 Modbus</button>
+        <button class="detail-subtab" data-subtab="device">设备</button>
+        <button class="detail-subtab" data-subtab="query">查询状态</button>
+      </div>
+      <div class="detail-toolbar">
+        <div class="time-toggle">
+          <button class="active" data-time="realtime">实时 60s</button>
+          <button data-time="history">历史</button>
+        </div>
+        <select class="chart-type-select" id="chart-type">
+          <option value="line">折线</option>
+          <option value="bar">柱状</option>
+          <option value="area">面积</option>
+          <option value="scatter">散点</option>
+          <option value="histogram">直方</option>
+        </select>
+      </div>
+    </div>
+    <div class="detail-body" id="detail-body">
+      <!-- 动态填充 -->
+    </div>
+  </div>
+
+  <script>
+  /* ============================================
+     SerialCube Dashboard v3 Prototype
+     Mock data + interactive UI
+     ============================================ */
+
+  // --- Mock Protocol Commands ---
+  const COMMANDS = [
+    { id: 0x01, name: 'Read Voltage', direction: 'rx', fields: ['cell_1_v', 'cell_2_v', 'cell_3_v', 'cell_4_v'] },
+    { id: 0x02, name: 'Read Current', direction: 'rx', fields: ['pack_i'] },
+    { id: 0x03, name: 'Read Temp',    direction: 'rx', fields: ['temperature'] },
+    { id: 0x10, name: 'Control Charge', direction: 'tx', fields: ['charge_v_set', 'charge_i_set'] },
+    { id: 0x11, name: 'Control Disch',  direction: 'tx', fields: ['discharge_v_set'] }
+  ];
+
+  // --- Card Definitions (v3: 等高 200px) ---
+  // fromOtherCmd: true = RX-only 永久只读
+  const CARDS = [
+    { id: 'c1', cmd: 0x01, dir: 'rx', field: 'cell_1_v',  title: 'Cell 1 电压', unit: 'V',  range: [2.8, 4.2], precision: 3, fromOtherCmd: true,  action: 'read' },
+    { id: 'c2', cmd: 0x01, dir: 'rx', field: 'cell_2_v',  title: 'Cell 2 电压', unit: 'V',  range: [2.8, 4.2], precision: 3, fromOtherCmd: true,  action: 'read' },
+    { id: 'c3', cmd: 0x01, dir: 'rx', field: 'cell_3_v',  title: 'Cell 3 电压', unit: 'V',  range: [2.8, 4.2], precision: 3, fromOtherCmd: true,  action: 'read' },
+    { id: 'c4', cmd: 0x01, dir: 'rx', field: 'cell_4_v',  title: 'Cell 4 电压', unit: 'V',  range: [2.8, 4.2], precision: 3, fromOtherCmd: true,  action: 'read' },
+    { id: 'c5', cmd: 0x02, dir: 'rx', field: 'pack_i',    title: 'Pack 电流',  unit: 'A',  range: [-50, 50], precision: 2, fromOtherCmd: true,  action: 'read' },
+    { id: 'c6', cmd: 0x03, dir: 'rx', field: 'temperature', title: '温度',     unit: '°C', range: [-20, 60], precision: 1, fromOtherCmd: true,  action: 'read' },
+    { id: 'c7', type: 'pair', pairId: 'charge_v', title: '充电电压 (Pair)', unit: 'V', precision: 2, fromOtherCmd: false, action: 'pair' },
+    { id: 'c8', cmd: 0x10, dir: 'tx', field: 'charge_v_set', title: '充电设定 (TX)', unit: 'V', precision: 1, fromOtherCmd: false, action: 'send' }
+  ];
+
+  // --- KPI Definitions ---
+  const KPIS = [
+    { id: 'k1', cmd: 0x01, dir: 'rx', field: 'cell_1_v', title: 'Cell 1 电压', unit: 'V', precision: 2, kind: 'single' },
+    { id: 'k2', cmd: 0x02, dir: 'rx', field: 'pack_i',   title: 'Pack 电流', unit: 'A', precision: 2, kind: 'single' },
+    { id: 'k3', cmd: 0x03, dir: 'rx', field: 'temperature', title: '温度',  unit: '°C', precision: 1, kind: 'single' },
+    { id: 'k4', cmd: 0x01, dir: 'rx', field: 'pack_v_avg', title: '平均电压', unit: 'V', precision: 2, kind: 'single', computed: true },
+    { id: 'k5', kind: 'pair', pairId: 'charge_v', title: '充电电压 (Pair)' },
+    { id: 'k6', cmd: 0x01, dir: 'rx', field: 'soc', title: 'SOC', unit: '%', precision: 1, kind: 'single' }
+  ];
+
+  // --- Mock Data Generator ---
+  // 时序数据 ring buffer, 每字段 60 点
+  const trendData = {};   // key: 'cmd.field' -> [{t, v}]
+  const currentVals = {}; // key: field -> latest value
+  const DATA_INIT_TS = Date.now();
+
+  function initMockData() {
+    COMMANDS.forEach(cmd => {
+      cmd.fields.forEach(field => {
+        const key = `${cmd.id.toString(16).padStart(2, '0').toUpperCase()}.${field}`;
+        if (field === 'charge_v_set') currentVals[field] = 56.0;
+        else if (field === 'charge_i_set') currentVals[field] = 10.0;
+        else if (field === 'discharge_v_set') currentVals[field] = 0;
+        else if (field === 'cell_1_v') currentVals[field] = 3.71;
+        else if (field === 'cell_2_v') currentVals[field] = 3.72;
+        else if (field === 'cell_3_v') currentVals[field] = 3.69;
+        else if (field === 'cell_4_v') currentVals[field] = 3.73;
+        else if (field === 'pack_i') currentVals[field] = 1.2;
+        else if (field === 'temperature') currentVals[field] = 25.3;
+        else if (field === 'pack_v_avg') currentVals[field] = 3.71;
+        else if (field === 'soc') currentVals[field] = 87.5;
+        else currentVals[field] = 0;
+        trendData[key] = [];
+        const now = Date.now();
+        for (let i = 60; i >= 1; i--) {
+          const t = now - i * 1000;
+          trendData[key].push({ t, v: jitter(currentVals[field], field) });
+        }
+      });
+    });
+  }
+
+  function jitter(base, field) {
+    if (field === 'charge_v_set' || field === 'discharge_v_set') return base; // 设定值不变
+    const ranges = {
+      'cell_1_v': 0.03, 'cell_2_v': 0.03, 'cell_3_v': 0.03, 'cell_4_v': 0.03,
+      'pack_i': 0.4, 'temperature': 0.5, 'soc': 0.3
+    };
+    const r = ranges[field] || 0.05;
+    return base + (Math.random() - 0.5) * 2 * r;
+  }
+
+  // 模拟实时数据流
+  function tickData() {
+    COMMANDS.forEach(cmd => {
+      cmd.fields.forEach(field => {
+        if (field === 'charge_v_set' || field === 'discharge_v_set') return;
+        const base = currentVals[field];
+        currentVals[field] = jitter(base, field);
+        // 偶尔让 cell 1 越上限触发告警
+        if (field === 'cell_1_v' && Math.random() < 0.04) {
+          currentVals[field] = 4.25 + Math.random() * 0.05;
+        }
+        const key = `${cmd.id.toString(16).padStart(2, '0').toUpperCase()}.${field}`;
+        trendData[key].push({ t: Date.now(), v: currentVals[field] });
+        if (trendData[key].length > 60) trendData[key].shift();
+      });
+    });
+    // pack_v_avg = avg of cells
+    currentVals.pack_v_avg = (currentVals.cell_1_v + currentVals.cell_2_v + currentVals.cell_3_v + currentVals.cell_4_v) / 4;
+    trendData['00_NA.pack_v_avg'].push({ t: Date.now(), v: currentVals.pack_v_avg });
+    if (trendData['00_NA.pack_v_avg'].length > 60) trendData['00_NA.pack_v_avg'].shift();
+    updateAll();
+  }
+
+  // --- 状态 ---
+  let selectedCmd = 'all';        // 'all' | '0x01' | '0x02' | ...
+  let currentSubTab = 'realtime';
+  let currentTimeMode = 'realtime';
+  let currentChartType = 'line';
+  let detailCardId = null;
+  let detailCmdFilter = 'all';
+
+  // --- Render: Command Panel ---
+  function renderCommandPanel() {
+    const el = document.getElementById('command-panel');
+    el.innerHTML = '<span class="cmd-chip-label">命令:</span>';
+    // 全部
+    const allChip = document.createElement('button');
+    allChip.className = 'cmd-chip rx' + (selectedCmd === 'all' ? ' selected' : '');
+    allChip.innerHTML = '<span class="dir-badge">ALL</span><span>全部命令</span>';
+    allChip.onclick = () => { selectedCmd = 'all'; renderCommandPanel(); renderKpiStrip(); renderCardGrid(); };
+    el.appendChild(allChip);
+    // 每条命令
+    COMMANDS.forEach(cmd => {
+      const chip = document.createElement('button');
+      const idHex = cmd.id.toString(16).padStart(2, '0').toUpperCase();
+      chip.className = `cmd-chip ${cmd.direction}` + (selectedCmd === idHex ? ' selected' : '');
+      chip.innerHTML = `<span class="dir-badge">${cmd.direction.toUpperCase()}</span><span class="cmd-id">${idHex}</span><span>${cmd.name}</span>`;
+      chip.onclick = () => { selectedCmd = idHex; renderCommandPanel(); renderKpiStrip(); renderCardGrid(); };
+      el.appendChild(chip);
+    });
+  }
+
+  // --- Render: KPI Strip ---
+  function renderKpiStrip() {
+    const el = document.getElementById('kpi-strip');
+    el.innerHTML = '';
+    const filtered = KPIS.filter(k => selectedCmd === 'all' || matchCmd(k, selectedCmd));
+    filtered.forEach(k => {
+      const card = document.createElement('div');
+      card.className = 'kpi-card' + (k.kind === 'pair' ? ' pair' : '');
+      if (k.kind === 'pair') {
+        const set = currentVals.charge_v_set;
+        const act = currentVals.pack_v_avg * 15; // 模拟 pack_v
+        const delta = act - set;
+        const dCls = Math.abs(delta) < 0.5 ? 'ok' : Math.abs(delta) < 1.0 ? 'warn' : 'bad';
+        const cmd = COMMANDS.find(c => c.fields.includes('charge_v_set'));
+        const cmdHex = cmd.id.toString(16).padStart(2, '0').toUpperCase();
+        card.innerHTML = `
+          <div class="kpi-head">
+            <span class="kpi-title">${k.title}</span>
+            <span class="kpi-cmd">0x10→0x80</span>
+          </div>
+          <div class="kpi-pair-row">
+            <span><span class="label">设</span> <span class="val-set">${set.toFixed(1)}V</span></span>
+            <span><span class="label">实</span> <span class="val-act">${act.toFixed(1)}V</span></span>
+            <span class="kpi-delta ${dCls}">Δ ${delta.toFixed(1)}</span>
+          </div>
+        `;
+      } else {
+        const v = currentVals[k.field] || 0;
+        const range = getFieldRange(k.field);
+        const alert = checkAlert(v, range);
+        const cmd = COMMANDS.find(c => c.fields.includes(k.field));
+        const cmdHex = cmd ? cmd.id.toString(16).padStart(2, '0').toUpperCase() : '??';
+        card.className += alert ? ` alert-${alert}` : '';
+        card.innerHTML = `
+          <div class="kpi-head">
+            <span class="kpi-title">${k.title}</span>
+            <span class="kpi-cmd">${cmdHex} ${k.dir || 'rx'}</span>
+          </div>
+          <div class="kpi-value">${v.toFixed(k.precision || 2)}<span class="unit">${k.unit}</span></div>
+        `;
+      }
+      el.appendChild(card);
+    });
+  }
+
+  // --- Render: Card Grid ---
+  function renderCardGrid() {
+    const el = document.getElementById('card-grid');
+    el.innerHTML = '';
+    const filtered = CARDS.filter(c => selectedCmd === 'all' || matchCard(c, selectedCmd));
+    filtered.forEach(c => {
+      const cardEl = renderCard(c);
+      el.appendChild(cardEl);
+    });
+    // + 槽位
+    const add = document.createElement('div');
+    add.className = 'card-add-slot';
+    add.textContent = '+';
+    add.onclick = () => alert('编辑模式未启用 — 体验时主要测试已配卡片的交互');
+    el.appendChild(add);
+  }
+
+  function renderCard(c) {
+    const card = document.createElement('div');
+    if (c.type === 'pair') {
+      const set = currentVals.charge_v_set;
+      const act = currentVals.pack_v_avg * 15;
+      const delta = act - set;
+      const dCls = Math.abs(delta) < 0.5 ? 'ok' : Math.abs(delta) < 1.0 ? 'warn' : 'bad';
+      const pairState = Math.abs(delta) < 0.5 ? 'ok' : 'warn';
+      card.className = 'card-default alert-' + (pairState === 'ok' ? '' : pairState);
+      card.innerHTML = `
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="status-ring ${pairState === 'ok' ? '' : pairState}"></span>
+            <span class="card-title">${c.title}</span>
+            <span class="card-unit">${c.unit}</span>
+          </div>
+          <div class="card-actions">
+            <button class="card-action" title="60s 窗口">↓</button>
+            <button class="card-action" title="全部历史">↑</button>
+            <button class="card-action" title="Pair 对比详情" onclick="event.stopPropagation(); openDetail('${c.id}')">⇄</button>
+            <button class="card-action" title="Pair 状态">⚙</button>
+          </div>
+        </div>
+        <div class="card-value pair">
+          <div class="pair-cell setpoint"><div class="label">SET</div><div class="val">${set.toFixed(1)}</div></div>
+          <div class="pair-cell actual"><div class="label">ACT</div><div class="val">${act.toFixed(1)}</div></div>
+          <div class="pair-cell delta"><div class="label">Δ</div><div class="val ${dCls}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</div></div>
+        </div>
+        <div class="card-trend"><canvas id="trend-${c.id}"></canvas></div>
+        <div class="card-footer">
+          <span class="range">容差 ±0.5V</span>
+          <span class="status-text ${pairState}">${pairState === 'ok' ? '✓ 在范围内' : '⚠ 偏离'}</span>
+        </div>
+      `;
+    } else {
+      const v = currentVals[c.field] || 0;
+      const alert = checkAlert(v, c.range);
+      const ring = c.fromOtherCmd ? 'rx' : (alert || 'normal');
+      const stateLabel = c.fromOtherCmd ? 'RX' : (alert === 'danger' ? '⚠ 越限' : alert === 'warning' ? '⚠ 警告' : '✓ 正常');
+      const stateClass = c.fromOtherCmd ? 'rx' : (alert || 'ok');
+      const cmdHex = c.cmd.toString(16).padStart(2, '0').toUpperCase();
+      card.className = 'card-default' + (alert ? ' alert-' + alert : '') + (c.fromOtherCmd ? ' rx-only' : '');
+      const statusAction = c.fromOtherCmd ? 'disabled' : '';
+      const statusActionTitle = c.fromOtherCmd ? 'RX-only, 不可写入' : getStatusActionTitle(c.action, alert);
+      card.innerHTML = `
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="status-ring ${ring}"></span>
+            <span class="card-title">${c.title}</span>
+            <span class="card-unit">${c.unit}</span>
+          </div>
+          <div class="card-actions">
+            <button class="card-action" title="60s 窗口">↓</button>
+            <button class="card-action" title="全部历史">↑</button>
+            <button class="card-action ${statusAction}" title="${statusActionTitle}" ${statusAction}>${getStatusActionIcon(c.action, alert, c.fromOtherCmd)}</button>
+            <button class="card-action" title="详情" onclick="event.stopPropagation(); openDetail('${c.id}')">⚙</button>
+          </div>
+        </div>
+        ${c.fromOtherCmd ? '<span class="rx-badge">RX</span>' : ''}
+        <div class="card-value" onclick="openDetail('${c.id}')">${v.toFixed(c.precision)}<span class="unit">${c.unit}</span></div>
+        <div class="card-trend" onclick="openDetail('${c.id}')"><canvas id="trend-${c.id}"></canvas></div>
+        <div class="card-footer">
+          <span class="range">范围 ${c.range[0]} - ${c.range[1]}${c.unit}</span>
+          <span class="status-text ${stateClass}">${stateLabel}</span>
+        </div>
+      `;
+    }
+    return card;
+  }
+
+  function getStatusActionIcon(action, alert, rxOnly) {
+    if (rxOnly) return '🔒';
+    if (action === 'send') return '↗';
+    if (action === 'read') return alert ? '✓' : '↻';
+    return '⚙';
+  }
+  function getStatusActionTitle(action, alert) {
+    if (action === 'send') return '触发一次发送';
+    if (action === 'read') return alert ? '确认告警' : '强制刷新';
+    return '操作';
+  }
+
+  // --- Helpers ---
+  function matchCmd(k, cmdHex) {
+    if (k.kind === 'pair') return true; // pair 跨多 cmd
+    if (!k.cmd) return true;
+    const kHex = k.cmd.toString(16).padStart(2, '0').toUpperCase();
+    return kHex === cmdHex;
+  }
+  function matchCard(c, cmdHex) {
+    if (c.type === 'pair') return true;
+    if (!c.cmd) return true;
+    const cHex = c.cmd.toString(16).padStart(2, '0').toUpperCase();
+    return cHex === cmdHex;
+  }
+  function getFieldRange(field) {
+    const c = CARDS.find(c => c.field === field);
+    return c ? c.range : [0, 100];
+  }
+  function checkAlert(v, range) {
+    if (!range) return null;
+    const [lo, hi] = range;
+    if (v < lo * 0.85 || v > hi * 1.05) return 'danger';
+    if (v < lo * 0.95 || v > hi * 1.02) return 'warning';
+    return null;
+  }
+
+  // --- Render: Alert Drawer ---
+  function renderAlerts() {
+    const el = document.getElementById('alert-list');
+    const v = currentVals.cell_1_v;
+    const range = [2.8, 4.2];
+    const items = [];
+    if (v > range[1] * 1.05) {
+      items.push({ time: nowStr(), cmd: '0x01', dir: 'rx', msg: `Cell 1 电压 ${v.toFixed(2)}V > ${(range[1]*1.05).toFixed(2)}V`, level: 'danger' });
+    } else if (v > range[1] * 1.02) {
+      items.push({ time: nowStr(), cmd: '0x01', dir: 'rx', msg: `Cell 1 电压 ${v.toFixed(2)}V > ${(range[1]*1.02).toFixed(2)}V`, level: 'warning' });
+    }
+    items.push({ time: '11:42:15', cmd: '0x10', dir: 'tx', msg: 'cmd 0x10 期望响应 0x80, 实际收到 0x81', level: 'danger', mismatch: true });
+    items.push({ time: '11:40:02', cmd: '0x01', dir: 'rx', msg: `Cell 3 电压 ${currentVals.cell_3_v.toFixed(2)}V 在范围内`, level: 'recovered' });
+    el.innerHTML = items.map(a => `
+      <div class="alert-item ${a.mismatch ? 'mismatch' : ''}">
+        <div>
+          <div class="alert-time">${a.time}</div>
+          <span class="alert-cmd ${a.dir}">${a.cmd} ${a.dir}</span>
+        </div>
+        <div class="alert-msg">${a.msg}</div>
+        <div style="display:flex; align-items:center; gap:4px;">
+          ${a.level === 'recovered' ? '<span style="color: var(--success); font-size: 9px;">✓ OK</span>' : `<span class="alert-level ${a.level}">${a.level.toUpperCase()}</span>`}
+          <button class="ack-btn" title="确认">✓</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function nowStr() {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+  }
+
+  // --- Render: Sparkline (per card) ---
+  function renderSparkline(card) {
+    const cv = document.getElementById('trend-' + card.id);
+    if (!cv) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = cv.clientWidth, h = cv.clientHeight;
+    cv.width = w * dpr; cv.height = h * dpr;
+    const ctx = cv.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    let data;
+    if (card.type === 'pair') {
+      // 双线: setpoint (虚线) + actual
+      const setData = trendData['0A.charge_v_set'] || [];
+      const actData = trendData['00_NA.pack_v_avg'].map(p => ({ t: p.t, v: p.v * 15 })) || [];
+      const all = [...setData, ...actData];
+      const minV = Math.min(...all.map(p => p.v));
+      const maxV = Math.max(...all.map(p => p.v));
+      drawLine(ctx, setData, w, h, minV, maxV, 'rgba(103, 103, 108, 0.6)', true);  // 设定虚线灰
+      drawLine(ctx, actData, w, h, minV, maxV, '#5672cd', false);                    // 实际实线蓝
+    } else {
+      const cmdHex = card.cmd.toString(16).padStart(2, '0').toUpperCase();
+      const key = `${cmdHex}.${card.field}`;
+      data = trendData[key] || [];
+      if (data.length < 2) return;
+      const minV = Math.min(...data.map(p => p.v), ...card.range);
+      const maxV = Math.max(...data.map(p => p.v), ...card.range);
+      const lineColor = card.fromOtherCmd ? '#3a5ccc' : '#5672cd';
+      drawLine(ctx, data, w, h, minV, maxV, lineColor, false);
+      // 阈值线
+      ctx.setLineDash([2, 4]);
+      ctx.strokeStyle = 'rgba(224, 87, 94, 0.5)';
+      ctx.lineWidth = 1;
+      const yHi = h - ((card.range[1] - minV) / (maxV - minV)) * h;
+      ctx.beginPath(); ctx.moveTo(0, yHi); ctx.lineTo(w, yHi); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  function drawLine(ctx, data, w, h, minV, maxV, color, dashed) {
+    if (data.length < 2) return;
+    const xStep = w / (data.length - 1);
+    const range = maxV - minV || 1;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    if (dashed) ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    data.forEach((p, i) => {
+      const x = i * xStep;
+      const y = h - ((p.v - minV) / range) * h;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // --- Render: Detail Modal ---
+  function openDetail(cardId) {
+    detailCardId = cardId;
+    currentSubTab = 'realtime';
+    currentTimeMode = 'realtime';
+    currentChartType = 'line';
+    const card = CARDS.find(c => c.id === cardId);
+    if (!card) return;
+    document.getElementById('detail-title').textContent = card.title;
+    const cmdHex = card.cmd ? card.cmd.toString(16).padStart(2, '0').toUpperCase() : '0x10';
+    const cmdEl = document.getElementById('detail-cmd');
+    cmdEl.textContent = `${cmdHex} ${card.dir || 'tx'}`;
+    cmdEl.className = 'detail-cmd-badge' + (card.dir === 'tx' ? ' tx' : '');
+    document.getElementById('detail-range').textContent = card.range ? `范围 ${card.range[0]} - ${card.range[1]}${card.unit}` : (card.type === 'pair' ? '设定 vs 实际' : '');
+    document.getElementById('detail-status').textContent = card.fromOtherCmd ? 'RX-only' : '正常';
+    document.getElementById('detail-status').className = 'detail-status-badge' + (card.fromOtherCmd ? '' : '');
+    // 激活 subtab
+    document.querySelectorAll('.detail-subtab').forEach(b => b.classList.toggle('active', b.dataset.subtab === 'realtime'));
+    document.querySelectorAll('.time-toggle button').forEach(b => b.classList.toggle('active', b.dataset.time === 'realtime'));
+    document.getElementById('chart-type').value = 'line';
+    document.getElementById('modal-backdrop').classList.add('open');
+    document.getElementById('detail-modal').classList.add('open');
+    renderDetailBody();
+  }
+
+  function closeDetail() {
+    detailCardId = null;
+    document.getElementById('modal-backdrop').classList.remove('open');
+    document.getElementById('detail-modal').classList.remove('open');
+  }
+
+  function renderDetailBody() {
+    const card = CARDS.find(c => c.id === detailCardId);
+    if (!card) return;
+    const body = document.getElementById('detail-body');
+    if (currentSubTab === 'realtime') {
+      body.innerHTML = `
+        <div class="detail-chart-area"><canvas id="detail-chart"></canvas></div>
+        <div class="detail-stats" id="detail-stats"></div>
+      `;
+      renderDetailChart(card);
+      renderDetailStats(card);
+    } else if (currentSubTab === 'modbus') {
+      body.innerHTML = `
+        <div class="detail-kv-list">
+          <div class="kv-key">Function Code</div><div class="kv-val">0x03 (Read Holding Registers)</div>
+          <div class="kv-key">Slave Address</div><div class="kv-val">0x01</div>
+          <div class="kv-key">Start Register</div><div class="kv-val">0x${(card.cmd || 0x01).toString(16).padStart(4,'0').toUpperCase()}</div>
+          <div class="kv-key">Quantity</div><div class="kv-val">${(card.field ? 1 : 0) * 4 || 4}</div>
+          <div class="kv-key">CRC16-MODBUS</div><div class="kv-val">0xA3F2 (valid)</div>
+          <div class="kv-key">Baud Rate</div><div class="kv-val">115200</div>
+          <div class="kv-key">Parity</div><div class="kv-val">None</div>
+        </div>
+      `;
+    } else if (currentSubTab === 'device') {
+      body.innerHTML = `
+        <div class="detail-kv-list">
+          <div class="kv-key">VID</div><div class="kv-val">0x${COMMANDS[0].id.toString(16).padStart(4,'0').toUpperCase()}</div>
+          <div class="kv-key">PID</div><div class="kv-val">0x${COMMANDS[1].id.toString(16).padStart(4,'0').toUpperCase()}</div>
+          <div class="kv-key">Manufacturer</div><div class="kv-val">Embedded BMS Co.</div>
+          <div class="kv-key">Model</div><div class="kv-val">EB-BMS-3000</div>
+          <div class="kv-key">Serial Number</div><div class="kv-val">SN-${Math.floor(Math.random()*99999).toString().padStart(5,'0')}</div>
+          <div class="kv-key">Firmware Version</div><div class="kv-val">v2.4.1 (2025-12-08)</div>
+          <div class="kv-key">Protocol Version</div><div class="kv-val">TLV v1.0 + Modbus RTU</div>
+          <div class="kv-key">Connected</div><div class="kv-val">Web Serial @ 115200 8N1</div>
+        </div>
+      `;
+    } else if (currentSubTab === 'query') {
+      const tx = 1240 + Math.floor(Math.random() * 5);
+      const rx = 1238 + Math.floor(Math.random() * 3);
+      const mismatches = 1;
+      body.innerHTML = `
+        <div class="detail-kv-list">
+          <div class="kv-key">Cmd ID</div><div class="kv-val">0x${(card.cmd||0x01).toString(16).padStart(2,'0').toUpperCase()} (${(card.dir||'rx').toUpperCase()})</div>
+          <div class="kv-key">期望响应</div><div class="kv-val">0x${((card.cmd||0x01) + 0x7F).toString(16).padStart(2,'0').toUpperCase()}</div>
+          <div class="kv-key">发送次数</div><div class="kv-val">${tx}</div>
+          <div class="kv-key">收到次数</div><div class="kv-val">${rx}</div>
+          <div class="kv-key">错配次数</div><div class="kv-val" style="color: var(--danger)">${mismatches}</div>
+          <div class="kv-key">丢失率</div><div class="kv-val">${(((tx-rx)/tx)*100).toFixed(2)}%</div>
+          <div class="kv-key">平均延迟</div><div class="kv-val">42 ms</div>
+          <div class="kv-key">最后错误</div><div class="kv-val" style="color: var(--danger)">11:42:15 cmd 0x10 错配 (期望 0x80, 收到 0x81)</div>
+        </div>
+      `;
+    }
+  }
+
+  function renderDetailChart(card) {
+    const cv = document.getElementById('detail-chart');
+    if (!cv) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = cv.clientWidth, h = cv.clientHeight;
+    cv.width = w * dpr; cv.height = h * dpr;
+    const ctx = cv.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    let data = [];
+    if (card.type === 'pair') {
+      const setData = trendData['0A.charge_v_set'] || [];
+      const actData = (trendData['00_NA.pack_v_avg'] || []).map(p => ({ t: p.t, v: p.v * 15 }));
+      data = [...setData, ...actData];
+    } else {
+      const cmdHex = card.cmd.toString(16).padStart(2, '0').toUpperCase();
+      data = trendData[`${cmdHex}.${card.field}`] || [];
+    }
+    if (data.length < 2) return;
+
+    // X axis: time (60s window or all)
+    const now = Date.now();
+    const filtered = currentTimeMode === 'realtime' ? data.filter(p => p.t > now - 60000) : data;
+
+    // Draw grid
+    ctx.strokeStyle = 'rgba(60, 60, 67, 0.08)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 5; i++) {
+      const y = (h / 4) * i;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+    for (let i = 0; i < 6; i++) {
+      const x = (w / 5) * i;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+
+    // Draw chart by type
+    const minV = Math.min(...filtered.map(p => p.v), ...(card.range || []));
+    const maxV = Math.max(...filtered.map(p => p.v), ...(card.range || []));
+    const range = (maxV - minV) || 1;
+    const xStep = w / Math.max(filtered.length - 1, 1);
+
+    if (currentChartType === 'line') {
+      ctx.strokeStyle = '#5672cd';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      filtered.forEach((p, i) => {
+        const x = i * xStep;
+        const y = h - ((p.v - minV) / range) * h;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    } else if (currentChartType === 'bar') {
+      const bw = Math.max(2, xStep * 0.7);
+      ctx.fillStyle = '#5672cd';
+      filtered.forEach((p, i) => {
+        const x = i * xStep;
+        const y = h - ((p.v - minV) / range) * h;
+        ctx.fillRect(x - bw/2, y, bw, h - y);
+      });
+    } else if (currentChartType === 'area') {
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, 'rgba(86, 114, 205, 0.4)');
+      grad.addColorStop(1, 'rgba(86, 114, 205, 0.02)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      filtered.forEach((p, i) => {
+        const x = i * xStep;
+        const y = h - ((p.v - minV) / range) * h;
+        if (i === 0) ctx.moveTo(x, h); ctx.lineTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.lineTo(w, h);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#5672cd'; ctx.lineWidth = 2; ctx.stroke();
+    } else if (currentChartType === 'scatter') {
+      ctx.fillStyle = '#5672cd';
+      filtered.forEach((p, i) => {
+        const x = i * xStep;
+        const y = h - ((p.v - minV) / range) * h;
+        ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+      });
+    } else if (currentChartType === 'histogram') {
+      // 值分布
+      const bins = 12;
+      const hist = new Array(bins).fill(0);
+      const binSize = range / bins;
+      filtered.forEach(p => {
+        const idx = Math.min(bins - 1, Math.floor((p.v - minV) / binSize));
+        hist[idx]++;
+      });
+      const maxCount = Math.max(...hist);
+      const bWidth = w / bins;
+      ctx.fillStyle = '#5672cd';
+      hist.forEach((c, i) => {
+        const bh = (c / maxCount) * h * 0.9;
+        ctx.fillRect(i * bWidth + 1, h - bh, bWidth - 2, bh);
+      });
+    }
+
+    // 阈值线
+    if (card.range && currentChartType !== 'histogram') {
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = 'rgba(224, 87, 94, 0.5)';
+      ctx.lineWidth = 1;
+      const yHi = h - ((card.range[1] - minV) / range) * h;
+      const yLo = h - ((card.range[0] - minV) / range) * h;
+      ctx.beginPath(); ctx.moveTo(0, yHi); ctx.lineTo(w, yHi); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, yLo); ctx.lineTo(w, yLo); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  function renderDetailStats(card) {
+    const statsEl = document.getElementById('detail-stats');
+    if (!statsEl) return;
+    let data = [];
+    if (card.type === 'pair') {
+      data = (trendData['00_NA.pack_v_avg'] || []).map(p => p.v * 15);
+    } else {
+      const cmdHex = card.cmd.toString(16).padStart(2, '0').toUpperCase();
+      data = (trendData[`${cmdHex}.${card.field}`] || []).map(p => p.v);
+    }
+    if (data.length === 0) { statsEl.innerHTML = ''; return; }
+    const min = Math.min(...data), max = Math.max(...data), avg = data.reduce((a,b)=>a+b,0)/data.length;
+    statsEl.innerHTML = `
+      <div class="stat-cell"><div class="stat-label">Min</div><div class="stat-value">${min.toFixed(card.precision || 2)}<span class="unit">${card.unit || ''}</span></div></div>
+      <div class="stat-cell"><div class="stat-label">Max</div><div class="stat-value">${max.toFixed(card.precision || 2)}<span class="unit">${card.unit || ''}</span></div></div>
+      <div class="stat-cell"><div class="stat-label">Avg</div><div class="stat-value">${avg.toFixed(card.precision || 2)}<span class="unit">${card.unit || ''}</span></div></div>
+      <div class="stat-cell"><div class="stat-label">N (采样数)</div><div class="stat-value">${data.length}</div></div>
+    `;
+  }
+
+  // --- Update all on tick ---
+  function updateAll() {
+    renderKpiStrip();
+    renderCardGrid();
+    renderAlerts();
+    // sparkline
+    CARDS.forEach(c => renderSparkline(c));
+    // detail
+    if (detailCardId) {
+      const card = CARDS.find(c => c.id === detailCardId);
+      if (card && currentSubTab === 'realtime') {
+        renderDetailChart(card);
+        renderDetailStats(card);
+      }
+    }
+  }
+
+  // --- Event Listeners ---
+  document.getElementById('theme-toggle').onclick = () => {
+    document.body.classList.toggle('theme-dark');
+    const btn = document.getElementById('theme-toggle');
+    btn.textContent = document.body.classList.contains('theme-dark') ? '☾' : '☀';
+  };
+
+  document.getElementById('reset-btn').onclick = () => {
+    initMockData();
+    updateAll();
+  };
+
+  document.getElementById('detail-close').onclick = closeDetail;
+  document.getElementById('modal-backdrop').onclick = closeDetail;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+
+  document.querySelectorAll('.detail-subtab').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('.detail-subtab').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      currentSubTab = b.dataset.subtab;
+      renderDetailBody();
+    };
+  });
+
+  document.querySelectorAll('.time-toggle button').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('.time-toggle button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      currentTimeMode = b.dataset.time;
+      const card = CARDS.find(c => c.id === detailCardId);
+      if (card && currentSubTab === 'realtime') {
+        renderDetailChart(card);
+      }
+    };
+  });
+
+  document.getElementById('chart-type').onchange = (e) => {
+    currentChartType = e.target.value;
+    const card = CARDS.find(c => c.id === detailCardId);
+    if (card && currentSubTab === 'realtime') renderDetailChart(card);
+  };
+
+  document.getElementById('alert-toggle').onclick = () => {
+    const drawer = document.getElementById('alert-drawer');
+    const list = document.getElementById('alert-list');
+    if (list.style.display === 'none') {
+      list.style.display = 'block';
+      document.getElementById('alert-toggle').textContent = '−';
+    } else {
+      list.style.display = 'none';
+      document.getElementById('alert-toggle').textContent = '+';
+    }
+  };
+
+  // --- Init ---
+  initMockData();
+  renderCommandPanel();
+  renderKpiStrip();
+  renderCardGrid();
+  renderAlerts();
+  setTimeout(() => { CARDS.forEach(c => renderSparkline(c)); }, 50);
+  setInterval(tickData, 800);
+
+  // Handle resize for sparklines
+  window.addEventListener('resize', () => {
+    CARDS.forEach(c => renderSparkline(c));
+    if (detailCardId) {
+      const card = CARDS.find(c => c.id === detailCardId);
+      if (card && currentSubTab === 'realtime') renderDetailChart(card);
+    }
+  });
+  </script>
+</body>
+</html>
