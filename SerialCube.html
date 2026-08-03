@@ -7016,6 +7016,219 @@
           <div class="alert-list" id="dh-alert-list"></div>
         </div>
         <div class="toast-layer" id="dh-toast-layer"></div>
+
+        <!-- v4.3: 5 个 modals (协议编辑器/命令管理/卡片配置/卡片编辑/导入导出/告警配置) -->
+        <div class="modal-backdrop" id="dh-proto-backdrop"></div>
+        <div class="modal xtra-wide" id="dh-proto-modal">
+          <div class="modal-header">
+            <button class="close-btn" data-close="dh-proto">×</button>
+            <span class="modal-title">协议编辑器</span>
+            <span class="modal-subtitle">TLV 帧结构 · 字段 / 大小端 / 数据段 / 帧预览</span>
+            <span style="flex: 1;"></span>
+            <button class="toolbar-btn" id="dh-proto-import">⎘ 导入 JSON</button>
+            <button class="toolbar-btn" id="dh-proto-export">↓ 导出 JSON</button>
+          </div>
+          <div class="proto-tabs" id="dh-proto-tabs"></div>
+          <div class="modal-body" style="padding: 0;">
+            <div class="proto-body" id="dh-proto-body"></div>
+          </div>
+          <div class="modal-footer">
+            <button class="toolbar-btn" data-close="dh-proto">关闭</button>
+            <span class="spacer"></span>
+            <button class="toolbar-btn" id="dh-proto-reset">↻ 恢复默认协议</button>
+            <button class="toolbar-btn primary" id="dh-proto-apply">✓ 应用协议</button>
+          </div>
+        </div>
+
+        <div class="modal-backdrop" id="dh-cmd-config-backdrop"></div>
+        <div class="modal" id="dh-cmd-config-modal">
+          <div class="modal-header">
+            <button class="close-btn" data-close="dh-cmd-config">×</button>
+            <span class="modal-title">命令管理</span>
+            <span class="modal-subtitle">绑定协议 / 方向 / 轮询 / 数据字段</span>
+          </div>
+          <div class="modal-body">
+            <div class="form-section-title">已配置命令</div>
+            <div class="cmd-list" id="dh-cmd-list"></div>
+            <div class="form-section-title" style="margin-top: 20px;">新增 / 编辑命令</div>
+            <div class="form-row col-2">
+              <label>命令 ID (Hex)</label>
+              <input class="form-input mono" id="dh-cmd-form-id" placeholder="0x12">
+              <label style="grid-column: auto; margin-left: 8px;">名称</label>
+              <input class="form-input" id="dh-cmd-form-name" placeholder="Read SoC">
+            </div>
+            <div class="form-row col-2">
+              <label>方向</label>
+              <select class="form-select" id="dh-cmd-form-dir">
+                <option value="rx">rx (设备 → 主机)</option>
+                <option value="tx">tx (主机 → 设备, 控制)</option>
+              </select>
+              <label style="grid-column: auto; margin-left: 8px;">使用协议</label>
+              <select class="form-select" id="dh-cmd-form-proto"></select>
+            </div>
+            <div class="form-row col-2">
+              <label>帧类型</label>
+              <select class="form-select" id="dh-cmd-form-frame">
+                <option value="query">query (轮询)</option>
+                <option value="control">control (手动 / 事件触发)</option>
+                <option value="event">event (设备主动上报)</option>
+              </select>
+              <label style="grid-column: auto; margin-left: 8px;">轮询周期 (ms)</label>
+              <input class="form-input mono" type="number" id="dh-cmd-form-cadence" placeholder="0=手动" value="0">
+            </div>
+            <div class="form-row">
+              <label>数据字段 (data 段)</label>
+              <input class="form-input mono" id="dh-cmd-form-fields" placeholder="soc, soh, cycle_count">
+            </div>
+            <div class="form-row col-2">
+              <label>data 长度 (字节)</label>
+              <input class="form-input mono" type="number" id="dh-cmd-form-datasize" value="0">
+              <label style="grid-column: auto; margin-left: 8px;">期望响应 (Hex)</label>
+              <input class="form-input mono" id="dh-cmd-form-expect" placeholder="0x92 (rx 命令, 错配检测用)">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="toolbar-btn" data-close="dh-cmd-config">取消</button>
+            <span class="spacer"></span>
+            <button class="toolbar-btn" id="dh-cmd-save">保存命令</button>
+          </div>
+        </div>
+
+        <div class="modal-backdrop" id="dh-card-config-backdrop"></div>
+        <div class="modal" id="dh-card-config-modal">
+          <div class="modal-header">
+            <button class="close-btn" data-close="dh-card-config">×</button>
+            <span class="modal-title">卡片配置</span>
+            <span class="modal-subtitle">所有卡片 · 大卡 / 列表</span>
+          </div>
+          <div class="modal-body">
+            <div class="form-section-title">已配卡片</div>
+            <div class="card-edit-list" id="dh-card-edit-list"></div>
+            <div class="form-section-title" style="margin-top: 20px;">添加卡片</div>
+            <div class="form-row col-2">
+              <label>类型</label>
+              <select class="form-select" id="dh-card-form-type">
+                <option value="trend">趋势卡 (数值 + sparkline)</option>
+                <option value="pair">Pair 对比卡 (SET / ACT / Δ)</option>
+              </select>
+              <label style="grid-column: auto; margin-left: 8px;">命令</label>
+              <select class="form-select" id="dh-card-form-cmd"></select>
+            </div>
+            <div class="form-row">
+              <label>字段</label>
+              <select class="form-select" id="dh-card-form-field"></select>
+              <label class="form-checkbox" style="margin-left: 12px;"><input type="checkbox" id="dh-card-form-rx">RX-only (fromOtherCmd)</label>
+            </div>
+            <div class="form-row col-2">
+              <label>标题</label>
+              <input class="form-input" id="dh-card-form-title" placeholder="(留空自动)">
+              <label style="grid-column: auto; margin-left: 8px;">单位</label>
+              <input class="form-input mono" id="dh-card-form-unit" placeholder="V / A / %">
+            </div>
+            <div class="form-row col-3">
+              <label>范围下限</label>
+              <input class="form-input mono" type="number" step="0.01" id="dh-card-form-lower" placeholder="(无)">
+              <label>范围上限</label>
+              <input class="form-input mono" type="number" step="0.01" id="dh-card-form-upper" placeholder="(无)">
+              <label>小数位</label>
+              <input class="form-input mono" type="number" min="0" max="6" id="dh-card-form-precision" value="2">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="toolbar-btn" data-close="dh-card-config">关闭</button>
+            <span class="spacer"></span>
+            <button class="toolbar-btn primary" id="dh-card-add">+ 添加卡片</button>
+          </div>
+        </div>
+
+        <div class="modal-backdrop" id="dh-card-edit-backdrop"></div>
+        <div class="modal" id="dh-card-edit-modal">
+          <div class="modal-header">
+            <button class="close-btn" data-close="dh-card-edit">×</button>
+            <span class="modal-title">卡片编辑</span>
+            <span class="modal-subtitle" id="dh-card-edit-subtitle">—</span>
+          </div>
+          <div class="modal-body">
+            <div class="form-row col-2">
+              <label>标题</label>
+              <input class="form-input" id="dh-ce-title">
+              <label style="grid-column: auto; margin-left: 8px;">单位</label>
+              <input class="form-input mono" id="dh-ce-unit">
+            </div>
+            <div class="form-row col-2">
+              <label>卡片类型</label>
+              <select class="form-select" id="dh-ce-type">
+                <option value="trend">趋势卡</option>
+                <option value="pair">Pair 对比卡</option>
+              </select>
+              <label style="grid-column: auto; margin-left: 8px;">命令</label>
+              <select class="form-select" id="dh-ce-cmd"></select>
+            </div>
+            <div class="form-row">
+              <label>字段</label>
+              <select class="form-select" id="dh-ce-field"></select>
+              <label class="form-checkbox" style="margin-left: 12px;"><input type="checkbox" id="dh-ce-rx">RX-only</label>
+            </div>
+            <div class="form-row col-3">
+              <label>下限</label>
+              <input class="form-input mono" type="number" step="0.01" id="dh-ce-lower">
+              <label>上限</label>
+              <input class="form-input mono" type="number" step="0.01" id="dh-ce-upper">
+              <label>小数位</label>
+              <input class="form-input mono" type="number" min="0" max="6" id="dh-ce-precision" value="2">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="toolbar-btn danger" id="dh-ce-delete">× 删除卡片</button>
+            <span class="spacer"></span>
+            <button class="toolbar-btn" data-close="dh-card-edit">取消</button>
+            <button class="toolbar-btn primary" id="dh-ce-save">保存修改</button>
+          </div>
+        </div>
+
+        <div class="modal-backdrop" id="dh-ie-backdrop"></div>
+        <div class="modal wide" id="dh-ie-modal">
+          <div class="modal-header">
+            <button class="close-btn" data-close="dh-ie">×</button>
+            <span class="modal-title">协议配置 导入 / 导出 (JSON)</span>
+            <span class="modal-subtitle">复用 SerialWebUserConfig v1 格式</span>
+          </div>
+          <div class="modal-body">
+            <div class="form-section-title">导出</div>
+            <textarea class="form-textarea" id="dh-ie-export" readonly></textarea>
+            <div class="form-section-title" style="margin-top: 16px;">导入</div>
+            <textarea class="form-textarea" id="dh-ie-import" placeholder="粘贴 SerialWebUserConfig JSON..."></textarea>
+          </div>
+          <div class="modal-footer">
+            <button class="toolbar-btn" data-close="dh-ie">关闭</button>
+            <span class="spacer"></span>
+            <button class="toolbar-btn" id="dh-ie-copy">⎘ 复制导出</button>
+            <button class="toolbar-btn primary" id="dh-ie-apply">应用导入</button>
+          </div>
+        </div>
+
+        <div class="modal-backdrop" id="dh-alerts-backdrop"></div>
+        <div class="modal" id="dh-alerts-modal">
+          <div class="modal-header">
+            <button class="close-btn" data-close="dh-alerts">×</button>
+            <span class="modal-title">告警配置</span>
+          </div>
+          <div class="modal-body">
+            <div class="form-section-title">告警规则 (自动从卡片范围派生)</div>
+            <div id="dh-alert-rules-list"></div>
+            <div class="form-section-title" style="margin-top: 20px;">命令错配检测</div>
+            <div class="form-row">
+              <label class="form-checkbox"><input type="checkbox" id="dh-alert-cmd-mismatch" checked> 启用命令错配告警</label>
+            </div>
+            <div class="form-row">
+              <label>告警去抖 (ms)</label>
+              <input class="form-input mono" type="number" id="dh-alert-debounce" value="1000" min="0" step="100">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="toolbar-btn primary" data-close="dh-alerts">完成</button>
+          </div>
+        </div>
       </div>
     </section>
   </div>
@@ -9189,6 +9402,7 @@
             NS._initialized = true;
             NS.initMockData();
             NS.renderKpiCards();
+            NS.attachModalHandlers();
           }
           // 取消旧 handle (重入防护, 避免双 tick)
           if (NS._tickHandle) clearInterval(NS._tickHandle);
@@ -9211,6 +9425,801 @@
           NS._initialized = false;
           NS.currentVals = {}; NS.trendData = {}; NS.lastValues = {};
           NS.start();
+        };
+
+        // === v4.3: 5 个 modals (协议/命令/卡片/导入导出/告警) ===
+        // 全部挂在 NS 命名空间下, 共享 PROTOCOLS/DATA_FIELDS/COMMANDS/CARDS
+
+        // --- CRC 算法 ---
+        NS.crc16Modbus = function (bytes) {
+          let crc = 0xFFFF;
+          for (let i = 0; i < bytes.length; i++) {
+            crc ^= bytes[i] << 8;
+            for (let j = 0; j < 8; j++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0xA001) & 0xFFFF : (crc << 1) & 0xFFFF;
+          }
+          return crc;
+        };
+        NS.crc16Ccitt = function (bytes, init) {
+          let crc = init != null ? init : 0xFFFF;
+          for (let i = 0; i < bytes.length; i++) {
+            crc ^= (bytes[i] << 8);
+            for (let j = 0; j < 8; j++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+          }
+          return crc;
+        };
+        NS.crc8 = function (bytes, init, poly) {
+          let crc = init != null ? init : 0;
+          const p = poly != null ? poly : 0x07;
+          for (let i = 0; i < bytes.length; i++) {
+            crc ^= bytes[i];
+            for (let j = 0; j < 8; j++) crc = (crc & 0x80) ? ((crc << 1) ^ p) & 0xFF : (crc << 1) & 0xFF;
+          }
+          return crc;
+        };
+        NS.crcChecksum = function (bytes) { return bytes.reduce((a, b) => (a + b) & 0xFF, 0); };
+        NS.crcXor = function (bytes) { return bytes.reduce((a, b) => a ^ b, 0); };
+        NS.computeCrc = function (type, bytes, init) {
+          switch (type) {
+            case 'none': return 0;
+            case 'checksum': return NS.crcChecksum(bytes);
+            case 'xor': return NS.crcXor(bytes);
+            case 'crc8': return NS.crc8(bytes, init);
+            case 'crc16-modbus': return NS.crc16Modbus(bytes);
+            case 'crc16-ccitt': return NS.crc16Ccitt(bytes, init);
+            default: return 0;
+          }
+        };
+        NS.crcByteSize = function (type) {
+          return (type === 'crc16-modbus' || type === 'crc16-ccitt') ? 2 : 1;
+        };
+        NS.crcTypeLabel = function (t) {
+          return { none: '无', checksum: 'Checksum', xor: 'XOR', crc8: 'CRC-8', 'crc16-modbus': 'CRC-16 MODBUS', 'crc16-ccitt': 'CRC-16 CCITT' }[t] || t;
+        };
+        NS.crcRangeLabel = function (r) {
+          return { all: '全部字段', no_header: '不含帧头', no_tail: '不含帧尾', no_header_tail: '不含帧头帧尾', data_only: '只 data 段' }[r] || r;
+        };
+        NS.parseHexOr0 = function (s) {
+          if (s === null || s === undefined || s === '') return 0;
+          s = String(s).trim();
+          if (s === 'auto') return -1;
+          if (s.startsWith('0x') || s.startsWith('0X')) return parseInt(s.slice(2), 16) || 0;
+          if (/^[0-9A-Fa-f]+$/.test(s) && s.length > 1) return parseInt(s, 16) || 0;
+          return parseInt(s, 10) || 0;
+        };
+        NS.escapeHtml = function (s) {
+          return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        };
+
+        // --- encodeDataFields: 把 cmd.dataFields 数组按协议 + 字段类型编码为字节 ---
+        NS.encodeDataFields = function (cmd, protocol) {
+          const out = [];
+          const protoEndian = (protocol && protocol.byteOrder) || 'BE';
+          for (const fname of (cmd.dataFields || [])) {
+            const df = NS.DATA_FIELDS.find((d) => d.name === fname);
+            if (!df) continue;
+            const v = Number(NS.currentVals[fname] != null ? NS.currentVals[fname] : NS.parseHexOr0(df.default)) || 0;
+            const bo = df.byteOrder || protoEndian;
+            const t = df.type;
+            if (t === 'u8' || t === 'i8') {
+              out.push(v & 0xFF);
+            } else if (t === 'u16' || t === 'i16') {
+              if (bo === 'LE') out.push(v & 0xFF, (v >> 8) & 0xFF);
+              else out.push((v >> 8) & 0xFF, v & 0xFF);
+            } else if (t === 'u32' || t === 'i32') {
+              if (bo === 'LE') out.push(v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF);
+              else out.push((v >> 24) & 0xFF, (v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF);
+            } else if (t === 'float') {
+              const iv = Math.round(v);
+              if (bo === 'LE') out.push(iv & 0xFF, (iv >> 8) & 0xFF, (iv >> 16) & 0xFF, (iv >> 24) & 0xFF);
+              else out.push((iv >> 24) & 0xFF, (iv >> 16) & 0xFF, (iv >> 8) & 0xFF, iv & 0xFF);
+            }
+          }
+          return out;
+        };
+
+        // --- buildFrame: 按 protocol.fields 切分字节, 并按 crcRange 算 CRC ---
+        NS.buildFrame = function (protocol, cmd) {
+          if (!protocol) return { bytes: [], sections: [] };
+          const sections = [];
+          const data = NS.encodeDataFields(cmd, protocol);
+          const crcType = protocol.crcType || 'crc16-modbus';
+          const crcSize = NS.crcByteSize(crcType);
+          for (const f of protocol.fields) {
+            let bytes = [];
+            if (f.type === 'header' || f.type === 'addr' || f.type === 'tail') {
+              bytes = [NS.parseHexOr0(f.default) & 0xFF];
+            } else if (f.type === 'cmd') {
+              bytes = [cmd.id & 0xFF];
+            } else if (f.type === 'length') {
+              bytes = [data.length & 0xFF];
+            } else if (f.type === 'data') {
+              bytes = [...data];
+            } else if (f.type === 'crc') {
+              bytes = new Array(crcSize).fill(0);
+            }
+            sections.push({ type: f.type, name: f.name, bytes });
+          }
+          const allBytes = [];
+          sections.forEach((s) => allBytes.push(...s.bytes));
+          // 算 CRC (按 crcRange 决定输入字节范围)
+          const crcRange = protocol.crcRange || 'all';
+          const crcInit = NS.parseHexOr0(protocol.crcInit);
+          const crcFieldIdx = protocol.fields.findIndex((f) => f.type === 'crc');
+          const offsetBeforeCrc = protocol.fields.slice(0, crcFieldIdx).reduce((sum, f, k) => {
+            return sum + (f.size || sections[k].bytes.length);
+          }, 0);
+          const crcFieldSize = crcFieldIdx >= 0 ? (protocol.fields[crcFieldIdx].size || crcSize) : crcSize;
+          let crcInputBytes = [];
+          if (crcRange === 'all') {
+            crcInputBytes = allBytes.filter((_, i) => i < offsetBeforeCrc || i >= offsetBeforeCrc + crcFieldSize);
+          } else if (crcRange === 'no_header') {
+            const headerFieldIdx = protocol.fields.findIndex((f) => f.type === 'header');
+            const headerSize = headerFieldIdx >= 0 ? (protocol.fields[headerFieldIdx].size || 1) : 1;
+            const off = protocol.fields.slice(0, headerFieldIdx).reduce((s, f, k) => s + (f.size || sections[k].bytes.length), 0);
+            crcInputBytes = allBytes.filter((_, i) => i < off || i >= off + headerSize || i >= offsetBeforeCrc);
+            // 简化: no_header 直接排除 header 段
+            crcInputBytes = [];
+            let off2 = 0;
+            for (let k = 0; k < protocol.fields.length; k++) {
+              if (protocol.fields[k].type === 'header' || protocol.fields[k].type === 'crc') {
+                off2 += protocol.fields[k].size || sections[k].bytes.length;
+                continue;
+              }
+              for (let b = 0; b < (protocol.fields[k].size || sections[k].bytes.length); b++) {
+                crcInputBytes.push(allBytes[off2 + b]);
+              }
+              off2 += protocol.fields[k].size || sections[k].bytes.length;
+            }
+          } else if (crcRange === 'no_tail') {
+            crcInputBytes = [];
+            let off = 0;
+            for (let k = 0; k < protocol.fields.length; k++) {
+              if (protocol.fields[k].type === 'tail' || protocol.fields[k].type === 'crc') {
+                off += protocol.fields[k].size || sections[k].bytes.length;
+                continue;
+              }
+              for (let b = 0; b < (protocol.fields[k].size || sections[k].bytes.length); b++) {
+                crcInputBytes.push(allBytes[off + b]);
+              }
+              off += protocol.fields[k].size || sections[k].bytes.length;
+            }
+          } else if (crcRange === 'no_header_tail') {
+            crcInputBytes = [];
+            let off = 0;
+            for (let k = 0; k < protocol.fields.length; k++) {
+              const t = protocol.fields[k].type;
+              if (t === 'header' || t === 'tail' || t === 'crc') {
+                off += protocol.fields[k].size || sections[k].bytes.length;
+                continue;
+              }
+              for (let b = 0; b < (protocol.fields[k].size || sections[k].bytes.length); b++) {
+                crcInputBytes.push(allBytes[off + b]);
+              }
+              off += protocol.fields[k].size || sections[k].bytes.length;
+            }
+          } else if (crcRange === 'data_only') {
+            const dataSection = sections.find((s) => s.type === 'data');
+            crcInputBytes = dataSection ? [...dataSection.bytes] : [];
+          }
+          let crcValue = NS.computeCrc(crcType, crcInputBytes, crcInit);
+          // 写回 crc section
+          const crcSection = sections.find((s) => s.type === 'crc');
+          if (crcSection) {
+            const be = (protocol.crcEndian || 'LE') === 'BE';
+            if (crcSection.bytes.length === 2) {
+              crcSection.bytes = be ? [((crcValue >> 8) & 0xFF), (crcValue & 0xFF)] : [(crcValue & 0xFF), ((crcValue >> 8) & 0xFF)];
+            } else {
+              crcSection.bytes = [crcValue & 0xFF];
+            }
+            // 重新合并 allBytes
+            const merged = [];
+            sections.forEach((s) => merged.push(...s.bytes));
+            return { bytes: merged, sections };
+          }
+          return { bytes: allBytes, sections };
+        };
+
+        // --- 协议编辑器 (proto modal) ---
+        NS.renderProtoEditor = function () {
+          const tabsEl = document.getElementById('dh-proto-tabs');
+          const bodyEl = document.getElementById('dh-proto-body');
+          if (!tabsEl || !bodyEl) return;
+          tabsEl.innerHTML = '';
+          NS.PROTOCOLS.forEach((p) => {
+            const tab = document.createElement('button');
+            tab.className = 'proto-tab' + (p.id === NS.activeProtoId ? ' active' : '');
+            tab.innerHTML = `<span>${NS.escapeHtml(p.name)}</span>`;
+            tab.onclick = () => { NS.activeProtoId = p.id; NS.renderProtoEditor(); };
+            tabsEl.appendChild(tab);
+          });
+          const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
+          if (!proto) { bodyEl.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-soft);">未选择协议</div>'; return; }
+          const previewCmd = NS.COMMANDS.find((c) => c.protocol === proto.id) || NS.COMMANDS[0];
+          const frame = NS.buildFrame(proto, previewCmd);
+          bodyEl.innerHTML = `
+            <div class="proto-section">
+              <div class="form-row" style="margin-bottom: 8px;">
+                <label>协议名</label>
+                <input class="form-input" id="dh-proto-name" value="${NS.escapeHtml(proto.name)}" placeholder="(必填)">
+              </div>
+              <div class="form-row" style="margin-bottom: 0;">
+                <label>默认字节序</label>
+                <select class="form-select" id="dh-proto-endian" style="max-width: 240px;">
+                  <option value="BE" ${proto.byteOrder === 'BE' ? 'selected' : ''}>BE 大端 (Motorola)</option>
+                  <option value="LE" ${proto.byteOrder === 'LE' ? 'selected' : ''}>LE 小端 (Intel)</option>
+                </select>
+              </div>
+            </div>
+            <div class="proto-section">
+              <div class="proto-section-head">
+                <div class="proto-section-title">
+                  <span class="num">1</span>
+                  <span>帧字段 (字节序字段独立)</span>
+                </div>
+                <button class="toolbar-btn" id="dh-add-field-btn" style="height: 24px; padding: 0 10px; font-size: 11px;">+ 添加字段</button>
+              </div>
+              <div class="field-list" id="dh-field-list"></div>
+            </div>
+            <div class="proto-section">
+              <div class="proto-section-head">
+                <div class="proto-section-title">
+                  <span class="num">2</span>
+                  <span>数据字段 (u8/u16/u32/float + 字节序)</span>
+                </div>
+                <button class="toolbar-btn" id="dh-add-data-field-btn" style="height: 24px; padding: 0 10px; font-size: 11px;">+ 字段</button>
+              </div>
+              <div class="data-field-list" id="dh-data-field-list"></div>
+            </div>
+            <div class="proto-section">
+              <div class="proto-section-head">
+                <div class="proto-section-title">
+                  <span class="num">3</span>
+                  <span>CRC 设置</span>
+                </div>
+              </div>
+              <div class="form-row col-3" style="margin-bottom: 8px;">
+                <label>CRC 类型</label>
+                <select class="form-select" id="dh-proto-crc-type">
+                  <option value="none" ${(proto.crcType || 'crc16-modbus') === 'none' ? 'selected' : ''}>无</option>
+                  <option value="checksum" ${proto.crcType === 'checksum' ? 'selected' : ''}>Checksum (8-bit sum)</option>
+                  <option value="xor" ${proto.crcType === 'xor' ? 'selected' : ''}>XOR (8-bit)</option>
+                  <option value="crc8" ${proto.crcType === 'crc8' ? 'selected' : ''}>CRC-8 (poly 0x07)</option>
+                  <option value="crc16-modbus" ${(!proto.crcType || proto.crcType === 'crc16-modbus') ? 'selected' : ''}>CRC-16 MODBUS</option>
+                  <option value="crc16-ccitt" ${proto.crcType === 'crc16-ccitt' ? 'selected' : ''}>CRC-16 CCITT</option>
+                </select>
+                <label>初始值 (hex)</label>
+                <input class="form-input mono" id="dh-proto-crc-init" value="${NS.escapeHtml(proto.crcInit || (proto.crcType === 'crc8' || proto.crcType === 'checksum' || proto.crcType === 'xor' || proto.crcType === 'none' ? '0x00' : '0xFFFF'))}" placeholder="0xFFFF">
+                <label>CRC 字节序</label>
+                <select class="form-select" id="dh-proto-crc-endian">
+                  <option value="LE" ${(!proto.crcEndian || proto.crcEndian === 'LE') ? 'selected' : ''}>LE 小端</option>
+                  <option value="BE" ${proto.crcEndian === 'BE' ? 'selected' : ''}>BE 大端</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label>校验范围</label>
+                <select class="form-select" id="dh-proto-crc-range" style="max-width: 360px;">
+                  <option value="all" ${(!proto.crcRange || proto.crcRange === 'all') ? 'selected' : ''}>全部字段 (header → tail)</option>
+                  <option value="no_header" ${proto.crcRange === 'no_header' ? 'selected' : ''}>不含帧头 (Modbus 风格)</option>
+                  <option value="no_tail" ${proto.crcRange === 'no_tail' ? 'selected' : ''}>不含帧尾</option>
+                  <option value="no_header_tail" ${proto.crcRange === 'no_header_tail' ? 'selected' : ''}>不含帧头帧尾</option>
+                  <option value="data_only" ${proto.crcRange === 'data_only' ? 'selected' : ''}>只对 data 段</option>
+                </select>
+              </div>
+            </div>
+            <div class="proto-section">
+              <div class="proto-section-head">
+                <div class="proto-section-title">
+                  <span class="num">4</span>
+                  <span>帧预览</span>
+                </div>
+                <span style="font-size: 11px; color: var(--text-soft);">基于 <strong>${previewCmd ? '0x' + previewCmd.id.toString(16).padStart(2, '0').toUpperCase() + ' ' + previewCmd.name : '无'}</strong></span>
+              </div>
+              <div class="frame-preview">
+                <div class="frame-bytes" id="dh-frame-bytes"></div>
+                <div class="frame-meta">
+                  <div class="meta-item"><span class="meta-key">总字节</span><span class="meta-val" id="dh-meta-total">—</span></div>
+                  <div class="meta-item"><span class="meta-key">CRC 类型</span><span class="meta-val" id="dh-meta-crc-type">—</span></div>
+                  <div class="meta-item"><span class="meta-key">CRC 值</span><span class="meta-val" id="dh-meta-crc">—</span></div>
+                  <div class="meta-item"><span class="meta-key">校验范围</span><span class="meta-val" id="dh-meta-crc-range">—</span></div>
+                </div>
+                <div class="legend">
+                  <span class="legend-item"><span class="dot header"></span>header 帧头</span>
+                  <span class="legend-item"><span class="dot addr"></span>addr 地址</span>
+                  <span class="legend-item"><span class="dot cmd"></span>cmd 命令</span>
+                  <span class="legend-item"><span class="dot length"></span>length 长度</span>
+                  <span class="legend-item"><span class="dot data"></span>data 数据</span>
+                  <span class="legend-item"><span class="dot crc"></span>crc 校验</span>
+                  <span class="legend-item"><span class="dot tail"></span>tail 帧尾</span>
+                </div>
+              </div>
+            </div>
+          `;
+          NS._renderFieldList(proto, frame, previewCmd);
+          NS._renderDataFieldList();
+          NS._renderFramePreview(frame, proto);
+          const onChange = () => NS._renderFramePreview(NS.buildFrame(proto, previewCmd), proto);
+          document.getElementById('dh-proto-name').oninput = (e) => { proto.name = e.target.value || '未命名'; };
+          document.getElementById('dh-proto-endian').onchange = (e) => { proto.byteOrder = e.target.value; onChange(); };
+          document.getElementById('dh-proto-crc-type').onchange = (e) => {
+            proto.crcType = e.target.value;
+            if (!proto.crcInit || proto.crcInit === '0xFFFF' || proto.crcInit === '0x00') {
+              proto.crcInit = (e.target.value === 'crc8' || e.target.value === 'checksum' || e.target.value === 'xor' || e.target.value === 'none') ? '0x00' : '0xFFFF';
+            }
+            NS.renderProtoEditor();
+          };
+          document.getElementById('dh-proto-crc-init').oninput = (e) => { proto.crcInit = e.target.value; onChange(); };
+          document.getElementById('dh-proto-crc-endian').onchange = (e) => { proto.crcEndian = e.target.value; onChange(); };
+          document.getElementById('dh-proto-crc-range').onchange = (e) => { proto.crcRange = e.target.value; onChange(); document.getElementById('dh-meta-crc-range').textContent = NS.crcRangeLabel(e.target.value); };
+          document.getElementById('dh-add-field-btn').onclick = () => {
+            proto.fields.push({ id: 'f' + Date.now().toString(36), name: 'new_field', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' });
+            NS._renderFieldList(proto, NS.buildFrame(proto, previewCmd), previewCmd);
+            onChange();
+          };
+          document.getElementById('dh-add-data-field-btn').onclick = () => {
+            NS.DATA_FIELDS.push({ name: 'new_field_' + (NS.DATA_FIELDS.length + 1), type: 'u16', default: '0x0000' });
+            NS._renderDataFieldList();
+          };
+        };
+
+        NS._renderFieldList = function (proto, frame, previewCmd) {
+          const el = document.getElementById('dh-field-list');
+          if (!el) return;
+          el.innerHTML = '';
+          const types = ['header', 'addr', 'cmd', 'length', 'data', 'crc', 'tail'];
+          const endians = ['', 'BE', 'LE'];
+          proto.fields.forEach((f, idx) => {
+            const row = document.createElement('div');
+            row.className = 'field-row';
+            row.draggable = true;
+            row.dataset.idx = idx;
+            row.innerHTML = `
+              <span class="drag-handle" title="拖动排序">⠿</span>
+              <select class="type-select">${types.map((t) => `<option value="${t}" ${f.type === t ? 'selected' : ''}>${t}</option>`).join('')}</select>
+              <input class="name-input" value="${NS.escapeHtml(f.name)}" placeholder="字段名">
+              <input class="size-input mono" type="number" min="0" max="8" value="${f.size}" placeholder="字节">
+              <select class="endian-select" ${f.type === 'data' || f.type === 'cmd' || f.type === 'length' || f.type === 'crc' ? '' : 'disabled'}>
+                ${endians.map((e) => `<option value="${e}" ${f.byteOrder === e ? 'selected' : ''}>${e || '—'}</option>`).join('')}
+              </select>
+              <input class="default-input" value="${NS.escapeHtml(f.default || '')}" placeholder="(auto/hex)">
+              <button class="del-btn" title="删除">×</button>
+            `;
+            const onRefresh = () => { NS._renderFieldList(proto, NS.buildFrame(proto, previewCmd), previewCmd); NS._renderFramePreview(NS.buildFrame(proto, previewCmd), proto); };
+            row.querySelector('.type-select').onchange = (e) => {
+              f.type = e.target.value;
+              if (f.type === 'data') f.size = 0;
+              else if (f.type === 'tail' || f.type === 'header') f.size = 1;
+              else if (f.type === 'crc') { f.size = 2; f.byteOrder = f.byteOrder || 'LE'; }
+              onRefresh();
+            };
+            row.querySelector('.name-input').oninput = (e) => { f.name = e.target.value; };
+            row.querySelector('.size-input').oninput = (e) => { f.size = parseInt(e.target.value) || 0; NS._renderFramePreview(NS.buildFrame(proto, previewCmd), proto); };
+            row.querySelector('.endian-select').onchange = (e) => { f.byteOrder = e.target.value || null; NS._renderFramePreview(NS.buildFrame(proto, previewCmd), proto); };
+            row.querySelector('.default-input').oninput = (e) => { f.default = e.target.value; NS._renderFramePreview(NS.buildFrame(proto, previewCmd), proto); };
+            row.querySelector('.del-btn').onclick = () => { proto.fields = proto.fields.filter((x) => x.id !== f.id); onRefresh(); };
+            row.ondragstart = (e) => { e.dataTransfer.setData('text/plain', idx); row.classList.add('dragging'); };
+            row.ondragend = () => { row.classList.remove('dragging'); document.querySelectorAll('.field-row.drop-target').forEach((r) => r.classList.remove('drop-target')); };
+            row.ondragover = (e) => { e.preventDefault(); row.classList.add('drop-target'); };
+            row.ondragleave = () => row.classList.remove('drop-target');
+            row.ondrop = (e) => {
+              e.preventDefault(); row.classList.remove('drop-target');
+              const toIdx = idx;
+              if (e.dataTransfer.getData('data-field')) {
+                const fieldName = e.dataTransfer.getData('data-field');
+                proto.fields.splice(toIdx, 0, { id: 'f' + Date.now().toString(36), name: fieldName, type: 'data', size: 2, byteOrder: 'BE', default: '0x0000' });
+              } else {
+                const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+                if (!isNaN(fromIdx) && fromIdx !== toIdx) {
+                  const item = proto.fields.splice(fromIdx, 1)[0];
+                  proto.fields.splice(toIdx, 0, item);
+                }
+              }
+              onRefresh();
+            };
+            el.appendChild(row);
+          });
+        };
+
+        NS._renderDataFieldList = function () {
+          const el = document.getElementById('dh-data-field-list');
+          if (!el) return;
+          el.innerHTML = '';
+          const types = ['u8', 'u16', 'u32', 'i16', 'i32', 'float'];
+          NS.DATA_FIELDS.forEach((df, idx) => {
+            const row = document.createElement('div');
+            row.className = 'data-field-row';
+            row.draggable = true;
+            row.innerHTML = `
+              <span class="drag-handle" title="拖到帧字段插入 data 段">⠿</span>
+              <input class="name-input" value="${NS.escapeHtml(df.name)}" placeholder="字段名">
+              <select class="type-select">${types.map((t) => `<option value="${t}" ${df.type === t ? 'selected' : ''}>${t}</option>`).join('')}</select>
+              <input class="default-input" value="${NS.escapeHtml(df.default || '0x0000')}" placeholder="0x0000">
+              <button class="del-btn" title="删除">×</button>
+            `;
+            row.querySelector('.name-input').oninput = (e) => { df.name = e.target.value; };
+            row.querySelector('.type-select').onchange = (e) => { df.type = e.target.value; };
+            row.querySelector('.default-input').oninput = (e) => { df.default = e.target.value; };
+            row.querySelector('.del-btn').onclick = () => { NS.DATA_FIELDS.splice(idx, 1); NS._renderDataFieldList(); };
+            row.ondragstart = (e) => { e.dataTransfer.setData('data-field', df.name); };
+            el.appendChild(row);
+          });
+        };
+
+        NS._renderFramePreview = function (frame, proto) {
+          const el = document.getElementById('dh-frame-bytes');
+          if (!el) return;
+          if (frame.bytes.length === 0) { el.innerHTML = '<span style="color: var(--text-soft);">空帧</span>'; return; }
+          el.innerHTML = frame.bytes.map((b, i) => {
+            let cur = 0;
+            for (const s of frame.sections) {
+              if (i >= cur && i < cur + s.bytes.length) return `<span class="byte ${s.type}" title="${s.name}">${b.toString(16).padStart(2, '0').toUpperCase()}</span>`;
+              cur += s.bytes.length;
+            }
+            return `<span class="byte">${b.toString(16).padStart(2, '0').toUpperCase()}</span>`;
+          }).join(' ');
+          document.getElementById('dh-meta-total').textContent = frame.bytes.length + ' 字节';
+          const crcField = frame.sections.find((s) => s.type === 'crc');
+          let crc = '—';
+          if (crcField && crcField.bytes.length >= 1) {
+            const v = crcField.bytes.length === 1 ? crcField.bytes[0] : ((crcField.bytes[0] << 8) | crcField.bytes[1]);
+            crc = '0x' + v.toString(16).padStart(crcField.bytes.length * 2, '0').toUpperCase();
+          }
+          document.getElementById('dh-meta-crc').textContent = crc;
+          if (proto) {
+            const tEl = document.getElementById('dh-meta-crc-type');
+            if (tEl) tEl.textContent = NS.crcTypeLabel(proto.crcType || 'crc16-modbus');
+            const rEl = document.getElementById('dh-meta-crc-range');
+            if (rEl) rEl.textContent = NS.crcRangeLabel(proto.crcRange || 'all');
+          }
+        };
+
+        // --- 命令管理 (cmd-config modal) ---
+        NS.renderCmdList = function () {
+          const el = document.getElementById('dh-cmd-list');
+          if (!el) return;
+          el.innerHTML = '';
+          NS.COMMANDS.forEach((cmd) => {
+            const row = document.createElement('div');
+            row.className = 'cmd-row';
+            const idHex = cmd.id.toString(16).padStart(2, '0').toUpperCase();
+            row.innerHTML = `
+              <span class="dir-badge ${cmd.direction}">${cmd.direction.toUpperCase()}</span>
+              <span class="cmd-id">0x${idHex}</span>
+              <span class="cmd-name">${NS.escapeHtml(cmd.name)}</span>
+              <span class="cmd-proto">${NS.escapeHtml(cmd.protocol || '—')}</span>
+              <span class="cmd-fields">${(cmd.dataFields || []).join(', ')}</span>
+              <button class="del-btn" title="删除">×</button>
+            `;
+            row.querySelector('.del-btn').onclick = () => {
+              NS.COMMANDS = NS.COMMANDS.filter((c) => c.id !== cmd.id);
+              NS.renderCmdList();
+              NS.toast(`已移除命令 0x${idHex}`, 'success');
+            };
+            el.appendChild(row);
+          });
+        };
+        NS.populateCmdForm = function () {
+          const protoSel = document.getElementById('dh-cmd-form-proto');
+          if (protoSel) {
+            protoSel.innerHTML = NS.PROTOCOLS.map((p) => `<option value="${p.id}">${NS.escapeHtml(p.name)}</option>`).join('');
+          }
+        };
+
+        // --- 卡片配置 (card-config + card-edit modals) ---
+        NS.renderCardEditList = function () {
+          const el = document.getElementById('dh-card-edit-list');
+          if (!el) return;
+          el.innerHTML = '';
+          NS.CARDS.forEach((c) => {
+            const row = document.createElement('div');
+            row.className = 'card-edit-row';
+            const idHex = c.cmd ? c.cmd.toString(16).padStart(2, '0').toUpperCase() : '—';
+            row.innerHTML = `
+              <span class="ce-type">${c.type === 'pair' ? 'PAIR' : 'TREND'}</span>
+              <span class="ce-cmd">0x${idHex}</span>
+              <span class="ce-title">${NS.escapeHtml(c.title || c.field || c.id)}</span>
+              <span class="ce-unit">${NS.escapeHtml(c.unit || '')}</span>
+              <button class="edit-btn" title="编辑">✎</button>
+              <button class="del-btn" title="删除">×</button>
+            `;
+            row.querySelector('.edit-btn').onclick = () => NS.openCardEdit(c.id);
+            row.querySelector('.del-btn').onclick = () => {
+              NS.CARDS = NS.CARDS.filter((x) => x.id !== c.id);
+              NS.renderCardEditList();
+              NS.toast(`已移除卡片 ${c.id}`, 'success');
+            };
+            el.appendChild(row);
+          });
+        };
+        NS.populateCardFormCmds = function () {
+          const cmdSel = document.getElementById('dh-card-form-cmd');
+          if (cmdSel) {
+            cmdSel.innerHTML = NS.COMMANDS.map((c) => `<option value="${c.id}">0x${c.id.toString(16).padStart(2, '0').toUpperCase()} ${NS.escapeHtml(c.name)}</option>`).join('');
+            cmdSel.onchange = () => NS.populateCardFormFields();
+          }
+          NS.populateCardFormFields();
+        };
+        NS.populateCardFormFields = function () {
+          const cmdSel = document.getElementById('dh-card-form-cmd');
+          const fieldSel = document.getElementById('dh-card-form-field');
+          if (!cmdSel || !fieldSel) return;
+          const cmd = NS.COMMANDS.find((c) => c.id === parseInt(cmdSel.value));
+          fieldSel.innerHTML = cmd ? (cmd.dataFields || []).map((f) => `<option value="${f}">${f}</option>`).join('') : '';
+        };
+
+        NS.openCardEdit = function (id) {
+          NS.editingCardId = id;
+          const c = NS.CARDS.find((x) => x.id === id);
+          if (!c) return;
+          document.getElementById('dh-card-edit-subtitle').textContent = `编辑 ${c.title || c.id} (id=${c.id})`;
+          document.getElementById('dh-ce-title').value = c.title || '';
+          document.getElementById('dh-ce-unit').value = c.unit || '';
+          document.getElementById('dh-ce-type').value = c.type || 'trend';
+          const cmdSel = document.getElementById('dh-ce-cmd');
+          cmdSel.innerHTML = NS.COMMANDS.map((cmd) => `<option value="${cmd.id}" ${c.cmd === cmd.id ? 'selected' : ''}>0x${cmd.id.toString(16).padStart(2, '0').toUpperCase()} ${NS.escapeHtml(cmd.name)}</option>`).join('');
+          const fieldSel = document.getElementById('dh-ce-field');
+          const cmdObj = NS.COMMANDS.find((cmd) => cmd.id === c.cmd);
+          fieldSel.innerHTML = cmdObj ? (cmdObj.dataFields || []).map((f) => `<option value="${f}" ${c.field === f ? 'selected' : ''}>${f}</option>`).join('') : '';
+          cmdSel.onchange = () => {
+            const newCmd = NS.COMMANDS.find((cmd) => cmd.id === parseInt(cmdSel.value));
+            fieldSel.innerHTML = newCmd ? (newCmd.dataFields || []).map((f) => `<option value="${f}">${f}</option>`).join('') : '';
+          };
+          document.getElementById('dh-ce-rx').checked = !!c.fromOtherCmd;
+          document.getElementById('dh-ce-lower').value = c.range ? c.range[0] : '';
+          document.getElementById('dh-ce-upper').value = c.range ? c.range[1] : '';
+          document.getElementById('dh-ce-precision').value = c.precision != null ? c.precision : 2;
+          NS.openModal('dh-card-edit');
+        };
+
+        // --- 导入导出 (ie modal) ---
+        NS.exportConfig = function () {
+          const config = { type: 'SerialWebUserConfig', version: 1, userConfig: { dashboard: {
+            protocols: NS.PROTOCOLS, dataFields: NS.DATA_FIELDS, commands: NS.COMMANDS, cards: NS.CARDS,
+            settings: { cmdMismatchEnabled: NS.cmdMismatchEnabled, alertDebounceMs: NS.alertDebounceMs, cardLayout: NS.cardLayout }
+          }}};
+          return JSON.stringify(config, null, 2);
+        };
+        NS.importConfig = function (json) {
+          try {
+            const obj = JSON.parse(json);
+            if (obj.type !== 'SerialWebUserConfig') throw new Error('type 不是 SerialWebUserConfig');
+            const uc = obj.userConfig && obj.userConfig.dashboard;
+            if (!uc) throw new Error('userConfig.dashboard 缺失');
+            if (uc.protocols) NS.PROTOCOLS = uc.protocols;
+            if (uc.dataFields) NS.DATA_FIELDS = uc.dataFields;
+            if (uc.commands) NS.COMMANDS = uc.commands;
+            if (uc.cards) NS.CARDS = uc.cards;
+            if (uc.settings) {
+              if (typeof uc.settings.cmdMismatchEnabled === 'boolean') NS.cmdMismatchEnabled = uc.settings.cmdMismatchEnabled;
+              if (typeof uc.settings.alertDebounceMs === 'number') NS.alertDebounceMs = uc.settings.alertDebounceMs;
+              if (uc.settings.cardLayout) NS.cardLayout = uc.settings.cardLayout;
+            }
+            NS.activeProtoId = NS.PROTOCOLS[0] && NS.PROTOCOLS[0].id;
+            NS.initMockData();
+            NS.renderKpiCards();
+            NS.toast('已应用导入配置', 'success');
+            return true;
+          } catch (e) { NS.toast('导入失败: ' + e.message, 'danger'); return false; }
+        };
+
+        // --- 告警配置 (alerts modal) ---
+        NS.renderAlertRules = function () {
+          const el = document.getElementById('dh-alert-rules-list');
+          if (!el) return;
+          const rules = [];
+          NS.CARDS.forEach((c) => { if (c.range) rules.push({ title: c.title, field: c.field, range: c.range, unit: c.unit }); });
+          if (rules.length === 0) {
+            el.innerHTML = '<div style="padding: 8px 10px; color: var(--text-soft); font-size: 12px;">(无规则 — 添加带范围的卡片后自动生成)</div>';
+            return;
+          }
+          el.innerHTML = rules.map((r) => `
+            <div style="padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-small); font-size: 12px; margin-bottom: 6px;">
+              <strong>${NS.escapeHtml(r.title)}</strong>
+              <span style="font-family: var(--font-mono); color: var(--text-soft); margin-left: 8px;">${r.field}</span>
+              <span style="float: right; font-family: var(--font-mono); color: var(--text-soft);">${r.range[0]} ~ ${r.range[1]}${NS.escapeHtml(r.unit || '')}</span>
+            </div>
+          `).join('');
+        };
+
+        // --- Toast 通知 ---
+        NS.toast = function (msg, type) {
+          type = type || 'info';
+          const layer = document.getElementById('dh-toast-layer');
+          if (!layer) return;
+          const t = document.createElement('div');
+          t.className = 'toast ' + type;
+          t.textContent = msg;
+          layer.appendChild(t);
+          setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100%)'; t.style.transition = 'all 0.3s'; }, 2500);
+          setTimeout(() => t.remove(), 2900);
+        };
+
+        // --- Modal 控制 ---
+        NS.openModal = function (name) {
+          const backdrop = document.getElementById(name + '-backdrop');
+          const modal = document.getElementById(name + '-modal');
+          if (backdrop) backdrop.classList.add('open');
+          if (modal) modal.classList.add('open');
+          if (name === 'dh-proto') NS.renderProtoEditor();
+          if (name === 'dh-cmd-config') { NS.renderCmdList(); NS.populateCmdForm(); }
+          if (name === 'dh-card-config') { NS.renderCardEditList(); NS.populateCardFormCmds(); }
+          if (name === 'dh-ie') { const exp = document.getElementById('dh-ie-export'); if (exp) exp.value = NS.exportConfig(); }
+          if (name === 'dh-alerts') {
+            NS.renderAlertRules();
+            const cb = document.getElementById('dh-alert-cmd-mismatch'); if (cb) cb.checked = NS.cmdMismatchEnabled;
+            const db = document.getElementById('dh-alert-debounce'); if (db) db.value = NS.alertDebounceMs;
+          }
+        };
+        NS.closeModal = function (name) {
+          const backdrop = document.getElementById(name + '-backdrop');
+          const modal = document.getElementById(name + '-modal');
+          if (backdrop) backdrop.classList.remove('open');
+          if (modal) modal.classList.remove('open');
+        };
+
+        // --- 挂载 modal toolbar 按钮 + 内部按钮 handlers ---
+        NS.attachModalHandlers = function () {
+          const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+          // toolbar 5 个按钮
+          bind('dh-open-proto-editor', () => NS.openModal('dh-proto'));
+          bind('dh-open-cmd-config', () => NS.openModal('dh-cmd-config'));
+          bind('dh-open-card-config', () => NS.openModal('dh-card-config'));
+          bind('dh-open-import-export', () => NS.openModal('dh-ie'));
+          bind('dh-open-alerts', () => NS.openModal('dh-alerts'));
+          // 关闭按钮 (data-close="dh-xxx")
+          document.querySelectorAll('[data-close]').forEach((btn) => {
+            btn.addEventListener('click', () => NS.closeModal(btn.getAttribute('data-close')));
+          });
+          // backdrop 点击关闭
+          ['dh-proto', 'dh-cmd-config', 'dh-card-config', 'dh-card-edit', 'dh-ie', 'dh-alerts'].forEach((name) => {
+            const bd = document.getElementById(name + '-backdrop');
+            if (bd) bd.addEventListener('click', () => NS.closeModal(name));
+          });
+          // 协议编辑器: 应用 / 重置 / 导入 / 导出
+          bind('dh-proto-apply', () => { NS.toast('协议已应用', 'success'); NS.closeModal('dh-proto'); });
+          bind('dh-proto-reset', () => {
+            NS.PROTOCOLS = [
+              { id: 'proto_bms', name: 'BMS TLV v1', byteOrder: 'BE', crcRange: 'all', crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE',
+                fields: [
+                  { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
+                  { id: 'f2', name: 'addr', type: 'addr', size: 1, byteOrder: null, default: '0x01' },
+                  { id: 'f3', name: 'cmd', type: 'cmd', size: 1, byteOrder: 'BE', default: '0x00' },
+                  { id: 'f4', name: 'length', type: 'length', size: 1, byteOrder: 'BE', default: 'auto' },
+                  { id: 'f4d', name: 'data', type: 'data', size: 0, byteOrder: 'BE', default: '0x00' },
+                  { id: 'f5', name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' },
+                  { id: 'f6', name: 'tail', type: 'tail', size: 1, byteOrder: null, default: '0x55' }
+                ] },
+              { id: 'proto_modbus', name: 'Modbus RTU', byteOrder: 'LE', crcRange: 'no_header', crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE',
+                fields: [
+                  { id: 'm1', name: 'addr', type: 'addr', size: 1, byteOrder: null, default: '0x01' },
+                  { id: 'm2', name: 'func', type: 'cmd', size: 1, byteOrder: null, default: '0x03' },
+                  { id: 'm3', name: 'reg_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+                  { id: 'm4', name: 'reg_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+                  { id: 'm5', name: 'qty_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+                  { id: 'm6', name: 'qty_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+                  { id: 'm7', name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' }
+                ] }
+            ];
+            NS.activeProtoId = NS.PROTOCOLS[0].id;
+            NS.renderProtoEditor();
+            NS.toast('已恢复默认协议', 'info');
+          });
+          bind('dh-proto-export', () => {
+            const exp = NS.exportConfig();
+            navigator.clipboard.writeText(exp).then(
+              () => NS.toast('已复制 JSON 到剪贴板', 'success'),
+              () => { window.prompt('复制失败, 请手动复制:', exp); }
+            );
+          });
+          bind('dh-proto-import', () => {
+            const txt = window.prompt('粘贴 SerialWebUserConfig JSON:');
+            if (!txt) return;
+            try {
+              const obj = JSON.parse(txt);
+              const uc = obj.userConfig && obj.userConfig.dashboard;
+              if (uc && uc.protocols) {
+                NS.PROTOCOLS = uc.protocols;
+                NS.activeProtoId = NS.PROTOCOLS[0] && NS.PROTOCOLS[0].id;
+                NS.renderProtoEditor();
+                NS.toast('协议已导入', 'success');
+              } else { NS.toast('JSON 缺少 protocols', 'danger'); }
+            } catch (e) { NS.toast('JSON 解析失败: ' + e.message, 'danger'); }
+          });
+          // 命令管理: 保存
+          bind('dh-cmd-save', () => {
+            const idHex = document.getElementById('dh-cmd-form-id').value.trim();
+            const id = NS.parseHexOr0(idHex);
+            const name = document.getElementById('dh-cmd-form-name').value.trim();
+            const dir = document.getElementById('dh-cmd-form-dir').value;
+            const proto = document.getElementById('dh-cmd-form-proto').value;
+            const frame = document.getElementById('dh-cmd-form-frame').value;
+            const cadence = parseInt(document.getElementById('dh-cmd-form-cadence').value) || 0;
+            const fields = document.getElementById('dh-cmd-form-fields').value.split(',').map((s) => s.trim()).filter(Boolean);
+            const datasize = parseInt(document.getElementById('dh-cmd-form-datasize').value) || 0;
+            const expect = NS.parseHexOr0(document.getElementById('dh-cmd-form-expect').value.trim());
+            if (!id && id !== 0) { NS.toast('请填命令 ID', 'warn'); return; }
+            if (!name) { NS.toast('请填名称', 'warn'); return; }
+            const newCmd = { id, name, direction: dir, frameType: frame, cadence, protocol: proto, dataFields: fields, dataSize: datasize, expectResponse: expect };
+            const existing = NS.COMMANDS.findIndex((c) => c.id === id);
+            if (existing >= 0) NS.COMMANDS[existing] = newCmd; else NS.COMMANDS.push(newCmd);
+            NS.initMockData();
+            NS.renderCmdList();
+            NS.renderKpiCards();
+            NS.toast(`已保存命令 0x${id.toString(16).padStart(2, '0').toUpperCase()}`, 'success');
+          });
+          // 卡片配置: 添加
+          bind('dh-card-add', () => {
+            const type = document.getElementById('dh-card-form-type').value;
+            const cmd = parseInt(document.getElementById('dh-card-form-cmd').value);
+            const field = document.getElementById('dh-card-form-field').value;
+            const rx = document.getElementById('dh-card-form-rx').checked;
+            const title = document.getElementById('dh-card-form-title').value.trim();
+            const unit = document.getElementById('dh-card-form-unit').value.trim();
+            const lo = parseFloat(document.getElementById('dh-card-form-lower').value);
+            const hi = parseFloat(document.getElementById('dh-card-form-upper').value);
+            const precision = parseInt(document.getElementById('dh-card-form-precision').value) || 2;
+            const id = 'c' + (NS.CARDS.length + 1) + '_' + Date.now().toString(36);
+            const c = { id, type, cmd, dir: rx ? 'rx' : 'tx', field, title: title || field, unit, fromOtherCmd: rx };
+            if (!isNaN(lo) && !isNaN(hi)) c.range = [lo, hi];
+            if (type === 'trend') c.precision = precision;
+            NS.CARDS.push(c);
+            NS.renderCardEditList();
+            NS.renderKpiCards();
+            NS.toast(`已添加卡片 ${id}`, 'success');
+          });
+          // 卡片编辑: 保存 / 删除
+          bind('dh-ce-save', () => {
+            const c = NS.CARDS.find((x) => x.id === NS.editingCardId);
+            if (!c) return;
+            c.title = document.getElementById('dh-ce-title').value.trim();
+            c.unit = document.getElementById('dh-ce-unit').value.trim();
+            c.type = document.getElementById('dh-ce-type').value;
+            c.cmd = parseInt(document.getElementById('dh-ce-cmd').value);
+            c.field = document.getElementById('dh-ce-field').value;
+            c.fromOtherCmd = document.getElementById('dh-ce-rx').checked;
+            const lo = parseFloat(document.getElementById('dh-ce-lower').value);
+            const hi = parseFloat(document.getElementById('dh-ce-upper').value);
+            c.range = (!isNaN(lo) && !isNaN(hi)) ? [lo, hi] : undefined;
+            c.precision = parseInt(document.getElementById('dh-ce-precision').value) || 2;
+            NS.renderCardEditList();
+            NS.renderKpiCards();
+            NS.closeModal('dh-card-edit');
+            NS.toast(`已更新卡片 ${c.title || c.id}`, 'success');
+          });
+          bind('dh-ce-delete', () => {
+            if (!NS.editingCardId) return;
+            NS.CARDS = NS.CARDS.filter((c) => c.id !== NS.editingCardId);
+            NS.renderCardEditList();
+            NS.renderKpiCards();
+            NS.closeModal('dh-card-edit');
+            NS.toast(`已删除卡片 ${NS.editingCardId}`, 'success');
+          });
+          // 导入导出: 复制 / 应用
+          bind('dh-ie-copy', () => {
+            const txt = document.getElementById('dh-ie-export').value;
+            navigator.clipboard.writeText(txt).then(
+              () => NS.toast('已复制到剪贴板', 'success'),
+              () => NS.toast('复制失败, 请手动复制', 'warn')
+            );
+          });
+          bind('dh-ie-apply', () => {
+            const txt = document.getElementById('dh-ie-import').value.trim();
+            if (!txt) { NS.toast('请粘贴 JSON', 'warn'); return; }
+            if (NS.importConfig(txt)) NS.closeModal('dh-ie');
+          });
+          // 告警配置: 实时同步去抖 + 错配检测
+          const debounceEl = document.getElementById('dh-alert-debounce');
+          if (debounceEl) debounceEl.onchange = (e) => { NS.alertDebounceMs = parseInt(e.target.value) || 1000; };
+          const mismatchEl = document.getElementById('dh-alert-cmd-mismatch');
+          if (mismatchEl) mismatchEl.onchange = (e) => { NS.cmdMismatchEnabled = !!e.target.checked; };
+          // Esc 关闭任何打开的 modal
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+              ['dh-proto', 'dh-cmd-config', 'dh-card-config', 'dh-card-edit', 'dh-ie', 'dh-alerts'].forEach((n) => {
+                const m = document.getElementById(n + '-modal');
+                if (m && m.classList.contains('open')) NS.closeModal(n);
+              });
+            }
+          });
         };
       })();
 
