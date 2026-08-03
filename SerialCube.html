@@ -9222,6 +9222,8 @@
           }
         ];
 
+        // v4.4.3: 加 0x10 Set 命令配对字段 (TX 方向, 用户设定值, mock 模式不抖)
+        // set 字段单位 V (电压) / A (电流), pair 卡 (c7) 对比 SET vs ACT (pack_v_avg * 15 模拟 4 cell 串联)
         NS.DATA_FIELDS = [
           { name: 'cell_1_v', type: 'u16', default: '0x0000' },
           { name: 'cell_2_v', type: 'u16', default: '0x0000' },
@@ -9230,18 +9232,27 @@
           { name: 'pack_v_avg', type: 'u16', default: '0x0000' },
           { name: 'pack_i', type: 'u16', default: '0x0000' },
           { name: 'temperature', type: 'u16', default: '0x0000' },
-          { name: 'soc', type: 'u16', default: '0x0000' }
+          { name: 'soc', type: 'u16', default: '0x0000' },
+          { name: 'charge_v_set', type: 'u16', default: '0x0000' },
+          { name: 'charge_i_set', type: 'u16', default: '0x0000' },
+          { name: 'discharge_v_set', type: 'u16', default: '0x0000' }
         ];
 
+        // v4.4.3: 加 0x10 / 0x11 TX Set 命令 (v3.6 留的 TODO, 现在补齐数据模型)
+        // cadence: 0 表示不主动 query, 由用户触发 (trigger 按钮 → buildFrame 0x10 → 串口发)
+        // expectResponse 0x90 / 0x91 是设备响应 cmd (mock 模式设备不响应, 但 pair 卡 act 用现有 pack_v_avg * 15 模拟)
         NS.COMMANDS = [
           { id: 0x01, name: 'Read Voltage', direction: 'rx', frameType: 'query',   cadence: 200,  protocol: 'proto_bms', dataFields: ['cell_1_v', 'cell_2_v', 'cell_3_v', 'cell_4_v', 'pack_v_avg'], dataSize: 10, expectResponse: 0x80 },
           { id: 0x02, name: 'Read Current', direction: 'rx', frameType: 'query',   cadence: 500,  protocol: 'proto_bms', dataFields: ['pack_i'], dataSize: 2, expectResponse: 0x80 },
           { id: 0x03, name: 'Read Temp',    direction: 'rx', frameType: 'query',   cadence: 1000, protocol: 'proto_bms', dataFields: ['temperature'], dataSize: 2, expectResponse: 0x80 },
-          { id: 0x04, name: 'Read SOC',     direction: 'rx', frameType: 'query',   cadence: 2000, protocol: 'proto_bms', dataFields: ['soc'], dataSize: 2, expectResponse: 0x80 }
+          { id: 0x04, name: 'Read SOC',     direction: 'rx', frameType: 'query',   cadence: 2000, protocol: 'proto_bms', dataFields: ['soc'], dataSize: 2, expectResponse: 0x80 },
+          { id: 0x10, name: 'Control Charge', direction: 'tx', frameType: 'control', cadence: 0, protocol: 'proto_bms', dataFields: ['charge_v_set', 'charge_i_set'], dataSize: 4, expectResponse: 0x90 },
+          { id: 0x11, name: 'Control Disch',  direction: 'tx', frameType: 'control', cadence: 0, protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2, expectResponse: 0x91 }
         ];
 
-        // v4.2 阶段: 8 个完整卡片定义, 但 v4.2 只渲染前 4 个作为 KPI 演示
-        // v4.4 接入完整卡片渲染后会全部展示
+        // v4.4.3: c9 pair 卡 (充电设定 vs 实际) + c10 trend 卡 (充电设定值)
+        // 10 个完整卡片: 8 个 RX trend (c1-c8) + 1 个 TX pair (c9) + 1 个 TX trend (c10)
+        // pairId 'charge_v' 配对: setField=charge_v_set (0x10 TX) + actField=pack_v_avg*15 (0x01 RX 派生)
         NS.CARDS = [
           { id: 'c1', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_1_v',    title: 'Cell 1 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true },
           { id: 'c2', type: 'trend', cmd: 0x02, dir: 'rx', field: 'pack_i',      title: 'Pack 电流',   unit: 'A',   range: [-50, 50],  precision: 2, fromOtherCmd: true },
@@ -9250,7 +9261,9 @@
           { id: 'c5', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_2_v',    title: 'Cell 2 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true },
           { id: 'c6', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_3_v',    title: 'Cell 3 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true },
           { id: 'c7', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_4_v',    title: 'Cell 4 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true },
-          { id: 'c8', type: 'trend', cmd: 0x01, dir: 'rx', field: 'pack_v_avg',  title: 'Pack 平均电压', unit: 'V', range: [10, 17],   precision: 3, fromOtherCmd: true }
+          { id: 'c8', type: 'trend', cmd: 0x01, dir: 'rx', field: 'pack_v_avg',  title: 'Pack 平均电压', unit: 'V', range: [10, 17],   precision: 3, fromOtherCmd: true },
+          { id: 'c9', type: 'pair',  cmd: 0x10, dir: 'tx', pairId: 'charge_v',     title: '充电电压',    unit: 'V', fromOtherCmd: false },
+          { id: 'c10', type: 'trend', cmd: 0x10, dir: 'tx', field: 'charge_v_set', title: '充电设定',    unit: 'V', range: [0, 60],   precision: 1, fromOtherCmd: false }
         ];
 
         // === UI 状态 ===
@@ -9267,7 +9280,10 @@
         NS.lastValues = {};
 
         // === 数据生成 ===
+        // v4.4.3: set 字段 (charge_v_set / charge_i_set / discharge_v_set) 是用户输入值, 不抖, 保持原值
         NS.jitter = function (base, field) {
+          // set 字段 (TX 输入值) 不抖, 保持原值, 用户触发 0x10 时才更新
+          if (field === 'charge_v_set' || field === 'charge_i_set' || field === 'discharge_v_set') return base;
           const ranges = {
             'cell_1_v': 0.04, 'cell_2_v': 0.04, 'cell_3_v': 0.04, 'cell_4_v': 0.04,
             'pack_v_avg': 0.06, 'pack_i': 0.5, 'temperature': 0.6, 'soc': 0.3
@@ -9277,9 +9293,11 @@
         };
 
         NS.initMockData = function () {
+          // v4.4.3: charge_v_set 初始 56.0V (mock 充电电压), pack_v_avg 初始 56.4V (4 cell 串联 3.71*4≈14.8V? 实际 v4.2 pack_v_avg 是 cell 平均 ≈3.71V, pair 卡 act = pack_v_avg * 15 ≈ 55.65V 模拟 4 cell 串联总电压)
           const initVals = {
             'cell_1_v': 3.71, 'cell_2_v': 3.72, 'cell_3_v': 3.69, 'cell_4_v': 3.73,
-            'pack_i': 1.2, 'temperature': 25.3, 'soc': 87.5
+            'pack_i': 1.2, 'temperature': 25.3, 'soc': 87.5,
+            'charge_v_set': 56.0, 'charge_i_set': 10.0, 'discharge_v_set': 0
           };
           const now = Date.now();
           NS.COMMANDS.forEach((cmd) => {
@@ -9293,12 +9311,22 @@
               NS.lastValues[field] = NS.currentVals[field];
             });
           });
+          // v4.4.3: pair 卡 c9 派生 trend 初始化, 60 点 act 历史 = pack_v_avg * 15
+          // (这里 pack_v_avg 还没派生过, 用 4 cell 平均估算历史 = 3.71 * 15 = 55.65)
+          const keyPairAct = '09.charge_v_pair_act';
+          NS.trendData[keyPairAct] = NS.trendData[keyPairAct] || [];
+          const actBase = (NS.currentVals.pack_v_avg || 3.71) * 15;
+          for (let i = 60; i >= 1; i--) {
+            NS.trendData[keyPairAct].push({ t: now - i * 1000, v: actBase + (Math.random() - 0.5) * 0.6 });
+          }
         };
 
         NS.tickData = function () {
           NS.COMMANDS.forEach((cmd) => {
             cmd.dataFields.forEach((field) => {
               if (field === 'pack_v_avg') return;  // pack_v_avg 由 cell 派生, 单独处理
+              // v4.4.3: set 字段 (TX 输入值) 不抖, 保持原值, 等用户触发
+              if (field === 'charge_v_set' || field === 'charge_i_set' || field === 'discharge_v_set') return;
               const newVal = NS.jitter(NS.currentVals[field], field);
               // Cell 1 偶尔冲到过压 (>4.2V) 模拟告警
               if (field === 'cell_1_v' && Math.random() < 0.05) {
@@ -9318,6 +9346,12 @@
           NS.trendData[keyAvg] = NS.trendData[keyAvg] || [];
           NS.trendData[keyAvg].push({ t: Date.now(), v: NS.currentVals.pack_v_avg });
           if (NS.trendData[keyAvg].length > 60) NS.trendData[keyAvg].shift();
+          // v4.4.3: pair 卡 c9 派生 SET vs ACT, ACT = pack_v_avg * 15 (4 cell 串联总电压模拟)
+          // 同步写入 09.charge_v_pair_act 趋势 (派生 trend, renderPairSparkline 读取)
+          const keyPairAct = '09.charge_v_pair_act';
+          NS.trendData[keyPairAct] = NS.trendData[keyPairAct] || [];
+          NS.trendData[keyPairAct].push({ t: Date.now(), v: NS.currentVals.pack_v_avg * 15 });
+          if (NS.trendData[keyPairAct].length > 60) NS.trendData[keyPairAct].shift();
           NS.updateAll();
         };
 
@@ -9369,11 +9403,21 @@
           const card = document.createElement('div');
           if (c.type === 'pair') {
             card.className = 'card-default pair';
-            const set = NS.currentVals.charge_v_set != null ? NS.currentVals.charge_v_set : 0;
-            const act = (NS.currentVals.pack_v_avg != null ? NS.currentVals.pack_v_avg : 0) * 15;
+            // v4.4.3: pair 卡 SET/ACT 派生, 用 c.pairId 决定 set/act 字段
+            // pairId 'charge_v' → set = charge_v_set (0x10 TX), act = pack_v_avg * 15 (0x01 RX 派生 4 cell 串联)
+            // 后续扩展: pairId 'charge_i' → set = charge_i_set, act = pack_i (等等)
+            let set = 0, act = 0;
+            if (c.pairId === 'charge_v') {
+              set = NS.currentVals.charge_v_set != null ? NS.currentVals.charge_v_set : 0;
+              act = (NS.currentVals.pack_v_avg != null ? NS.currentVals.pack_v_avg : 0) * 15;
+            } else {
+              // fallback: 任意 pairId, 用通用 lookup
+              set = NS.currentVals[c.pairId + '_set'] != null ? NS.currentVals[c.pairId + '_set'] : 0;
+              act = NS.currentVals[c.pairId + '_act'] != null ? NS.currentVals[c.pairId + '_act'] : 0;
+            }
             const delta = act - set;
             const dCls = Math.abs(delta) < 0.5 ? 'ok' : (Math.abs(delta) < 1.0 ? 'warn' : 'bad');
-            const pairState = Math.abs(delta) < 0.5 ? 'ok' : 'warn';
+            const pairState = dCls;
             card.classList.add('alert-' + pairState);
             card.innerHTML = '<div class="card-header">'
               + '<div class="card-title-group">'
@@ -9383,6 +9427,7 @@
               + '</div>'
               + '<div class="card-actions">'
               + '<button class="card-action" title="Pair 详情" data-action="detail">⇄</button>'
+              + '<button class="card-action" title="触发 0x' + c.cmd.toString(16).padStart(2, '0').toUpperCase() + '" data-action="trigger">↗</button>'
               + '<button class="card-action edit-btn" title="编辑" data-action="edit">✎</button>'
               + '</div></div>'
               + '<div class="card-value pair" data-action="detail">'
@@ -9450,8 +9495,15 @@
           const card = document.createElement('div');
           card.className = 'list-card';
           if (c.type === 'pair') {
-            const set = NS.currentVals.charge_v_set != null ? NS.currentVals.charge_v_set : 0;
-            const act = (NS.currentVals.pack_v_avg != null ? NS.currentVals.pack_v_avg : 0) * 15;
+            // v4.4.3: pair 卡 SET/ACT 派生, 用 c.pairId 决定 (跟 renderCard 一致)
+            let set = 0, act = 0;
+            if (c.pairId === 'charge_v') {
+              set = NS.currentVals.charge_v_set != null ? NS.currentVals.charge_v_set : 0;
+              act = (NS.currentVals.pack_v_avg != null ? NS.currentVals.pack_v_avg : 0) * 15;
+            } else {
+              set = NS.currentVals[c.pairId + '_set'] != null ? NS.currentVals[c.pairId + '_set'] : 0;
+              act = NS.currentVals[c.pairId + '_act'] != null ? NS.currentVals[c.pairId + '_act'] : 0;
+            }
             const delta = act - set;
             const dCls = Math.abs(delta) < 0.5 ? 'ok' : (Math.abs(delta) < 1.0 ? 'warn' : 'bad');
             if (Math.abs(delta) >= 0.5) card.classList.add(Math.abs(delta) >= 1 ? 'alert-danger' : 'alert-warning');
@@ -9459,7 +9511,10 @@
               + '<span class="lc-label">' + NS.escapeHtml(c.title) + ' <span class="lc-field">pair</span></span>'
               + '<span class="lc-value">SET ' + set.toFixed(1) + ' / ACT ' + act.toFixed(1) + '</span>'
               + '<span class="lc-range">Δ ' + (delta > 0 ? '+' : '') + delta.toFixed(1) + ' · ' + (c.range ? c.range[0] + '-' + c.range[1] + NS.escapeHtml(c.unit || '') : '—') + '</span>'
-              + '<span class="lc-actions"><button class="card-action edit-btn" title="编辑" data-action="edit">✎</button></span>';
+              + '<span class="lc-actions">'
+              + '<button class="card-action" title="触发 0x' + c.cmd.toString(16).padStart(2, '0').toUpperCase() + '" data-action="trigger">↗</button>'
+              + '<button class="card-action edit-btn" title="编辑" data-action="edit">✎</button>'
+              + '</span>';
           } else {
             const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
             const range = c.range || [0, 100];
@@ -9674,6 +9729,8 @@
         };
 
         // v4.4 新增: pair 类型双线 sparkline (SET 虚线 + ACT 实线)
+        // v4.4.3 修复: set trend key 用 '10.charge_v_set' (cmd 0x10 → padStart 2 → "10"),
+        //              act 用 '09.charge_v_pair_act' 派生 trend (tickData 已写入), 不再 prototype bug '0A' 错
         NS.renderPairSparkline = function (canvas, card) {
           if (!canvas || !canvas.clientWidth || !canvas.clientHeight) return;
           const dpr = window.devicePixelRatio || 1;
@@ -9682,8 +9739,8 @@
           const ctx = canvas.getContext('2d');
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
           ctx.clearRect(0, 0, w, h);
-          const setData = NS.trendData['0A.charge_v_set'] || [];
-          const actData = (NS.trendData['01.pack_v_avg'] || []).map((p) => ({ t: p.t, v: p.v * 15 }));
+          const setData = NS.trendData['10.charge_v_set'] || [];
+          const actData = NS.trendData['09.charge_v_pair_act'] || [];
           const all = [...setData, ...actData];
           if (all.length < 2) return;
           const minV = Math.min(...all.map((p) => p.v));
