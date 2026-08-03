@@ -6051,14 +6051,61 @@
 .dashboard-host     .detail-status { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 3px; background: var(--success-soft, rgba(34, 197, 94, 0.14)); color: var(--success); }
 .dashboard-host     .detail-subtabs { display: flex; align-items: center; gap: 4px; padding: 8px 20px 0; border-bottom: 1px solid var(--border); }
 .dashboard-host     .detail-subtabs .spacer { flex: 1; }
-.dashboard-host     .detail-subtabs .chart-type-label { font-size: 11px; color: var(--text-soft); font-weight: 600; margin-right: 4px; }
-.dashboard-host     .detail-subtab { background: none; border: none; padding: 8px 14px; font-size: 12px; font-weight: 600; color: var(--text-soft); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; font-family: inherit; }
+.dashboard-host     .detail-subtabs .chart-type-label { font-size: 11px; color: var(--text-soft); font-weight: 600; margin-right: 4px; white-space: nowrap; }
+.dashboard-host     .detail-subtab { background: none; border: none; padding: 8px 14px; font-size: 12px; font-weight: 600; color: var(--text-soft); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; font-family: inherit; white-space: nowrap; }
 .dashboard-host     .detail-subtab:hover { color: var(--text); }
 .dashboard-host     .detail-subtab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.dashboard-host     .detail-chart-type { padding: 4px 8px; font-size: 11px; min-width: 0; max-width: 130px; }
+.dashboard-host     .detail-chart-type { padding: 4px 8px; font-size: 11px; min-width: 0; max-width: 160px; }
 .dashboard-host     .modal-body.detail-body { flex: 1; min-height: 0; overflow: auto; padding: 16px 20px; }
 .dashboard-host     .detail-body .chart-area { position: relative; width: 100%; height: 320px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px; margin-bottom: 12px; }
-.dashboard-host     .detail-body canvas.detail-canvas { width: 100%; height: 100%; display: block; }
+.dashboard-host     .detail-body canvas.detail-canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
+/* v4.7: hover tooltip + 缩放 toolbar + 选区遮罩 + 缩放提示 */
+.dashboard-host     .detail-body .chart-area .detail-tooltip {
+  position: absolute; pointer-events: none;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 10px;
+  font-size: 11px; line-height: 1.4;
+  font-family: var(--font-mono);
+  box-shadow: var(--shadow-ambient);
+  z-index: 5; display: none;
+  white-space: nowrap;
+}
+.dashboard-host     .detail-body .chart-area .detail-tooltip .tt-time { color: var(--text-soft); font-size: 10px; margin-bottom: 2px; }
+.dashboard-host     .detail-body .chart-area .detail-tooltip .tt-val { font-weight: 700; color: var(--text); font-size: 12px; }
+.dashboard-host     .detail-body .chart-area .detail-tooltip .tt-val .unit { color: var(--text-soft); font-weight: 600; font-size: 10px; margin-left: 2px; }
+.dashboard-host     .detail-body .chart-area .detail-tooltip .tt-pair-row { display: flex; gap: 10px; margin-top: 3px; font-size: 11px; }
+.dashboard-host     .detail-body .chart-area .detail-tooltip .tt-pair-set { color: #67676c; font-weight: 700; }
+.dashboard-host     .detail-body .chart-area .detail-tooltip .tt-pair-act { color: #5672cd; font-weight: 700; }
+.dashboard-host     .detail-body .chart-area .detail-marker {
+  position: absolute; top: 8px; bottom: 8px; width: 1px;
+  background: var(--text-soft); opacity: 0.4;
+  pointer-events: none; display: none; z-index: 4;
+}
+.dashboard-host     .detail-body .chart-area .detail-zoom-toolbar {
+  position: absolute; top: 12px; right: 12px; z-index: 6;
+  display: flex; gap: 4px; align-items: center;
+}
+.dashboard-host     .detail-body .chart-area .detail-zoom-toolbar button {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: 4px; padding: 3px 8px;
+  font-size: 10px; font-weight: 600;
+  color: var(--text); cursor: pointer; font-family: inherit;
+}
+.dashboard-host     .detail-body .chart-area .detail-zoom-toolbar button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.dashboard-host     .detail-body .chart-area .detail-zoom-toolbar .zoom-info { font-size: 10px; color: var(--text-soft); margin-right: 4px; font-family: var(--font-mono); }
+.dashboard-host     .detail-body .chart-area .detail-zoom-hint {
+  position: absolute; bottom: 12px; right: 12px;
+  font-size: 9px; color: var(--text-soft);
+  pointer-events: none; opacity: 0.6;
+  font-family: var(--font-mono);
+}
+.dashboard-host     .detail-body .chart-area .detail-zoom-selection {
+  position: absolute; top: 8px; bottom: 8px;
+  background: rgba(86, 114, 205, 0.12);
+  border-left: 1px solid var(--accent);
+  border-right: 1px solid var(--accent);
+  pointer-events: none; display: none; z-index: 3;
+}
 .dashboard-host     .detail-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
 .dashboard-host     .detail-stats .stat-cell { background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-small); padding: 10px 12px; }
 .dashboard-host     .detail-stats .stat-label { font-size: 10px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; margin-bottom: 4px; }
@@ -6092,7 +6139,7 @@
     }
 .dashboard-host     .modal-title { font-size: 16px; font-weight: 800; }
 .dashboard-host     .modal-subtitle { font-size: 11px; color: var(--text-soft); }
-    .modal-.dashboard-host { flex: 1; overflow: auto; padding: 20px; }
+    .dashboard-host     .modal-body { flex: 1; min-height: 0; overflow: auto; padding: 20px; }
 .dashboard-host     .modal-footer {
       display: flex; gap: 8px; justify-content: flex-end;
       padding: 12px 20px;
@@ -6102,7 +6149,7 @@
 
     /* Form */
 .dashboard-host     .form-row { display: grid; grid-template-columns: 140px 1fr; gap: 10px 16px; align-items: center; margin-bottom: 12px; }
-.dashboard-host     .form-row.col-2 { grid-template-columns: 140px 1fr 1fr; }
+.dashboard-host     .form-row.col-2 { grid-template-columns: 140px 1fr 140px 1fr; }
 .dashboard-host     .form-row label { font-size: 12px; color: var(--text-soft); font-weight: 700; }
 .dashboard-host     .form-input, .form-select {
       height: 32px; padding: 0 10px;
@@ -6339,31 +6386,6 @@
     }
 .dashboard-host     .card-edit-item .edit-btn:hover { background: var(--accent-soft); color: var(--accent); }
 .dashboard-host     .card-edit-item .del-btn:hover { color: var(--danger); border-color: var(--danger); }
-
-    /* Detail modal */
-.dashboard-host     .detail-tabs-row { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid var(--border); }
-.dashboard-host     .detail-subtabs { display: flex; }
-.dashboard-host     .detail-subtab { padding: 12px 16px; background: transparent; border: none; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-soft); border-bottom: 2px solid transparent; }
-.dashboard-host     .detail-subtab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.dashboard-host     .detail-toolbar { display: flex; align-items: center; gap: 12px; }
-.dashboard-host     .time-toggle { display: inline-flex; background: var(--bg-terminal); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
-.dashboard-host     .time-toggle button { padding: 4px 10px; background: transparent; border: none; cursor: pointer; font-size: 11px; font-weight: 600; color: var(--text-soft); border-radius: 6px; }
-.dashboard-host     .time-toggle button.active { background: var(--bg); color: var(--text); }
-.dashboard-host     .chart-type-select { padding: 5px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-size: 11px; font-weight: 600; color: var(--text); cursor: pointer; }
-.dashboard-host     .detail-chart-area { width: 100%; height: 280px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; position: relative; }
-.dashboard-host     .detail-chart-area canvas { width: 100%; height: 100%; display: block; }
-.dashboard-host     .detail-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-.dashboard-host     .stat-cell { padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
-.dashboard-host     .stat-cell .stat-label { font-size: 10px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
-.dashboard-host     .stat-cell .stat-value { font-family: var(--font-mono); font-size: 20px; font-weight: 800; margin-top: 4px; }
-.dashboard-host     .stat-cell .stat-value .unit { font-size: 11px; color: var(--text-soft); margin-left: 3px; font-weight: 600; }
-.dashboard-host     .detail-kv-list { display: grid; grid-template-columns: 200px 1fr; gap: 8px 16px; }
-.dashboard-host     .detail-kv-list .kv-key { font-size: 11px; color: var(--text-soft); font-weight: 700; }
-.dashboard-host     .detail-kv-list .kv-val { font-family: var(--font-mono); font-size: 12px; color: var(--text); }
-.dashboard-host     .detail-cmd-badge { font-family: var(--font-mono); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(58, 92, 204, 0.12); color: var(--signal); }
-.dashboard-host     .detail-cmd-badge.tx { background: var(--accent-soft); color: var(--accent-strong); }
-.dashboard-host     .detail-range { font-family: var(--font-mono); font-size: 11px; color: var(--text-soft); }
-.dashboard-host     .detail-status-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; padding: 3px 8px; border-radius: 4px; background: rgba(34, 197, 94, 0.14); color: var(--success); text-transform: uppercase; }
 
     /* Edit mode toast */
 .dashboard-host     .edit-toast {
@@ -9322,6 +9344,7 @@
         NS.cardLayout = 'card';
         NS._tickHandle = null;
         NS._initialized = false;
+        NS._detailZoom = null;  // v4.7: 详情图表缩放状态 { xMin, xMax } | null
         NS._v42KpiCardIds = ['c1', 'c2', 'c3', 'c4'];  // v4.2 演示的 4 个 KPI
 
         // === 数据池 (currentVals: 实时值, trendData: 历史, lastValues: 上一次) ===
@@ -9831,6 +9854,8 @@
           const card = NS.CARDS.find((c) => c.id === id);
           if (!card) return;
           NS._detailCardId = id;
+          // v4.7: 重置 zoom (新卡片)
+          NS._detailZoom = null;
           document.getElementById('dh-detail-title').textContent = card.title;
           const cmdHex = card.cmd ? card.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
           const cmdEl = document.getElementById('dh-detail-cmd');
@@ -9844,7 +9869,13 @@
           document.querySelectorAll('.detail-subtab').forEach((b) => b.classList.toggle('active', b.dataset.subtab === 'realtime'));
           // v4.4b 修: 改 selectedIndex 触发 select 显示刷新 (value 赋值在某些浏览器不刷新)
           const chartSel0 = document.getElementById('dh-detail-chart-type');
-          if (chartSel0) { chartSel0.value = 'line'; chartSel0.selectedIndex = 0; }
+          if (chartSel0) {
+            // v4.7: 先清空所有 options + 重建, 强制 select 显示 "折线 (line)"
+            // (v4.4b 的 selectedIndex=0 在多次切卡后, select 偶尔显示上一次选项文字)
+            chartSel0.value = 'line';
+            const opt0 = chartSel0.options[0];
+            if (opt0) { opt0.selected = true; chartSel0.selectedIndex = 0; }
+          }
           document.getElementById('dh-detail-backdrop').classList.add('open');
           document.getElementById('dh-detail-modal').classList.add('open');
           NS._renderDetailBody();
@@ -9861,6 +9892,20 @@
           const body = document.getElementById('dh-detail-body');
           const activeTab = document.querySelector('.detail-subtab.active')?.dataset.subtab || 'realtime';
           const chartType = document.getElementById('dh-detail-chart-type').value;
+          // v4.7: chart-area 装饰 (tooltip + marker + zoom-toolbar + zoom-hint + zoom-selection)
+          // 抽成函数, 后面 _renderDetailSingleChart / _renderDetailPairChart 复用
+          NS._decorateChartArea = function () {
+            const ca = body.querySelector('.chart-area');
+            if (!ca) return null;
+            if (!ca.querySelector('.detail-tooltip')) {
+              const tip = document.createElement('div'); tip.className = 'detail-tooltip'; ca.appendChild(tip);
+              const mk = document.createElement('div'); mk.className = 'detail-marker'; ca.appendChild(mk);
+              const sel = document.createElement('div'); sel.className = 'detail-zoom-selection'; ca.appendChild(sel);
+              const tb = document.createElement('div'); tb.className = 'detail-zoom-toolbar'; ca.appendChild(tb);
+              const hi = document.createElement('div'); hi.className = 'detail-zoom-hint'; hi.textContent = '拖动选区缩放 · 双击复位'; ca.appendChild(hi);
+            }
+            return ca;
+          };
           if (card.type === 'pair') {
             // pair 卡: 复用 c9 charge_v 派生, 留 fallback
             let set = 0, act = 0;
@@ -9883,6 +9928,7 @@
                 + '<div class="detail-pair-cell delta"><div class="plabel">Δ</div><div class="pvalue ' + dCls + '">' + (delta > 0 ? '+' : '') + delta.toFixed(1) + '<span class="punit">' + (card.unit || 'V') + '</span></div></div>'
                 + '</div>'
                 + '<div class="chart-area"><canvas class="detail-canvas" id="dh-detail-canvas"></canvas></div>';
+              NS._decorateChartArea();
               requestAnimationFrame(() => NS._renderDetailPairChart(card, chartType, setData, actData, all));
             } else if (activeTab === 'stats') {
               const setStats = NS._calcStats(setData.map((p) => p.v));
@@ -9892,6 +9938,7 @@
                 + '<h3 style="font-size: 11px; color: var(--text-soft); margin: 16px 0 6px; font-weight: 700; letter-spacing: 0.04em;">ACT 统计</h3>'
                 + NS._renderStatsRow(actStats, card.unit)
                 + '<div class="chart-area" style="margin-top: 12px;"><canvas class="detail-canvas" id="dh-detail-canvas"></canvas></div>';
+              NS._decorateChartArea();
               requestAnimationFrame(() => NS._renderDetailSingleChart(actData, 'histogram', card));
             } else if (activeTab === 'raw') {
               const maxLen = Math.max(setData.length, actData.length);
@@ -9909,11 +9956,13 @@
             if (activeTab === 'realtime' || activeTab === 'waveform') {
               body.innerHTML = '<div class="chart-area"><canvas class="detail-canvas" id="dh-detail-canvas"></canvas></div>'
                 + '<div class="detail-stats" id="dh-detail-stats"></div>';
+              NS._decorateChartArea();
               requestAnimationFrame(() => { NS._renderDetailSingleChart(data, chartType, card); NS._renderDetailStats(card, data); });
             } else if (activeTab === 'stats') {
               const stats = NS._calcStats(data.map((p) => p.v));
               body.innerHTML = NS._renderStatsRow(stats, card.unit)
                 + '<div class="chart-area" style="margin-top: 12px;"><canvas class="detail-canvas" id="dh-detail-canvas"></canvas></div>';
+              NS._decorateChartArea();
               requestAnimationFrame(() => NS._renderDetailSingleChart(data, 'histogram', card));
             } else if (activeTab === 'raw') {
               const rows = data.map((p, i) => '<tr><td>' + (i + 1) + '</td><td>' + new Date(p.t).toLocaleTimeString('zh-CN', { hour12: false }) + '</td><td>' + p.v.toFixed(card.precision || 2) + '</td></tr>');
@@ -9941,8 +9990,23 @@
             + '</div>';
         };
         NS._renderDetailSingleChart = function (data, chartType, card) {
+          // v4.7: 应用 zoom 切片 (zoom 状态 NS._detailZoom 范围索引)
+          let viewData = data;
+          if (NS._detailZoom && data.length > 1) {
+            const z = NS._detailZoom;
+            if (z.xMin >= 0 && z.xMax < data.length && z.xMax > z.xMin) {
+              viewData = data.slice(z.xMin, z.xMax + 1);
+            } else {
+              // 越界, 重置 zoom
+              NS._detailZoom = null;
+            }
+          }
           const cv = document.getElementById('dh-detail-canvas');
-          if (!cv || !cv.clientWidth || data.length < 2) return;
+          if (!cv || !cv.clientWidth || viewData.length < 2) {
+            // v4.7: 即使不画图, 也要更新 zoom toolbar (避免按钮残留)
+            NS._updateDetailZoomToolbar(card, data);
+            return;
+          }
           const dpr = window.devicePixelRatio || 1;
           const w = cv.clientWidth, h = cv.clientHeight;
           cv.width = w * dpr; cv.height = h * dpr;
@@ -9954,41 +10018,43 @@
           for (let i = 1; i < 5; i++) { const y = (h / 5) * i; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
           for (let i = 1; i < 6; i++) { const x = (w / 6) * i; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
           if (chartType === 'histogram') {
-            const minV = Math.min(...data.map((p) => p.v));
-            const maxV = Math.max(...data.map((p) => p.v));
+            const minV = Math.min(...viewData.map((p) => p.v));
+            const maxV = Math.max(...viewData.map((p) => p.v));
             const bins = 12;
             const hist = new Array(bins).fill(0);
             const binSize = (maxV - minV) / bins || 1;
-            data.forEach((p) => { const idx = Math.min(bins - 1, Math.max(0, Math.floor((p.v - minV) / binSize))); hist[idx]++; });
+            viewData.forEach((p) => { const idx = Math.min(bins - 1, Math.max(0, Math.floor((p.v - minV) / binSize))); hist[idx]++; });
             const maxCount = Math.max(...hist) || 1;
             const bWidth = w / bins;
             ctx.fillStyle = '#5672cd';
             hist.forEach((c, i) => { const bh = (c / maxCount) * h * 0.9; ctx.fillRect(i * bWidth + 1, h - bh, bWidth - 2, bh); });
+            // v4.7: histogram 模式不需要 zoom (切片是 x 维度), 但更新 toolbar 让用户知道
+            NS._updateDetailZoomToolbar(card, data);
             return;
           }
-          const minV = Math.min(...data.map((p) => p.v), ...(card.range || []));
-          const maxV = Math.max(...data.map((p) => p.v), ...(card.range || []));
+          const minV = Math.min(...viewData.map((p) => p.v), ...(card.range || []));
+          const maxV = Math.max(...viewData.map((p) => p.v), ...(card.range || []));
           const range = (maxV - minV) || 1;
-          const xStep = w / Math.max(data.length - 1, 1);
+          const xStep = w / Math.max(viewData.length - 1, 1);
           const color = '#5672cd';
           if (chartType === 'line') {
             ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
-            data.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+            viewData.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
             ctx.stroke();
           } else if (chartType === 'bar') {
             const bw = Math.max(2, xStep * 0.7); ctx.fillStyle = color;
-            data.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; ctx.fillRect(x - bw / 2, y, bw, h - y); });
+            viewData.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; ctx.fillRect(x - bw / 2, y, bw, h - y); });
           } else if (chartType === 'area') {
             const grad = ctx.createLinearGradient(0, 0, 0, h);
             grad.addColorStop(0, 'rgba(86, 114, 205, 0.4)');
             grad.addColorStop(1, 'rgba(86, 114, 205, 0.02)');
             ctx.fillStyle = grad; ctx.beginPath();
-            data.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; if (i === 0) ctx.moveTo(x, h); ctx.lineTo(x, y); });
+            viewData.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; if (i === 0) ctx.moveTo(x, h); ctx.lineTo(x, y); });
             ctx.lineTo(w, h); ctx.closePath(); ctx.fill();
             ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
           } else if (chartType === 'scatter') {
             ctx.fillStyle = color;
-            data.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); });
+            viewData.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); });
           }
           // 范围虚线 (range 上限/下限)
           if (card.range) {
@@ -9999,54 +10065,233 @@
             ctx.beginPath(); ctx.moveTo(0, yLo); ctx.lineTo(w, yLo); ctx.stroke();
             ctx.setLineDash([]);
           }
+          // v4.7: 绑定 hover tooltip + 缩放 mouse handlers
+          NS._bindDetailChartInteractions(card, data, viewData, xStep, h, minV, range, 'single');
         };
         NS._renderDetailPairChart = function (card, chartType, setData, actData, all) {
           // pair 双线: SET 虚线 + ACT 实线 (chartType 是 histogram 时, 退化为 ACT 折线)
+          // v4.7: 应用 zoom 切片 (同时切 setData / actData, 跟 all 一致)
+          let viewSet = setData, viewAct = actData;
+          if (NS._detailZoom && all.length > 1) {
+            const z = NS._detailZoom;
+            if (z.xMin >= 0 && z.xMax < all.length && z.xMax > z.xMin) {
+              viewSet = setData.filter((p) => p._idx >= z.xMin && p._idx <= z.xMax);
+              viewAct = actData.filter((p) => p._idx >= z.xMin && p._idx <= z.xMax);
+              // 简化: 直接按 index 切 (setData / actData 长度可能不等, 用 setData 索引基准)
+              const minI = z.xMin, maxI = z.xMax;
+              viewSet = setData.slice(minI, maxI + 1);
+              viewAct = actData.slice(minI, maxI + 1);
+            } else {
+              NS._detailZoom = null;
+            }
+          }
           const cv = document.getElementById('dh-detail-canvas');
-          if (!cv || !cv.clientWidth) return;
+          if (!cv || !cv.clientWidth) {
+            NS._updateDetailZoomToolbar(card, all);
+            return;
+          }
           const dpr = window.devicePixelRatio || 1;
           const w = cv.clientWidth, h = cv.clientHeight;
           cv.width = w * dpr; cv.height = h * dpr;
           const ctx = cv.getContext('2d');
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
           ctx.clearRect(0, 0, w, h);
-          if (all.length < 2) return;
+          if (all.length < 2) {
+            NS._updateDetailZoomToolbar(card, all);
+            return;
+          }
           // 网格
           ctx.strokeStyle = 'rgba(60, 60, 67, 0.08)'; ctx.lineWidth = 1;
           for (let i = 1; i < 5; i++) { const y = (h / 5) * i; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
           for (let i = 1; i < 6; i++) { const x = (w / 6) * i; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
-          const minV = Math.min(...all.map((p) => p.v));
-          const maxV = Math.max(...all.map((p) => p.v));
+          // v4.7: pair 模式 minV/maxV 用 set+act 合并算, 跟原版一致
+          const viewAll = [...viewSet, ...viewAct];
+          const minV = Math.min(...viewAll.map((p) => p.v));
+          const maxV = Math.max(...viewAll.map((p) => p.v));
           const range = (maxV - minV) || 1;
           const xStep = (data) => w / Math.max(data.length - 1, 1);
           // ACT 实线 (accent)
-          if (actData.length >= 2) {
+          if (viewAct.length >= 2) {
             ctx.strokeStyle = '#5672cd'; ctx.lineWidth = 2; ctx.setLineDash([]);
             ctx.beginPath();
-            actData.forEach((p, i) => { const x = i * xStep(actData); const y = h - ((p.v - minV) / range) * h; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+            viewAct.forEach((p, i) => { const x = i * xStep(viewAct); const y = h - ((p.v - minV) / range) * h; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
             ctx.stroke();
           }
           // SET 虚线 (灰)
-          if (setData.length >= 2) {
+          if (viewSet.length >= 2) {
             ctx.strokeStyle = '#67676c'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 2]);
             ctx.beginPath();
-            setData.forEach((p, i) => { const x = i * xStep(setData); const y = h - ((p.v - minV) / range) * h; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+            viewSet.forEach((p, i) => { const x = i * xStep(viewSet); const y = h - ((p.v - minV) / range) * h; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
             ctx.stroke();
             ctx.setLineDash([]);
           }
-          // 图例 (右下)
+          // 图例 (右上, 跟 zoom toolbar 错开)
           ctx.font = '10px var(--font-mono, monospace)';
           ctx.textAlign = 'right';
           ctx.fillStyle = '#67676c';
-          ctx.fillText('-- SET  ' + (setData[setData.length - 1] ? setData[setData.length - 1].v.toFixed(1) : '0'), w - 8, 14);
+          ctx.fillText('-- SET  ' + (viewSet[viewSet.length - 1] ? viewSet[viewSet.length - 1].v.toFixed(1) : '0'), w - 8, 14);
           ctx.fillStyle = '#5672cd';
-          ctx.fillText('— ACT  ' + (actData[actData.length - 1] ? actData[actData.length - 1].v.toFixed(1) : '0'), w - 8, 28);
+          ctx.fillText('— ACT  ' + (viewAct[viewAct.length - 1] ? viewAct[viewAct.length - 1].v.toFixed(1) : '0'), w - 8, 28);
+          // v4.7: 绑定 hover tooltip (双线) + 缩放
+          // pair 模式 xStep 用 setData 长度基准 (跟 ACT 长度差不多, 都接近 all.length)
+          const xStep2 = xStep(viewSet.length ? viewSet : viewAct);
+          NS._bindDetailChartInteractions(card, all, viewSet, xStep2, h, minV, range, 'pair', { setData: viewSet, actData: viewAct });
         };
         NS._renderDetailStats = function (card, data) {
           const el = document.getElementById('dh-detail-stats');
           if (!el) return;
           if (!data || data.length === 0) { el.innerHTML = ''; return; }
           el.innerHTML = NS._renderStatsRow(NS._calcStats(data.map((p) => p.v)), card.unit);
+        };
+
+        // === v4.7: 详情图表 hover tooltip + 缩放 交互 ===
+        // 状态: NS._detailZoom = { xMin, xMax } | null
+        //       xMin/xMax 是 NS.trendData 的全局索引 (跨 zoom 时不变, _renderDetailBody 时统一)
+        // _bindDetailChartInteractions: 绑定 canvas mouse events (mousemove/mousedown/mouseup/dblclick)
+        //   + 写 zoom toolbar (reset 按钮)
+        //   kind: 'single' | 'pair'
+        //   viewData: 当前 zoomed data (单卡) 或 setData (pair)
+        //   pairCtx: { setData, actData } (kind==='pair' 时)
+        NS._bindDetailChartInteractions = function (card, fullData, viewData, xStep, h, minV, range, kind, pairCtx) {
+          const cv = document.getElementById('dh-detail-canvas');
+          if (!cv) return;
+          const area = cv.closest('.chart-area');
+          if (!area) return;
+          const tip = area.querySelector('.detail-tooltip');
+          const marker = area.querySelector('.detail-marker');
+          const sel = area.querySelector('.detail-zoom-selection');
+          const tb = area.querySelector('.detail-zoom-toolbar');
+          if (!tip || !marker || !sel || !tb) return;
+          // zoomed data 在 fullData 的索引范围
+          const baseIdx = NS._detailZoom ? NS._detailZoom.xMin : 0;
+          // === mouse handlers ===
+          // helper: 算 x 对应 viewData 索引 (返回 -1 表示越界)
+          const idxFromX = (clientX) => {
+            const rect = cv.getBoundingClientRect();
+            const x = clientX - rect.left;
+            if (x < 0 || x > rect.width) return -1;
+            const i = Math.round(x / xStep);
+            return Math.max(0, Math.min(viewData.length - 1, i));
+          };
+          // helper: 算 pair 时 set/act 实际值
+          const getValue = (viewIdx) => {
+            if (kind === 'single') {
+              return { val: viewData[viewIdx]?.v, t: viewData[viewIdx]?.t };
+            } else {
+              // pair: 同 viewIdx, set + act
+              return { set: pairCtx.setData[viewIdx]?.v, act: pairCtx.actData[viewIdx]?.v, t: pairCtx.setData[viewIdx]?.t || pairCtx.actData[viewIdx]?.t };
+            }
+          };
+          // mousemove: 更新 tooltip + marker
+          cv.onmousemove = (e) => {
+            const viewIdx = idxFromX(e.clientX);
+            if (viewIdx < 0) { tip.style.display = 'none'; marker.style.display = 'none'; return; }
+            const rect = cv.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const actualIdx = baseIdx + viewIdx;
+            const p = fullData[actualIdx];
+            const v = getValue(viewIdx);
+            if (!p && kind === 'single') { tip.style.display = 'none'; marker.style.display = 'none'; return; }
+            const t = v.t ? new Date(v.t).toLocaleTimeString('zh-CN', { hour12: false }) : (p ? new Date(p.t).toLocaleTimeString('zh-CN', { hour12: false }) : '');
+            let html = '<div class="tt-time">' + (t || '—') + '</div>';
+            if (kind === 'single') {
+              const val = p ? p.v : 0;
+              html += '<div class="tt-val">' + val.toFixed(card.precision || 2) + '<span class="unit">' + (card.unit || '') + '</span></div>';
+            } else {
+              const sVal = v.set != null ? v.set : NaN;
+              const aVal = v.act != null ? v.act : NaN;
+              const dVal = (!isNaN(sVal) && !isNaN(aVal)) ? aVal - sVal : NaN;
+              html += '<div class="tt-pair-row">';
+              html += '<span class="tt-pair-set">SET ' + (isNaN(sVal) ? '—' : sVal.toFixed(1)) + '</span>';
+              html += '<span class="tt-pair-act">ACT ' + (isNaN(aVal) ? '—' : aVal.toFixed(1)) + '</span>';
+              html += '</div>';
+              if (!isNaN(dVal)) html += '<div class="tt-val" style="font-size: 11px;">Δ ' + (dVal > 0 ? '+' : '') + dVal.toFixed(1) + '<span class="unit">' + (card.unit || '') + '</span></div>';
+            }
+            tip.innerHTML = html;
+            tip.style.display = 'block';
+            // 防止 tooltip 越界 chart-area
+            const tipW = tip.offsetWidth;
+            const tipH = tip.offsetHeight;
+            let left = x + 12;
+            let top = 8;
+            if (left + tipW > rect.width) left = x - tipW - 12;
+            if (left < 0) left = 4;
+            tip.style.left = left + 'px';
+            tip.style.top = top + 'px';
+            marker.style.display = 'block';
+            marker.style.left = (x) + 'px';
+          };
+          cv.onmouseleave = () => { tip.style.display = 'none'; marker.style.display = 'none'; };
+          // === zoom: mousedown / mouseup ===
+          let zoomStartViewIdx = null;
+          let zoomStartX = null;
+          cv.onmousedown = (e) => {
+            const viewIdx = idxFromX(e.clientX);
+            if (viewIdx < 0) return;
+            zoomStartViewIdx = viewIdx;
+            zoomStartX = e.clientX - cv.getBoundingClientRect().left;
+            sel.style.display = 'block';
+            sel.style.left = zoomStartX + 'px';
+            sel.style.width = '0px';
+            cv.style.cursor = 'col-resize';
+            e.preventDefault();
+          };
+          cv.onmousemove = cv.onmousemove;  // 上面已绑
+          cv.onmouseup = (e) => {
+            if (zoomStartViewIdx == null) return;
+            const viewIdx = idxFromX(e.clientX);
+            const endX = e.clientX - cv.getBoundingClientRect().left;
+            sel.style.display = 'none';
+            cv.style.cursor = 'crosshair';
+            if (viewIdx >= 0 && Math.abs(viewIdx - zoomStartViewIdx) > 2) {
+              const lo = Math.min(zoomStartViewIdx, viewIdx);
+              const hi = Math.max(zoomStartViewIdx, viewIdx);
+              NS._detailZoom = { xMin: baseIdx + lo, xMax: baseIdx + hi };
+              NS._renderDetailBody();
+            }
+            zoomStartViewIdx = null;
+            zoomStartX = null;
+          };
+          // 拖拽时显示 selection
+          let lastMoveViewIdx = -1;
+          cv.addEventListener('mousemove', (e) => {
+            if (zoomStartViewIdx == null) return;
+            const viewIdx = idxFromX(e.clientX);
+            if (viewIdx === lastMoveViewIdx) return;
+            lastMoveViewIdx = viewIdx;
+            const curX = e.clientX - cv.getBoundingClientRect().left;
+            const lo = Math.min(zoomStartX, curX);
+            const hi = Math.max(zoomStartX, curX);
+            sel.style.left = lo + 'px';
+            sel.style.width = (hi - lo) + 'px';
+          });
+          // 双击复位
+          cv.ondblclick = (e) => {
+            e.preventDefault();
+            if (NS._detailZoom) {
+              NS._detailZoom = null;
+              NS._renderDetailBody();
+            }
+          };
+          // === zoom toolbar (reset button + zoom info) ===
+          NS._updateDetailZoomToolbar(card, fullData);
+        };
+        NS._updateDetailZoomToolbar = function (card, fullData) {
+          const cv = document.getElementById('dh-detail-canvas');
+          if (!cv) return;
+          const area = cv.closest('.chart-area');
+          if (!area) return;
+          const tb = area.querySelector('.detail-zoom-toolbar');
+          if (!tb) return;
+          const totalN = (fullData || []).length;
+          const hasZoom = !!NS._detailZoom;
+          const lo = NS._detailZoom ? NS._detailZoom.xMin : 0;
+          const hi = NS._detailZoom ? NS._detailZoom.xMax : (totalN - 1);
+          const visible = Math.max(0, hi - lo + 1);
+          tb.innerHTML = (hasZoom ? '<span class="zoom-info">显示 ' + visible + ' / ' + totalN + '</span>' : '')
+            + '<button class="zoom-reset" data-act="reset" style="' + (hasZoom ? '' : 'display:none;') + '">↺ 复位</button>';
+          const btn = tb.querySelector('[data-act="reset"]');
+          if (btn) btn.onclick = (e) => { e.stopPropagation(); NS._detailZoom = null; NS._renderDetailBody(); };
         };
 
         NS.renderKpiCards = function () {
