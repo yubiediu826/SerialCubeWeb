@@ -549,7 +549,7 @@
 
   // --- Mock Protocol Commands ---
   const COMMANDS = [
-    { id: 0x01, name: 'Read Voltage', direction: 'rx', fields: ['cell_1_v', 'cell_2_v', 'cell_3_v', 'cell_4_v'] },
+    { id: 0x01, name: 'Read Voltage', direction: 'rx', fields: ['cell_1_v', 'cell_2_v', 'cell_3_v', 'cell_4_v', 'pack_v_avg', 'soc'] },
     { id: 0x02, name: 'Read Current', direction: 'rx', fields: ['pack_i'] },
     { id: 0x03, name: 'Read Temp',    direction: 'rx', fields: ['temperature'] },
     { id: 0x10, name: 'Control Charge', direction: 'tx', fields: ['charge_v_set', 'charge_i_set'] },
@@ -586,7 +586,7 @@
   const DATA_INIT_TS = Date.now();
 
   function initMockData() {
-    // 1) 协议字段 (来自 COMMANDS)
+    // 协议字段 (来自 COMMANDS, 含派生字段如 pack_v_avg / soc)
     COMMANDS.forEach(cmd => {
       cmd.fields.forEach(field => {
         const key = `${cmd.id.toString(16).padStart(2, '0').toUpperCase()}.${field}`;
@@ -599,32 +599,16 @@
         else if (field === 'cell_4_v') currentVals[field] = 3.73;
         else if (field === 'pack_i') currentVals[field] = 1.2;
         else if (field === 'temperature') currentVals[field] = 25.3;
+        else if (field === 'pack_v_avg') currentVals[field] = 3.71;
+        else if (field === 'soc') currentVals[field] = 87.5;
         else currentVals[field] = 0;
-        trendData[key] = [];
+        trendData[key] = trendData[key] || [];
         const now = Date.now();
         for (let i = 60; i >= 1; i--) {
           const t = now - i * 1000;
           trendData[key].push({ t, v: jitter(currentVals[field], field) });
         }
       });
-    });
-
-    // 2) 额外字段 (KPI/Cards 引用但不在 COMMANDS 里: 派生/聚合)
-    const extraFields = {
-      'pack_v_avg': { base: 3.71, jitter: 0.03 },
-      'soc':        { base: 87.5, jitter: 0.3 }
-    };
-    Object.entries(extraFields).forEach(([field, cfg]) => {
-      if (!(field in currentVals)) {
-        currentVals[field] = cfg.base;
-        const key = `00_NA.${field}`;
-        trendData[key] = trendData[key] || [];
-        const now = Date.now();
-        for (let i = 60; i >= 1; i--) {
-          const t = now - i * 1000;
-          trendData[key].push({ t, v: cfg.base + (Math.random() - 0.5) * 2 * cfg.jitter });
-        }
-      }
     });
   }
 
@@ -726,7 +710,7 @@
         card.innerHTML = `
           <div class="kpi-head">
             <span class="kpi-title">${k.title}</span>
-            <span class="kpi-cmd">${cmdHex} ${k.dir || 'rx'}</span>
+            <span class="kpi-cmd">0x${cmdHex} ${k.dir || 'rx'}</span>
           </div>
           <div class="kpi-value">${v.toFixed(k.precision || 2)}<span class="unit">${k.unit}</span></div>
         `;
@@ -1105,8 +1089,8 @@
       filtered.forEach((p, i) => {
         const x = i * xStep;
         const y = h - ((p.v - minV) / range) * h;
-        if (i === 0) ctx.moveTo(x, h); ctx.lineTo(x, y);
-        else ctx.lineTo(x, y);
+        if (i === 0) ctx.moveTo(x, h);
+        ctx.lineTo(x, y);
       });
       ctx.lineTo(w, h);
       ctx.closePath();
