@@ -453,11 +453,11 @@
 
     .logo-mode-switch {
       position: relative;
-      width: 80px;
-      min-width: 80px;
-      max-width: 80px;
+      width: 120px;
+      min-width: 120px;
+      max-width: 120px;
       display: grid;
-      grid-template-columns: repeat(2, 40px);
+      grid-template-columns: repeat(3, 40px);
       gap: 0;
       padding: 0;
       border-radius: inherit;
@@ -2005,9 +2005,9 @@
       display: block;
       background: var(--bg);
     }
-    /* mode-switch 第 3 项 active 态 (仪表盘在 row 2 col 1, indicator 跳到 row 2) */
+    /* mode-switch 第 3 项 active 态 (1x3 横排, indicator 横滑到 col 3) */
     body.mode-dashboard #logo-mode-switch::before {
-      transform: translate(0, 40px);
+      transform: translateX(80px);
     }
     body.mode-dashboard #dashboard-mode-btn .logo-mode-icon,
     body.mode-dashboard #dashboard-mode-btn .logo-mode-text {
@@ -8803,6 +8803,26 @@
           state.ui.compactConfigOpen = false;
         }
         applyLayout();
+        scheduleRefresh();
+        scheduleLocalPrefsSave();
+      }
+
+      // v4.1.4: mode 按钮统一行为 - 点 #serial-mode-btn / #parser-mode-btn
+      // 各自进入监视/解析布局;如果当前是 dashboard 模式, 先退出
+      function switchToMode(targetLayoutExpanded) {
+        if (appEl.classList.contains('mode-dashboard')) {
+          exitDashboardMode();
+        }
+        state.layoutExpanded = Boolean(targetLayoutExpanded);
+        if (!state.ui.compactSingle) {
+          state.ui.compactConfigOpen = false;
+        }
+        applyLayout();
+        // 同步 body class 与 active 指示器 (避免 applyLayout 内部 toggle 被覆盖)
+        appEl.classList.toggle('layout-expanded', state.layoutExpanded);
+        refs.serialModeBtn?.classList.toggle('is-active', !state.layoutExpanded);
+        refs.parserModeBtn?.classList.toggle('is-active', state.layoutExpanded);
+        refs.dashboardModeBtn?.classList.remove('is-active');
         scheduleRefresh();
         scheduleLocalPrefsSave();
       }
@@ -16358,8 +16378,10 @@
         refs.newlineMode.addEventListener('change', () => { state.settings.newlineMode = refs.newlineMode.value; });
         refs.appendNewline.addEventListener('change', () => { state.settings.appendNewline = refs.appendNewline.checked; });
         refs.layoutToggleBtn.addEventListener('click', toggleLayoutMode);
-        refs.serialModeBtn?.addEventListener('click', toggleLayoutMode);
-        refs.parserModeBtn?.addEventListener('click', toggleLayoutMode);
+        // v4.1.4: mode 按钮统一行为 - 点 #serial-mode-btn / #parser-mode-btn 各自进入监视/解析布局
+        // (不再错绑 v3.1 旧 toggleLayoutMode)
+        refs.serialModeBtn?.addEventListener('click', () => switchToMode(false));
+        refs.parserModeBtn?.addEventListener('click', () => switchToMode(true));
         refs.dashboardModeBtn?.addEventListener('click', () => {
           if (appEl.classList.contains('mode-dashboard')) {
             exitDashboardMode();
