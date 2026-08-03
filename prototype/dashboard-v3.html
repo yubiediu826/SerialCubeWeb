@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SerialCube Dashboard v3.3 Prototype</title>
+  <title>SerialCube Dashboard v3.4 Prototype</title>
   <style>
     /* ============================================
        Design Tokens
@@ -32,7 +32,6 @@
       --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
       --radius: 14px;
       --radius-small: 10px;
-      /* Field type colors (legend) */
       --c-header: #818cf8;
       --c-addr: #3a5ccc;
       --c-cmd: #d97706;
@@ -63,7 +62,7 @@
     * { box-sizing: border-box; }
     body { margin: 0; font-family: var(--font-ui); font-size: 13px; color: var(--text); background: var(--bg); min-height: 100vh; }
 
-    /* App Layout (跟 SerialCube 监视模式一致) */
+    /* App Layout */
     .app-shell {
       display: grid;
       grid-template-rows: auto 1fr;
@@ -108,7 +107,6 @@
       gap: 12px;
     }
     .status-bar .status-icon { color: var(--warning); font-size: 14px; }
-    .status-bar .status-text { font-weight: 600; color: var(--text); }
     .topbar-icon-btn {
       width: 32px; height: 32px;
       background: var(--bg-panel); border: 1px solid var(--border);
@@ -118,7 +116,7 @@
     }
     .topbar-icon-btn:hover { color: var(--accent); border-color: var(--border-strong); }
 
-    /* Main: Sidebar + Content */
+    /* Main */
     .main-row {
       display: grid;
       grid-template-columns: 286px minmax(0, 1fr);
@@ -128,7 +126,6 @@
     body.sidebar-collapsed .main-row {
       grid-template-columns: 32px minmax(0, 1fr);
     }
-    /* Sidebar */
     .sidebar {
       background: var(--bg-panel);
       border: 1px solid var(--border);
@@ -150,10 +147,7 @@
       z-index: 5;
     }
     .sidebar-toggle:hover { color: var(--accent); }
-    .sidebar-content {
-      flex: 1; overflow-y: auto;
-      padding: 10px 12px;
-    }
+    .sidebar-content { flex: 1; overflow-y: auto; padding: 10px 12px; }
     .sidebar-section-title {
       font-size: 10px; font-weight: 700; color: var(--text-soft);
       text-transform: uppercase; letter-spacing: 0.04em;
@@ -175,10 +169,7 @@
       display: inline-flex; align-items: center;
       font-family: var(--font-mono);
     }
-    .sidebar-row .check-mock {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 12px; color: var(--text);
-    }
+    .sidebar-row .check-mock { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text); }
     .sidebar-row .check-mock input { margin: 0; }
     .sidebar-divider { height: 1px; background: var(--border); margin: 12px 0; }
     .sidebar-collapsed-label {
@@ -188,7 +179,6 @@
       padding: 8px 0;
     }
 
-    /* Content (Dashboard) */
     .content {
       background: var(--bg-panel);
       border: 1px solid var(--border);
@@ -197,7 +187,6 @@
       min-height: 0;
       overflow: hidden;
     }
-    /* Toolbar */
     .toolbar {
       display: flex; align-items: center; gap: 8px;
       padding: 10px 14px;
@@ -226,8 +215,26 @@
       display: inline-block; width: 6px; height: 6px; border-radius: 50%;
       background: var(--success);
     }
+    /* Layout toggle */
+    .layout-toggle {
+      display: inline-flex;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2px;
+    }
+    .layout-toggle button {
+      padding: 4px 10px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-soft);
+      border-radius: 6px;
+    }
+    .layout-toggle button.active { background: var(--accent); color: white; }
 
-    /* Command Panel */
     .command-panel {
       display: flex; align-items: center; gap: 8px;
       padding: 8px 14px;
@@ -258,7 +265,7 @@
     .cmd-chip.tx .dir-badge { background: var(--accent-soft); color: var(--accent-strong); }
     .cmd-chip-label { font-size: 11px; color: var(--text-soft); margin-right: 4px; font-weight: 600; }
 
-    /* Card Grid (固定宽度, 不拉伸) */
+    /* Card Grid (大卡 280x200) */
     .card-grid-area {
       flex: 1; min-height: 0; overflow-y: auto;
       padding: 14px;
@@ -278,7 +285,6 @@
     .card-add-slot:hover { border-color: var(--accent); color: var(--accent); }
     .card-add-slot .hint { font-size: 11px; font-weight: 500; margin-top: 8px; }
 
-    /* Card (统一 trend, 280x200 固定) */
     .card-default {
       width: 280px; height: 200px;
       padding: 10px 12px;
@@ -401,7 +407,48 @@
     body.edit-mode .card-action.delete-btn { color: var(--danger); }
     body.edit-mode .card-action.delete-btn:hover { background: rgba(224, 87, 94, 0.14); color: var(--danger); }
 
-    /* Alert Drawer (右下角统一) */
+    /* 小卡片 (列表视图) */
+    .list-card {
+      width: 100%;
+      height: 44px;
+      padding: 8px 14px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-small);
+      display: grid;
+      grid-template-columns: auto 1fr auto auto auto;
+      gap: 12px;
+      align-items: center;
+      cursor: pointer;
+      transition: border-color 0.15s ease;
+      flex-shrink: 0;
+    }
+    .list-card:hover { border-color: var(--border-strong); }
+    .list-card.alert-warning { border-color: var(--warning); }
+    .list-card.alert-danger { border-color: var(--danger); }
+    .list-card .lc-status-ring { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+    .list-card .lc-status-ring.warn { background: var(--warning); }
+    .list-card .lc-status-ring.danger { background: var(--danger); }
+    .list-card .lc-status-ring.rx { background: var(--signal); }
+    .list-card .lc-label {
+      font-size: 12px; color: var(--text); font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .list-card .lc-label .lc-field { font-family: var(--font-mono); font-size: 10px; color: var(--text-soft); font-weight: 500; }
+    .list-card .lc-value {
+      font-family: var(--font-mono);
+      font-size: 16px; font-weight: 800;
+      color: var(--text);
+    }
+    .list-card .lc-value .unit { font-size: 11px; color: var(--text-soft); margin-left: 3px; font-weight: 600; }
+    .list-card .lc-range {
+      font-family: var(--font-mono);
+      font-size: 10px; color: var(--text-soft);
+    }
+    .list-card .lc-actions { display: flex; gap: 1px; }
+
+    /* Alert Drawer */
     .alert-drawer {
       position: fixed; right: 16px; bottom: 16px;
       width: 320px; max-height: 50vh;
@@ -507,13 +554,13 @@
     .form-input:disabled, .form-input[readonly] { background: var(--bg-terminal); color: var(--text-soft); }
     .form-hint { font-size: 10px; color: var(--text-soft); margin-top: 4px; }
     .form-section-title {
-      font-size: 11px; font-weight: 700; color: var(--text-soft);
-      text-transform: uppercase; letter-spacing: 0.04em;
+      font-size: 12px; font-weight: 700; color: var(--text);
       margin: 16px 0 8px;
       padding-bottom: 4px;
       border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
     }
+    .form-section-title .num { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: white; font-size: 10px; font-weight: 800; margin-right: 8px; }
     .form-checkbox {
       display: inline-flex; align-items: center; gap: 6px;
       font-size: 12px; color: var(--text); cursor: pointer;
@@ -530,7 +577,7 @@
     }
     .form-textarea:focus { outline: none; border-color: var(--accent); }
 
-    /* Protocol Editor: 三栏布局 */
+    /* Protocol Editor: 上下排布 */
     .proto-tabs {
       display: flex; gap: 4px; padding: 8px 16px 0;
       border-bottom: 1px solid var(--border);
@@ -553,28 +600,36 @@
     .proto-tab .del-btn { margin-left: 4px; font-size: 11px; opacity: 0.5; }
     .proto-tab .del-btn:hover { opacity: 1; color: var(--danger); }
 
-    /* 三栏: 帧字段(左) + 中间(data + preview) */
     .proto-body {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
+      display: flex; flex-direction: column;
+      gap: 12px;
       padding: 16px 20px;
     }
-    .proto-col {
-      display: flex; flex-direction: column;
-      gap: 8px;
-      min-height: 0;
+    .proto-section {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-small);
+      padding: 12px;
     }
-    .proto-col-frame {
-      grid-column: 1;
+    .proto-section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
     }
-    .proto-col-data {
-      grid-column: 2;
+    .proto-section-title {
+      font-size: 12px; font-weight: 700; color: var(--text);
+      display: inline-flex; align-items: center; gap: 6px;
     }
+    .proto-section-title .num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--accent); color: white;
+      font-size: 10px; font-weight: 800;
+    }
+
     .field-list { display: flex; flex-direction: column; gap: 4px; }
     .field-row {
       display: grid;
-      grid-template-columns: 24px 100px 1fr 50px 80px 100px 24px;
+      grid-template-columns: 20px 100px 1fr 50px 80px 100px 24px;
       gap: 6px;
       align-items: center;
       padding: 6px 8px;
@@ -584,7 +639,7 @@
       font-size: 11px;
     }
     .field-row.drop-target { border-color: var(--accent); background: var(--accent-soft); }
-    .field-row .drag-handle { color: var(--text-soft); cursor: grab; text-align: center; }
+    .field-row .drag-handle { color: var(--text-soft); cursor: grab; text-align: center; font-size: 14px; }
     .field-row .drag-handle:hover { color: var(--accent); }
     .field-row select, .field-row input {
       font-size: 11px; padding: 0 4px; height: 24px;
@@ -611,15 +666,14 @@
     .field-row .type-color.crc { background: var(--c-crc); }
     .field-row .type-color.tail { background: var(--c-tail); }
 
-    /* 帧预览 (常驻上方) */
     .frame-preview {
       background: var(--bg-terminal);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 6px;
       padding: 12px 14px;
     }
     .frame-bytes {
-      font-family: var(--font-mono); font-size: 13px;
+      font-family: var(--font-mono); font-size: 14px;
       font-weight: 700;
       color: var(--text);
       letter-spacing: 0.1em;
@@ -642,23 +696,17 @@
     .frame-meta .meta-item .meta-key { font-weight: 700; }
     .frame-meta .meta-item .meta-val { color: var(--text); margin-left: 4px; }
 
-    /* Legend (颜色标注) */
     .legend {
       display: flex; flex-wrap: wrap; gap: 8px;
-      padding: 8px 10px;
+      padding: 6px 10px;
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: 6px;
       font-size: 10px;
+      margin-top: 8px;
     }
-    .legend-item {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-family: var(--font-mono);
-      color: var(--text-soft);
-    }
-    .legend-item .dot {
-      width: 8px; height: 8px; border-radius: 2px;
-    }
+    .legend-item { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); color: var(--text-soft); }
+    .legend-item .dot { width: 8px; height: 8px; border-radius: 2px; }
     .legend-item .dot.header { background: var(--c-header); }
     .legend-item .dot.addr { background: var(--c-addr); }
     .legend-item .dot.cmd { background: var(--c-cmd); }
@@ -667,14 +715,13 @@
     .legend-item .dot.crc { background: var(--c-crc); }
     .legend-item .dot.tail { background: var(--c-tail); }
 
-    /* 数据字段 (单独一栏) */
     .data-field-list {
       display: flex; flex-direction: column; gap: 4px;
-      max-height: 280px; overflow-y: auto;
+      max-height: 180px; overflow-y: auto;
     }
     .data-field-row {
       display: grid;
-      grid-template-columns: 24px 1fr 100px 80px 24px;
+      grid-template-columns: 20px 1fr 100px 80px 24px;
       gap: 6px; align-items: center;
       padding: 6px 8px;
       background: var(--bg);
@@ -682,7 +729,7 @@
       border-radius: 6px;
       font-size: 11px;
     }
-    .data-field-row .drag-handle { color: var(--text-soft); cursor: grab; text-align: center; }
+    .data-field-row .drag-handle { color: var(--text-soft); cursor: grab; text-align: center; font-size: 14px; }
     .data-field-row input, .data-field-row select {
       font-size: 11px; padding: 0 4px; height: 24px;
       border: 1px solid var(--border); border-radius: 4px;
@@ -710,7 +757,6 @@
     .cmd-list-item .fields { font-family: var(--font-mono); font-size: 10px; color: var(--text-soft); }
     .cmd-list-item .cadence { font-family: var(--font-mono); font-size: 11px; color: var(--text-soft); text-align: right; }
 
-    /* Card list */
     .card-edit-list { display: flex; flex-direction: column; gap: 6px; }
     .card-edit-item {
       display: grid; grid-template-columns: 24px 1fr 100px 80px 80px auto auto;
@@ -757,7 +803,7 @@
     .detail-range { font-family: var(--font-mono); font-size: 11px; color: var(--text-soft); }
     .detail-status-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; padding: 3px 8px; border-radius: 4px; background: rgba(34, 197, 94, 0.14); color: var(--success); text-transform: uppercase; }
 
-    /* Edit mode toast (右上角统一) */
+    /* Edit mode toast */
     .edit-toast {
       position: fixed; top: 70px; right: 16px;
       padding: 10px 16px;
@@ -773,13 +819,11 @@
     }
     body.edit-mode .edit-toast { display: inline-flex; }
     .edit-toast .close-edit { background: rgba(255,255,255,0.2); border: none; color: white; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px; }
-    /* 弹窗位置配置 */
     body.toast-pos-tr .edit-toast { top: 70px; right: 16px; }
     body.toast-pos-tl .edit-toast { top: 70px; left: 16px; right: auto; }
     body.toast-pos-br .edit-toast { bottom: 70px; right: 16px; top: auto; }
     body.toast-pos-bl .edit-toast { bottom: 70px; left: 16px; right: auto; top: auto; }
 
-    /* System menu (右上角齿轮下拉) */
     .system-menu {
       position: fixed; top: 56px; right: 12px;
       width: 240px;
@@ -839,7 +883,7 @@
       <div class="brand">
         <span class="brand-dot"></span>
         <span class="brand-name">SerialCube</span>
-        <span class="brand-sub">Dashboard v3.3</span>
+        <span class="brand-sub">Dashboard v3.4</span>
       </div>
       <div class="mode-switch">
         <button class="mode-btn" id="serial-mode-btn" title="监视">
@@ -867,7 +911,6 @@
     </header>
 
     <div class="main-row">
-      <!-- 侧边栏 (设备连接管理, 可折叠) -->
       <aside class="sidebar" id="sidebar">
         <button class="sidebar-toggle" id="sidebar-toggle" title="折叠/展开">‹</button>
         <div class="sidebar-content" id="sidebar-content">
@@ -879,57 +922,26 @@
           <div style="margin-bottom: 12px;">
             <button class="toolbar-btn primary" style="width: 100%; height: 32px;">⚡ 连接设备 | 当前未连接</button>
           </div>
-          <div class="sidebar-row">
-            <label>波特率</label>
-            <div class="select-mock">115200</div>
-          </div>
-          <div class="sidebar-row">
-            <label>数据位</label>
-            <div class="select-mock">8</div>
-          </div>
-          <div class="sidebar-row">
-            <label>停止位</label>
-            <div class="select-mock">1</div>
-          </div>
-          <div class="sidebar-row">
-            <label>校验位</label>
-            <div class="select-mock">无</div>
-          </div>
+          <div class="sidebar-row"><label>波特率</label><div class="select-mock">115200</div></div>
+          <div class="sidebar-row"><label>数据位</label><div class="select-mock">8</div></div>
+          <div class="sidebar-row"><label>停止位</label><div class="select-mock">1</div></div>
+          <div class="sidebar-row"><label>校验位</label><div class="select-mock">无</div></div>
           <div class="sidebar-divider"></div>
           <div class="sidebar-section-title">流控与硬件信号</div>
-          <div class="sidebar-row">
-            <label class="check-mock"><input type="checkbox"> 失焦自动断连</label>
-          </div>
-          <div class="sidebar-row">
-            <label class="check-mock"><input type="checkbox"> RTS/CTS 流控</label>
-          </div>
-          <div class="sidebar-row">
-            <label class="check-mock"><input type="checkbox"> DTR</label>
-          </div>
-          <div class="sidebar-row">
-            <label class="check-mock"><input type="checkbox"> RTS</label>
-          </div>
+          <div class="sidebar-row"><label class="check-mock"><input type="checkbox"> 失焦自动断连</label></div>
+          <div class="sidebar-row"><label class="check-mock"><input type="checkbox"> RTS/CTS 流控</label></div>
+          <div class="sidebar-row"><label class="check-mock"><input type="checkbox"> DTR</label></div>
+          <div class="sidebar-row"><label class="check-mock"><input type="checkbox"> RTS</label></div>
           <div class="sidebar-divider"></div>
           <div class="sidebar-section-title">字符编码</div>
-          <div class="sidebar-row">
-            <label>字符编码</label>
-            <div class="select-mock">UTF-8</div>
-          </div>
-          <div class="sidebar-row">
-            <label>换行</label>
-            <div class="select-mock">\r\n</div>
-          </div>
-          <div class="sidebar-row">
-            <label class="check-mock"><input type="checkbox" checked> 显示时间</label>
-          </div>
-          <div class="sidebar-row">
-            <label class="check-mock"><input type="checkbox" checked> 结尾补换行</label>
-          </div>
+          <div class="sidebar-row"><label>字符编码</label><div class="select-mock">UTF-8</div></div>
+          <div class="sidebar-row"><label>换行</label><div class="select-mock">\r\n</div></div>
+          <div class="sidebar-row"><label class="check-mock"><input type="checkbox" checked> 显示时间</label></div>
+          <div class="sidebar-row"><label class="check-mock"><input type="checkbox" checked> 结尾补换行</label></div>
         </div>
         <div class="sidebar-collapsed-label">设备</div>
       </aside>
 
-      <!-- 仪表盘内容区 -->
       <main class="content">
         <div class="toolbar">
           <button class="toolbar-btn" id="open-proto-editor">⚙ 协议编辑器</button>
@@ -939,6 +951,11 @@
           <button class="toolbar-btn" id="open-alerts">🔔 告警配置</button>
           <span class="toolbar-status"><span class="dot"></span>实时 800ms</span>
           <span class="spacer"></span>
+          <span style="font-size: 11px; color: var(--text-soft); font-weight: 600;">布局</span>
+          <div class="layout-toggle">
+            <button id="layout-card" class="active" title="大卡 (趋势/对比)">▦ 大卡</button>
+            <button id="layout-list" title="小卡 (列表紧凑)">▤ 列表</button>
+          </div>
           <button class="toolbar-btn" id="toggle-edit">✎ 编辑模式</button>
         </div>
         <div class="command-panel" id="command-panel">
@@ -949,13 +966,11 @@
     </div>
   </div>
 
-  <!-- Edit mode toast (右上角统一) -->
   <div class="edit-toast">
     <span>✎ 编辑模式: 可删除/添加/编辑卡片</span>
     <button class="close-edit" id="close-edit">退出</button>
   </div>
 
-  <!-- System menu -->
   <div class="system-menu" id="system-menu">
     <div class="menu-section">弹窗位置</div>
     <div class="menu-row" data-pos="tr"><span class="dot"></span> 右上角</div>
@@ -967,7 +982,6 @@
     <div class="menu-row" id="menu-reset">重置数据</div>
   </div>
 
-  <!-- Alert Drawer -->
   <div class="alert-drawer" id="alert-drawer">
     <div class="alert-drawer-head">
       <span>告警 (3)</span>
@@ -978,7 +992,7 @@
 
   <div class="toast-layer" id="toast-layer"></div>
 
-  <!-- Protocol Editor Modal (三栏) -->
+  <!-- Protocol Editor Modal (上下排布) -->
   <div class="modal-backdrop" id="proto-backdrop"></div>
   <div class="modal xtra-wide" id="proto-modal">
     <div class="modal-header">
@@ -1041,7 +1055,6 @@
       <div class="form-row">
         <label>数据字段 (data 段)</label>
         <input class="form-input mono" id="cmd-form-fields" placeholder="soc, soh, cycle_count">
-        <div class="form-hint" style="grid-column: 2;">从"协议编辑器 / 数据字段"中选</div>
       </div>
       <div class="form-row col-2">
         <label>data 长度 (字节)</label>
@@ -1063,7 +1076,7 @@
     <div class="modal-header">
       <button class="close-btn" data-close="card-config">×</button>
       <span class="modal-title">卡片配置</span>
-      <span class="modal-subtitle">所有卡片 · 280×200 固定尺寸 · 不被拉伸</span>
+      <span class="modal-subtitle">所有卡片 · 大卡 280×200 / 列表 44px</span>
     </div>
     <div class="modal-body">
       <div class="form-section-title">已配卡片</div>
@@ -1105,7 +1118,7 @@
     </div>
   </div>
 
-  <!-- Card Edit Modal (单卡编辑) -->
+  <!-- Card Edit Modal -->
   <div class="modal-backdrop" id="card-edit-backdrop"></div>
   <div class="modal" id="card-edit-modal">
     <div class="modal-header">
@@ -1160,9 +1173,9 @@
       <span class="modal-subtitle">复用 SerialWebUserConfig v1 格式</span>
     </div>
     <div class="modal-body">
-      <div class="form-section-title">导出 (复制到剪贴板)</div>
+      <div class="form-section-title">导出</div>
       <textarea class="form-textarea" id="ie-export" readonly></textarea>
-      <div class="form-section-title" style="margin-top: 16px;">导入 (粘贴 JSON 后点应用)</div>
+      <div class="form-section-title" style="margin-top: 16px;">导入</div>
       <textarea class="form-textarea" id="ie-import" placeholder='粘贴 SerialWebUserConfig JSON...'></textarea>
     </div>
     <div class="modal-footer">
@@ -1185,12 +1198,11 @@
       <div id="alert-rules-list"></div>
       <div class="form-section-title" style="margin-top: 20px;">命令错配检测</div>
       <div class="form-row">
-        <label class="form-checkbox"><input type="checkbox" id="alert-cmd-mismatch" checked> 启用命令错配告警 (期望 cmd vs 实际 cmd 不一致)</label>
+        <label class="form-checkbox"><input type="checkbox" id="alert-cmd-mismatch" checked> 启用命令错配告警</label>
       </div>
       <div class="form-row">
         <label>告警去抖</label>
         <input class="form-input mono" type="number" id="alert-debounce" value="1000" min="0" step="100">
-        <div class="form-hint" style="grid-column: 2;">同字段同阈值 1s 内不重复触发 (毫秒)</div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1235,8 +1247,8 @@
 
   <script>
   /* ============================================
-     SerialCube Dashboard v3.3 Prototype
-     三层模型 + 侧边栏 + 三栏协议编辑器 + 固定卡片
+     SerialCube Dashboard v3.4 Prototype
+     协议编辑器上下排布 + CRC 范围 + 卡片双布局
      ============================================ */
 
   function crc16Modbus(bytes) {
@@ -1266,6 +1278,7 @@
       id: 'proto_bms',
       name: 'BMS TLV v1',
       byteOrder: 'BE',
+      crcRange: 'all',  // 'all' | 'no_header' | 'no_tail' | 'no_header_tail' | 'data_only'
       fields: [
         { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
         { id: 'f2', name: 'addr',   type: 'addr',   size: 1, byteOrder: null, default: '0x01' },
@@ -1278,7 +1291,8 @@
     {
       id: 'proto_modbus',
       name: 'Modbus RTU',
-      byteOrder: 'BE',
+      byteOrder: 'LE',
+      crcRange: 'no_header',
       fields: [
         { id: 'm1', name: 'addr',   type: 'addr', size: 1, byteOrder: null, default: '0x01' },
         { id: 'm2', name: 'func',   type: 'cmd',  size: 1, byteOrder: null, default: '0x03' },
@@ -1291,7 +1305,6 @@
     }
   ];
 
-  // === Data Field Definitions (独立于协议) ===
   let DATA_FIELDS = [
     { name: 'cell_1_v', type: 'u16', default: '0x0000' },
     { name: 'cell_2_v', type: 'u16', default: '0x0000' },
@@ -1306,7 +1319,6 @@
     { name: 'discharge_v_set', type: 'u16', default: '0x0000' }
   ];
 
-  // === Commands ===
   let COMMANDS = [
     { id: 0x01, name: 'Read Voltage',  direction: 'rx', frameType: 'query',   cadence: 200,  protocol: 'proto_bms', dataFields: ['cell_1_v', 'cell_2_v', 'cell_3_v', 'cell_4_v', 'pack_v_avg'], dataSize: 10, expectResponse: 0x80 },
     { id: 0x02, name: 'Read Current',  direction: 'rx', frameType: 'query',   cadence: 500,  protocol: 'proto_bms', dataFields: ['pack_i'], dataSize: 2, expectResponse: 0x80 },
@@ -1315,7 +1327,6 @@
     { id: 0x11, name: 'Control Disch',  direction: 'tx', frameType: 'control', cadence: 0,  protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2, expectResponse: 0x91 }
   ];
 
-  // === Cards (统一 trend / pair, 280x200 固定) ===
   let CARDS = [
     { id: 'c1', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_1_v',    title: 'Cell 1 电压', unit: 'V', range: [2.8, 4.2], precision: 3, fromOtherCmd: true },
     { id: 'c2', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_2_v',    title: 'Cell 2 电压', unit: 'V', range: [2.8, 4.2], precision: 3, fromOtherCmd: true },
@@ -1327,7 +1338,6 @@
     { id: 'c8', type: 'trend', cmd: 0x10, dir: 'tx', field: 'charge_v_set', title: '充电设定',  unit: 'V', range: [0, 60], precision: 1, fromOtherCmd: false }
   ];
 
-  // === State ===
   let selectedCmd = 'all';
   let currentSubTab = 'realtime';
   let currentTimeMode = 'realtime';
@@ -1340,8 +1350,8 @@
   let toastPos = 'tr';
   let cmdMismatchEnabled = true;
   let alertDebounceMs = 1000;
+  let cardLayout = 'card';  // 'card' | 'list'
 
-  // === Mock Data ===
   const trendData = {};
   const currentVals = {};
   const lastValues = {};
@@ -1407,7 +1417,6 @@
     updateAll();
   }
 
-  // === Toast ===
   function toast(msg, type = 'info') {
     const layer = document.getElementById('toast-layer');
     const t = document.createElement('div');
@@ -1418,7 +1427,7 @@
     setTimeout(() => t.remove(), 2900);
   }
 
-  // === Frame Builder ===
+  // === Frame Builder (支持 CRC 范围) ===
   function buildFrame(protocol, cmd) {
     if (!protocol) return { bytes: [], sections: [] };
     const sections = [];
@@ -1444,11 +1453,85 @@
     }
     const allBytes = [];
     sections.forEach(s => allBytes.push(...s.bytes));
-    const crc = crc16Modbus(allBytes.filter((_, i, arr) => {
-      const tailField = protocol.fields[protocol.fields.length - 1];
-      if (tailField && tailField.type === 'tail') return i < arr.length - 3;
-      return i < arr.length - 2;
-    }));
+
+    // CRC 范围决定
+    const crcRange = protocol.crcRange || 'all';
+    let crcInputBytes = [];
+    if (crcRange === 'all') {
+      // 全部字段 (除了 CRC 自己)
+      crcInputBytes = allBytes.filter((_, i, arr) => {
+        // 找到 CRC 段的字节范围
+        const crcFieldIdx = protocol.fields.findIndex(f => f.type === 'crc');
+        if (crcFieldIdx < 0) return true;
+        let offset = 0;
+        for (let k = 0; k < crcFieldIdx; k++) offset += protocol.fields[k].size || sections[k].bytes.length;
+        return i < offset || i >= offset + (protocol.fields[crcFieldIdx].size || 2);
+      });
+    } else if (crcRange === 'no_header') {
+      // 不含帧头
+      const headerFieldIdx = protocol.fields.findIndex(f => f.type === 'header');
+      let headerEnd = 0;
+      if (headerFieldIdx >= 0) {
+        for (let k = 0; k <= headerFieldIdx; k++) headerEnd += protocol.fields[k].size || sections[k].bytes.length;
+      }
+      const crcFieldIdx = protocol.fields.findIndex(f => f.type === 'crc');
+      let crcStart = allBytes.length, crcEnd = allBytes.length;
+      if (crcFieldIdx >= 0) {
+        let offset = 0;
+        for (let k = 0; k < crcFieldIdx; k++) offset += protocol.fields[k].size || sections[k].bytes.length;
+        crcStart = offset;
+        crcEnd = offset + (protocol.fields[crcFieldIdx].size || 2);
+      }
+      crcInputBytes = allBytes.filter((_, i) => (i >= headerEnd && i < crcStart) || i >= crcEnd);
+    } else if (crcRange === 'no_tail') {
+      const crcFieldIdx = protocol.fields.findIndex(f => f.type === 'crc');
+      let crcStart = allBytes.length, crcEnd = allBytes.length;
+      if (crcFieldIdx >= 0) {
+        let offset = 0;
+        for (let k = 0; k < crcFieldIdx; k++) offset += protocol.fields[k].size || sections[k].bytes.length;
+        crcStart = offset;
+        crcEnd = offset + (protocol.fields[crcFieldIdx].size || 2);
+      }
+      crcInputBytes = allBytes.filter((_, i) => (i < crcStart) || i >= crcEnd);
+    } else if (crcRange === 'no_header_tail') {
+      const headerFieldIdx = protocol.fields.findIndex(f => f.type === 'header');
+      let headerEnd = 0;
+      if (headerFieldIdx >= 0) {
+        for (let k = 0; k <= headerFieldIdx; k++) headerEnd += protocol.fields[k].size || sections[k].bytes.length;
+      }
+      const crcFieldIdx = protocol.fields.findIndex(f => f.type === 'crc');
+      let crcStart = allBytes.length, crcEnd = allBytes.length;
+      if (crcFieldIdx >= 0) {
+        let offset = 0;
+        for (let k = 0; k < crcFieldIdx; k++) offset += protocol.fields[k].size || sections[k].bytes.length;
+        crcStart = offset;
+        crcEnd = offset + (protocol.fields[crcFieldIdx].size || 2);
+      }
+      // 排除 header 和 tail
+      const tailFieldIdx = protocol.fields.findIndex(f => f.type === 'tail');
+      let tailStart = allBytes.length;
+      if (tailFieldIdx >= 0) {
+        let offset = 0;
+        for (let k = 0; k < tailFieldIdx; k++) offset += protocol.fields[k].size || sections[k].bytes.length;
+        tailStart = offset;
+      }
+      crcInputBytes = allBytes.filter((_, i) => {
+        if (i < headerEnd) return false; // 排除 header
+        if (i >= tailStart) return false; // 排除 tail
+        if (i >= crcStart && i < crcEnd) return false; // 排除 crc
+        return true;
+      });
+    } else if (crcRange === 'data_only') {
+      // 只对 data 段
+      const dataField = protocol.fields.find(f => f.type === 'data');
+      if (dataField) {
+        const dataFieldIdx = protocol.fields.findIndex(f => f.type === 'data');
+        let offset = 0;
+        for (let k = 0; k < dataFieldIdx; k++) offset += protocol.fields[k].size || sections[k].bytes.length;
+        crcInputBytes = allBytes.slice(offset, offset + data.length);
+      }
+    }
+    const crc = crc16Modbus(crcInputBytes);
     for (const s of sections) {
       if (s.type === 'crc') s.bytes = [(crc >> 8) & 0xFF, crc & 0xFF];
     }
@@ -1457,7 +1540,6 @@
     return { bytes: finalBytes, sections };
   }
 
-  // === Modals ===
   function openModal(name) {
     document.getElementById(name + '-backdrop').classList.add('open');
     document.getElementById(name + '-modal').classList.add('open');
@@ -1474,7 +1556,6 @@
   document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => closeModal(b.dataset.close));
   document.querySelectorAll('.modal-backdrop').forEach(bd => bd.onclick = () => { const id = bd.id.replace('-backdrop', ''); closeModal(id); });
 
-  // === Command Panel ===
   function renderCommandPanel() {
     const el = document.getElementById('command-panel');
     el.innerHTML = '<span class="cmd-chip-label">命令:</span>';
@@ -1493,23 +1574,32 @@
     });
   }
 
-  // === Card Grid (固定 280x200, 不拉伸) ===
+  // === Card Grid (支持双布局) ===
   function renderCardGrid() {
     const el = document.getElementById('card-grid');
     el.innerHTML = '';
     const filtered = CARDS.filter(c => selectedCmd === 'all' || matchCard(c, selectedCmd));
-    filtered.forEach(c => el.appendChild(renderCard(c)));
-    const add = document.createElement('div');
-    add.className = 'card-add-slot';
-    add.innerHTML = `<div style="font-size: 24px;">+</div><div class="hint">${editMode ? '添加卡片' : '编辑模式下添加'}</div>`;
-    add.onclick = () => { if (editMode) openModal('card-config'); else toast('先开启"编辑模式"', 'info'); };
-    el.appendChild(add);
+    if (cardLayout === 'list') {
+      el.style.flexDirection = 'column';
+      el.style.alignItems = 'stretch';
+      el.style.gap = '4px';
+      filtered.forEach(c => el.appendChild(renderListCard(c)));
+    } else {
+      el.style.flexDirection = 'row';
+      el.style.alignItems = 'flex-start';
+      el.style.gap = '12px';
+      filtered.forEach(c => el.appendChild(renderCard(c)));
+      const add = document.createElement('div');
+      add.className = 'card-add-slot';
+      add.innerHTML = `<div style="font-size: 24px;">+</div><div class="hint">${editMode ? '添加卡片' : '编辑模式下添加'}</div>`;
+      add.onclick = () => { if (editMode) openModal('card-config'); else toast('先开启"编辑模式"', 'info'); };
+      el.appendChild(add);
+    }
   }
 
   function renderCard(c) {
     const card = document.createElement('div');
     card.className = c.type === 'pair' ? 'card-default pair' : 'card-default';
-
     if (c.type === 'pair') {
       const set = currentVals.charge_v_set ?? 0;
       const act = currentVals.pack_v_avg * 15 ?? 0;
@@ -1575,8 +1665,48 @@
     return card;
   }
 
-  // === Sparkline ===
+  function renderListCard(c) {
+    const card = document.createElement('div');
+    card.className = 'list-card';
+    if (c.type === 'pair') {
+      const set = currentVals.charge_v_set ?? 0;
+      const act = currentVals.pack_v_avg * 15 ?? 0;
+      const delta = act - set;
+      const dCls = Math.abs(delta) < 0.5 ? 'ok' : Math.abs(delta) < 1.0 ? 'warn' : 'bad';
+      if (Math.abs(delta) >= 0.5) card.classList.add(Math.abs(delta) >= 1 ? 'alert-danger' : 'alert-warning');
+      card.innerHTML = `
+        <span class="lc-status-ring ${dCls}"></span>
+        <span class="lc-label">${c.title} <span class="lc-field">pair</span></span>
+        <span class="lc-value">SET ${set.toFixed(1)} / ACT ${act.toFixed(1)}</span>
+        <span class="lc-range">Δ ${delta > 0 ? '+' : ''}${delta.toFixed(1)}</span>
+        <span class="lc-actions">
+          <button class="card-action edit-btn" title="编辑" onclick="event.stopPropagation(); openCardEdit('${c.id}')">✎</button>
+        </span>
+      `;
+    } else {
+      const v = currentVals[c.field] ?? 0;
+      const range = c.range || [0, 100];
+      const alert = checkAlert(v, range);
+      const ring = c.fromOtherCmd ? 'rx' : (alert || 'normal');
+      if (alert) card.classList.add('alert-' + alert);
+      const cmdHex = c.cmd ? c.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
+      const flashClass = (lastValues[c.field] !== undefined && Math.abs(v - lastValues[c.field]) > 0.001) ? ' flash' : '';
+      card.innerHTML = `
+        <span class="lc-status-ring ${ring}"></span>
+        <span class="lc-label">${c.title} <span class="lc-field">${cmdHex} · ${c.field}</span></span>
+        <span class="lc-value${flashClass}">${v.toFixed(c.precision || 2)}<span class="unit">${c.unit || ''}</span></span>
+        <span class="lc-range">${c.range ? `${c.range[0]}-${c.range[1]}${c.unit}` : '—'}</span>
+        <span class="lc-actions">
+          <button class="card-action edit-btn" title="编辑" onclick="event.stopPropagation(); openCardEdit('${c.id}')">✎</button>
+        </span>
+      `;
+      setTimeout(() => card.querySelector('.lc-value')?.classList.remove('flash'), 400);
+    }
+    return card;
+  }
+
   function renderSparkline(card) {
+    if (cardLayout === 'list' || card.type === 'value') return;  // 列表视图无 sparkline
     const cv = document.getElementById('trend-' + card.id);
     if (!cv || !cv.clientWidth || !cv.clientHeight) return;
     const dpr = window.devicePixelRatio || 1;
@@ -1585,7 +1715,6 @@
     const ctx = cv.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-
     if (card.type === 'pair') {
       const setData = trendData['0A.charge_v_set'] || [];
       const actData = (trendData['01.pack_v_avg'] || []).map(p => ({ t: p.t, v: p.v * 15 }));
@@ -1617,8 +1746,7 @@
     if (data.length < 2) return;
     const xStep = w / (data.length - 1);
     const range = (maxV - minV) || 1;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = color; ctx.lineWidth = 1.5;
     if (dashed) ctx.setLineDash([3, 2]);
     ctx.beginPath();
     data.forEach((p, i) => {
@@ -1641,19 +1769,13 @@
   }
   function getCSS(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 
-  // === Alert Drawer ===
   function renderAlerts() {
     const el = document.getElementById('alert-list');
     const v = currentVals.cell_1_v;
     const items = [];
-    if (v > 4.2 * 1.05) {
-      items.push({ time: nowStr(), cmd: '0x01', dir: 'rx', msg: `Cell 1 电压 ${v.toFixed(2)}V > 4.41V`, level: 'danger' });
-    } else if (v > 4.2 * 1.02) {
-      items.push({ time: nowStr(), cmd: '0x01', dir: 'rx', msg: `Cell 1 电压 ${v.toFixed(2)}V > 4.28V`, level: 'warning' });
-    }
-    if (cmdMismatchEnabled) {
-      items.push({ time: '11:42:15', cmd: '0x10', dir: 'tx', msg: 'cmd 0x10 期望响应 0x90, 实际收到 0x91', level: 'danger', mismatch: true });
-    }
+    if (v > 4.2 * 1.05) items.push({ time: nowStr(), cmd: '0x01', dir: 'rx', msg: `Cell 1 电压 ${v.toFixed(2)}V > 4.41V`, level: 'danger' });
+    else if (v > 4.2 * 1.02) items.push({ time: nowStr(), cmd: '0x01', dir: 'rx', msg: `Cell 1 电压 ${v.toFixed(2)}V > 4.28V`, level: 'warning' });
+    if (cmdMismatchEnabled) items.push({ time: '11:42:15', cmd: '0x10', dir: 'tx', msg: 'cmd 0x10 期望响应 0x90, 实际收到 0x91', level: 'danger', mismatch: true });
     items.push({ time: '11:40:02', cmd: '0x01', dir: 'rx', msg: `Cell 3 电压 ${currentVals.cell_3_v.toFixed(2)}V 在范围内`, level: 'recovered' });
     document.querySelector('.alert-drawer-head span').textContent = `告警 (${items.length})`;
     el.innerHTML = items.map(a => `
@@ -1671,8 +1793,6 @@
     `).join('');
   }
   function nowStr() { const d = new Date(); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`; }
-
-  // === Helpers ===
   function matchCard(c, cmdHex) { if (c.type === 'pair') return true; if (!c.cmd) return true; return c.cmd.toString(16).padStart(2, '0').toUpperCase() === cmdHex; }
   function checkAlert(v, range) { if (!range) return null; const [lo, hi] = range; if (v < lo * 0.85 || v > hi * 1.05) return 'danger'; if (v < lo * 0.95 || v > hi * 1.02) return 'warning'; return null; }
 
@@ -1690,7 +1810,7 @@
   }
 
   // ============================================
-  // Protocol Editor (三栏: 帧字段 / 数据字段 / 帧预览)
+  // Protocol Editor (上下排布)
   // ============================================
   function renderProtoEditor() {
     const tabsEl = document.getElementById('proto-tabs');
@@ -1720,12 +1840,11 @@
     addTab.onclick = () => {
       const id = 'proto_' + Date.now().toString(36);
       PROTOCOLS.push({
-        id, name: '新协议', byteOrder: 'BE',
+        id, name: '新协议', byteOrder: 'BE', crcRange: 'all',
         fields: [
           { id: 'h' + Date.now().toString(36), name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
           { id: 'a' + Date.now().toString(36), name: 'addr',   type: 'addr',   size: 1, byteOrder: null, default: '0x01' },
           { id: 'c' + Date.now().toString(36), name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
-          { id: 'd' + Date.now().toString(36), name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '' },
           { id: 'cr' + Date.now().toString(36),name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' }
         ]
       });
@@ -1742,63 +1861,100 @@
     const frame = buildFrame(proto, previewCmd);
 
     bodyEl.innerHTML = `
-      <!-- 左栏: 帧字段 (可拖动 data 段到这里) -->
-      <div class="proto-col proto-col-frame">
-        <div class="form-section-title">
-          <span>协议: <input class="form-input" id="proto-name" value="${escapeHtml(proto.name)}" style="width: 200px; height: 28px; display: inline-block; margin-left: 8px;"></span>
-          <span>字节序: <select class="form-select" id="proto-endian" style="height: 28px; display: inline-block; margin-left: 4px;">
-            <option value="BE" ${proto.byteOrder === 'BE' ? 'selected' : ''}>BE 大端</option>
-            <option value="LE" ${proto.byteOrder === 'LE' ? 'selected' : ''}>LE 小端</option>
-          </select></span>
+      <!-- 协议基本信息 -->
+      <div class="proto-section">
+        <div class="form-row col-2" style="margin-bottom: 0;">
+          <label>协议名</label>
+          <input class="form-input" id="proto-name" value="${escapeHtml(proto.name)}" placeholder="(必填)">
+          <label style="grid-column: auto; margin-left: 8px;">默认字节序</label>
+          <select class="form-select" id="proto-endian">
+            <option value="BE" ${proto.byteOrder === 'BE' ? 'selected' : ''}>BE 大端 (Motorola)</option>
+            <option value="LE" ${proto.byteOrder === 'LE' ? 'selected' : ''}>LE 小端 (Intel)</option>
+          </select>
         </div>
-        <div class="form-section-title">
-          <span>帧字段 (拖动 ⠿ 改顺序 · 拖入 data 字段) <button class="toolbar-btn" id="add-field-btn" style="height: 22px; padding: 0 8px; font-size: 10px; margin-left: 8px;">+ 字段</button></span>
+      </div>
+
+      <!-- 1. 帧字段 (含 data 类型, 可拖动改顺序) -->
+      <div class="proto-section">
+        <div class="proto-section-head">
+          <div class="proto-section-title">
+            <span class="num">1</span>
+            <span>帧字段 (拖动 ⠿ 改顺序 · 包含 data 段) · 字节序字段独立</span>
+          </div>
+          <button class="toolbar-btn" id="add-field-btn" style="height: 24px; padding: 0 10px; font-size: 11px;">+ 添加字段</button>
         </div>
         <div class="field-list" id="field-list"></div>
-        <div class="frame-preview" style="margin-top: 8px;">
+      </div>
+
+      <!-- 2. 数据字段 (备用, 拖到上面加入) -->
+      <div class="proto-section">
+        <div class="proto-section-head">
+          <div class="proto-section-title">
+            <span class="num">2</span>
+            <span>数据字段 (拖到上方帧字段插入 data 段 · 或点 + 字段)</span>
+          </div>
+          <button class="toolbar-btn" id="add-data-field-btn" style="height: 24px; padding: 0 10px; font-size: 11px;">+ 字段</button>
+        </div>
+        <div class="data-field-list" id="data-field-list"></div>
+      </div>
+
+      <!-- 3. 帧预览 -->
+      <div class="proto-section">
+        <div class="proto-section-head">
+          <div class="proto-section-title">
+            <span class="num">3</span>
+            <span>帧预览</span>
+          </div>
+          <span style="font-size: 11px; color: var(--text-soft);">基于 <strong>${previewCmd ? `0x${previewCmd.id.toString(16).padStart(2,'0').toUpperCase()} ${previewCmd.name}` : '无'}</strong></span>
+        </div>
+        <div class="form-row" style="margin-bottom: 8px;">
+          <label>CRC 校验范围</label>
+          <select class="form-select" id="proto-crc-range" style="max-width: 320px;">
+            <option value="all" ${proto.crcRange === 'all' ? 'selected' : ''}>全部字段 (header → tail)</option>
+            <option value="no_header" ${proto.crcRange === 'no_header' ? 'selected' : ''}>不含帧头 (Modbus 风格)</option>
+            <option value="no_tail" ${proto.crcRange === 'no_tail' ? 'selected' : ''}>不含帧尾</option>
+            <option value="no_header_tail" ${proto.crcRange === 'no_header_tail' ? 'selected' : ''}>不含帧头帧尾</option>
+            <option value="data_only" ${proto.crcRange === 'data_only' ? 'selected' : ''}>只对 data 段</option>
+          </select>
+        </div>
+        <div class="frame-preview">
           <div class="frame-bytes" id="frame-bytes"></div>
           <div class="frame-meta">
             <div class="meta-item"><span class="meta-key">总字节</span><span class="meta-val" id="meta-total">—</span></div>
             <div class="meta-item"><span class="meta-key">CRC16</span><span class="meta-val" id="meta-crc">—</span></div>
-            <div class="meta-item"><span class="meta-key">预览命令</span><span class="meta-val" id="meta-cmd">—</span></div>
+            <div class="meta-item"><span class="meta-key">CRC 范围</span><span class="meta-val" id="meta-crc-range">—</span></div>
           </div>
-        </div>
-        <div class="legend" style="margin-top: 8px;">
-          <span class="legend-item"><span class="dot header"></span>header 帧头</span>
-          <span class="legend-item"><span class="dot addr"></span>addr 地址</span>
-          <span class="legend-item"><span class="dot cmd"></span>cmd 命令</span>
-          <span class="legend-item"><span class="dot length"></span>length 长度</span>
-          <span class="legend-item"><span class="dot data"></span>data 数据</span>
-          <span class="legend-item"><span class="dot crc"></span>crc 校验</span>
-          <span class="legend-item"><span class="dot tail"></span>tail 帧尾</span>
-        </div>
-      </div>
-
-      <!-- 右栏: 数据字段 (独立, 拖入左栏) -->
-      <div class="proto-col proto-col-data">
-        <div class="form-section-title">
-          <span>数据字段 (拖动 ⠿ 到左栏插入 data 段) <button class="toolbar-btn" id="add-data-field-btn" style="height: 22px; padding: 0 8px; font-size: 10px; margin-left: 8px;">+ 字段</button></span>
-        </div>
-        <div class="data-field-list" id="data-field-list"></div>
-        <div class="form-hint" style="margin-top: 8px;">
-          数据字段独立维护, 命令绑定时选择使用哪些字段。命令的 data 段长度自动按所选字段计算 (u16 = 2 字节)。
+          <div class="legend">
+            <span class="legend-item"><span class="dot header"></span>header 帧头</span>
+            <span class="legend-item"><span class="dot addr"></span>addr 地址</span>
+            <span class="legend-item"><span class="dot cmd"></span>cmd 命令</span>
+            <span class="legend-item"><span class="dot length"></span>length 长度</span>
+            <span class="legend-item"><span class="dot data"></span>data 数据</span>
+            <span class="legend-item"><span class="dot crc"></span>crc 校验</span>
+            <span class="legend-item"><span class="dot tail"></span>tail 帧尾</span>
+          </div>
         </div>
       </div>
     `;
 
     renderFieldList(proto, frame, previewCmd);
     renderDataFieldList();
-    renderFramePreview(frame);
+    renderFramePreview(frame, proto);
     document.getElementById('proto-name').oninput = (e) => { proto.name = e.target.value || '未命名'; renderProtoEditor(); };
-    document.getElementById('proto-endian').onchange = (e) => { proto.byteOrder = e.target.value; renderFramePreview(buildFrame(proto, previewCmd)); };
+    document.getElementById('proto-endian').onchange = (e) => { proto.byteOrder = e.target.value; renderFramePreview(buildFrame(proto, previewCmd), proto); };
+    document.getElementById('proto-crc-range').onchange = (e) => { proto.crcRange = e.target.value; renderFramePreview(buildFrame(proto, previewCmd), proto); document.getElementById('meta-crc-range').textContent = crcRangeLabel(e.target.value); };
     document.getElementById('add-field-btn').onclick = () => {
       proto.fields.push({ id: 'f' + Date.now().toString(36), name: 'new_field', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' });
       renderFieldList(proto, buildFrame(proto, previewCmd), previewCmd);
+      renderFramePreview(buildFrame(proto, previewCmd), proto);
     };
     document.getElementById('add-data-field-btn').onclick = () => {
       DATA_FIELDS.push({ name: 'new_field_' + (DATA_FIELDS.length + 1), type: 'u16', default: '0x0000' });
       renderDataFieldList();
     };
+  }
+  function crcRangeLabel(r) {
+    return { all: '全部字段', no_header: '不含帧头', no_tail: '不含帧尾', no_header_tail: '不含帧头帧尾', data_only: '只 data 段' }[r] || r;
   }
   function renderFieldList(proto, frame, previewCmd) {
     const el = document.getElementById('field-list');
@@ -1829,16 +1985,16 @@
         else if (f.type === 'tail' || f.type === 'header') f.size = 1;
         else if (f.type === 'crc') { f.size = 2; f.byteOrder = f.byteOrder || 'LE'; }
         renderFieldList(proto, buildFrame(proto, previewCmd), previewCmd);
-        renderFramePreview(buildFrame(proto, previewCmd));
+        renderFramePreview(buildFrame(proto, previewCmd), proto);
       };
       row.querySelector('.name-input').oninput = (e) => { f.name = e.target.value; };
-      row.querySelector('.size-input').oninput = (e) => { f.size = parseInt(e.target.value) || 0; renderFramePreview(buildFrame(proto, previewCmd)); };
-      row.querySelector('.endian-select').onchange = (e) => { f.byteOrder = e.target.value || null; renderFramePreview(buildFrame(proto, previewCmd)); };
-      row.querySelector('.default-input').oninput = (e) => { f.default = e.target.value; renderFramePreview(buildFrame(proto, previewCmd)); };
+      row.querySelector('.size-input').oninput = (e) => { f.size = parseInt(e.target.value) || 0; renderFramePreview(buildFrame(proto, previewCmd), proto); };
+      row.querySelector('.endian-select').onchange = (e) => { f.byteOrder = e.target.value || null; renderFramePreview(buildFrame(proto, previewCmd), proto); };
+      row.querySelector('.default-input').oninput = (e) => { f.default = e.target.value; renderFramePreview(buildFrame(proto, previewCmd), proto); };
       row.querySelector('.del-btn').onclick = () => {
         proto.fields = proto.fields.filter(x => x.id !== f.id);
         renderFieldList(proto, buildFrame(proto, previewCmd), previewCmd);
-        renderFramePreview(buildFrame(proto, previewCmd));
+        renderFramePreview(buildFrame(proto, previewCmd), proto);
       };
       row.ondragstart = (e) => { e.dataTransfer.setData('text/plain', idx); row.classList.add('dragging'); };
       row.ondragend = () => { row.classList.remove('dragging'); document.querySelectorAll('.field-row.drop-target').forEach(r => r.classList.remove('drop-target')); };
@@ -1847,19 +2003,19 @@
       row.ondrop = (e) => {
         e.preventDefault();
         row.classList.remove('drop-target');
-        const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
         const toIdx = idx;
         if (e.dataTransfer.getData('data-field')) {
-          // 从 data field 拖入
           const fieldName = e.dataTransfer.getData('data-field');
-          // 在 toIdx 位置插入一个 data 引用
           proto.fields.splice(toIdx, 0, { id: 'f' + Date.now().toString(36), name: fieldName, type: 'data', size: 2, byteOrder: 'BE', default: '0x0000' });
-        } else if (!isNaN(fromIdx)) {
-          const item = proto.fields.splice(fromIdx, 1)[0];
-          proto.fields.splice(toIdx, 0, item);
+        } else {
+          const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+          if (!isNaN(fromIdx) && fromIdx !== toIdx) {
+            const item = proto.fields.splice(fromIdx, 1)[0];
+            proto.fields.splice(toIdx, 0, item);
+          }
         }
         renderFieldList(proto, buildFrame(proto, previewCmd), previewCmd);
-        renderFramePreview(buildFrame(proto, previewCmd));
+        renderFramePreview(buildFrame(proto, previewCmd), proto);
       };
       el.appendChild(row);
     });
@@ -1874,7 +2030,7 @@
       row.draggable = true;
       const types = ['u8', 'u16', 'u32', 'i16', 'i32', 'float'];
       row.innerHTML = `
-        <span class="drag-handle" title="拖到左栏插入 data 段">⠿</span>
+        <span class="drag-handle" title="拖到上面帧字段插入 data 段">⠿</span>
         <input class="name-input" value="${escapeHtml(df.name)}" placeholder="字段名">
         <select class="type-select">
           ${types.map(t => `<option value="${t}" ${df.type === t ? 'selected' : ''}>${t}</option>`).join('')}
@@ -1890,7 +2046,7 @@
       el.appendChild(row);
     });
   }
-  function renderFramePreview(frame) {
+  function renderFramePreview(frame, proto) {
     const el = document.getElementById('frame-bytes');
     if (!el) return;
     if (frame.bytes.length === 0) {
@@ -1915,12 +2071,13 @@
       crc = '0x' + v.toString(16).padStart(4, '0').toUpperCase();
     }
     document.getElementById('meta-crc').textContent = crc;
+    if (proto) {
+      const rEl = document.getElementById('meta-crc-range');
+      if (rEl) rEl.textContent = crcRangeLabel(proto.crcRange || 'all');
+    }
   }
   function escapeHtml(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
 
-  // ============================================
-  // Cmd Config Modal
-  // ============================================
   function renderCmdList() {
     const el = document.getElementById('cmd-list');
     el.innerHTML = '';
@@ -1948,11 +2105,7 @@
   function populateCmdForm() {
     const sel = document.getElementById('cmd-form-proto');
     sel.innerHTML = '';
-    PROTOCOLS.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id; opt.textContent = p.name;
-      sel.appendChild(opt);
-    });
+    PROTOCOLS.forEach(p => { const opt = document.createElement('option'); opt.value = p.id; opt.textContent = p.name; sel.appendChild(opt); });
   }
   document.getElementById('cmd-save').onclick = () => {
     const idHex = document.getElementById('cmd-form-id').value.trim();
@@ -1980,9 +2133,6 @@
     document.getElementById('cmd-form-expect').value = '';
   };
 
-  // ============================================
-  // Card Config Modal
-  // ============================================
   function renderCardEditList() {
     const el = document.getElementById('card-edit-list');
     el.innerHTML = '';
@@ -2073,9 +2223,6 @@
     toast(`已添加卡片 ${id}`, 'success');
   };
 
-  // ============================================
-  // Card Edit Modal
-  // ============================================
   function openCardEdit(id) {
     const c = CARDS.find(x => x.id === id);
     if (!c) return;
@@ -2149,17 +2296,11 @@
     closeModal('card-edit');
   };
 
-  // ============================================
-  // Import / Export
-  // ============================================
   function exportConfig() {
-    const config = {
-      type: 'SerialWebUserConfig', version: 1,
-      userConfig: { dashboard: {
-        protocols: PROTOCOLS, dataFields: DATA_FIELDS, commands: COMMANDS, cards: CARDS,
-        settings: { cmdMismatchEnabled, alertDebounceMs }
-      }}
-    };
+    const config = { type: 'SerialWebUserConfig', version: 1, userConfig: { dashboard: {
+      protocols: PROTOCOLS, dataFields: DATA_FIELDS, commands: COMMANDS, cards: CARDS,
+      settings: { cmdMismatchEnabled, alertDebounceMs, cardLayout }
+    }}};
     return JSON.stringify(config, null, 2);
   }
   function importConfig(json) {
@@ -2175,6 +2316,7 @@
       if (uc.settings) {
         if (typeof uc.settings.cmdMismatchEnabled === 'boolean') cmdMismatchEnabled = uc.settings.cmdMismatchEnabled;
         if (typeof uc.settings.alertDebounceMs === 'number') alertDebounceMs = uc.settings.alertDebounceMs;
+        if (uc.settings.cardLayout) cardLayout = uc.settings.cardLayout;
       }
       activeProtoId = PROTOCOLS[0]?.id;
       initMockData();
@@ -2193,9 +2335,6 @@
     importConfig(txt);
   };
 
-  // ============================================
-  // Alerts Config
-  // ============================================
   function renderAlertRules() {
     const el = document.getElementById('alert-rules-list');
     const rules = [];
@@ -2209,9 +2348,6 @@
     `).join('');
   }
 
-  // ============================================
-  // Detail Modal
-  // ============================================
   function openDetail(cardId) {
     detailCardId = cardId;
     currentSubTab = 'realtime'; currentTimeMode = 'realtime'; currentChartType = 'line';
@@ -2245,13 +2381,13 @@
       renderDetailChart(card); renderDetailStats(card);
     } else if (currentSubTab === 'modbus') {
       const proto = PROTOCOLS.find(p => p.id === (COMMANDS.find(c => c.id === card.cmd)?.protocol));
-      body.innerHTML = `<div class="detail-kv-list"><div class="kv-key">使用协议</div><div class="kv-val">${proto ? proto.name : '?'}</div><div class="kv-key">Function Code</div><div class="kv-val">0x03</div><div class="kv-key">Slave Address</div><div class="kv-val">0x01</div><div class="kv-key">Start Register</div><div class="kv-val">0x${(card.cmd || 0x01).toString(16).padStart(4,'0').toUpperCase()}</div><div class="kv-key">Quantity</div><div class="kv-val">${(COMMANDS.find(c => c.id === card.cmd)?.dataSize || 0) / 2}</div><div class="kv-key">CRC16-MODBUS</div><div class="kv-val">见帧预览</div></div>`;
+      body.innerHTML = `<div class="detail-kv-list"><div class="kv-key">使用协议</div><div class="kv-val">${proto ? proto.name : '?'}</div><div class="kv-key">Function Code</div><div class="kv-val">0x03</div><div class="kv-key">Slave Address</div><div class="kv-val">0x01</div><div class="kv-key">Start Register</div><div class="kv-val">0x${(card.cmd || 0x01).toString(16).padStart(4,'0').toUpperCase()}</div><div class="kv-key">Quantity</div><div class="kv-val">${(COMMANDS.find(c => c.id === card.cmd)?.dataSize || 0) / 2}</div></div>`;
     } else if (currentSubTab === 'device') {
-      body.innerHTML = `<div class="detail-kv-list"><div class="kv-key">VID</div><div class="kv-val">0x${(COMMANDS[0]?.id || 0x01).toString(16).padStart(4,'0').toUpperCase()}</div><div class="kv-key">PID</div><div class="kv-val">0x${(COMMANDS[1]?.id || 0x02).toString(16).padStart(4,'0').toUpperCase()}</div><div class="kv-key">Manufacturer</div><div class="kv-val">Embedded BMS Co.</div><div class="kv-key">Model</div><div class="kv-val">EB-BMS-3000</div><div class="kv-key">Serial Number</div><div class="kv-val">SN-${Math.floor(Math.random()*99999).toString().padStart(5,'0')}</div><div class="kv-key">Firmware</div><div class="kv-val">v2.4.1</div><div class="kv-key">Protocol</div><div class="kv-val">TLV v1.0 + Modbus RTU</div></div>`;
+      body.innerHTML = `<div class="detail-kv-list"><div class="kv-key">Manufacturer</div><div class="kv-val">Embedded BMS Co.</div><div class="kv-key">Model</div><div class="kv-val">EB-BMS-3000</div><div class="kv-key">Firmware</div><div class="kv-val">v2.4.1</div><div class="kv-key">Protocol</div><div class="kv-val">TLV v1.0 + Modbus RTU</div></div>`;
     } else if (currentSubTab === 'query') {
       const tx = 1240 + Math.floor(Math.random() * 5);
       const rx = 1238 + Math.floor(Math.random() * 3);
-      body.innerHTML = `<div class="detail-kv-list"><div class="kv-key">Cmd ID</div><div class="kv-val">0x${(card.cmd||0x01).toString(16).padStart(2,'0').toUpperCase()}</div><div class="kv-key">期望响应</div><div class="kv-val">0x${((card.cmd||0x01) + 0x7F).toString(16).padStart(2,'0').toUpperCase()}</div><div class="kv-key">发送</div><div class="kv-val">${tx}</div><div class="kv-key">收到</div><div class="kv-val">${rx}</div><div class="kv-key">错配</div><div class="kv-val" style="color: var(--danger)">1</div><div class="kv-key">丢失率</div><div class="kv-val">${(((tx-rx)/tx)*100).toFixed(2)}%</div><div class="kv-key">平均延迟</div><div class="kv-val">42 ms</div></div>`;
+      body.innerHTML = `<div class="detail-kv-list"><div class="kv-key">发送</div><div class="kv-val">${tx}</div><div class="kv-key">收到</div><div class="kv-val">${rx}</div><div class="kv-key">错配</div><div class="kv-val" style="color: var(--danger)">1</div><div class="kv-key">丢失率</div><div class="kv-val">${(((tx-rx)/tx)*100).toFixed(2)}%</div><div class="kv-key">平均延迟</div><div class="kv-val">42 ms</div></div>`;
     }
   }
   function renderDetailChart(card) {
@@ -2316,36 +2452,25 @@
     `;
   }
 
-  // ============================================
   // Event Listeners
-  // ============================================
-  // Mode switch
   document.getElementById('serial-mode-btn').onclick = () => { window.parent.postMessage({ type: 'switch-mode', mode: 'serial' }, '*'); toast('切换到监视模式 (主应用内)', 'info'); };
   document.getElementById('parser-mode-btn').onclick = () => { window.parent.postMessage({ type: 'switch-mode', mode: 'parser' }, '*'); toast('切换到解析模式 (主应用内)', 'info'); };
-  document.getElementById('dashboard-mode-btn').onclick = () => { /* already on dashboard */ };
-
-  // Theme
   document.getElementById('theme-toggle').onclick = () => {
     document.body.classList.toggle('theme-dark');
     document.getElementById('theme-toggle').textContent = document.body.classList.contains('theme-dark') ? '☾' : '☀';
     requestAnimationFrame(() => CARDS.forEach(c => renderSparkline(c)));
   };
   document.getElementById('reset-btn').onclick = () => { initMockData(); updateAll(); toast('已重置数据', 'success'); };
-
-  // Sidebar toggle
   document.getElementById('sidebar-toggle').onclick = () => {
     sidebarCollapsed = !sidebarCollapsed;
     document.body.classList.toggle('sidebar-collapsed', sidebarCollapsed);
     document.getElementById('sidebar-toggle').textContent = sidebarCollapsed ? '›' : '‹';
     setTimeout(() => CARDS.forEach(c => renderSparkline(c)), 200);
   };
-
-  // System menu
   document.getElementById('system-menu-btn').onclick = (e) => {
     e.stopPropagation();
     const menu = document.getElementById('system-menu');
     menu.classList.toggle('open');
-    // 标记当前 toast pos
     document.querySelectorAll('.system-menu .menu-row[data-pos]').forEach(row => {
       row.classList.toggle('active', row.dataset.pos === toastPos);
     });
@@ -2365,16 +2490,29 @@
       document.getElementById('system-menu').classList.remove('open');
     }
   });
-
-  // Toolbar
   document.getElementById('open-proto-editor').onclick = () => openModal('proto');
   document.getElementById('open-cmd-config').onclick = () => openModal('cmd-config');
   document.getElementById('open-card-config').onclick = () => openModal('card-config');
   document.getElementById('open-import-export').onclick = () => openModal('ie');
   document.getElementById('open-alerts').onclick = () => openModal('alerts');
+  // Layout toggle
+  document.getElementById('layout-card').onclick = () => {
+    cardLayout = 'card';
+    document.getElementById('layout-card').classList.add('active');
+    document.getElementById('layout-list').classList.remove('active');
+    renderCardGrid();
+    setTimeout(() => CARDS.forEach(c => renderSparkline(c)), 60);
+  };
+  document.getElementById('layout-list').onclick = () => {
+    cardLayout = 'list';
+    document.getElementById('layout-list').classList.add('active');
+    document.getElementById('layout-card').classList.remove('active');
+    renderCardGrid();
+    toast('切换到列表视图: 单页可显示更多字段', 'info');
+  };
   document.getElementById('proto-reset').onclick = () => {
     PROTOCOLS = [
-      { id: 'proto_bms', name: 'BMS TLV v1', byteOrder: 'BE', fields: [
+      { id: 'proto_bms', name: 'BMS TLV v1', byteOrder: 'BE', crcRange: 'all', fields: [
         { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
         { id: 'f2', name: 'addr',   type: 'addr',   size: 1, byteOrder: null, default: '0x01' },
         { id: 'f3', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
@@ -2382,10 +2520,10 @@
         { id: 'f5', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' },
         { id: 'f6', name: 'tail',   type: 'tail',   size: 1, byteOrder: null, default: '0x55' }
       ]},
-      { id: 'proto_modbus', name: 'Modbus RTU', byteOrder: 'BE', fields: [
+      { id: 'proto_modbus', name: 'Modbus RTU', byteOrder: 'LE', crcRange: 'no_header', fields: [
         { id: 'm1', name: 'addr', type: 'addr', size: 1, default: '0x01' },
         { id: 'm2', name: 'func', type: 'cmd', size: 1, default: '0x03' },
-        { id: 'm3', name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' }
+        { id: 'm7', name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' }
       ]}
     ];
     DATA_FIELDS = [
@@ -2426,8 +2564,6 @@
       toast('协议已导入', 'success');
     } catch (e) { toast('导入失败: ' + e.message, 'danger'); }
   };
-
-  // Edit mode
   document.getElementById('toggle-edit').onclick = () => {
     editMode = !editMode;
     document.body.classList.toggle('edit-mode', editMode);
@@ -2440,8 +2576,6 @@
     document.getElementById('toggle-edit').classList.remove('active');
     renderCardGrid();
   };
-
-  // Alert drawer
   document.getElementById('detail-close').onclick = closeDetail;
   document.getElementById('detail-backdrop').onclick = closeDetail;
   document.getElementById('alert-toggle').onclick = () => {
@@ -2464,7 +2598,6 @@
   document.getElementById('alert-cmd-mismatch').onchange = e => { cmdMismatchEnabled = e.target.checked; renderAlerts(); };
   document.getElementById('alert-debounce').onchange = e => { alertDebounceMs = parseInt(e.target.value) || 1000; };
 
-  // === Init ===
   initMockData();
   renderCommandPanel();
   renderCardGrid();
