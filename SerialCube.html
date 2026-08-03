@@ -6375,11 +6375,16 @@
 .dashboard-host     .alert-list::-webkit-scrollbar-thumb, .modal-body::-webkit-scrollbar-thumb, .command-panel::-webkit-scrollbar-thumb, .proto-tabs::-webkit-scrollbar-thumb, .sidebar-content::-webkit-scrollbar-thumb, .card-grid-area::-webkit-scrollbar-thumb, .data-field-list::-webkit-scrollbar-thumb { background: rgba(86, 114, 205, 0.46); border-radius: 3px; }
   
 
-    /* v4.1 dashboard-host 布局覆盖 (嵌入主应用, 不用 .app-shell height: 100vh) */
+    /* v4.1 dashboard-host 布局覆盖 (嵌入主应用, 不依赖 height: 100vh, 改用 flex/grid 自适应) */
     .dashboard-host { position: absolute; inset: 0; display: flex; flex-direction: column; }
-    .dashboard-host .app-shell { flex: 1; min-height: 0; display: grid; grid-template-columns: 286px 1fr; gap: 6px; padding: 0 8px 8px; }
-    .dashboard-host .app-shell > .sidebar { min-height: 0; overflow: auto; }
-    .dashboard-host .app-shell > .content { min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+    .dashboard-host .app-shell { flex: 1; min-height: 0; }
+    .dashboard-host .app-shell > .main-row { min-height: 0; display: grid; grid-template-columns: 286px 1fr; gap: 6px; }
+    .dashboard-host .app-shell > .main-row > .sidebar { min-height: 0; overflow: hidden; }
+    .dashboard-host .app-shell > .main-row > .content { min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+    /* 折叠 sidebar (dashboard 内部独立, 不影响主应用其他 sidebar) */
+    .dashboard-host.sidebar-collapsed .app-shell > .main-row { grid-template-columns: 32px 1fr; }
+    .dashboard-host.sidebar-collapsed .app-shell > .main-row > .sidebar .sidebar-content { display: none; }
+    .dashboard-host.sidebar-collapsed .app-shell > .main-row > .sidebar { align-items: center; padding-top: 8px; }
   </style>
 </head>
 <body spellcheck="false">
@@ -8845,6 +8850,19 @@
         if (state.layoutExpanded) refs.parserModeBtn?.classList.add('is-active');
         else refs.serialModeBtn?.classList.add('is-active');
       }
+
+      // v4.1: dashboard 内部 sidebar 折叠 (独立于主应用 body.sidebar-collapsed)
+      (function attachDashboardHostHandlers() {
+        const host = document.getElementById('dashboard-host');
+        if (!host) return;
+        const toggleBtn = document.getElementById('dh-sidebar-toggle');
+        if (toggleBtn) {
+          toggleBtn.addEventListener('click', () => {
+            const collapsed = host.classList.toggle('sidebar-collapsed');
+            toggleBtn.textContent = collapsed ? '›' : '‹';
+          });
+        }
+      })();
 
       function arrangeWorkspacePanels() {
         const {
