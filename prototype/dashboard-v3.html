@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SerialCube Dashboard v3.2 Prototype</title>
+  <title>SerialCube Dashboard v3.3 Prototype</title>
   <style>
     /* ============================================
-       Design Tokens (DESIGN.md "The Engineer's Workbench")
+       Design Tokens
        ============================================ */
     :root {
       color-scheme: light;
@@ -32,6 +32,14 @@
       --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
       --radius: 14px;
       --radius-small: 10px;
+      /* Field type colors (legend) */
+      --c-header: #818cf8;
+      --c-addr: #3a5ccc;
+      --c-cmd: #d97706;
+      --c-length: #22c55e;
+      --c-data: #98989f;
+      --c-crc: #e0575e;
+      --c-tail: #818cf8;
     }
     body.theme-dark {
       --bg: #1b1b1f;
@@ -50,45 +58,158 @@
       --success: #4ade80;
       --warning: #ffb14d;
       --danger: #f87171;
-      --shadow-ambient: 0 24px 54px rgba(0, 0, 0, 0.38);
+      --c-data: #98989f;
     }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: var(--font-ui); font-size: 13px; color: var(--text); background: var(--bg); min-height: 100vh; }
-    .app-shell { display: flex; flex-direction: column; min-height: 100vh; }
 
-    /* Topbar */
-    .topbar {
-      display: flex; align-items: center; justify-content: space-between;
-      height: 52px; padding: 0 16px;
-      border-bottom: 1px solid var(--border);
-      background: var(--bg-panel);
+    /* App Layout (跟 SerialCube 监视模式一致) */
+    .app-shell {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      height: 100vh;
+      padding: 0 8px 8px;
+      gap: 6px;
     }
-    .brand-title { font-size: 16px; font-weight: 800; letter-spacing: 0.03em; }
-    .brand-subtitle { font-size: 11px; color: var(--text-soft); margin-left: 8px; }
-    .topbar-actions { display: flex; gap: 8px; }
-    .icon-btn {
+    .topbar {
+      display: flex; align-items: center; gap: 8px;
+      height: 48px; padding: 0 12px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .brand { display: flex; align-items: center; gap: 8px; padding-right: 12px; border-right: 1px solid var(--border); margin-right: 4px; }
+    .brand-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+    .brand-name { font-size: 15px; font-weight: 800; letter-spacing: 0.02em; }
+    .brand-sub { font-size: 11px; color: var(--text-soft); }
+    .mode-switch { display: flex; gap: 4px; }
+    .mode-btn {
+      width: 36px; height: 36px;
+      background: transparent; border: 1px solid transparent;
+      border-radius: 8px; cursor: pointer;
+      display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1px;
+      color: var(--text-soft);
+      transition: all 0.15s ease;
+    }
+    .mode-btn:hover { background: var(--accent-soft); color: var(--accent); }
+    .mode-btn.active { background: var(--accent); color: white; }
+    .mode-btn .mode-icon { font-size: 14px; }
+    .mode-btn .mode-label { font-size: 9px; font-weight: 600; }
+    .topbar-spacer { flex: 1; }
+    .status-bar {
+      flex: 1; height: 28px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      display: flex; align-items: center;
+      padding: 0 16px;
+      font-size: 12px; color: var(--text-soft);
+      gap: 12px;
+    }
+    .status-bar .status-icon { color: var(--warning); font-size: 14px; }
+    .status-bar .status-text { font-weight: 600; color: var(--text); }
+    .topbar-icon-btn {
       width: 32px; height: 32px;
       background: var(--bg-panel); border: 1px solid var(--border);
-      border-radius: var(--radius); cursor: pointer;
+      border-radius: 8px; cursor: pointer;
       display: inline-flex; align-items: center; justify-content: center;
-      font-size: 14px; color: var(--text-soft);
-      transition: color 0.18s ease, border-color 0.18s ease;
+      color: var(--text-soft); font-size: 14px;
     }
-    .icon-btn:hover { color: var(--accent); border-color: var(--border-strong); }
-    .icon-btn.active { background: var(--accent); color: white; border-color: transparent; }
+    .topbar-icon-btn:hover { color: var(--accent); border-color: var(--border-strong); }
 
+    /* Main: Sidebar + Content */
+    .main-row {
+      display: grid;
+      grid-template-columns: 286px minmax(0, 1fr);
+      gap: 6px;
+      min-height: 0;
+    }
+    body.sidebar-collapsed .main-row {
+      grid-template-columns: 32px minmax(0, 1fr);
+    }
+    /* Sidebar */
+    .sidebar {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      min-height: 0;
+      position: relative;
+    }
+    body.sidebar-collapsed .sidebar .sidebar-content { display: none; }
+    body.sidebar-collapsed .sidebar { align-items: center; padding-top: 8px; }
+    .sidebar-toggle {
+      position: absolute; right: 6px; top: 6px;
+      width: 24px; height: 24px;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 4px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--text-soft); font-size: 11px;
+      z-index: 5;
+    }
+    .sidebar-toggle:hover { color: var(--accent); }
+    .sidebar-content {
+      flex: 1; overflow-y: auto;
+      padding: 10px 12px;
+    }
+    .sidebar-section-title {
+      font-size: 10px; font-weight: 700; color: var(--text-soft);
+      text-transform: uppercase; letter-spacing: 0.04em;
+      margin: 0 0 8px;
+    }
+    .sidebar-row {
+      display: grid; grid-template-columns: 64px 1fr;
+      gap: 8px; align-items: center;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    .sidebar-row label { color: var(--text-soft); font-weight: 600; }
+    .sidebar-row .select-mock,
+    .sidebar-row .input-mock {
+      height: 28px; padding: 0 8px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; font-size: 12px;
+      color: var(--text);
+      display: inline-flex; align-items: center;
+      font-family: var(--font-mono);
+    }
+    .sidebar-row .check-mock {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--text);
+    }
+    .sidebar-row .check-mock input { margin: 0; }
+    .sidebar-divider { height: 1px; background: var(--border); margin: 12px 0; }
+    .sidebar-collapsed-label {
+      writing-mode: vertical-rl;
+      font-size: 11px; font-weight: 600; color: var(--text-soft);
+      letter-spacing: 0.1em;
+      padding: 8px 0;
+    }
+
+    /* Content (Dashboard) */
+    .content {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex; flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
     /* Toolbar */
     .toolbar {
       display: flex; align-items: center; gap: 8px;
-      padding: 8px 16px;
-      background: var(--bg-panel-strong);
+      padding: 10px 14px;
       border-bottom: 1px solid var(--border);
+      background: var(--bg-panel-strong);
+      flex-shrink: 0;
     }
     .toolbar .spacer { flex: 1; }
     .toolbar-btn {
       height: 32px; padding: 0 14px;
       background: var(--bg); border: 1px solid var(--border);
-      border-radius: var(--radius); cursor: pointer;
+      border-radius: 8px; cursor: pointer;
       font-size: 12px; font-weight: 600;
       color: var(--text);
       display: inline-flex; align-items: center; gap: 6px;
@@ -100,24 +221,25 @@
     .toolbar-btn.primary:hover { background: var(--accent-strong); }
     .toolbar-btn.danger { color: var(--danger); border-color: rgba(224, 87, 94, 0.4); }
     .toolbar-btn.danger:hover { background: rgba(224, 87, 94, 0.1); }
-    .toolbar-status { font-size: 11px; color: var(--text-soft); font-weight: 600; padding: 0 8px; }
+    .toolbar-status { font-size: 11px; color: var(--text-soft); font-weight: 600; padding: 0 8px; display: inline-flex; align-items: center; gap: 6px; }
     .toolbar-status .dot {
       display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-      background: var(--success); margin-right: 4px;
+      background: var(--success);
     }
 
     /* Command Panel */
     .command-panel {
       display: flex; align-items: center; gap: 8px;
-      padding: 10px 16px;
+      padding: 8px 14px;
       border-bottom: 1px solid var(--border);
       background: var(--bg);
       overflow-x: auto;
       white-space: nowrap;
+      flex-shrink: 0;
     }
     .cmd-chip {
       display: inline-flex; align-items: center; gap: 6px;
-      padding: 5px 12px;
+      padding: 4px 10px;
       border: 1px solid var(--border);
       border-radius: 999px;
       font-size: 11px; font-weight: 600;
@@ -136,53 +258,15 @@
     .cmd-chip.tx .dir-badge { background: var(--accent-soft); color: var(--accent-strong); }
     .cmd-chip-label { font-size: 11px; color: var(--text-soft); margin-right: 4px; font-weight: 600; }
 
-    /* KPI Strip (精简 4 卡) */
-    .kpi-strip {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      padding: 12px 16px;
-      background: var(--bg);
-    }
-    .kpi-card {
-      height: 80px;
-      padding: 10px 14px;
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      display: flex; flex-direction: column; justify-content: space-between;
-      cursor: pointer;
-      transition: border-color 0.15s ease;
-    }
-    .kpi-card:hover { border-color: var(--border-strong); }
-    .kpi-card.alert-warning { border-color: var(--warning); }
-    .kpi-card.alert-danger { border-color: var(--danger); }
-    .kpi-head { display: flex; align-items: center; justify-content: space-between; }
-    .kpi-title { font-size: 10px; font-weight: 700; color: var(--text-soft); letter-spacing: 0.04em; text-transform: uppercase; }
-    .kpi-cmd { font-family: var(--font-mono); font-size: 9px; color: var(--text-soft); padding: 1px 4px; background: var(--bg-terminal); border-radius: 3px; }
-    .kpi-value { font-family: var(--font-mono); font-size: 26px; font-weight: 800; line-height: 1; color: var(--text); transition: color 0.4s ease; }
-    .kpi-value .unit { font-size: 12px; color: var(--text-soft); margin-left: 3px; font-weight: 600; }
-    .kpi-value.flash { color: var(--accent); }
-    .kpi-card.pair .kpi-pair-row { display: flex; gap: 6px; font-family: var(--font-mono); align-items: center; }
-    .kpi-card.pair .kpi-pair-row .label { font-size: 9px; color: var(--text-soft); font-weight: 700; }
-    .kpi-card.pair .kpi-pair-row .val-set { font-size: 12px; color: var(--text-soft); font-weight: 700; }
-    .kpi-card.pair .kpi-pair-row .val-act { font-size: 12px; color: var(--text); font-weight: 800; }
-    .kpi-card.pair .kpi-delta { font-family: var(--font-mono); font-size: 11px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
-    .kpi-card.pair .kpi-delta.ok { background: rgba(34, 197, 94, 0.14); color: var(--success); }
-    .kpi-card.pair .kpi-delta.warn { background: rgba(217, 119, 6, 0.14); color: var(--warning); }
-    .kpi-card.pair .kpi-delta.bad { background: rgba(224, 87, 94, 0.14); color: var(--danger); }
-
-    /* Card Grid */
+    /* Card Grid (固定宽度, 不拉伸) */
     .card-grid-area {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      padding: 0 16px 16px;
-      flex: 1;
-      align-content: start;
+      flex: 1; min-height: 0; overflow-y: auto;
+      padding: 14px;
+      display: flex; flex-wrap: wrap; align-content: flex-start;
+      gap: 12px;
     }
     .card-add-slot {
-      height: 200px;
+      width: 280px; height: 200px;
       border: 2px dashed var(--border);
       border-radius: var(--radius);
       display: flex; align-items: center; justify-content: center;
@@ -194,15 +278,15 @@
     .card-add-slot:hover { border-color: var(--accent); color: var(--accent); }
     .card-add-slot .hint { font-size: 11px; font-weight: 500; margin-top: 8px; }
 
-    /* Card (type-driven: value / trend / pair) */
+    /* Card (统一 trend, 280x200 固定) */
     .card-default {
-      height: 200px;
+      width: 280px; height: 200px;
       padding: 10px 12px;
       background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       display: grid;
-      grid-template-rows: 24px auto 60px 24px;  /* header / value / trend(可选) / footer */
+      grid-template-rows: 24px 56px 60px 24px;
       grid-template-areas:
         "header"
         "value"
@@ -213,12 +297,12 @@
       position: relative;
       transition: border-color 0.18s ease, box-shadow 0.18s ease;
       overflow: hidden;
+      flex-shrink: 0;
     }
-    .card-default.no-trend { grid-template-rows: 24px 1fr 0 24px; }
-    .card-default.no-trend .card-trend { display: none; }
     .card-default:hover { box-shadow: var(--shadow-soft); }
     .card-default.alert-warning { border-color: var(--warning); }
     .card-default.alert-danger { border-color: var(--danger); }
+    .card-default.pair { grid-template-rows: 24px 56px 60px 24px; }
 
     .card-header {
       grid-area: header;
@@ -236,7 +320,6 @@
     .status-ring.rx { background: var(--signal); }
     .card-title { font-size: 11px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .card-unit { font-size: 9px; color: var(--text-soft); font-weight: 600; }
-    .card-type-tag { font-size: 8px; font-weight: 700; padding: 1px 4px; border-radius: 3px; background: var(--bg-terminal); color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.04em; }
     .card-actions { display: flex; gap: 1px; }
     .card-action {
       width: 20px; height: 20px;
@@ -266,7 +349,6 @@
       color: var(--text);
       transition: color 0.4s ease;
     }
-    .card-default.no-trend .card-value { font-size: 32px; }
     .card-value.flash { color: var(--accent); }
     .card-value .unit { font-size: 12px; color: var(--text-soft); margin-left: 3px; font-weight: 600; }
     .card-value.pair {
@@ -280,7 +362,7 @@
     .pair-cell .val { font-family: var(--font-mono); font-size: 14px; font-weight: 800; }
     .pair-cell.setpoint .val { color: var(--text-soft); font-weight: 700; }
     .pair-cell.actual .val { color: var(--text); font-weight: 800; }
-    .pair-cell.delta .val { font-size: 11px; padding: 1px 5px; border-radius: 3px; transition: color 0.4s; }
+    .pair-cell.delta .val { font-size: 11px; padding: 1px 5px; border-radius: 3px; }
     .pair-cell.delta .val.ok { background: rgba(34, 197, 94, 0.14); color: var(--success); }
     .pair-cell.delta .val.warn { background: rgba(217, 119, 6, 0.14); color: var(--warning); }
     .pair-cell.delta .val.bad { background: rgba(224, 87, 94, 0.14); color: var(--danger); }
@@ -314,13 +396,12 @@
     .card-footer .status-text.bad { color: var(--danger); }
     .card-footer .status-text.rx { color: var(--signal); }
 
-    /* Edit mode */
     body.edit-mode .card-default { outline: 1px dashed var(--accent); outline-offset: -2px; }
     body.edit-mode .card-action { pointer-events: auto; }
     body.edit-mode .card-action.delete-btn { color: var(--danger); }
     body.edit-mode .card-action.delete-btn:hover { background: rgba(224, 87, 94, 0.14); color: var(--danger); }
 
-    /* Alert Drawer */
+    /* Alert Drawer (右下角统一) */
     .alert-drawer {
       position: fixed; right: 16px; bottom: 16px;
       width: 320px; max-height: 50vh;
@@ -351,7 +432,7 @@
     .alert-item .alert-cmd { font-family: var(--font-mono); font-size: 9px; padding: 1px 4px; border-radius: 3px; background: var(--bg-terminal); }
     .alert-item .alert-cmd.rx { background: rgba(58, 92, 204, 0.12); color: var(--signal); }
     .alert-item .alert-cmd.tx { background: var(--accent-soft); color: var(--accent-strong); }
-    .alert-item .alert-level { font-family: var(--font-mono); font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 3px; letter-spacing: 0.04em; }
+    .alert-item .alert-level { font-family: var(--font-mono); font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 3px; }
     .alert-item .alert-level.warn { background: rgba(217, 119, 6, 0.14); color: var(--warning); }
     .alert-item .alert-level.danger { background: rgba(224, 87, 94, 0.14); color: var(--danger); }
     .alert-item.mismatch { background: rgba(224, 87, 94, 0.06); }
@@ -363,7 +444,7 @@
       color: var(--text-soft); font-size: 10px;
     }
 
-    /* Modal (Cmd / Card / ImportExport / Detail 共用基础) */
+    /* Modal */
     .modal-backdrop {
       position: fixed; inset: 0;
       background: rgba(0, 0, 0, 0.4);
@@ -386,8 +467,8 @@
       overflow: hidden;
     }
     .modal.open { display: flex; }
-    .modal.wide { width: min(1100px, calc(100vw - 64px)); }
-    .modal.xtra-wide { width: min(1280px, calc(100vw - 32px)); }
+    .modal.wide { width: min(1100px, calc(100vw - 32px)); }
+    .modal.xtra-wide { width: min(1400px, calc(100vw - 32px)); }
     .modal-header {
       display: flex; align-items: center; gap: 12px;
       padding: 14px 20px;
@@ -449,11 +530,12 @@
     }
     .form-textarea:focus { outline: none; border-color: var(--accent); }
 
-    /* Protocol Editor (核心) */
+    /* Protocol Editor: 三栏布局 */
     .proto-tabs {
       display: flex; gap: 4px; padding: 8px 16px 0;
       border-bottom: 1px solid var(--border);
       overflow-x: auto;
+      flex-shrink: 0;
     }
     .proto-tab {
       padding: 8px 14px;
@@ -471,61 +553,148 @@
     .proto-tab .del-btn { margin-left: 4px; font-size: 11px; opacity: 0.5; }
     .proto-tab .del-btn:hover { opacity: 1; color: var(--danger); }
 
+    /* 三栏: 帧字段(左) + 中间(data + preview) */
+    .proto-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 16px 20px;
+    }
+    .proto-col {
+      display: flex; flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+    }
+    .proto-col-frame {
+      grid-column: 1;
+    }
+    .proto-col-data {
+      grid-column: 2;
+    }
     .field-list { display: flex; flex-direction: column; gap: 4px; }
     .field-row {
       display: grid;
-      grid-template-columns: 24px 120px 110px 60px 100px 1fr 32px;
-      gap: 8px;
+      grid-template-columns: 24px 100px 1fr 50px 80px 100px 24px;
+      gap: 6px;
       align-items: center;
-      padding: 8px 10px;
+      padding: 6px 8px;
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: var(--radius-small);
-      font-size: 12px;
+      border-radius: 6px;
+      font-size: 11px;
     }
+    .field-row.drop-target { border-color: var(--accent); background: var(--accent-soft); }
     .field-row .drag-handle { color: var(--text-soft); cursor: grab; text-align: center; }
     .field-row .drag-handle:hover { color: var(--accent); }
-    .field-row .type-select { font-size: 11px; padding: 0 6px; height: 26px; }
-    .field-row .name-input { font-size: 11px; padding: 0 6px; height: 26px; }
-    .field-row .size-input { font-size: 11px; padding: 0 6px; height: 26px; text-align: center; }
-    .field-row .endian-select { font-size: 11px; padding: 0 6px; height: 26px; }
-    .field-row .default-input { font-size: 11px; padding: 0 6px; height: 26px; font-family: var(--font-mono); }
-    .field-row .del-btn { width: 24px; height: 24px; background: transparent; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; color: var(--text-soft); }
+    .field-row select, .field-row input {
+      font-size: 11px; padding: 0 4px; height: 24px;
+      border: 1px solid var(--border); border-radius: 4px;
+      background: var(--bg); color: var(--text);
+    }
+    .field-row .type-select { font-family: var(--font-mono); }
+    .field-row .endian-select { font-family: var(--font-mono); }
+    .field-row .default-input { font-family: var(--font-mono); }
+    .field-row .del-btn {
+      width: 22px; height: 22px; background: transparent; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; color: var(--text-soft);
+    }
     .field-row .del-btn:hover { color: var(--danger); border-color: var(--danger); }
     .field-row.dragging { opacity: 0.5; }
+    .field-row .type-color {
+      display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+      margin-right: 2px;
+    }
+    .field-row .type-color.header { background: var(--c-header); }
+    .field-row .type-color.addr { background: var(--c-addr); }
+    .field-row .type-color.cmd { background: var(--c-cmd); }
+    .field-row .type-color.length { background: var(--c-length); }
+    .field-row .type-color.data { background: var(--c-data); }
+    .field-row .type-color.crc { background: var(--c-crc); }
+    .field-row .type-color.tail { background: var(--c-tail); }
 
+    /* 帧预览 (常驻上方) */
     .frame-preview {
       background: var(--bg-terminal);
       border: 1px solid var(--border);
-      border-radius: var(--radius-small);
-      padding: 14px;
-      margin-top: 8px;
+      border-radius: 8px;
+      padding: 12px 14px;
     }
     .frame-bytes {
-      font-family: var(--font-mono); font-size: 14px;
+      font-family: var(--font-mono); font-size: 13px;
       font-weight: 700;
       color: var(--text);
       letter-spacing: 0.1em;
-      line-height: 1.6;
+      line-height: 1.7;
       word-break: break-all;
     }
     .frame-bytes .byte { display: inline-block; padding: 1px 3px; border-radius: 3px; }
-    .frame-bytes .byte.header { background: rgba(100, 108, 255, 0.16); color: var(--accent-strong); }
-    .frame-bytes .byte.addr { background: rgba(58, 92, 204, 0.16); color: var(--signal); }
-    .frame-bytes .byte.cmd { background: rgba(217, 119, 6, 0.18); color: var(--warning); }
-    .frame-bytes .byte.length { background: rgba(34, 197, 94, 0.16); color: var(--success); }
-    .frame-bytes .byte.data { background: var(--bg); color: var(--text); }
-    .frame-bytes .byte.crc { background: rgba(224, 87, 94, 0.18); color: var(--danger); }
-    .frame-bytes .byte.tail { background: rgba(100, 108, 255, 0.16); color: var(--accent-strong); }
+    .frame-bytes .byte.header { background: rgba(129, 140, 248, 0.18); color: var(--c-header); }
+    .frame-bytes .byte.addr { background: rgba(58, 92, 204, 0.18); color: var(--c-addr); }
+    .frame-bytes .byte.cmd { background: rgba(217, 119, 6, 0.18); color: var(--c-cmd); }
+    .frame-bytes .byte.length { background: rgba(34, 197, 94, 0.18); color: var(--c-length); }
+    .frame-bytes .byte.data { background: var(--bg); color: var(--c-data); }
+    .frame-bytes .byte.crc { background: rgba(224, 87, 94, 0.18); color: var(--c-crc); }
+    .frame-bytes .byte.tail { background: rgba(129, 140, 248, 0.18); color: var(--c-tail); }
     .frame-meta {
-      display: flex; gap: 16px; margin-top: 10px;
+      display: flex; gap: 16px; margin-top: 8px;
       font-size: 11px; color: var(--text-soft);
       font-family: var(--font-mono);
     }
     .frame-meta .meta-item .meta-key { font-weight: 700; }
     .frame-meta .meta-item .meta-val { color: var(--text); margin-left: 4px; }
 
-    /* Cmd list (配置 modal 内) */
+    /* Legend (颜色标注) */
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      padding: 8px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 10px;
+    }
+    .legend-item {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: var(--font-mono);
+      color: var(--text-soft);
+    }
+    .legend-item .dot {
+      width: 8px; height: 8px; border-radius: 2px;
+    }
+    .legend-item .dot.header { background: var(--c-header); }
+    .legend-item .dot.addr { background: var(--c-addr); }
+    .legend-item .dot.cmd { background: var(--c-cmd); }
+    .legend-item .dot.length { background: var(--c-length); }
+    .legend-item .dot.data { background: var(--c-data); }
+    .legend-item .dot.crc { background: var(--c-crc); }
+    .legend-item .dot.tail { background: var(--c-tail); }
+
+    /* 数据字段 (单独一栏) */
+    .data-field-list {
+      display: flex; flex-direction: column; gap: 4px;
+      max-height: 280px; overflow-y: auto;
+    }
+    .data-field-row {
+      display: grid;
+      grid-template-columns: 24px 1fr 100px 80px 24px;
+      gap: 6px; align-items: center;
+      padding: 6px 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 11px;
+    }
+    .data-field-row .drag-handle { color: var(--text-soft); cursor: grab; text-align: center; }
+    .data-field-row input, .data-field-row select {
+      font-size: 11px; padding: 0 4px; height: 24px;
+      border: 1px solid var(--border); border-radius: 4px;
+      background: var(--bg); color: var(--text);
+    }
+    .data-field-row .name-input { font-family: var(--font-mono); }
+    .data-field-row .type-select { font-family: var(--font-mono); }
+    .data-field-row .default-input { font-family: var(--font-mono); }
+    .data-field-row .del-btn { width: 22px; height: 22px; background: transparent; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; color: var(--text-soft); }
+    .data-field-row .del-btn:hover { color: var(--danger); border-color: var(--danger); }
+
+    /* Cmd list */
     .cmd-list { display: flex; flex-direction: column; gap: 6px; }
     .cmd-list-item {
       display: grid; grid-template-columns: auto 80px 1fr 80px auto;
@@ -541,7 +710,7 @@
     .cmd-list-item .fields { font-family: var(--font-mono); font-size: 10px; color: var(--text-soft); }
     .cmd-list-item .cadence { font-family: var(--font-mono); font-size: 11px; color: var(--text-soft); text-align: right; }
 
-    /* Card list (卡片编辑 modal 内) */
+    /* Card list */
     .card-edit-list { display: flex; flex-direction: column; gap: 6px; }
     .card-edit-item {
       display: grid; grid-template-columns: 24px 1fr 100px 80px 80px auto auto;
@@ -588,6 +757,60 @@
     .detail-range { font-family: var(--font-mono); font-size: 11px; color: var(--text-soft); }
     .detail-status-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; padding: 3px 8px; border-radius: 4px; background: rgba(34, 197, 94, 0.14); color: var(--success); text-transform: uppercase; }
 
+    /* Edit mode toast (右上角统一) */
+    .edit-toast {
+      position: fixed; top: 70px; right: 16px;
+      padding: 10px 16px;
+      background: var(--accent);
+      color: white;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 600;
+      box-shadow: var(--shadow-soft);
+      z-index: 80;
+      display: none;
+      align-items: center; gap: 10px;
+      max-width: 320px;
+    }
+    body.edit-mode .edit-toast { display: inline-flex; }
+    .edit-toast .close-edit { background: rgba(255,255,255,0.2); border: none; color: white; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px; }
+    /* 弹窗位置配置 */
+    body.toast-pos-tr .edit-toast { top: 70px; right: 16px; }
+    body.toast-pos-tl .edit-toast { top: 70px; left: 16px; right: auto; }
+    body.toast-pos-br .edit-toast { bottom: 70px; right: 16px; top: auto; }
+    body.toast-pos-bl .edit-toast { bottom: 70px; left: 16px; right: auto; top: auto; }
+
+    /* System menu (右上角齿轮下拉) */
+    .system-menu {
+      position: fixed; top: 56px; right: 12px;
+      width: 240px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-ambient);
+      padding: 8px;
+      z-index: 90;
+      display: none;
+    }
+    .system-menu.open { display: block; }
+    .system-menu .menu-section {
+      padding: 6px 8px;
+      font-size: 10px; font-weight: 700; color: var(--text-soft);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .system-menu .menu-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .system-menu .menu-row:hover { background: var(--accent-soft); color: var(--accent); }
+    .system-menu .menu-row.active { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+    .system-menu .menu-row .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--text-soft);
+    }
+    .system-menu .menu-row.active .dot { background: var(--accent); }
+
     /* toast */
     .toast-layer { position: fixed; top: 70px; right: 16px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
     .toast {
@@ -606,44 +829,145 @@
     @keyframes toast-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
     /* Scrollbar */
-    .alert-list::-webkit-scrollbar, .modal-body::-webkit-scrollbar, .command-panel::-webkit-scrollbar, .proto-tabs::-webkit-scrollbar { width: 6px; height: 6px; }
-    .alert-list::-webkit-scrollbar-thumb, .modal-body::-webkit-scrollbar-thumb, .command-panel::-webkit-scrollbar-thumb, .proto-tabs::-webkit-scrollbar-thumb { background: rgba(86, 114, 205, 0.46); border-radius: 3px; }
+    .alert-list::-webkit-scrollbar, .modal-body::-webkit-scrollbar, .command-panel::-webkit-scrollbar, .proto-tabs::-webkit-scrollbar, .sidebar-content::-webkit-scrollbar, .card-grid-area::-webkit-scrollbar, .data-field-list::-webkit-scrollbar { width: 6px; height: 6px; }
+    .alert-list::-webkit-scrollbar-thumb, .modal-body::-webkit-scrollbar-thumb, .command-panel::-webkit-scrollbar-thumb, .proto-tabs::-webkit-scrollbar-thumb, .sidebar-content::-webkit-scrollbar-thumb, .card-grid-area::-webkit-scrollbar-thumb, .data-field-list::-webkit-scrollbar-thumb { background: rgba(86, 114, 205, 0.46); border-radius: 3px; }
   </style>
 </head>
-<body>
+<body class="toast-pos-tr">
   <div class="app-shell">
     <header class="topbar">
-      <div>
-        <span class="brand-title">SerialCube</span>
-        <span class="brand-subtitle">Dashboard v3.2 Prototype</span>
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span class="brand-name">SerialCube</span>
+        <span class="brand-sub">Dashboard v3.3</span>
       </div>
-      <div class="topbar-actions">
-        <button class="icon-btn" id="theme-toggle" title="切换主题">☀</button>
-        <button class="icon-btn" id="reset-btn" title="重置数据">↻</button>
+      <div class="mode-switch">
+        <button class="mode-btn" id="serial-mode-btn" title="监视">
+          <span class="mode-icon">▭</span>
+          <span class="mode-label">监视</span>
+        </button>
+        <button class="mode-btn" id="parser-mode-btn" title="解析">
+          <span class="mode-icon">≣</span>
+          <span class="mode-label">解析</span>
+        </button>
+        <button class="mode-btn active" id="dashboard-mode-btn" title="仪表盘">
+          <span class="mode-icon">▦</span>
+          <span class="mode-label">仪表盘</span>
+        </button>
       </div>
+      <div class="status-bar">
+        <span class="status-icon">✕</span>
+        <span>等待串口数据</span>
+        <span style="flex:1"></span>
+        <span style="font-family: var(--font-mono); font-size: 11px;">115200 8N1</span>
+      </div>
+      <button class="topbar-icon-btn" id="system-menu-btn" title="系统设置">⚙</button>
+      <button class="topbar-icon-btn" id="theme-toggle" title="切换主题">☀</button>
+      <button class="topbar-icon-btn" id="reset-btn" title="重置数据">↻</button>
     </header>
 
-    <!-- Toolbar -->
-    <div class="toolbar">
-      <button class="toolbar-btn" id="open-proto-editor">⚙ 协议编辑器</button>
-      <button class="toolbar-btn" id="open-cmd-config">⚡ 命令管理</button>
-      <button class="toolbar-btn" id="open-card-config">▤ 卡片配置</button>
-      <button class="toolbar-btn" id="open-import-export">⇄ 导入 / 导出</button>
-      <button class="toolbar-btn" id="open-alerts">🔔 告警配置</button>
-      <span class="toolbar-status"><span class="dot"></span>实时 800ms</span>
-      <span class="spacer"></span>
-      <button class="toolbar-btn" id="toggle-edit">✎ 编辑模式</button>
+    <div class="main-row">
+      <!-- 侧边栏 (设备连接管理, 可折叠) -->
+      <aside class="sidebar" id="sidebar">
+        <button class="sidebar-toggle" id="sidebar-toggle" title="折叠/展开">‹</button>
+        <div class="sidebar-content" id="sidebar-content">
+          <div class="sidebar-section-title">设备连接管理</div>
+          <div class="sidebar-row">
+            <label>VID·PID</label>
+            <div class="select-mock">— —</div>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <button class="toolbar-btn primary" style="width: 100%; height: 32px;">⚡ 连接设备 | 当前未连接</button>
+          </div>
+          <div class="sidebar-row">
+            <label>波特率</label>
+            <div class="select-mock">115200</div>
+          </div>
+          <div class="sidebar-row">
+            <label>数据位</label>
+            <div class="select-mock">8</div>
+          </div>
+          <div class="sidebar-row">
+            <label>停止位</label>
+            <div class="select-mock">1</div>
+          </div>
+          <div class="sidebar-row">
+            <label>校验位</label>
+            <div class="select-mock">无</div>
+          </div>
+          <div class="sidebar-divider"></div>
+          <div class="sidebar-section-title">流控与硬件信号</div>
+          <div class="sidebar-row">
+            <label class="check-mock"><input type="checkbox"> 失焦自动断连</label>
+          </div>
+          <div class="sidebar-row">
+            <label class="check-mock"><input type="checkbox"> RTS/CTS 流控</label>
+          </div>
+          <div class="sidebar-row">
+            <label class="check-mock"><input type="checkbox"> DTR</label>
+          </div>
+          <div class="sidebar-row">
+            <label class="check-mock"><input type="checkbox"> RTS</label>
+          </div>
+          <div class="sidebar-divider"></div>
+          <div class="sidebar-section-title">字符编码</div>
+          <div class="sidebar-row">
+            <label>字符编码</label>
+            <div class="select-mock">UTF-8</div>
+          </div>
+          <div class="sidebar-row">
+            <label>换行</label>
+            <div class="select-mock">\r\n</div>
+          </div>
+          <div class="sidebar-row">
+            <label class="check-mock"><input type="checkbox" checked> 显示时间</label>
+          </div>
+          <div class="sidebar-row">
+            <label class="check-mock"><input type="checkbox" checked> 结尾补换行</label>
+          </div>
+        </div>
+        <div class="sidebar-collapsed-label">设备</div>
+      </aside>
+
+      <!-- 仪表盘内容区 -->
+      <main class="content">
+        <div class="toolbar">
+          <button class="toolbar-btn" id="open-proto-editor">⚙ 协议编辑器</button>
+          <button class="toolbar-btn" id="open-cmd-config">⚡ 命令管理</button>
+          <button class="toolbar-btn" id="open-card-config">▤ 卡片配置</button>
+          <button class="toolbar-btn" id="open-import-export">⇄ 导入 / 导出</button>
+          <button class="toolbar-btn" id="open-alerts">🔔 告警配置</button>
+          <span class="toolbar-status"><span class="dot"></span>实时 800ms</span>
+          <span class="spacer"></span>
+          <button class="toolbar-btn" id="toggle-edit">✎ 编辑模式</button>
+        </div>
+        <div class="command-panel" id="command-panel">
+          <span class="cmd-chip-label">命令:</span>
+        </div>
+        <div class="card-grid-area" id="card-grid"></div>
+      </main>
     </div>
-
-    <div class="command-panel" id="command-panel">
-      <span class="cmd-chip-label">命令:</span>
-    </div>
-
-    <div class="kpi-strip" id="kpi-strip"></div>
-
-    <div class="card-grid-area" id="card-grid"></div>
   </div>
 
+  <!-- Edit mode toast (右上角统一) -->
+  <div class="edit-toast">
+    <span>✎ 编辑模式: 可删除/添加/编辑卡片</span>
+    <button class="close-edit" id="close-edit">退出</button>
+  </div>
+
+  <!-- System menu -->
+  <div class="system-menu" id="system-menu">
+    <div class="menu-section">弹窗位置</div>
+    <div class="menu-row" data-pos="tr"><span class="dot"></span> 右上角</div>
+    <div class="menu-row" data-pos="tl"><span class="dot"></span> 左上角</div>
+    <div class="menu-row" data-pos="br"><span class="dot"></span> 右下角</div>
+    <div class="menu-row" data-pos="bl"><span class="dot"></span> 左下角</div>
+    <div class="menu-section">外观</div>
+    <div class="menu-row" id="menu-theme">切换深色 / 浅色</div>
+    <div class="menu-row" id="menu-reset">重置数据</div>
+  </div>
+
+  <!-- Alert Drawer -->
   <div class="alert-drawer" id="alert-drawer">
     <div class="alert-drawer-head">
       <span>告警 (3)</span>
@@ -654,19 +978,21 @@
 
   <div class="toast-layer" id="toast-layer"></div>
 
-  <!-- Protocol Editor Modal (核心: TLV 帧结构) -->
+  <!-- Protocol Editor Modal (三栏) -->
   <div class="modal-backdrop" id="proto-backdrop"></div>
   <div class="modal xtra-wide" id="proto-modal">
     <div class="modal-header">
       <button class="close-btn" data-close="proto">×</button>
       <span class="modal-title">协议编辑器</span>
-      <span class="modal-subtitle">帧结构 / 字段 / 大小端 / 帧预览 / 复用 SerialWebUserConfig v1</span>
+      <span class="modal-subtitle">TLV 帧结构 · 字段 / 大小端 / 数据段 / 帧预览</span>
       <span style="flex: 1;"></span>
       <button class="toolbar-btn" id="proto-import">⎘ 导入 JSON</button>
       <button class="toolbar-btn" id="proto-export">↓ 导出 JSON</button>
     </div>
     <div class="proto-tabs" id="proto-tabs"></div>
-    <div class="modal-body" id="proto-body"></div>
+    <div class="modal-body" style="padding: 0;">
+      <div class="proto-body" id="proto-body"></div>
+    </div>
     <div class="modal-footer">
       <button class="toolbar-btn" data-close="proto">关闭</button>
       <span class="spacer"></span>
@@ -681,7 +1007,7 @@
     <div class="modal-header">
       <button class="close-btn" data-close="cmd-config">×</button>
       <span class="modal-title">命令管理</span>
-      <span class="modal-subtitle">绑定协议 / 方向 / 轮询周期 / 数据字段</span>
+      <span class="modal-subtitle">绑定协议 / 方向 / 轮询 / 数据字段</span>
     </div>
     <div class="modal-body">
       <div class="form-section-title">已配置命令</div>
@@ -713,9 +1039,9 @@
         <input class="form-input mono" type="number" id="cmd-form-cadence" placeholder="0=手动" value="0">
       </div>
       <div class="form-row">
-        <label>数据字段 (data 段, 逗号分隔)</label>
+        <label>数据字段 (data 段)</label>
         <input class="form-input mono" id="cmd-form-fields" placeholder="soc, soh, cycle_count">
-        <div class="form-hint" style="grid-column: 2;">解析 data 段为这些字段, 每字段 2 字节 (uint16 BE)</div>
+        <div class="form-hint" style="grid-column: 2;">从"协议编辑器 / 数据字段"中选</div>
       </div>
       <div class="form-row col-2">
         <label>data 长度 (字节)</label>
@@ -737,7 +1063,7 @@
     <div class="modal-header">
       <button class="close-btn" data-close="card-config">×</button>
       <span class="modal-title">卡片配置</span>
-      <span class="modal-subtitle">数值卡 / 趋势卡 / Pair 卡 · 全部 200px 等高</span>
+      <span class="modal-subtitle">所有卡片 · 280×200 固定尺寸 · 不被拉伸</span>
     </div>
     <div class="modal-body">
       <div class="form-section-title">已配卡片</div>
@@ -746,8 +1072,7 @@
       <div class="form-row col-2">
         <label>类型</label>
         <select class="form-select" id="card-form-type">
-          <option value="trend">趋势卡 (数值 + 趋势图)</option>
-          <option value="value">数值卡 (无趋势图)</option>
+          <option value="trend">趋势卡 (数值 + sparkline)</option>
           <option value="pair">Pair 对比卡 (SET / ACT / Δ)</option>
         </select>
         <label style="grid-column: auto; margin-left: 8px;">命令</label>
@@ -798,8 +1123,7 @@
       <div class="form-row col-2">
         <label>卡片类型</label>
         <select class="form-select" id="ce-type">
-          <option value="trend">趋势卡 (数值 + 趋势图)</option>
-          <option value="value">数值卡 (无趋势图)</option>
+          <option value="trend">趋势卡 (数值 + sparkline)</option>
           <option value="pair">Pair 对比卡 (SET / ACT / Δ)</option>
         </select>
         <label style="grid-column: auto; margin-left: 8px;">命令</label>
@@ -911,11 +1235,10 @@
 
   <script>
   /* ============================================
-     SerialCube Dashboard v3.2 Prototype
-     Protocol → Command → Field 三层模型
+     SerialCube Dashboard v3.3 Prototype
+     三层模型 + 侧边栏 + 三栏协议编辑器 + 固定卡片
      ============================================ */
 
-  // === CRC16-MODBUS ===
   function crc16Modbus(bytes) {
     let crc = 0xFFFF;
     for (let i = 0; i < bytes.length; i++) {
@@ -928,7 +1251,16 @@
     return crc;
   }
 
-  // === Protocols (协议层) ===
+  function parseHexOr0(s) {
+    if (s === null || s === undefined || s === '') return 0;
+    s = String(s).trim();
+    if (s === 'auto') return -1;
+    if (s.startsWith('0x') || s.startsWith('0X')) return parseInt(s.slice(2), 16) || 0;
+    if (/^[0-9A-Fa-f]+$/.test(s) && s.length > 1) return parseInt(s, 16) || 0;
+    return parseInt(s, 10) || 0;
+  }
+
+  // === Protocols ===
   let PROTOCOLS = [
     {
       id: 'proto_bms',
@@ -939,9 +1271,8 @@
         { id: 'f2', name: 'addr',   type: 'addr',   size: 1, byteOrder: null, default: '0x01' },
         { id: 'f3', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
         { id: 'f4', name: 'length', type: 'length', size: 1, byteOrder: 'BE', default: 'auto' },
-        { id: 'f5', name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '' },
-        { id: 'f6', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' },
-        { id: 'f7', name: 'tail',   type: 'tail',   size: 1, byteOrder: null, default: '0x55' }
+        { id: 'f5', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' },
+        { id: 'f6', name: 'tail',   type: 'tail',   size: 1, byteOrder: null, default: '0x55' }
       ]
     },
     {
@@ -949,52 +1280,71 @@
       name: 'Modbus RTU',
       byteOrder: 'BE',
       fields: [
-        { id: 'm1', name: 'addr',    type: 'addr', size: 1, byteOrder: null, default: '0x01' },
-        { id: 'm2', name: 'func',    type: 'cmd',  size: 1, byteOrder: null, default: '0x03' },
-        { id: 'm3', name: 'reg_hi',  type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
-        { id: 'm4', name: 'reg_lo',  type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
-        { id: 'm5', name: 'qty_hi',  type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
-        { id: 'm6', name: 'qty_lo',  type: 'data', size: 1, byteOrder: 'BE', default: '0x04' },
-        { id: 'm7', name: 'crc',     type: 'crc',  size: 2, byteOrder: 'LE', default: 'auto' }
+        { id: 'm1', name: 'addr',   type: 'addr', size: 1, byteOrder: null, default: '0x01' },
+        { id: 'm2', name: 'func',   type: 'cmd',  size: 1, byteOrder: null, default: '0x03' },
+        { id: 'm3', name: 'reg_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+        { id: 'm4', name: 'reg_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+        { id: 'm5', name: 'qty_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+        { id: 'm6', name: 'qty_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x04' },
+        { id: 'm7', name: 'crc',    type: 'crc',  size: 2, byteOrder: 'LE', default: 'auto' }
       ]
     }
   ];
 
-  // === Commands (引用协议) ===
+  // === Data Field Definitions (独立于协议) ===
+  let DATA_FIELDS = [
+    { name: 'cell_1_v', type: 'u16', default: '0x0000' },
+    { name: 'cell_2_v', type: 'u16', default: '0x0000' },
+    { name: 'cell_3_v', type: 'u16', default: '0x0000' },
+    { name: 'cell_4_v', type: 'u16', default: '0x0000' },
+    { name: 'pack_v_avg', type: 'u16', default: '0x0000' },
+    { name: 'pack_i', type: 'u16', default: '0x0000' },
+    { name: 'temperature', type: 'u16', default: '0x0000' },
+    { name: 'soc', type: 'u16', default: '0x0000' },
+    { name: 'charge_v_set', type: 'u16', default: '0x0000' },
+    { name: 'charge_i_set', type: 'u16', default: '0x0000' },
+    { name: 'discharge_v_set', type: 'u16', default: '0x0000' }
+  ];
+
+  // === Commands ===
   let COMMANDS = [
-    { id: 0x01, name: 'Read Voltage',  direction: 'rx', frameType: 'query',   cadence: 200,  protocol: 'proto_bms', dataFields: ['cell_1_v', 'cell_2_v', 'cell_3_v', 'cell_4_v'], dataSize: 8, expectResponse: 0x80 },
+    { id: 0x01, name: 'Read Voltage',  direction: 'rx', frameType: 'query',   cadence: 200,  protocol: 'proto_bms', dataFields: ['cell_1_v', 'cell_2_v', 'cell_3_v', 'cell_4_v', 'pack_v_avg'], dataSize: 10, expectResponse: 0x80 },
     { id: 0x02, name: 'Read Current',  direction: 'rx', frameType: 'query',   cadence: 500,  protocol: 'proto_bms', dataFields: ['pack_i'], dataSize: 2, expectResponse: 0x80 },
     { id: 0x03, name: 'Read Temp',     direction: 'rx', frameType: 'query',   cadence: 1000, protocol: 'proto_bms', dataFields: ['temperature'], dataSize: 2, expectResponse: 0x80 },
     { id: 0x10, name: 'Control Charge', direction: 'tx', frameType: 'control', cadence: 0,  protocol: 'proto_bms', dataFields: ['charge_v_set', 'charge_i_set'], dataSize: 4, expectResponse: 0x90 },
     { id: 0x11, name: 'Control Disch',  direction: 'tx', frameType: 'control', cadence: 0,  protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2, expectResponse: 0x91 }
   ];
 
-  // === Cards (type-driven: value / trend / pair) ===
+  // === Cards (统一 trend / pair, 280x200 固定) ===
   let CARDS = [
     { id: 'c1', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_1_v',    title: 'Cell 1 电压', unit: 'V', range: [2.8, 4.2], precision: 3, fromOtherCmd: true },
     { id: 'c2', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_2_v',    title: 'Cell 2 电压', unit: 'V', range: [2.8, 4.2], precision: 3, fromOtherCmd: true },
     { id: 'c3', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_3_v',    title: 'Cell 3 电压', unit: 'V', range: [2.8, 4.2], precision: 3, fromOtherCmd: true },
     { id: 'c4', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_4_v',    title: 'Cell 4 电压', unit: 'V', range: [2.8, 4.2], precision: 3, fromOtherCmd: true },
-    { id: 'c5', type: 'value', cmd: 0x02, dir: 'rx', field: 'pack_i',      title: 'Pack 电流',  unit: 'A', range: [-50, 50], precision: 2, fromOtherCmd: true },
-    { id: 'c6', type: 'value', cmd: 0x03, dir: 'rx', field: 'temperature', title: '温度',      unit: '°C', range: [-20, 60], precision: 1, fromOtherCmd: true },
+    { id: 'c5', type: 'trend', cmd: 0x02, dir: 'rx', field: 'pack_i',      title: 'Pack 电流',  unit: 'A', range: [-50, 50], precision: 2, fromOtherCmd: true },
+    { id: 'c6', type: 'trend', cmd: 0x03, dir: 'rx', field: 'temperature', title: '温度',      unit: '°C', range: [-20, 60], precision: 1, fromOtherCmd: true },
     { id: 'c7', type: 'pair',  pairId: 'charge_v',                          title: '充电电压',  unit: 'V', fromOtherCmd: false },
     { id: 'c8', type: 'trend', cmd: 0x10, dir: 'tx', field: 'charge_v_set', title: '充电设定',  unit: 'V', range: [0, 60], precision: 1, fromOtherCmd: false }
   ];
 
-  // === KPIs (精简 4 卡, 跟下面大卡不重复) ===
-  const KPIS = [
-    { id: 'k1', kind: 'single', cmd: 0x01, dir: 'rx', field: 'pack_v_avg', title: '平均电压', unit: 'V', precision: 2 },
-    { id: 'k2', kind: 'single', cmd: 0x02, dir: 'rx', field: 'pack_i',     title: 'Pack 电流', unit: 'A', precision: 2 },
-    { id: 'k3', kind: 'single', cmd: 0x01, dir: 'rx', field: 'soc',        title: 'SOC',     unit: '%', precision: 1 },
-    { id: 'k4', kind: 'pair',   pairId: 'charge_v', title: '充电电压 (PAIR)' }
-  ];
+  // === State ===
+  let selectedCmd = 'all';
+  let currentSubTab = 'realtime';
+  let currentTimeMode = 'realtime';
+  let currentChartType = 'line';
+  let detailCardId = null;
+  let editMode = false;
+  let activeProtoId = PROTOCOLS[0]?.id;
+  let editingCardId = null;
+  let sidebarCollapsed = false;
+  let toastPos = 'tr';
+  let cmdMismatchEnabled = true;
+  let alertDebounceMs = 1000;
 
   // === Mock Data ===
   const trendData = {};
   const currentVals = {};
   const lastValues = {};
-  let cmdMismatchEnabled = true;
-  let alertDebounceMs = 1000;
 
   function initMockData() {
     COMMANDS.forEach(cmd => {
@@ -1057,16 +1407,6 @@
     updateAll();
   }
 
-  // === State ===
-  let selectedCmd = 'all';
-  let currentSubTab = 'realtime';
-  let currentTimeMode = 'realtime';
-  let currentChartType = 'line';
-  let detailCardId = null;
-  let editMode = false;
-  let activeProtoId = PROTOCOLS[0]?.id;
-  let editingCardId = null;
-
   // === Toast ===
   function toast(msg, type = 'info') {
     const layer = document.getElementById('toast-layer');
@@ -1078,64 +1418,46 @@
     setTimeout(() => t.remove(), 2900);
   }
 
-  // === Frame Builder (根据协议 + 命令构造帧) ===
+  // === Frame Builder ===
   function buildFrame(protocol, cmd) {
     if (!protocol) return { bytes: [], sections: [] };
     const sections = [];
     const data = [];
     for (let i = 0; i < (cmd.dataSize || 0) / 2; i++) {
-      // mock data value (uint16 BE)
       const v = i * 100 + Math.floor(Math.random() * 50);
       data.push((v >> 8) & 0xFF, v & 0xFF);
     }
-    let dataBytes = data;
     for (const f of protocol.fields) {
       let bytes = [];
       if (f.type === 'header' || f.type === 'addr' || f.type === 'tail') {
-        bytes = [parseHexOr0(f.default)];
+        bytes = [parseHexOr0(f.default) & 0xFF];
       } else if (f.type === 'cmd') {
         bytes = [cmd.id & 0xFF];
       } else if (f.type === 'length') {
-        // length = data 段长度
-        bytes = [dataBytes.length & 0xFF];
+        bytes = [data.length & 0xFF];
       } else if (f.type === 'data') {
-        bytes = [...dataBytes];
+        bytes = [...data];
       } else if (f.type === 'crc') {
-        // CRC16-MODBUS (暂填 0x0000, 后面统一算)
         bytes = [0, 0];
       }
       sections.push({ type: f.type, name: f.name, bytes });
     }
-    // 拼成总字节数组
     const allBytes = [];
     sections.forEach(s => allBytes.push(...s.bytes));
-    // 算 CRC (对非 CRC 段)
     const crc = crc16Modbus(allBytes.filter((_, i, arr) => {
-      // 简化: 排除最后 2 字节 (CRC) + 最后一字节 (tail, 如果存在)
       const tailField = protocol.fields[protocol.fields.length - 1];
       if (tailField && tailField.type === 'tail') return i < arr.length - 3;
       return i < arr.length - 2;
     }));
-    // 写回 CRC 段
     for (const s of sections) {
-      if (s.type === 'crc') {
-        s.bytes = [(crc >> 8) & 0xFF, crc & 0xFF];
-      }
+      if (s.type === 'crc') s.bytes = [(crc >> 8) & 0xFF, crc & 0xFF];
     }
-    // 重组
     const finalBytes = [];
     sections.forEach(s => finalBytes.push(...s.bytes));
     return { bytes: finalBytes, sections };
   }
-  function parseHexOr0(s) {
-    if (!s) return 0;
-    s = String(s).trim();
-    if (s.startsWith('0x') || s.startsWith('0X')) return parseInt(s.slice(2), 16) || 0;
-    if (/^[0-9A-Fa-f]+$/.test(s)) return parseInt(s, 16) || 0;
-    return parseInt(s, 10) || 0;
-  }
 
-  // === Toolbar / Modals ===
+  // === Modals ===
   function openModal(name) {
     document.getElementById(name + '-backdrop').classList.add('open');
     document.getElementById(name + '-modal').classList.add('open');
@@ -1149,12 +1471,8 @@
     document.getElementById(name + '-backdrop').classList.remove('open');
     document.getElementById(name + '-modal').classList.remove('open');
   }
-  document.querySelectorAll('[data-close]').forEach(b => {
-    b.onclick = () => closeModal(b.dataset.close);
-  });
-  document.querySelectorAll('.modal-backdrop').forEach(bd => {
-    bd.onclick = () => { const id = bd.id.replace('-backdrop', ''); closeModal(id); };
-  });
+  document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => closeModal(b.dataset.close));
+  document.querySelectorAll('.modal-backdrop').forEach(bd => bd.onclick = () => { const id = bd.id.replace('-backdrop', ''); closeModal(id); });
 
   // === Command Panel ===
   function renderCommandPanel() {
@@ -1163,86 +1481,34 @@
     const allChip = document.createElement('button');
     allChip.className = 'cmd-chip rx' + (selectedCmd === 'all' ? ' selected' : '');
     allChip.innerHTML = '<span class="dir-badge">ALL</span><span>全部命令</span>';
-    allChip.onclick = () => { selectedCmd = 'all'; renderCommandPanel(); renderKpiStrip(); renderCardGrid(); };
+    allChip.onclick = () => { selectedCmd = 'all'; renderCommandPanel(); renderCardGrid(); };
     el.appendChild(allChip);
     COMMANDS.forEach(cmd => {
       const chip = document.createElement('button');
       const idHex = cmd.id.toString(16).padStart(2, '0').toUpperCase();
       chip.className = `cmd-chip ${cmd.direction}` + (selectedCmd === idHex ? ' selected' : '');
       chip.innerHTML = `<span class="dir-badge">${cmd.direction.toUpperCase()}</span><span class="cmd-id">${idHex}</span><span>${cmd.name}</span>`;
-      chip.onclick = () => { selectedCmd = idHex; renderCommandPanel(); renderKpiStrip(); renderCardGrid(); };
+      chip.onclick = () => { selectedCmd = idHex; renderCommandPanel(); renderCardGrid(); };
       el.appendChild(chip);
     });
   }
 
-  // === KPI Strip (精简 4) ===
-  function renderKpiStrip() {
-    const el = document.getElementById('kpi-strip');
-    el.innerHTML = '';
-    const filtered = KPIS.filter(k => selectedCmd === 'all' || matchCmd(k, selectedCmd));
-    filtered.forEach(k => {
-      const card = document.createElement('div');
-      card.className = 'kpi-card' + (k.kind === 'pair' ? ' pair' : '');
-      if (k.kind === 'pair') {
-        const set = currentVals.charge_v_set ?? 0;
-        const act = currentVals.pack_v_avg * 15 ?? 0;
-        const delta = act - set;
-        const dCls = Math.abs(delta) < 0.5 ? 'ok' : Math.abs(delta) < 1.0 ? 'warn' : 'bad';
-        card.innerHTML = `
-          <div class="kpi-head">
-            <span class="kpi-title">${k.title}</span>
-            <span class="kpi-cmd">0x10↔0x80</span>
-          </div>
-          <div class="kpi-pair-row">
-            <span><span class="label">设</span> <span class="val-set">${set.toFixed(1)}V</span></span>
-            <span><span class="label">实</span> <span class="val-act">${act.toFixed(1)}V</span></span>
-            <span class="kpi-delta ${dCls}">Δ ${delta.toFixed(1)}</span>
-          </div>
-        `;
-      } else {
-        const v = currentVals[k.field] ?? 0;
-        const range = getFieldRange(k.field);
-        const alert = checkAlert(v, range);
-        const cmd = COMMANDS.find(c => c.dataFields.includes(k.field));
-        const cmdHex = cmd ? cmd.id.toString(16).padStart(2, '0').toUpperCase() : '00';
-        card.className += alert ? ` alert-${alert}` : '';
-        const flashClass = (lastValues[k.field] !== undefined && Math.abs(v - lastValues[k.field]) > 0.001) ? ' flash' : '';
-        card.innerHTML = `
-          <div class="kpi-head">
-            <span class="kpi-title">${k.title}</span>
-            <span class="kpi-cmd">0x${cmdHex} ${k.dir || 'rx'}</span>
-          </div>
-          <div class="kpi-value${flashClass}">${v.toFixed(k.precision || 2)}<span class="unit">${k.unit}</span></div>
-        `;
-        setTimeout(() => { card.querySelector('.kpi-value')?.classList.remove('flash'); }, 400);
-      }
-      el.appendChild(card);
-    });
-  }
-
-  // === Card Grid ===
+  // === Card Grid (固定 280x200, 不拉伸) ===
   function renderCardGrid() {
     const el = document.getElementById('card-grid');
     el.innerHTML = '';
     const filtered = CARDS.filter(c => selectedCmd === 'all' || matchCard(c, selectedCmd));
-    filtered.forEach(c => {
-      const cardEl = renderCard(c);
-      el.appendChild(cardEl);
-    });
+    filtered.forEach(c => el.appendChild(renderCard(c)));
     const add = document.createElement('div');
     add.className = 'card-add-slot';
     add.innerHTML = `<div style="font-size: 24px;">+</div><div class="hint">${editMode ? '添加卡片' : '编辑模式下添加'}</div>`;
-    add.onclick = () => {
-      if (editMode) openModal('card-config');
-      else toast('先开启顶栏的"编辑模式"', 'info');
-    };
+    add.onclick = () => { if (editMode) openModal('card-config'); else toast('先开启"编辑模式"', 'info'); };
     el.appendChild(add);
   }
 
   function renderCard(c) {
     const card = document.createElement('div');
-    if (c.type === 'value') card.className = 'card-default no-trend';
-    else card.className = 'card-default';
+    card.className = c.type === 'pair' ? 'card-default pair' : 'card-default';
 
     if (c.type === 'pair') {
       const set = currentVals.charge_v_set ?? 0;
@@ -1257,7 +1523,6 @@
             <span class="status-ring ${pairState}"></span>
             <span class="card-title">${c.title}</span>
             <span class="card-unit">${c.unit}</span>
-            <span class="card-type-tag">PAIR</span>
           </div>
           <div class="card-actions">
             <button class="card-action" title="Pair 详情" onclick="event.stopPropagation(); openDetail('${c.id}')">⇄</button>
@@ -1277,23 +1542,20 @@
       `;
     } else {
       const v = currentVals[c.field] ?? 0;
-      const range = c.range || getFieldRange(c.field);
+      const range = c.range || [0, 100];
       const alert = checkAlert(v, range);
       const ring = c.fromOtherCmd ? 'rx' : (alert || 'normal');
       const stateLabel = c.fromOtherCmd ? 'RX' : (alert === 'danger' ? '⚠ 越限' : alert === 'warning' ? '⚠ 警告' : '✓ 正常');
       const stateClass = c.fromOtherCmd ? 'rx' : (alert || 'ok');
       const cmdHex = c.cmd ? c.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
       if (alert) card.classList.add('alert-' + alert);
-      if (c.fromOtherCmd) card.classList.add('rx-only');
       const flashClass = (lastValues[c.field] !== undefined && Math.abs(v - lastValues[c.field]) > 0.001) ? ' flash' : '';
-      const typeTag = c.type === 'value' ? 'VALUE' : 'TREND';
       card.innerHTML = `
         <div class="card-header">
           <div class="card-title-group">
             <span class="status-ring ${ring}"></span>
             <span class="card-title">${c.title}</span>
             <span class="card-unit">${c.unit}</span>
-            <span class="card-type-tag">${typeTag}</span>
           </div>
           <div class="card-actions">
             <button class="card-action ${c.fromOtherCmd ? 'disabled' : ''}" ${c.fromOtherCmd ? 'disabled title="RX-only, 不可写入"' : 'title="触发" onclick="event.stopPropagation()"'}>${c.fromOtherCmd ? '🔒' : '↗'}</button>
@@ -1308,11 +1570,12 @@
           <span class="status-text ${stateClass}">${stateLabel}</span>
         </div>
       `;
+      setTimeout(() => card.querySelector('.card-value')?.classList.remove('flash'), 400);
     }
     return card;
   }
 
-  // === Sparkline Render ===
+  // === Sparkline ===
   function renderSparkline(card) {
     const cv = document.getElementById('trend-' + card.id);
     if (!cv || !cv.clientWidth || !cv.clientHeight) return;
@@ -1330,7 +1593,7 @@
       if (all.length < 2) return;
       const minV = Math.min(...all.map(p => p.v));
       const maxV = Math.max(...all.map(p => p.v));
-      drawSparkLine(ctx, setData, w, h, minV, maxV, 'rgba(103, 103, 108, 0.7)', true);
+      drawSparkLine(ctx, setData, w, h, minV, maxV, getCSS('--text-soft'), true);
       drawSparkLine(ctx, actData, w, h, minV, maxV, getCSS('--accent'), false);
     } else {
       const cmdHex = card.cmd.toString(16).padStart(2, '0').toUpperCase();
@@ -1410,18 +1673,14 @@
   function nowStr() { const d = new Date(); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`; }
 
   // === Helpers ===
-  function matchCmd(k, cmdHex) { if (k.kind === 'pair') return true; if (!k.cmd) return true; return k.cmd.toString(16).padStart(2, '0').toUpperCase() === cmdHex; }
   function matchCard(c, cmdHex) { if (c.type === 'pair') return true; if (!c.cmd) return true; return c.cmd.toString(16).padStart(2, '0').toUpperCase() === cmdHex; }
-  function getFieldRange(field) { const c = CARDS.find(c => c.field === field); return c ? c.range : [0, 100]; }
   function checkAlert(v, range) { if (!range) return null; const [lo, hi] = range; if (v < lo * 0.85 || v > hi * 1.05) return 'danger'; if (v < lo * 0.95 || v > hi * 1.02) return 'warning'; return null; }
 
-  // === Update all ===
   function updateAll() {
-    renderKpiStrip();
     renderCardGrid();
     renderAlerts();
     requestAnimationFrame(() => {
-      CARDS.forEach(c => { if (c.type !== 'value') renderSparkline(c); });
+      CARDS.forEach(c => renderSparkline(c));
       if (detailCardId) {
         const card = CARDS.find(c => c.id === detailCardId);
         if (card && currentSubTab === 'realtime') { renderDetailChart(card); renderDetailStats(card); }
@@ -1431,17 +1690,16 @@
   }
 
   // ============================================
-  // Protocol Editor (核心: 帧结构 / 字段 / 大小端 / 帧预览)
+  // Protocol Editor (三栏: 帧字段 / 数据字段 / 帧预览)
   // ============================================
   function renderProtoEditor() {
     const tabsEl = document.getElementById('proto-tabs');
     const bodyEl = document.getElementById('proto-body');
-    // tabs
     tabsEl.innerHTML = '';
     PROTOCOLS.forEach(p => {
       const tab = document.createElement('button');
       tab.className = 'proto-tab' + (p.id === activeProtoId ? ' active' : '');
-      tab.innerHTML = `<span>${p.name}</span>${p.id === activeProtoId ? `<span class="del-btn" title="删除此协议">×</span>` : ''}`;
+      tab.innerHTML = `<span>${escapeHtml(p.name)}</span>${p.id === activeProtoId ? `<span class="del-btn" title="删除此协议">×</span>` : ''}`;
       tab.onclick = (e) => {
         if (e.target.classList.contains('del-btn')) {
           if (PROTOCOLS.length <= 1) { toast('至少保留 1 个协议', 'warn'); return; }
@@ -1464,72 +1722,85 @@
       PROTOCOLS.push({
         id, name: '新协议', byteOrder: 'BE',
         fields: [
-          { id: 'h1', name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
-          { id: 'a1', name: 'addr',   type: 'addr',   size: 1, byteOrder: null, default: '0x01' },
-          { id: 'c1', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
-          { id: 'l1', name: 'length', type: 'length', size: 1, byteOrder: 'BE', default: 'auto' },
-          { id: 'd1', name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '' },
-          { id: 'cr1',name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' }
+          { id: 'h' + Date.now().toString(36), name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
+          { id: 'a' + Date.now().toString(36), name: 'addr',   type: 'addr',   size: 1, byteOrder: null, default: '0x01' },
+          { id: 'c' + Date.now().toString(36), name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
+          { id: 'd' + Date.now().toString(36), name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '' },
+          { id: 'cr' + Date.now().toString(36),name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' }
         ]
       });
       activeProtoId = id;
       renderProtoEditor();
-      toast('已添加新协议, 请编辑', 'success');
+      toast('已添加新协议', 'success');
     };
     tabsEl.appendChild(addTab);
 
-    // body
     const proto = PROTOCOLS.find(p => p.id === activeProtoId);
     if (!proto) { bodyEl.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-soft);">未选择协议</div>'; return; }
 
-    // 选一个命令预览帧 (默认第一个 rx 命令)
     const previewCmd = COMMANDS.find(c => c.protocol === proto.id) || COMMANDS[0];
     const frame = buildFrame(proto, previewCmd);
 
     bodyEl.innerHTML = `
-      <div class="form-section-title">协议基本信息</div>
-      <div class="form-row col-2">
-        <label>协议名</label>
-        <input class="form-input" id="proto-name" value="${escapeHtml(proto.name)}">
-        <label style="grid-column: auto; margin-left: 8px;">默认字节序</label>
-        <select class="form-select" id="proto-endian">
-          <option value="BE" ${proto.byteOrder === 'BE' ? 'selected' : ''}>BE (大端, Motorola)</option>
-          <option value="LE" ${proto.byteOrder === 'LE' ? 'selected' : ''}>LE (小端, Intel)</option>
-        </select>
+      <!-- 左栏: 帧字段 (可拖动 data 段到这里) -->
+      <div class="proto-col proto-col-frame">
+        <div class="form-section-title">
+          <span>协议: <input class="form-input" id="proto-name" value="${escapeHtml(proto.name)}" style="width: 200px; height: 28px; display: inline-block; margin-left: 8px;"></span>
+          <span>字节序: <select class="form-select" id="proto-endian" style="height: 28px; display: inline-block; margin-left: 4px;">
+            <option value="BE" ${proto.byteOrder === 'BE' ? 'selected' : ''}>BE 大端</option>
+            <option value="LE" ${proto.byteOrder === 'LE' ? 'selected' : ''}>LE 小端</option>
+          </select></span>
+        </div>
+        <div class="form-section-title">
+          <span>帧字段 (拖动 ⠿ 改顺序 · 拖入 data 字段) <button class="toolbar-btn" id="add-field-btn" style="height: 22px; padding: 0 8px; font-size: 10px; margin-left: 8px;">+ 字段</button></span>
+        </div>
+        <div class="field-list" id="field-list"></div>
+        <div class="frame-preview" style="margin-top: 8px;">
+          <div class="frame-bytes" id="frame-bytes"></div>
+          <div class="frame-meta">
+            <div class="meta-item"><span class="meta-key">总字节</span><span class="meta-val" id="meta-total">—</span></div>
+            <div class="meta-item"><span class="meta-key">CRC16</span><span class="meta-val" id="meta-crc">—</span></div>
+            <div class="meta-item"><span class="meta-key">预览命令</span><span class="meta-val" id="meta-cmd">—</span></div>
+          </div>
+        </div>
+        <div class="legend" style="margin-top: 8px;">
+          <span class="legend-item"><span class="dot header"></span>header 帧头</span>
+          <span class="legend-item"><span class="dot addr"></span>addr 地址</span>
+          <span class="legend-item"><span class="dot cmd"></span>cmd 命令</span>
+          <span class="legend-item"><span class="dot length"></span>length 长度</span>
+          <span class="legend-item"><span class="dot data"></span>data 数据</span>
+          <span class="legend-item"><span class="dot crc"></span>crc 校验</span>
+          <span class="legend-item"><span class="dot tail"></span>tail 帧尾</span>
+        </div>
       </div>
 
-      <div class="form-section-title">
-        <span>帧字段 (拖动 ⠿ 改变顺序 · 字段顺序 = 在帧中的位置)</span>
-        <button class="toolbar-btn" id="add-field-btn" style="height: 24px; padding: 0 10px; font-size: 11px;">+ 添加字段</button>
-      </div>
-      <div class="field-list" id="field-list"></div>
-
-      <div class="form-section-title">帧预览 (基于命令 ${previewCmd ? `0x${previewCmd.id.toString(16).padStart(2,'0').toUpperCase()} ${previewCmd.name}` : '无命令'})</div>
-      <div class="frame-preview">
-        <div class="frame-bytes" id="frame-bytes"></div>
-        <div class="frame-meta">
-          <div class="meta-item"><span class="meta-key">总字节数</span><span class="meta-val" id="meta-total">—</span></div>
-          <div class="meta-item"><span class="meta-key">CRC16-MODBUS</span><span class="meta-val" id="meta-crc">—</span></div>
-          <div class="meta-item"><span class="meta-key">字节序</span><span class="meta-val" id="meta-endian">—</span></div>
+      <!-- 右栏: 数据字段 (独立, 拖入左栏) -->
+      <div class="proto-col proto-col-data">
+        <div class="form-section-title">
+          <span>数据字段 (拖动 ⠿ 到左栏插入 data 段) <button class="toolbar-btn" id="add-data-field-btn" style="height: 22px; padding: 0 8px; font-size: 10px; margin-left: 8px;">+ 字段</button></span>
+        </div>
+        <div class="data-field-list" id="data-field-list"></div>
+        <div class="form-hint" style="margin-top: 8px;">
+          数据字段独立维护, 命令绑定时选择使用哪些字段。命令的 data 段长度自动按所选字段计算 (u16 = 2 字节)。
         </div>
       </div>
     `;
 
-    // 字段列表
-    renderFieldList(proto);
-    // 帧预览
+    renderFieldList(proto, frame, previewCmd);
+    renderDataFieldList();
     renderFramePreview(frame);
-    // 协议名编辑
     document.getElementById('proto-name').oninput = (e) => { proto.name = e.target.value || '未命名'; renderProtoEditor(); };
     document.getElementById('proto-endian').onchange = (e) => { proto.byteOrder = e.target.value; renderFramePreview(buildFrame(proto, previewCmd)); };
-    // 添加字段
     document.getElementById('add-field-btn').onclick = () => {
       proto.fields.push({ id: 'f' + Date.now().toString(36), name: 'new_field', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' });
-      renderFieldList(proto);
-      renderFramePreview(buildFrame(proto, previewCmd));
+      renderFieldList(proto, buildFrame(proto, previewCmd), previewCmd);
+    };
+    document.getElementById('add-data-field-btn').onclick = () => {
+      DATA_FIELDS.push({ name: 'new_field_' + (DATA_FIELDS.length + 1), type: 'u16', default: '0x0000' });
+      renderDataFieldList();
     };
   }
-  function renderFieldList(proto) {
+  function renderFieldList(proto, frame, previewCmd) {
     const el = document.getElementById('field-list');
     el.innerHTML = '';
     proto.fields.forEach((f, idx) => {
@@ -1540,51 +1811,82 @@
       const types = ['header', 'addr', 'cmd', 'length', 'data', 'crc', 'tail'];
       const endians = ['', 'BE', 'LE'];
       row.innerHTML = `
-        <span class="drag-handle" title="拖动排序">⠿</span>
-        <select class="form-select type-select">
+        <span class="drag-handle" title="拖动排序 / 接收 data 字段">⠿</span>
+        <select class="type-select">
           ${types.map(t => `<option value="${t}" ${f.type === t ? 'selected' : ''}>${t}</option>`).join('')}
         </select>
-        <input class="form-input name-input" value="${escapeHtml(f.name)}" placeholder="字段名">
-        <input class="form-input size-input mono" type="number" min="0" max="8" value="${f.size}" placeholder="字节">
-        <select class="form-select endian-select" ${f.type === 'data' || f.type === 'cmd' || f.type === 'length' || f.type === 'crc' ? '' : 'disabled'}>
+        <input class="name-input" value="${escapeHtml(f.name)}" placeholder="字段名">
+        <input class="size-input mono" type="number" min="0" max="8" value="${f.size}" placeholder="字节">
+        <select class="endian-select" ${f.type === 'data' || f.type === 'cmd' || f.type === 'length' || f.type === 'crc' ? '' : 'disabled'}>
           ${endians.map(e => `<option value="${e}" ${f.byteOrder === e ? 'selected' : ''}>${e || '—'}</option>`).join('')}
         </select>
-        <input class="form-input default-input" value="${escapeHtml(f.default || '')}" placeholder="(auto / hex / 数值)">
+        <input class="default-input" value="${escapeHtml(f.default || '')}" placeholder="(auto/hex)">
         <button class="del-btn" title="删除">×</button>
       `;
-      // 事件
       row.querySelector('.type-select').onchange = (e) => {
         f.type = e.target.value;
-        // type 切换时调整 size 默认
-        if (e.target.value === 'data') { f.size = 0; }
-        else if (e.target.value === 'tail' || e.target.value === 'header') { f.size = 1; }
-        else if (e.target.value === 'crc') { f.size = 2; f.byteOrder = f.byteOrder || 'LE'; }
-        renderFieldList(proto);
-        renderFramePreview(buildFrame(proto, COMMANDS.find(c => c.protocol === proto.id) || COMMANDS[0]));
+        if (f.type === 'data') f.size = 0;
+        else if (f.type === 'tail' || f.type === 'header') f.size = 1;
+        else if (f.type === 'crc') { f.size = 2; f.byteOrder = f.byteOrder || 'LE'; }
+        renderFieldList(proto, buildFrame(proto, previewCmd), previewCmd);
+        renderFramePreview(buildFrame(proto, previewCmd));
       };
       row.querySelector('.name-input').oninput = (e) => { f.name = e.target.value; };
-      row.querySelector('.size-input').oninput = (e) => { f.size = parseInt(e.target.value) || 0; renderFramePreview(buildFrame(proto, COMMANDS.find(c => c.protocol === proto.id) || COMMANDS[0])); };
-      row.querySelector('.endian-select').onchange = (e) => { f.byteOrder = e.target.value || null; renderFramePreview(buildFrame(proto, COMMANDS.find(c => c.protocol === proto.id) || COMMANDS[0])); };
-      row.querySelector('.default-input').oninput = (e) => { f.default = e.target.value; renderFramePreview(buildFrame(proto, COMMANDS.find(c => c.protocol === proto.id) || COMMANDS[0])); };
+      row.querySelector('.size-input').oninput = (e) => { f.size = parseInt(e.target.value) || 0; renderFramePreview(buildFrame(proto, previewCmd)); };
+      row.querySelector('.endian-select').onchange = (e) => { f.byteOrder = e.target.value || null; renderFramePreview(buildFrame(proto, previewCmd)); };
+      row.querySelector('.default-input').oninput = (e) => { f.default = e.target.value; renderFramePreview(buildFrame(proto, previewCmd)); };
       row.querySelector('.del-btn').onclick = () => {
         proto.fields = proto.fields.filter(x => x.id !== f.id);
-        renderFieldList(proto);
-        renderFramePreview(buildFrame(proto, COMMANDS.find(c => c.protocol === proto.id) || COMMANDS[0]));
+        renderFieldList(proto, buildFrame(proto, previewCmd), previewCmd);
+        renderFramePreview(buildFrame(proto, previewCmd));
       };
-      // 拖动排序
       row.ondragstart = (e) => { e.dataTransfer.setData('text/plain', idx); row.classList.add('dragging'); };
-      row.ondragend = () => { row.classList.remove('dragging'); };
-      row.ondragover = (e) => { e.preventDefault(); };
+      row.ondragend = () => { row.classList.remove('dragging'); document.querySelectorAll('.field-row.drop-target').forEach(r => r.classList.remove('drop-target')); };
+      row.ondragover = (e) => { e.preventDefault(); row.classList.add('drop-target'); };
+      row.ondragleave = () => row.classList.remove('drop-target');
       row.ondrop = (e) => {
         e.preventDefault();
+        row.classList.remove('drop-target');
         const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
         const toIdx = idx;
-        if (fromIdx === toIdx) return;
-        const item = proto.fields.splice(fromIdx, 1)[0];
-        proto.fields.splice(toIdx, 0, item);
-        renderFieldList(proto);
-        renderFramePreview(buildFrame(proto, COMMANDS.find(c => c.protocol === proto.id) || COMMANDS[0]));
+        if (e.dataTransfer.getData('data-field')) {
+          // 从 data field 拖入
+          const fieldName = e.dataTransfer.getData('data-field');
+          // 在 toIdx 位置插入一个 data 引用
+          proto.fields.splice(toIdx, 0, { id: 'f' + Date.now().toString(36), name: fieldName, type: 'data', size: 2, byteOrder: 'BE', default: '0x0000' });
+        } else if (!isNaN(fromIdx)) {
+          const item = proto.fields.splice(fromIdx, 1)[0];
+          proto.fields.splice(toIdx, 0, item);
+        }
+        renderFieldList(proto, buildFrame(proto, previewCmd), previewCmd);
+        renderFramePreview(buildFrame(proto, previewCmd));
       };
+      el.appendChild(row);
+    });
+  }
+  function renderDataFieldList() {
+    const el = document.getElementById('data-field-list');
+    if (!el) return;
+    el.innerHTML = '';
+    DATA_FIELDS.forEach((df, idx) => {
+      const row = document.createElement('div');
+      row.className = 'data-field-row';
+      row.draggable = true;
+      const types = ['u8', 'u16', 'u32', 'i16', 'i32', 'float'];
+      row.innerHTML = `
+        <span class="drag-handle" title="拖到左栏插入 data 段">⠿</span>
+        <input class="name-input" value="${escapeHtml(df.name)}" placeholder="字段名">
+        <select class="type-select">
+          ${types.map(t => `<option value="${t}" ${df.type === t ? 'selected' : ''}>${t}</option>`).join('')}
+        </select>
+        <input class="default-input" value="${escapeHtml(df.default || '0x0000')}" placeholder="0x0000">
+        <button class="del-btn" title="删除">×</button>
+      `;
+      row.querySelector('.name-input').oninput = (e) => { df.name = e.target.value; };
+      row.querySelector('.type-select').onchange = (e) => { df.type = e.target.value; };
+      row.querySelector('.default-input').oninput = (e) => { df.default = e.target.value; };
+      row.querySelector('.del-btn').onclick = () => { DATA_FIELDS.splice(idx, 1); renderDataFieldList(); };
+      row.ondragstart = (e) => { e.dataTransfer.setData('data-field', df.name); };
       el.appendChild(row);
     });
   }
@@ -1596,12 +1898,6 @@
       return;
     }
     el.innerHTML = frame.bytes.map((b, i) => {
-      const section = frame.sections.find(s => {
-        const start = frame.bytes.indexOf(b);
-        // 简单做法: 给每个 byte 一个 section
-        return true;
-      });
-      // 找到这个 byte 属于哪个 section
       let cur = 0;
       for (const s of frame.sections) {
         if (i >= cur && i < cur + s.bytes.length) {
@@ -1612,8 +1908,6 @@
       return `<span class="byte">${b.toString(16).padStart(2, '0').toUpperCase()}</span>`;
     }).join(' ');
     document.getElementById('meta-total').textContent = frame.bytes.length + ' 字节';
-    const crcBytes = frame.bytes.slice(-3, -1); // CRC 在 tail 前
-    const crcBytesAlt = frame.bytes.slice(-2);   // 或最后 2
     const crcField = frame.sections.find(s => s.type === 'crc');
     let crc = '—';
     if (crcField) {
@@ -1621,8 +1915,6 @@
       crc = '0x' + v.toString(16).padStart(4, '0').toUpperCase();
     }
     document.getElementById('meta-crc').textContent = crc;
-    const proto = PROTOCOLS.find(p => p.id === activeProtoId);
-    document.getElementById('meta-endian').textContent = proto ? proto.byteOrder : '—';
   }
   function escapeHtml(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
 
@@ -1650,7 +1942,7 @@
   }
   function removeCmd(id) {
     COMMANDS = COMMANDS.filter(c => c.id !== id);
-    renderCommandPanel(); renderCmdList(); renderKpiStrip(); renderCardGrid();
+    renderCommandPanel(); renderCmdList(); renderCardGrid();
     toast(`已移除命令 0x${id.toString(16).padStart(2,'0').toUpperCase()}`, 'success');
   }
   function populateCmdForm() {
@@ -1658,8 +1950,7 @@
     sel.innerHTML = '';
     PROTOCOLS.forEach(p => {
       const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.name;
+      opt.value = p.id; opt.textContent = p.name;
       sel.appendChild(opt);
     });
   }
@@ -1681,7 +1972,7 @@
     const newCmd = { id, name, direction: dir, frameType: frame, cadence, protocol: proto, dataFields: fields, dataSize: datasize, expectResponse: expect };
     if (existing >= 0) COMMANDS[existing] = newCmd; else COMMANDS.push(newCmd);
     initMockData();
-    renderCommandPanel(); renderCmdList(); renderKpiStrip(); renderCardGrid();
+    renderCommandPanel(); renderCmdList(); renderCardGrid();
     toast(`已保存命令 0x${id.toString(16).padStart(2,'0').toUpperCase()}`, 'success');
     document.getElementById('cmd-form-id').value = '';
     document.getElementById('cmd-form-name').value = '';
@@ -1690,7 +1981,7 @@
   };
 
   // ============================================
-  // Card Config Modal (列表 + 添加)
+  // Card Config Modal
   // ============================================
   function renderCardEditList() {
     const el = document.getElementById('card-edit-list');
@@ -1698,7 +1989,7 @@
     CARDS.forEach(c => {
       const item = document.createElement('div');
       item.className = 'card-edit-item';
-      const typeLabel = c.type || 'trend';
+      const typeLabel = c.type === 'pair' ? 'PAIR' : 'TREND';
       const rxTag = c.fromOtherCmd ? '<span class="rx-tag">RX-only</span>' : '';
       const cmdLabel = c.cmd ? '0x' + c.cmd.toString(16).padStart(2, '0').toUpperCase() : '—';
       const fieldLabel = c.field || c.pairId || '—';
@@ -1746,8 +2037,7 @@
     if (cmd) {
       (cmd.dataFields || []).forEach(f => {
         const opt = document.createElement('option');
-        opt.value = f;
-        opt.textContent = f;
+        opt.value = f; opt.textContent = f;
         sel.appendChild(opt);
       });
     }
@@ -1769,9 +2059,9 @@
     const defaultTitle = title || (cmd ? `${cmd.name} - ${field}` : 'Pair');
     const newCard = type === 'pair'
       ? { id, type: 'pair', pairId: 'charge_v', title: defaultTitle, unit: unit || 'V', fromOtherCmd: false }
-      : { id, type, cmd: cmdId, dir: cmd.direction, field, title: defaultTitle, unit, range, precision, fromOtherCmd };
+      : { id, type: 'trend', cmd: cmdId, dir: cmd.direction, field, title: defaultTitle, unit, range, precision, fromOtherCmd };
     CARDS.push(newCard);
-    if (type !== 'pair' && (fromOtherCmd || type === 'trend' || type === 'value')) {
+    if (type !== 'pair') {
       const key = `${cmdId.toString(16).padStart(2, '0').toUpperCase()}.${field}`;
       if (!trendData[key]) {
         trendData[key] = [];
@@ -1784,7 +2074,7 @@
   };
 
   // ============================================
-  // Card Edit Modal (单卡编辑)
+  // Card Edit Modal
   // ============================================
   function openCardEdit(id) {
     const c = CARDS.find(x => x.id === id);
@@ -1793,8 +2083,7 @@
     document.getElementById('card-edit-subtitle').textContent = c.title;
     document.getElementById('ce-title').value = c.title;
     document.getElementById('ce-unit').value = c.unit || '';
-    document.getElementById('ce-type').value = c.type || 'trend';
-    // 填充命令
+    document.getElementById('ce-type').value = c.type;
     const cmdSel = document.getElementById('ce-cmd');
     cmdSel.innerHTML = '';
     COMMANDS.forEach(cmd => {
@@ -1806,9 +2095,7 @@
     });
     updateCeFields();
     cmdSel.onchange = updateCeFields;
-    // 字段
     if (c.field) document.getElementById('ce-field').value = c.field;
-    // 范围
     if (c.range) {
       document.getElementById('ce-lower').value = c.range[0];
       document.getElementById('ce-upper').value = c.range[1];
@@ -1828,8 +2115,7 @@
     if (cmd) {
       (cmd.dataFields || []).forEach(f => {
         const opt = document.createElement('option');
-        opt.value = f;
-        opt.textContent = f;
+        opt.value = f; opt.textContent = f;
         sel.appendChild(opt);
       });
     }
@@ -1843,8 +2129,7 @@
     const cmdId = parseInt(document.getElementById('ce-cmd').value);
     const cmd = COMMANDS.find(x => x.id === cmdId);
     if (cmd && c.type !== 'pair') {
-      c.cmd = cmdId;
-      c.dir = cmd.direction;
+      c.cmd = cmdId; c.dir = cmd.direction;
       c.field = document.getElementById('ce-field').value;
     }
     c.fromOtherCmd = document.getElementById('ce-rx').checked;
@@ -1869,17 +2154,11 @@
   // ============================================
   function exportConfig() {
     const config = {
-      type: 'SerialWebUserConfig',
-      version: 1,
-      userConfig: {
-        dashboard: {
-          protocols: PROTOCOLS,
-          commands: COMMANDS,
-          cards: CARDS,
-          kpiStrip: KPIS,
-          settings: { cmdMismatchEnabled, alertDebounceMs }
-        }
-      }
+      type: 'SerialWebUserConfig', version: 1,
+      userConfig: { dashboard: {
+        protocols: PROTOCOLS, dataFields: DATA_FIELDS, commands: COMMANDS, cards: CARDS,
+        settings: { cmdMismatchEnabled, alertDebounceMs }
+      }}
     };
     return JSON.stringify(config, null, 2);
   }
@@ -1890,22 +2169,19 @@
       const uc = obj.userConfig?.dashboard;
       if (!uc) throw new Error('userConfig.dashboard 缺失');
       if (uc.protocols) PROTOCOLS = uc.protocols;
+      if (uc.dataFields) DATA_FIELDS = uc.dataFields;
       if (uc.commands) COMMANDS = uc.commands;
       if (uc.cards) CARDS = uc.cards;
-      if (uc.kpiStrip) Object.assign(KPIS, uc.kpiStrip);
       if (uc.settings) {
         if (typeof uc.settings.cmdMismatchEnabled === 'boolean') cmdMismatchEnabled = uc.settings.cmdMismatchEnabled;
         if (typeof uc.settings.alertDebounceMs === 'number') alertDebounceMs = uc.settings.alertDebounceMs;
       }
       activeProtoId = PROTOCOLS[0]?.id;
       initMockData();
-      renderCommandPanel(); renderKpiStrip(); renderCardGrid(); renderAlerts();
+      renderCommandPanel(); renderCardGrid(); renderAlerts();
       toast('已应用导入配置', 'success');
       return true;
-    } catch (e) {
-      toast('导入失败: ' + e.message, 'danger');
-      return false;
-    }
+    } catch (e) { toast('导入失败: ' + e.message, 'danger'); return false; }
   }
   document.getElementById('ie-copy').onclick = () => {
     const txt = document.getElementById('ie-export').value;
@@ -1923,9 +2199,7 @@
   function renderAlertRules() {
     const el = document.getElementById('alert-rules-list');
     const rules = [];
-    CARDS.forEach(c => {
-      if (c.range) rules.push({ title: c.title, field: c.field, range: c.range });
-    });
+    CARDS.forEach(c => { if (c.range) rules.push({ title: c.title, field: c.field, range: c.range }); });
     el.innerHTML = rules.map(r => `
       <div style="padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-small); font-size: 12px; margin-bottom: 6px;">
         <strong>${escapeHtml(r.title)}</strong>
@@ -1971,13 +2245,13 @@
       renderDetailChart(card); renderDetailStats(card);
     } else if (currentSubTab === 'modbus') {
       const proto = PROTOCOLS.find(p => p.id === (COMMANDS.find(c => c.id === card.cmd)?.protocol));
-      body.innerHTML = `<div class="detail-kv-list"><div class="kv-key">使用协议</div><div class="kv-val">${proto ? proto.name : '?'}</div><div class="kv-key">Function Code</div><div class="kv-val">0x03 (Read Holding Registers)</div><div class="kv-key">Slave Address</div><div class="kv-val">0x01</div><div class="kv-key">Start Register</div><div class="kv-val">0x${(card.cmd || 0x01).toString(16).padStart(4,'0').toUpperCase()}</div><div class="kv-key">Quantity</div><div class="kv-val">${(COMMANDS.find(c => c.id === card.cmd)?.dataSize || 0) / 2}</div><div class="kv-key">CRC16-MODBUS</div><div class="kv-val">见帧预览</div><div class="kv-key">Baud Rate</div><div class="kv-val">115200</div><div class="kv-key">Parity</div><div class="kv-val">None</div></div>`;
+      body.innerHTML = `<div class="detail-kv-list"><div class="kv-key">使用协议</div><div class="kv-val">${proto ? proto.name : '?'}</div><div class="kv-key">Function Code</div><div class="kv-val">0x03</div><div class="kv-key">Slave Address</div><div class="kv-val">0x01</div><div class="kv-key">Start Register</div><div class="kv-val">0x${(card.cmd || 0x01).toString(16).padStart(4,'0').toUpperCase()}</div><div class="kv-key">Quantity</div><div class="kv-val">${(COMMANDS.find(c => c.id === card.cmd)?.dataSize || 0) / 2}</div><div class="kv-key">CRC16-MODBUS</div><div class="kv-val">见帧预览</div></div>`;
     } else if (currentSubTab === 'device') {
-      body.innerHTML = `<div class="detail-kv-list"><div class="kv-key">VID</div><div class="kv-val">0x${(COMMANDS[0]?.id || 0x01).toString(16).padStart(4,'0').toUpperCase()}</div><div class="kv-key">PID</div><div class="kv-val">0x${(COMMANDS[1]?.id || 0x02).toString(16).padStart(4,'0').toUpperCase()}</div><div class="kv-key">Manufacturer</div><div class="kv-val">Embedded BMS Co.</div><div class="kv-key">Model</div><div class="kv-val">EB-BMS-3000</div><div class="kv-key">Serial Number</div><div class="kv-val">SN-${Math.floor(Math.random()*99999).toString().padStart(5,'0')}</div><div class="kv-key">Firmware Version</div><div class="kv-val">v2.4.1 (2025-12-08)</div><div class="kv-key">Protocol Version</div><div class="kv-val">TLV v1.0 + Modbus RTU</div><div class="kv-key">Connected</div><div class="kv-val">Web Serial @ 115200 8N1</div></div>`;
+      body.innerHTML = `<div class="detail-kv-list"><div class="kv-key">VID</div><div class="kv-val">0x${(COMMANDS[0]?.id || 0x01).toString(16).padStart(4,'0').toUpperCase()}</div><div class="kv-key">PID</div><div class="kv-val">0x${(COMMANDS[1]?.id || 0x02).toString(16).padStart(4,'0').toUpperCase()}</div><div class="kv-key">Manufacturer</div><div class="kv-val">Embedded BMS Co.</div><div class="kv-key">Model</div><div class="kv-val">EB-BMS-3000</div><div class="kv-key">Serial Number</div><div class="kv-val">SN-${Math.floor(Math.random()*99999).toString().padStart(5,'0')}</div><div class="kv-key">Firmware</div><div class="kv-val">v2.4.1</div><div class="kv-key">Protocol</div><div class="kv-val">TLV v1.0 + Modbus RTU</div></div>`;
     } else if (currentSubTab === 'query') {
       const tx = 1240 + Math.floor(Math.random() * 5);
       const rx = 1238 + Math.floor(Math.random() * 3);
-      body.innerHTML = `<div class="detail-kv-list"><div class="kv-key">Cmd ID</div><div class="kv-val">0x${(card.cmd||0x01).toString(16).padStart(2,'0').toUpperCase()} (${(card.dir||'rx').toUpperCase()})</div><div class="kv-key">期望响应</div><div class="kv-val">0x${((card.cmd||0x01) + 0x7F).toString(16).padStart(2,'0').toUpperCase()}</div><div class="kv-key">发送次数</div><div class="kv-val">${tx}</div><div class="kv-key">收到次数</div><div class="kv-val">${rx}</div><div class="kv-key">错配次数</div><div class="kv-val" style="color: var(--danger)">1</div><div class="kv-key">丢失率</div><div class="kv-val">${(((tx-rx)/tx)*100).toFixed(2)}%</div><div class="kv-key">平均延迟</div><div class="kv-val">42 ms</div><div class="kv-key">最后错误</div><div class="kv-val" style="color: var(--danger)">11:42:15 cmd 0x10 错配</div></div>`;
+      body.innerHTML = `<div class="detail-kv-list"><div class="kv-key">Cmd ID</div><div class="kv-val">0x${(card.cmd||0x01).toString(16).padStart(2,'0').toUpperCase()}</div><div class="kv-key">期望响应</div><div class="kv-val">0x${((card.cmd||0x01) + 0x7F).toString(16).padStart(2,'0').toUpperCase()}</div><div class="kv-key">发送</div><div class="kv-val">${tx}</div><div class="kv-key">收到</div><div class="kv-val">${rx}</div><div class="kv-key">错配</div><div class="kv-val" style="color: var(--danger)">1</div><div class="kv-key">丢失率</div><div class="kv-val">${(((tx-rx)/tx)*100).toFixed(2)}%</div><div class="kv-key">平均延迟</div><div class="kv-val">42 ms</div></div>`;
     }
   }
   function renderDetailChart(card) {
@@ -2008,11 +2282,11 @@
     const maxV = Math.max(...filtered.map(p => p.v), ...(card.range || []));
     const range = (maxV - minV) || 1;
     const xStep = w / Math.max(filtered.length - 1, 1);
-    if (currentChartType === 'line') { drawSeriesLine(ctx, filtered, w, h, minV, maxV, xStep, range, '#5672cd'); }
-    else if (currentChartType === 'bar') { drawSeriesBar(ctx, filtered, w, h, minV, maxV, xStep, range, '#5672cd'); }
-    else if (currentChartType === 'area') { drawSeriesArea(ctx, filtered, w, h, minV, maxV, xStep, range, '#5672cd'); }
-    else if (currentChartType === 'scatter') { drawSeriesScatter(ctx, filtered, w, h, minV, maxV, xStep, range, '#5672cd'); }
-    else if (currentChartType === 'histogram') { drawHistogram(ctx, filtered, w, h, minV, maxV); }
+    if (currentChartType === 'line') drawSeriesLine(ctx, filtered, w, h, minV, maxV, xStep, range, '#5672cd');
+    else if (currentChartType === 'bar') drawSeriesBar(ctx, filtered, w, h, minV, maxV, xStep, range, '#5672cd');
+    else if (currentChartType === 'area') drawSeriesArea(ctx, filtered, w, h, minV, maxV, xStep, range, '#5672cd');
+    else if (currentChartType === 'scatter') drawSeriesScatter(ctx, filtered, w, h, minV, maxV, xStep, range, '#5672cd');
+    else if (currentChartType === 'histogram') drawHistogram(ctx, filtered, w, h, minV, maxV);
     if (card.range && currentChartType !== 'histogram') {
       ctx.setLineDash([4, 4]); ctx.strokeStyle = 'rgba(224, 87, 94, 0.5)'; ctx.lineWidth = 1;
       const yHi = h - ((card.range[1] - minV) / range) * h;
@@ -2022,37 +2296,11 @@
       ctx.setLineDash([]);
     }
   }
-  function drawSeriesLine(ctx, data, w, h, minV, maxV, xStep, range, color) {
-    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
-    data.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
-    ctx.stroke();
-  }
-  function drawSeriesBar(ctx, data, w, h, minV, maxV, xStep, range, color) {
-    const bw = Math.max(2, xStep * 0.7); ctx.fillStyle = color;
-    data.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; ctx.fillRect(x - bw/2, y, bw, h - y); });
-  }
-  function drawSeriesArea(ctx, data, w, h, minV, maxV, xStep, range, color) {
-    const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, 'rgba(86, 114, 205, 0.4)'); grad.addColorStop(1, 'rgba(86, 114, 205, 0.02)');
-    ctx.fillStyle = grad; ctx.beginPath();
-    data.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; if (i === 0) ctx.moveTo(x, h); ctx.lineTo(x, y); });
-    ctx.lineTo(w, h); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
-  }
-  function drawSeriesScatter(ctx, data, w, h, minV, maxV, xStep, range, color) {
-    ctx.fillStyle = color;
-    data.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); });
-  }
-  function drawHistogram(ctx, data, w, h, minV, maxV) {
-    const bins = 12;
-    const hist = new Array(bins).fill(0);
-    const binSize = (maxV - minV) / bins;
-    data.forEach(p => { const idx = Math.min(bins - 1, Math.max(0, Math.floor((p.v - minV) / binSize))); hist[idx]++; });
-    const maxCount = Math.max(...hist) || 1;
-    const bWidth = w / bins;
-    ctx.fillStyle = '#5672cd';
-    hist.forEach((c, i) => { const bh = (c / maxCount) * h * 0.9; ctx.fillRect(i * bWidth + 1, h - bh, bWidth - 2, bh); });
-  }
+  function drawSeriesLine(ctx, data, w, h, minV, maxV, xStep, range, color) { ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath(); data.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.stroke(); }
+  function drawSeriesBar(ctx, data, w, h, minV, maxV, xStep, range, color) { const bw = Math.max(2, xStep * 0.7); ctx.fillStyle = color; data.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; ctx.fillRect(x - bw/2, y, bw, h - y); }); }
+  function drawSeriesArea(ctx, data, w, h, minV, maxV, xStep, range, color) { const grad = ctx.createLinearGradient(0, 0, 0, h); grad.addColorStop(0, 'rgba(86, 114, 205, 0.4)'); grad.addColorStop(1, 'rgba(86, 114, 205, 0.02)'); ctx.fillStyle = grad; ctx.beginPath(); data.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; if (i === 0) ctx.moveTo(x, h); ctx.lineTo(x, y); }); ctx.lineTo(w, h); ctx.closePath(); ctx.fill(); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke(); }
+  function drawSeriesScatter(ctx, data, w, h, minV, maxV, xStep, range, color) { ctx.fillStyle = color; data.forEach((p, i) => { const x = i * xStep; const y = h - ((p.v - minV) / range) * h; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); }); }
+  function drawHistogram(ctx, data, w, h, minV, maxV) { const bins = 12; const hist = new Array(bins).fill(0); const binSize = (maxV - minV) / bins; data.forEach(p => { const idx = Math.min(bins - 1, Math.max(0, Math.floor((p.v - minV) / binSize))); hist[idx]++; }); const maxCount = Math.max(...hist) || 1; const bWidth = w / bins; ctx.fillStyle = '#5672cd'; hist.forEach((c, i) => { const bh = (c / maxCount) * h * 0.9; ctx.fillRect(i * bWidth + 1, h - bh, bWidth - 2, bh); }); }
   function renderDetailStats(card) {
     const el = document.getElementById('detail-stats'); if (!el) return;
     let data = [];
@@ -2064,20 +2312,61 @@
       <div class="stat-cell"><div class="stat-label">Min</div><div class="stat-value">${min.toFixed(card.precision || 2)}<span class="unit">${card.unit || ''}</span></div></div>
       <div class="stat-cell"><div class="stat-label">Max</div><div class="stat-value">${max.toFixed(card.precision || 2)}<span class="unit">${card.unit || ''}</span></div></div>
       <div class="stat-cell"><div class="stat-label">Avg</div><div class="stat-value">${avg.toFixed(card.precision || 2)}<span class="unit">${card.unit || ''}</span></div></div>
-      <div class="stat-cell"><div class="stat-label">N (采样数)</div><div class="stat-value">${data.length}</div></div>
+      <div class="stat-cell"><div class="stat-label">N</div><div class="stat-value">${data.length}</div></div>
     `;
   }
 
   // ============================================
   // Event Listeners
   // ============================================
+  // Mode switch
+  document.getElementById('serial-mode-btn').onclick = () => { window.parent.postMessage({ type: 'switch-mode', mode: 'serial' }, '*'); toast('切换到监视模式 (主应用内)', 'info'); };
+  document.getElementById('parser-mode-btn').onclick = () => { window.parent.postMessage({ type: 'switch-mode', mode: 'parser' }, '*'); toast('切换到解析模式 (主应用内)', 'info'); };
+  document.getElementById('dashboard-mode-btn').onclick = () => { /* already on dashboard */ };
+
+  // Theme
   document.getElementById('theme-toggle').onclick = () => {
     document.body.classList.toggle('theme-dark');
-    const btn = document.getElementById('theme-toggle');
-    btn.textContent = document.body.classList.contains('theme-dark') ? '☾' : '☀';
-    requestAnimationFrame(() => { CARDS.forEach(c => { if (c.type !== 'value') renderSparkline(c); }); });
+    document.getElementById('theme-toggle').textContent = document.body.classList.contains('theme-dark') ? '☾' : '☀';
+    requestAnimationFrame(() => CARDS.forEach(c => renderSparkline(c)));
   };
   document.getElementById('reset-btn').onclick = () => { initMockData(); updateAll(); toast('已重置数据', 'success'); };
+
+  // Sidebar toggle
+  document.getElementById('sidebar-toggle').onclick = () => {
+    sidebarCollapsed = !sidebarCollapsed;
+    document.body.classList.toggle('sidebar-collapsed', sidebarCollapsed);
+    document.getElementById('sidebar-toggle').textContent = sidebarCollapsed ? '›' : '‹';
+    setTimeout(() => CARDS.forEach(c => renderSparkline(c)), 200);
+  };
+
+  // System menu
+  document.getElementById('system-menu-btn').onclick = (e) => {
+    e.stopPropagation();
+    const menu = document.getElementById('system-menu');
+    menu.classList.toggle('open');
+    // 标记当前 toast pos
+    document.querySelectorAll('.system-menu .menu-row[data-pos]').forEach(row => {
+      row.classList.toggle('active', row.dataset.pos === toastPos);
+    });
+  };
+  document.querySelectorAll('.system-menu .menu-row[data-pos]').forEach(row => {
+    row.onclick = () => {
+      toastPos = row.dataset.pos;
+      document.body.className = document.body.className.replace(/toast-pos-\w+/g, '').trim() + ' toast-pos-' + toastPos;
+      document.getElementById('system-menu').classList.remove('open');
+      toast(`弹窗位置已切换到 ${row.textContent.trim()}`, 'success');
+    };
+  });
+  document.getElementById('menu-theme').onclick = () => document.getElementById('theme-toggle').click();
+  document.getElementById('menu-reset').onclick = () => document.getElementById('reset-btn').click();
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#system-menu') && !e.target.closest('#system-menu-btn')) {
+      document.getElementById('system-menu').classList.remove('open');
+    }
+  });
+
+  // Toolbar
   document.getElementById('open-proto-editor').onclick = () => openModal('proto');
   document.getElementById('open-cmd-config').onclick = () => openModal('cmd-config');
   document.getElementById('open-card-config').onclick = () => openModal('card-config');
@@ -2090,19 +2379,22 @@
         { id: 'f2', name: 'addr',   type: 'addr',   size: 1, byteOrder: null, default: '0x01' },
         { id: 'f3', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
         { id: 'f4', name: 'length', type: 'length', size: 1, byteOrder: 'BE', default: 'auto' },
-        { id: 'f5', name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '' },
-        { id: 'f6', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' },
-        { id: 'f7', name: 'tail',   type: 'tail',   size: 1, byteOrder: null, default: '0x55' }
+        { id: 'f5', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' },
+        { id: 'f6', name: 'tail',   type: 'tail',   size: 1, byteOrder: null, default: '0x55' }
       ]},
       { id: 'proto_modbus', name: 'Modbus RTU', byteOrder: 'BE', fields: [
         { id: 'm1', name: 'addr', type: 'addr', size: 1, default: '0x01' },
         { id: 'm2', name: 'func', type: 'cmd', size: 1, default: '0x03' },
-        { id: 'm3', name: 'reg_hi', type: 'data', size: 1, default: '0x00' },
-        { id: 'm4', name: 'reg_lo', type: 'data', size: 1, default: '0x00' },
-        { id: 'm5', name: 'qty_hi', type: 'data', size: 1, default: '0x00' },
-        { id: 'm6', name: 'qty_lo', type: 'data', size: 1, default: '0x00' },
-        { id: 'm7', name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' }
+        { id: 'm3', name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' }
       ]}
+    ];
+    DATA_FIELDS = [
+      { name: 'cell_1_v', type: 'u16', default: '0x0000' },
+      { name: 'cell_2_v', type: 'u16', default: '0x0000' },
+      { name: 'cell_3_v', type: 'u16', default: '0x0000' },
+      { name: 'cell_4_v', type: 'u16', default: '0x0000' },
+      { name: 'pack_i', type: 'u16', default: '0x0000' },
+      { name: 'temperature', type: 'u16', default: '0x0000' }
     ];
     activeProtoId = PROTOCOLS[0].id;
     renderProtoEditor();
@@ -2110,13 +2402,13 @@
   };
   document.getElementById('proto-apply').onclick = () => {
     initMockData();
-    renderCommandPanel(); renderKpiStrip(); renderCardGrid();
+    renderCommandPanel(); renderCardGrid();
     closeModal('proto');
-    toast('协议已应用 (实时数据按新帧结构模拟)', 'success');
+    toast('协议已应用', 'success');
   };
   document.getElementById('proto-export').onclick = () => {
-    const json = JSON.stringify({ protocols: PROTOCOLS, commands: COMMANDS, cards: CARDS }, null, 2);
-    navigator.clipboard.writeText(json).then(() => toast('协议 JSON 已复制到剪贴板', 'success'), () => toast('复制失败', 'warn'));
+    const json = JSON.stringify({ protocols: PROTOCOLS, dataFields: DATA_FIELDS, commands: COMMANDS, cards: CARDS }, null, 2);
+    navigator.clipboard.writeText(json).then(() => toast('协议 JSON 已复制', 'success'), () => toast('复制失败', 'warn'));
   };
   document.getElementById('proto-import').onclick = () => {
     const json = prompt('粘贴协议 JSON:');
@@ -2124,24 +2416,32 @@
     try {
       const obj = JSON.parse(json);
       if (obj.protocols) PROTOCOLS = obj.protocols;
+      if (obj.dataFields) DATA_FIELDS = obj.dataFields;
       if (obj.commands) COMMANDS = obj.commands;
       if (obj.cards) CARDS = obj.cards;
       activeProtoId = PROTOCOLS[0]?.id;
       initMockData();
       renderProtoEditor();
-      renderCommandPanel(); renderKpiStrip(); renderCardGrid();
+      renderCommandPanel(); renderCardGrid();
       toast('协议已导入', 'success');
-    } catch (e) {
-      toast('导入失败: ' + e.message, 'danger');
-    }
+    } catch (e) { toast('导入失败: ' + e.message, 'danger'); }
   };
+
+  // Edit mode
   document.getElementById('toggle-edit').onclick = () => {
     editMode = !editMode;
     document.body.classList.toggle('edit-mode', editMode);
     document.getElementById('toggle-edit').classList.toggle('active', editMode);
     renderCardGrid();
-    toast(editMode ? '编辑模式: 可删除/添加/编辑卡片' : '编辑模式关闭', 'info');
   };
+  document.getElementById('close-edit').onclick = () => {
+    editMode = false;
+    document.body.classList.remove('edit-mode');
+    document.getElementById('toggle-edit').classList.remove('active');
+    renderCardGrid();
+  };
+
+  // Alert drawer
   document.getElementById('detail-close').onclick = closeDetail;
   document.getElementById('detail-backdrop').onclick = closeDetail;
   document.getElementById('alert-toggle').onclick = () => {
@@ -2149,7 +2449,7 @@
     if (list.style.display === 'none') { list.style.display = 'block'; document.getElementById('alert-toggle').textContent = '−'; }
     else { list.style.display = 'none'; document.getElementById('alert-toggle').textContent = '+'; }
   };
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDetail(); document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open')); document.querySelectorAll('.modal-backdrop.open').forEach(b => b.classList.remove('open')); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDetail(); document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open')); document.querySelectorAll('.modal-backdrop.open').forEach(b => b.classList.remove('open')); document.getElementById('system-menu').classList.remove('open'); } });
   document.querySelectorAll('.detail-subtab').forEach(b => b.onclick = () => {
     document.querySelectorAll('.detail-subtab').forEach(x => x.classList.remove('active')); b.classList.add('active');
     currentSubTab = b.dataset.subtab; renderDetailBody();
@@ -2167,13 +2467,12 @@
   // === Init ===
   initMockData();
   renderCommandPanel();
-  renderKpiStrip();
   renderCardGrid();
   renderAlerts();
-  setTimeout(() => CARDS.forEach(c => { if (c.type !== 'value') renderSparkline(c); }), 60);
+  setTimeout(() => CARDS.forEach(c => renderSparkline(c)), 60);
   setInterval(tickData, 800);
   window.addEventListener('resize', () => {
-    setTimeout(() => CARDS.forEach(c => { if (c.type !== 'value') renderSparkline(c); }), 100);
+    setTimeout(() => CARDS.forEach(c => renderSparkline(c)), 100);
     if (detailCardId) { const card = CARDS.find(c => c.id === detailCardId); if (card && currentSubTab === 'realtime') renderDetailChart(card); }
   });
   </script>
