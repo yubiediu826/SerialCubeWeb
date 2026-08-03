@@ -5754,8 +5754,14 @@
       align-content: flex-start;
     }
 .dashboard-host     .card-add-slot {
-      width: 280px; height: 200px;
-      border: 2px dashed var(--border);
+      /* v4.4.2.1 修复: 跟 .card-default 视觉完全对齐.
+         .card-default content-box 280x200 + padding 20 + border 2 = 实际 306x222.
+         add 卡 用 box-sizing: border-box + width 306 height 222, 总 306x222 = cards 实际尺寸, 等高等宽.
+         1px dashed + 同样 padding, 视觉上 add 卡 就是 "空卡片, 内部只有 + 和提示词", 不再"鼓出来". */
+      box-sizing: border-box;
+      width: 306px; height: 222px;
+      padding: 10px 12px;
+      border: 1px dashed var(--border);
       border-radius: var(--radius);
       display: flex; align-items: center; justify-content: center;
       flex-direction: column;
@@ -5764,7 +5770,20 @@
       transition: all 0.15s ease;
     }
 .dashboard-host     .card-add-slot:hover { border-color: var(--accent); color: var(--accent); }
-.dashboard-host     .card-add-slot .hint { font-size: 11px; font-weight: 500; margin-top: 8px; }
+.dashboard-host     .card-add-slot .hint { font-size: 12px; font-weight: 500; margin-top: 8px; }
+.dashboard-host     .card-add-slot .hint-strong { color: var(--accent); font-weight: 600; }  /* 编辑模式已开时高亮提示 */
+/* v4.4.2.1 列表布局 add 卡 (紧凑, 跨满列, 跟 list card 完全等高).
+   .card-default 改 box-sizing: border-box 后继承到 .list.
+   list card 实际高度 = min-height 80 + padding 20 + border 2 = 102, 总 102.
+   add 卡 box-sizing border-box + height 102 = 总 102, 跟 list card 等高.
+   不加 padding (避免撑大 grid column 触发横向滚动), flex column 内部 居中 "+" + hint. */
+.dashboard-host     .card-add-slot.list {
+      width: 100%; height: 102px;
+      flex-direction: row; gap: 8px;
+      font-size: 18px; font-weight: 200;
+}
+.dashboard-host     .card-add-slot.list .add-icon { font-size: 18px; }
+.dashboard-host     .card-add-slot.list .hint { margin-top: 0; }
 
 .dashboard-host     .card-group-head {
       display: flex; align-items: center; gap: 8px;
@@ -6400,7 +6419,11 @@
     .dashboard-host { position: absolute; inset: 0; display: flex; flex-direction: column; }
     .dashboard-host .app-shell { flex: 1; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
     .dashboard-host .app-shell > .main-row { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
-    .dashboard-host .app-shell > .main-row > .content { min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+    /* v4.4.2.1 修复: .content 改 overflow: hidden, 避免与 .card-grid-area 自己的 overflow-y: auto 双重 overflow 冲突.
+       之前 .content overflow: auto + .card-grid-area overflow-y: auto, 列表布局下 add 卡 (gridColumn 1/-1 + 80px 高)
+       被 .content 滚动容器截断, 滚到底 atEnd:true 但 add 卡仍在视口外, DOM 存在但不可见.
+       改 .content overflow: hidden 后, 滚动由 .card-grid-area 唯一处理, 趋势/列表 add 卡 都可正常滚到. */
+    .dashboard-host .app-shell > .main-row > .content { min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
     /* v4.1.2 仪表盘模式: 复用主应用 .left-column (设备连接管理), .dashboard-view 移入 .workspace 替换 .right-column */
     body.mode-dashboard .workspace { display: grid; grid-template-columns: 286px 1fr; }
     body.mode-dashboard .workspace > .right-column { display: none; }
@@ -9480,6 +9503,21 @@
           return card;
         };
 
+        // v4.4.2: 提取 add 卡工厂函数, 趋势 + 列表 都用 (避免重复 + 提示词统一)
+        // layout: 'card' (趋势大卡 280x200) 或 'list' (列表紧凑 180x80, 跨满列)
+        NS._makeAddSlot = function (layout) {
+          const add = document.createElement('div');
+          add.className = 'card-add-slot ' + (layout === 'list' ? 'list' : 'card');
+          // v4.4.2: 提示词统一, 已开启编辑模式时高亮 "可添加", 未开启时灰色 "编辑模式下添加"
+          add.innerHTML = '<div class="add-icon">+</div><div class="hint">' + (NS.editMode ? '<span class="hint-strong">可添加</span>新卡片' : '编辑模式下添加') + '</div>';
+          if (layout === 'list') {
+            // v4.4.2: 列表布局 add 卡跨满列, 跟 group header 一致, 高度跟 list card 一样 (80px)
+            add.style.gridColumn = '1 / -1';
+          }
+          add.onclick = () => { if (NS.editMode) NS.openModal('dh-card-config'); else NS.toast('请先开启"编辑模式"', 'info'); };
+          return add;
+        };
+
         NS.renderCardGrid = function () {
           const el = document.getElementById('dh-card-grid');
           if (!el) return;
@@ -9511,6 +9549,8 @@
                 el.appendChild(grpHead);
                 group.forEach((c) => el.appendChild(NS.renderListCard(c)));
               });
+              // v4.4.2 修复: 列表布局全部命令模式也加 add 卡 (之前漏了)
+              el.appendChild(NS._makeAddSlot('list'));
             } else {
               // v4.4 修复: 用 grid 布局 (auto-fill minmax 280px), 不再用 flex-wrap
               // 因为 280px 固定卡片在 flex-wrap 容器中, 子项 min-width:auto 不可压缩,
@@ -9529,11 +9569,7 @@
                 el.appendChild(grpHead);
                 group.forEach((c) => el.appendChild(NS.renderCard(c)));
               });
-              const add = document.createElement('div');
-              add.className = 'card-add-slot';
-              add.innerHTML = '<div style="font-size: 24px;">+</div><div class="hint">' + (NS.editMode ? '添加卡片' : '编辑模式下添加') + '</div>';
-              add.onclick = () => { if (NS.editMode) NS.openModal('dh-card-config'); else NS.toast('先开启"编辑模式"', 'info'); };
-              el.appendChild(add);
+              el.appendChild(NS._makeAddSlot('card'));
             }
             return;
           }
@@ -9544,6 +9580,7 @@
             el.style.gap = '8px';
             el.style.alignItems = 'stretch';
             filtered.forEach((c) => el.appendChild(NS.renderListCard(c)));
+            el.appendChild(NS._makeAddSlot('list'));
           } else {
             // v4.4 修复: 单独命令 (按 cmd 过滤后) 也用 grid
             el.style.display = 'grid';
@@ -9551,11 +9588,7 @@
             el.style.gap = '12px';
             el.style.alignItems = 'stretch';
             filtered.forEach((c) => el.appendChild(NS.renderCard(c)));
-            const add = document.createElement('div');
-            add.className = 'card-add-slot';
-            add.innerHTML = '<div style="font-size: 24px;">+</div><div class="hint">' + (NS.editMode ? '添加卡片' : '编辑模式下添加') + '</div>';
-            add.onclick = () => { if (NS.editMode) NS.openModal('dh-card-config'); else NS.toast('先开启"编辑模式"', 'info'); };
-            el.appendChild(add);
+            el.appendChild(NS._makeAddSlot('card'));
           }
         };
 
