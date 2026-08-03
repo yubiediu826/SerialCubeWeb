@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-03T11:05:00+08:00",
+  "title": "Design System: SerialCube",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Workbench Indigo",
+        "canonical": "#5672cd",
+        "tonalRamp": [
+          "#1a2b66",
+          "#2c3f8a",
+          "#3f54ad",
+          "#5672cd",
+          "#7389d6",
+          "#9aa9e2",
+          "#c2caee",
+          "#e6eaf8"
+        ]
+      },
+      "accent-strong": {
+        "role": "primary-active",
+        "displayName": "Workbench Indigo Deep",
+        "canonical": "#3451b2",
+        "tonalRamp": ["#15256b","#22338a","#2a45a0","#3451b2","#4a64c2","#7085d2","#9eb0e0","#cdd6ef"]
+      },
+      "signal": {
+        "role": "data-stream",
+        "displayName": "Signal Blue",
+        "canonical": "#3a5ccc",
+        "tonalRamp": ["#1c2d70","#283d92","#334eaf","#3a5ccc","#5577d6","#7d97e0","#aabbeb","#dde4f7"]
+      },
+      "warning": {
+        "role": "warning",
+        "displayName": "Solder Orange",
+        "canonical": "#d97706",
+        "tonalRamp": ["#5c3504","#8b4f08","#b36709","#d97706","#e08f30","#e8a960","#f0c591","#fae3c8"]
+      },
+      "danger": {
+        "role": "danger",
+        "displayName": "Crimson Pulse",
+        "canonical": "#e0575e",
+        "tonalRamp": ["#5e1316","#861d22","#b02a2f","#e0575e","#e8767c","#ef969b","#f5b8bc","#fbdde0"]
+      },
+      "bg": {
+        "role": "neutral-surface",
+        "displayName": "Paper White",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#1b1b1f","#3a3a3f","#5a5a60","#7a7a82","#9a9aa3","#babac4","#dadbe4","#ffffff"]
+      },
+      "text": {
+        "role": "neutral-ink",
+        "displayName": "Ink Text",
+        "canonical": "#3c3c43",
+        "tonalRamp": ["#1a1a1f","#26262b","#3c3c43","#5a5a62","#7a7a82","#9a9aa3","#babac4","#dfdfd6"]
+      },
+      "border": {
+        "role": "neutral-border",
+        "displayName": "Soft Border",
+        "canonical": "rgba(60, 60, 67, 0.16)",
+        "tonalRamp": ["rgba(60,60,67,0.04)","rgba(60,60,67,0.08)","rgba(60,60,67,0.12)","rgba(60,60,67,0.16)","rgba(60,60,67,0.24)","rgba(60,60,67,0.36)","rgba(60,60,67,0.52)","rgba(60,60,67,0.72)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Topbar primary CTA only. Two instances in the system." },
+      "title":   { "displayName": "Title",   "purpose": "Panel headers, version modal title, card titles." },
+      "body":    { "displayName": "Body",    "purpose": "Default text, button labels, list rows. Max ~80ch before wrap." },
+      "label":   { "displayName": "Label",   "purpose": "Metadata labels, section captions, mode tabs." },
+      "micro":   { "displayName": "Micro",   "purpose": "Chip / tag text, single-character axis labels. Never wraps." },
+      "mono":    { "displayName": "Mono",    "purpose": "Terminal monitor, parser tokens, timeline data, version stamps. Reserved for data panes." }
+    },
+    "shadows": [
+      {
+        "name": "ambient-soft",
+        "value": "0 18px 48px rgba(0, 0, 0, 0.10)",
+        "purpose": "Reserved for version modal and floating menu. Soft, low-contrast lift."
+      },
+      {
+        "name": "ambient-soft-dark",
+        "value": "0 24px 54px rgba(0, 0, 0, 0.38)",
+        "purpose": "Dark-theme counterpart of ambient-soft. Heavier alpha to read on near-black surfaces."
+      },
+      {
+        "name": "hover-soft",
+        "value": "0 10px 30px rgba(0, 0, 0, 0.07)",
+        "purpose": "Transient hover lift on cards and primary buttons."
+      },
+      {
+        "name": "no-shadow-rest",
+        "value": "none",
+        "purpose": "Panels at rest. Defined explicitly so audits can confirm zero shadow on body cards."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-default",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default easing for hover, focus, and panel-state transitions (~180ms)."
+      },
+      {
+        "name": "pulse-REC",
+        "value": "1.6s ease-in-out infinite",
+        "purpose": "REC indicator pulse when timeline is recording."
+      },
+      {
+        "name": "live-sweep",
+        "value": "1.2s linear infinite",
+        "purpose": "Live data sweep along the timeline ribbon when bytes are flowing."
+      },
+      {
+        "name": "reconnect-ribbon",
+        "value": "1.8s ease-in-out",
+        "purpose": "Reconnect ribbon pulse during auto-reconnect window."
+      }
+    ],
+    "breakpoints": [
+      { "name": "default", "value": "1180px", "purpose": "Two-column workspace at full density." },
+      { "name": "compact", "value": "1080-1179px", "purpose": "Compact spacing, sidebar optional collapse." },
+      { "name": "stacked", "value": "720-1079px", "purpose": "Left/right stack vertically (.compact-single)." },
+      { "name": "phone", "value": "<720px", "purpose": "Topbar collapses, modal goes full-width." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Workhorse CTA. One per surface. Indigo bg, white text, 14px radius, 13px / 500.",
+      "html": "<button class=\"ds-btn-primary\">\u8fde\u63a5\u8bbe\u5907 | \u5f53\u524d\u672a\u8fde\u63a5</button>",
+      "css": ".ds-btn-primary { background: #5672cd; color: #ffffff; font-family: 'Segoe UI', 'PingFang SC', sans-serif; font-size: 13px; font-weight: 500; padding: 8px 16px; border: 1px solid transparent; border-radius: 14px; cursor: pointer; transition: background 0.18s cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-primary:hover { background: #3451b2; } .ds-btn-primary:focus-visible { outline: 2px solid rgba(100, 108, 255, 0.4); outline-offset: 2px; } .ds-btn-primary:active { background: #2a3f8a; transform: translateY(1px); } .ds-btn-primary[disabled] { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Sidekick action. Panel bg, ink text, 14px radius. Used for add chart, apply preset, open picker.",
+      "html": "<button class=\"ds-btn-secondary\">\u6dfb\u52a0\u56fe\u6846</button>",
+      "css": ".ds-btn-secondary { background: rgba(255, 255, 255, 0.84); color: #3c3c43; font-family: 'Segoe UI', 'PingFang SC', sans-serif; font-size: 13px; font-weight: 500; padding: 8px 16px; border: 1px solid rgba(60, 60, 67, 0.16); border-radius: 14px; cursor: pointer; transition: border-color 0.18s ease, color 0.18s ease; } .ds-btn-secondary:hover { border-color: rgba(60, 60, 67, 0.24); color: #3451b2; } .ds-btn-secondary:focus-visible { outline: 2px solid rgba(100, 108, 255, 0.4); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Cancel / dismiss / system menu items. Transparent bg, whisper text, 14px radius.",
+      "html": "<button class=\"ds-btn-ghost\">\u53d6\u6d88</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: #67676c; font-family: 'Segoe UI', 'PingFang SC', sans-serif; font-size: 13px; font-weight: 500; padding: 6px 10px; border: none; border-radius: 14px; cursor: pointer; transition: color 0.18s ease, background 0.18s ease; } .ds-btn-ghost:hover { color: #3c3c43; background: rgba(60, 60, 67, 0.04); }"
+    },
+    {
+      "name": "Icon Button",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "Square 32x32. Panel bg, whisper text, 14px radius. Theme switch / collapse / picker toggle.",
+      "html": "<button class=\"ds-btn-icon\" aria-label=\"system menu\">\u2630</button>",
+      "css": ".ds-btn-icon { background: rgba(255, 255, 255, 0.84); color: #67676c; width: 32px; height: 32px; padding: 0; border: 1px solid rgba(60, 60, 67, 0.16); border-radius: 14px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; transition: color 0.18s ease, border-color 0.18s ease; } .ds-btn-icon:hover { color: #5672cd; border-color: rgba(60, 60, 67, 0.24); } .ds-btn-icon:focus-visible { outline: 2px solid rgba(100, 108, 255, 0.4); outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "status-chip",
+      "description": "Accent-soft bg, accent-strong text, pill radius, 9px / 700 uppercase. Used for status indicators, mode labels.",
+      "html": "<span class=\"ds-chip-status\">\u4e32\u53e3\u79bb\u7ebf</span>",
+      "css": ".ds-chip-status { display: inline-block; background: rgba(100, 108, 255, 0.14); color: #3451b2; font-family: 'Segoe UI', 'PingFang SC', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; line-height: 1; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; }"
+    },
+    {
+      "name": "Panel Card",
+      "kind": "card",
+      "refersTo": "panel-card",
+      "description": "Container card. 14px radius, panel bg, soft border, NO shadow at rest. 12px internal padding.",
+      "html": "<section class=\"ds-panel-card\"><div class=\"ds-panel-head\">\u8bbe\u5907\u8fde\u63a5\u7ba1\u7406</div><div class=\"ds-panel-body\">panel content</div></section>",
+      "css": ".ds-panel-card { background: rgba(255, 255, 255, 0.84); color: #3c3c43; border: 1px solid rgba(60, 60, 67, 0.16); border-radius: 14px; padding: 12px; font-family: 'Segoe UI', 'PingFang SC', sans-serif; font-size: 13px; } .ds-panel-head { font-size: 13px; font-weight: 700; margin-bottom: 10px; } .ds-panel-body { color: #3c3c43; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Standard input. Bg, 10px radius, 1px border, 6/10 padding, 13px body. Focus shifts border to accent.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"115200\" value=\"\">",
+      "css": ".ds-input { background: #ffffff; color: #3c3c43; font-family: 'Segoe UI', 'PingFang SC', sans-serif; font-size: 13px; padding: 6px 10px; border: 1px solid rgba(60, 60, 67, 0.16); border-radius: 10px; transition: border-color 0.18s ease, box-shadow 0.18s ease; outline: none; } .ds-input:focus { border-color: #5672cd; box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.14); } .ds-input::placeholder { color: #98989f; }"
+    },
+    {
+      "name": "Status Pill (Brand Block)",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Signature component. The Workbench avatar. Pill radius, holds status dot + title + subtitle. Hover reveals connection summary.",
+      "html": "<div class=\"ds-status-pill\"><span class=\"ds-status-dot\"></span><span class=\"ds-status-title\">SerialCube</span><span class=\"ds-status-subtitle\">\u4e32\u53e3\u79bb\u7ebf</span></div>",
+      "css": ".ds-status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 8px; background: rgba(255, 255, 255, 0.84); border: 1px solid rgba(60, 60, 67, 0.16); border-radius: 999px; font-family: 'Segoe UI', 'PingFang SC', sans-serif; } .ds-status-dot { width: 8px; height: 8px; border-radius: 50%; background: #d97706; } .ds-status-title { font-size: 13px; font-weight: 800; letter-spacing: 0.03em; color: #3c3c43; } .ds-status-subtitle { font-size: 11px; color: #67676c; border-left: 1px solid rgba(60, 60, 67, 0.16); padding-left: 8px; } .ds-status-pill:hover { border-color: rgba(60, 60, 67, 0.24); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Engineer's Workbench",
+    "overview": "The Workbench is never decorative. Every pixel either carries information or stays out of the way. The aesthetic vocabulary is 'iOS / macOS HIG, but for serial terminals': rounded cards on a clean surface, soft elevation, a single muted indigo accent that says active state without shouting. Density is engineered for a 14\" laptop with two side-by-side panels, not a 32\" monitor with room to breathe. Whitespace is a luxury; the Workbench would rather add a chip.\n\nBrand voice is dry, declarative, action-first. Labels are verbs. The UI never explains itself twice \u2014 no help icons, no tooltips restating the button. Engineers read fast; the interface respects that.\n\nPersonality: quiet competence. Anti-references are AI-purple gradients, hero marketing copy, decorative animation, 'Designer Edition' typography.",
+    "keyCharacteristics": [
+      "Operate-mode tool, not a landing page; visitor is here to do, not decide",
+      "Single accent color (muted indigo) used for active state and primary CTA; everything else is neutral",
+      "Soft, low-contrast elevation; surfaces float on a clean background, not on a dark canvas",
+      "Bilingual UI strings (zh-CN primary, en secondary), with font stack covering Segoe UI / PingFang SC / Microsoft YaHei / Cascadia Code",
+      "Compact density with 10px grid; collapses to a single column at <=720px",
+      "Mono font reserved for terminal/data panes; UI chrome is sans",
+      "Status colors (warning / danger / signal) are reserved for state, never decoration"
+    ],
+    "rules": [
+      { "name": "The Indigo Rarity Rule", "body": "The primary accent covers <=8% of any given screen. When the same indigo appears as both a primary CTA and a selected state, the design has failed at the IA level \u2014 collapse one into neutral first.", "section": "colors" },
+      { "name": "The One Status Color Per Moment Rule", "body": "At any given state, only one semantic color (warning / danger / signal) speaks. A button cannot be both warning and dangerous; the moment must pick.", "section": "colors" },
+      { "name": "The Mono Reservation Rule", "body": "Cascadia Code appears only inside data panels. UI chrome, button labels, panel titles \u2014 all sans. Mixing mono into chrome makes the data look less special and the chrome look busier.", "section": "typography" },
+      { "name": "The Weight-Over-Size Rule", "body": "Hierarchy is communicated by font-weight (400 -> 500 -> 700 -> 800) more than by font-size (9 -> 11 -> 13 -> 16 -> 18). The size scale is narrow on purpose; engineers scan by weight, not by picking out the largest text.", "section": "typography" },
+      { "name": "The Stable Header Rule", "body": "The topbar never scrolls. The timeline ribbon stays fixed to the right of the brand block at all times \u2014 it's the Workbench's power button and the user's mental anchor.", "section": "layout" },
+      { "name": "The Sidebar Equality Rule", "body": "left-column and right-column are not 'main + sidebar'. The monitor has equal weight to the controls; neither column is decorative.", "section": "layout" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. Shadow appears only as a response to state (hover, focus, modal, toast). A panel that 'floats' without a state reason is showing off.", "section": "elevation" },
+      { "name": "The Tinted Shadow Rule", "body": "Shadows are tinted by the page background, not pure black on light surfaces. The light-theme shadow is a 10% gray; the dark-theme shadow is a 38% black.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use the indigo accent for one and only one thing per surface.",
+      "Do prefer weight (500 -> 700 -> 800) over size changes for hierarchy.",
+      "Do use --font-mono for any byte, hex, or timestamp display.",
+      "Do keep all spacing on a 10px (or 5px half-step) grid.",
+      "Do use the panel-pattern (14px radius + 1px border, no shadow) for new card-like surfaces.",
+      "Do reserve warning / danger / signal colors for state, not decoration.",
+      "Do label actions as verbs. No noun-only buttons, no emoji-prefixed labels, no question-mark help icons next to obvious buttons."
+    ],
+    "donts": [
+      "Don't introduce a second accent color.",
+      "Don't use 1px black borders, hard 4px shadows, or any outlined Material look.",
+      "Don't add tooltips that restate the button.",
+      "Don't add a 32px display font for marketing flair in the workspace.",
+      "Don't mix mono into UI chrome.",
+      "Don't use AI-default purple gradients, glassmorphism on every surface, or infinite-loop micro-animations.",
+      "Don't ship a new component before checking it against DESIGN.md."
+    ]
+  }
+}
