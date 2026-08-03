@@ -5657,10 +5657,12 @@
       border-bottom: 1px solid var(--border);
       background: var(--bg-panel-strong);
       flex-shrink: 0;
+      flex-wrap: wrap;
     }
 .dashboard-host     .toolbar .spacer { flex: 1; }
 .dashboard-host     .toolbar-btn {
-      height: 32px; padding: 0 14px;
+      height: 32px; padding: 0 12px;
+      white-space: nowrap;
       background: var(--bg); border: 1px solid var(--border);
       border-radius: 8px; cursor: pointer;
       font-size: 12px; font-weight: 600;
@@ -6907,19 +6909,71 @@
           <div class="main-row">
             <main class="content">
               <div class="toolbar">
-                <button class="toolbar-btn" id="dh-open-proto-editor">⚙ 协议编辑器</button>
-                <button class="toolbar-btn" id="dh-open-cmd-config">⚡ 命令管理</button>
-                <button class="toolbar-btn" id="dh-open-card-config">▤ 卡片配置</button>
-                <button class="toolbar-btn" id="dh-open-import-export">⇄ 导入 / 导出</button>
-                <button class="toolbar-btn" id="dh-open-alerts">🔔 告警配置</button>
+                <button class="toolbar-btn" id="dh-open-proto-editor">
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="6" cy="6" r="2.4"></circle>
+                    <circle cx="10" cy="10" r="2.4"></circle>
+                    <path d="M6 8.4v5.2M10 7.6V2.4M3.6 6h5.2M7.2 10H2"></path>
+                  </svg>
+                  协议编辑器
+                </button>
+                <button class="toolbar-btn" id="dh-open-cmd-config">
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
+                    <path d="M7 1L1.5 9h4L4 15l5.5-8h-4z"></path>
+                  </svg>
+                  命令管理
+                </button>
+                <button class="toolbar-btn" id="dh-open-card-config">
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+                    <rect x="1.5" y="1.5" width="6" height="5" rx="1"></rect>
+                    <rect x="8.5" y="1.5" width="6" height="5" rx="1"></rect>
+                    <rect x="1.5" y="9.5" width="6" height="5" rx="1"></rect>
+                    <rect x="8.5" y="9.5" width="6" height="5" rx="1"></rect>
+                  </svg>
+                  卡片配置
+                </button>
+                <button class="toolbar-btn" id="dh-open-import-export">
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M2 8h12M10 4l4 4-4 4M6 12L2 8l4-4"></path>
+                  </svg>
+                  导入 / 导出
+                </button>
+                <button class="toolbar-btn" id="dh-open-alerts">
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8 2c-3 0-5 2-5 5v3l-1.5 1.5h13L13 10V7c0-3-2-5-5-5z"></path>
+                    <path d="M6.5 13a1.5 1.5 0 003 0"></path>
+                  </svg>
+                  告警配置
+                </button>
                 <span class="toolbar-status"><span class="dot"></span>实时 800ms</span>
                 <span class="spacer"></span>
                 <span style="font-size: 11px; color: var(--text-soft); font-weight: 600;">布局</span>
                 <div class="layout-toggle">
-                  <button id="dh-layout-card" class="active" title="大卡 (趋势/对比)">▦ 大卡</button>
-                  <button id="dh-layout-list" title="小卡 (列表紧凑)">▤ 列表</button>
+                  <button id="dh-layout-card" class="active" title="大卡 (趋势/对比)">
+                    <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true">
+                      <rect x="1" y="1" width="6" height="6" rx="1"></rect>
+                      <rect x="9" y="1" width="6" height="6" rx="1"></rect>
+                      <rect x="1" y="9" width="14" height="6" rx="1"></rect>
+                      <rect x="1" y="9" width="6" height="6" rx="1"></rect>
+                    </svg>
+                    大卡
+                  </button>
+                  <button id="dh-layout-list" title="小卡 (列表紧凑)">
+                    <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true">
+                      <rect x="1" y="1" width="14" height="3" rx="0.5"></rect>
+                      <rect x="1" y="6" width="14" height="3" rx="0.5"></rect>
+                      <rect x="1" y="11" width="14" height="3" rx="0.5"></rect>
+                    </svg>
+                    列表
+                  </button>
                 </div>
-                <button class="toolbar-btn" id="dh-toggle-edit">✎ 编辑模式</button>
+                <button class="toolbar-btn" id="dh-toggle-edit">
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M11 2l3 3-8 8H3v-3z"></path>
+                    <path d="M10 3l3 3"></path>
+                  </svg>
+                  编辑模式
+                </button>
               </div>
               <div class="command-panel" id="dh-command-panel">
                 <span class="cmd-chip-label">命令:</span>
@@ -16382,10 +16436,10 @@
         // (不再错绑 v3.1 旧 toggleLayoutMode)
         refs.serialModeBtn?.addEventListener('click', () => switchToMode(false));
         refs.parserModeBtn?.addEventListener('click', () => switchToMode(true));
+        // v4.1.4: 双击仪表盘图标保持仪表盘不变, 不切回默认
+        // (用户要退出 dashboard 模式应点 #serial-mode-btn / #parser-mode-btn)
         refs.dashboardModeBtn?.addEventListener('click', () => {
-          if (appEl.classList.contains('mode-dashboard')) {
-            exitDashboardMode();
-          } else {
+          if (!appEl.classList.contains('mode-dashboard')) {
             enterDashboardMode();
           }
         });
