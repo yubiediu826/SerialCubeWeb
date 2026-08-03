@@ -1,346 +1,324 @@
-# SerialCube 仪表盘 - 需求文档 v2
+# SerialCube 仪表盘 - 需求文档 v3
 
-> 状态: v2 重新设计中 · 2026-08-03
+> 状态: v3 重新设计中 · 2026-08-03
 > 路径: `docs/dashboard-requirements.md`
 > 关联: [PRODUCT.md](../PRODUCT.md) · [DESIGN.md](../DESIGN.md) · [方案文档](./dashboard-design.md) · [架构](./architecture.md)
-> 上一版: v1 (2026-08-03) — 因"多命令 + 主从方向"模型缺失被推翻, 见 §11 重构说明
+> 上一版: v2 (2026-08-03) — UI 规范被推翻, 见 §12 重构说明
 
 ## 1. 概述
 
-SerialCube 当前支持两种工作模式:
+v2 在协议模型 (Command / Direction / Pair) 上对了, 但 **UI 形态没落地**:
+- 卡片高度不统一, 排版难
+- 没有"普通 vs Detail"双模式
+- 缺少详细分析视图 (4 sub-tab)
+- RX-only 字段没有强制只读保护
 
-1. **裸监视模式 (Monitor)**: 原始字节流 / 文本监视
-2. **字节解析模式 (Parser)**: 通过 token 模板把字节流解析成结构化字段
+v3 重构 UI 规范:
+- **等高等宽**卡片(高度统一, 网格整齐)
+- **普通 / Detail** 双模式 (普通: 紧凑概览, Detail: 全屏分析)
+- **Detail 模式 4 sub-tab**: 实时 / 通用 Modbus / 设备 / 查询状态
+- **图表类型可切换**: 折线 / 柱状 / 面积 / 散点 / 直方
+- **RX-only 永久只读** (`fromOtherCmd=true`)
 
-第三种模式 **仪表盘 (Dashboard)** 面向 **业务语义层**。v1 设计漏掉了工业协议的核心特征——**多命令 + 主从方向 + 设定-实际配对**——v2 重构。
+协议模型 v2 (Command / Direction / Pair) 全部保留, 延用 [DESIGN.md](../DESIGN.md) 设计语言 ("The Engineer's Workbench")。
 
-**v2 核心变化**: 把**协议命令 (Command)** 作为第一公民建模。每张卡片、KPI、告警、趋势都绑定**具体的命令 ID + 方向 (tx/rx)**,而不是裸字段名。
+## 2. 协议模型 (沿用 v2)
 
-## 2. 协议模型 (v2 新增)
+v2 的协议模型是底层 truth, v3 不动它:
+- **Command** (cmdId, direction, frameType, cadence, fields, expectResponse)
+- **Command Group** (跨多 cmd 归类)
+- **Field Pair** (setpoint ↔ telemetry)
+- **direction** (tx = 主机控制, rx = 设备数据)
+- **expectResponse** (rx 命令的期望响应 cmdId, 错配检测用)
 
-### 2.1 三层结构
+详见 [v2 需求文档 §2](./dashboard-requirements.md#2-协议模型-v2-新增) (但 v2 文件已被 v3 覆盖, 关键定义见 [方案 v3 §2](./dashboard-design.md#2-协议模型-沿用-v2))。
+
+## 3. 用户与场景 (沿用 v2, 略)
+
+详见 [v2 §3](./dashboard-requirements.md#3-用户与场景)。
+
+## 4. 目标与成功指标 (v3 调整)
+
+| ID  | 目标                                 | 衡量                                  |
+| --- | ------------------------------------ | ------------------------------------- |
+| G1  | 5 分钟内配置好仪表盘                | task completion time                   |
+| G2  | 实时刷新 ≤ 100ms                    | rx → dashboard render                  |
+| G3  | 告警 ≤ 500ms                        | 阈值越过 → 状态环变红                  |
+| G4  | 设定-实际对比 < 200ms               | tx 发送 → KPI 同步                     |
+| G5  | 50 张等高卡片网格渲染流畅            | 主线程 ≥ 60fps                          |
+| G6  | **Detail 模式 < 200ms 进入**        | 点 action → 大图渲染完成               |
+| G7  | **图表类型切换 < 100ms**            | 折线↔柱状↔面积↔散点↔直方               |
+| G8  | **RX-only 永远只读**                | fromOtherCmd=true 时写入 API 全部拒绝   |
+
+## 5. 范围 (v3 调整)
+
+### 5.1 In Scope (v3)
+
+- **协议命令模型** (沿用 v2): Command / CmdGroup / Pair / Direction / expectResponse
+- **模式切换** (沿用 v2): topbar mode-switch 第 3 项
+- **等高等宽卡片网格** ⭐v3 新约束:
+  - 所有卡片高度统一(普通模式固定 200px, KPI strip 96px)
+  - 网格排版整齐, 不允许异形卡片
+- **普通卡 (Default Card)** ⭐v3 重构:
+  - 5 个区域: 状态环 + 字段名+单位 / 当前值(大字) / 60 点 sparkline / 范围/告警文字 / 4 个 action
+  - 4 个 action: min / max / close / 状态相关
+- **Detail 模式 (Detail Card)** ⭐v3 重构:
+  - 进入: 点普通卡的 "expand" action 或卡片主体
+  - 呈现: 全屏 modal / drawer, 覆盖当前 dashboard
+  - 内容: 4 sub-tab + 实时/历史 toggle + 图表类型 dropdown + 大图 (200px) + stats (min/max/avg)
+- **Detail 4 sub-tab** ⭐v3 新增:
+  - **实时** (Real-time): 当前 cmd 的实时数据
+  - **通用 Modbus** (Modbus Common): Modbus 协议通用字段(从 cmd 表的 common 字段)
+  - **设备** (Device): 设备元信息(版本号、序列号、固件版本)
+  - **查询状态** (Query Status): 当前查询历史(发了几次、收到几次、错配次数)
+- **图表类型切换** ⭐v3 新增:
+  - 折线 (line) / 柱状 (bar) / 面积 (area) / 散点 (scatter) / 直方 (histogram)
+  - Detail 模式顶部 dropdown 切换
+- **Detail 时间窗 toggle** ⭐v3 新增:
+  - 实时 (60s 滚动窗口) / 历史 (全部)
+- **KPI stat strip** (沿用 v2)
+- **设定-实际对比** (沿用 v2 Pair, 在普通/Detail 都有体现)
+- **告警** (沿用 v2, 加 cmd 上下文 + 错配告警)
+- **配置导入导出** (沿用 v2)
+
+### 5.2 Out of Scope (v3, 同 v2)
+
+业务语义预置 / AI 异常检测 / 远程告警 / 多 profile 切换 / 拖放重排 / 命令冲突仲裁 / 复杂复合表达式
+
+## 6. 功能需求 (v3 重构)
+
+### 6.1 卡片布局规范 (v3 强约束) ⭐
+
+**所有普通卡等高 (200px) 等宽 (按列均分)**。
+
+#### 6.1.1 普通卡 (Default Card) 5 区域布局
 
 ```
-Protocol
-├── Command 0x01: Read Voltage (rx - 主机查询, 从机响应)
-│   ├── frame_type: query
-│   ├── fields: [cell_1_v, cell_2_v, ..., cell_16_v]
-│   └── cadence: 200ms (轮询)
-│
-├── Command 0x02: Read Current (rx)
-│   ├── frame_type: query
-│   ├── fields: [pack_i, cell_avg_i]
-│   └── cadence: 500ms
-│
-├── Command 0x10: Control Charge (tx - 主机发送)
-│   ├── frame_type: control
-│   ├── fields: [charge_v_set, charge_i_set, charge_enable]
-│   └── trigger: manual / on_event
-│
-└── Command 0x11: Control Discharge (tx)
-    ├── frame_type: control
-    ├── fields: [discharge_v_set, discharge_i_set, discharge_enable]
-    └── trigger: manual / on_event
+┌────────────────────────────────────────────────────┐
+│ ● Cell 1 电压                  [min][max][×][⚙]  │  ← 头部 (40px)
+│                                                    │
+│              3.71V                                 │  ← 主值 (60px 大字)
+│                                                    │
+│  ▁▂▃▅▆▇█▇▆▅▃▂▁▂▃▅▆▇ (60 点 sparkline)            │  ← 趋势 (40px)
+│                                                    │
+│  范围 2.8 - 4.2V  ·  ✓ 正常                       │  ← 底部 (40px)
+└────────────────────────────────────────────────────┘
 ```
 
-### 2.2 关键概念
+| 区域        | 高度  | 内容                                                                 |
+| ----------- | ----- | -------------------------------------------------------------------- |
+| 头部        | 40px  | ● 状态环 + 字段名 + 单位 + 4 个 action (icon buttons 24×24)        |
+| 主值        | 60px  | 当前值 (display font 32px / 800 weight), 单位小字 (label 11px)       |
+| 趋势        | 40px  | 60 点 sparkline, 高度占满, 宽度填充                                  |
+| 底部        | 40px  | 范围 / 告警文字 / 状态徽章 (左对齐, body 13px)                       |
+| 间距 / 内边距 | 12px | 上下左右 12px 内部 padding                                            |
+| **总高**    | **200px** | **固定,所有普通卡严格一致**                                    |
 
-| 概念            | 含义                                                                       |
-| --------------- | -------------------------------------------------------------------------- |
-| **Command**     | 协议中一条指令,有 `cmd_id` (0-255)、`name`、`direction` (tx/rx)、`cadence` |
-| **Direction**   | `tx` = 主机→设备 (控制) / `rx` = 设备→主机 (数据响应)                     |
-| **Field**       | 帧内字段,隶属于某个 Command,有 `name`、`type`、`unit`                       |
-| **Setpoint**    | 控制字段(tx 方向),表示"我打算让设备做啥"                                    |
-| **Telemetry**   | 数据字段(rx 方向),表示"设备实际做了啥"                                      |
-| **Pair**        | 一对 Setpoint + Telemetry,同一物理量(如 charge_v_set ↔ pack_v)             |
-| **Command Group** | 多条 Command 归类(如"电压组"含 0x01+0x02)                                |
+#### 6.1.2 4 个 Action 规范 ⭐
 
-### 2.3 v1 → v2 字段表达对比
+固定 4 个 action, 从左到右:
 
-```diff
--  { id: 'k1', field: 'cell_1_voltage', unit: 'V' }
-+  { id: 'k1', cmd: 0x01, direction: 'rx', field: 'cell_1_v', unit: 'V' }
-+
-+  { id: 'k1-set', cmd: 0x10, direction: 'tx', field: 'charge_v_set', unit: 'V',
-+    label: '充电设定' }
-+  { id: 'k1-act', cmd: 0x01, direction: 'rx', field: 'cell_avg_v', unit: 'V',
-+    label: '实际电压' }
+| Action    | icon  | 行为                                    | 何时显示 |
+| --------- | ----- | --------------------------------------- | -------- |
+| **min**   | `↓`   | 把图表时间窗切到最近 60s                | 始终     |
+| **max**   | `↑`   | 把图表时间窗切到全部历史                | 始终     |
+| **close** | `×`   | 关闭 / 隐藏该卡片(进入编辑模式才生效)   | 编辑模式 |
+| **状态相关** | 动态 | 根据 cmd 上下文动态切换:                  | 始终     |
+
+**"状态相关" action 行为表**:
+
+| 卡片类型                 | icon    | 行为                              |
+| ------------------------ | ------- | --------------------------------- |
+| **TX (控制字段)**         | `↗`     | 触发一次发送 (send 一次该 cmd)     |
+| **RX (数据字段, 告警中)** | `✓`     | 确认告警 (ack)                    |
+| **RX (数据字段, 正常)**   | `↻`     | 强制刷新一次 (trigger poll)       |
+| **Pair 卡片**             | `⇄`     | 跳转到 Pair 对比详情 (Detail)      |
+| **轮询 cmd** (非 manual)  | `⏸` / `▶` | 暂停 / 恢复轮询                  |
+
+#### 6.1.3 状态环规范
+
+**位置**: 头部最左侧, 8px 圆点
+
+| 状态            | 颜色     | token          | 触发条件                          |
+| --------------- | -------- | -------------- | --------------------------------- |
+| 正常 (Normal)   | 绿       | `--success`    | 值在正常范围, 无告警               |
+| 警告 (Warning)  | 橙       | `--warning`    | 值越 warning 阈值, 未越 danger     |
+| 异常 (Danger)   | 红       | `--danger`     | 值越 danger 阈值                   |
+| 离线 (Offline)  | 灰       | `--text-soft`  | N 秒内无更新 (默认 5s)             |
+| RX-only 永久只读 | 蓝       | `--signal`     | fromOtherCmd=true (永久, 不可改)   |
+
+**新 token**: `--success` (#22c55e) — DESIGN.md 暂未定义, v3 引入, 写入 design sidecar
+
+#### 6.1.4 RX-only 字段 (fromOtherCmd) ⭐
+
+**定义**: 该字段是"对方帧"的字段(在主-从通信中, 是 device→host 的字段, 即使 host 角色是 slave 也不能改)
+
+**强制规则**:
+- 状态环颜色: 蓝 (`--signal`), 不跟随告警变红 (因为状态环 = "数据来源" 颜色)
+- 4 个 action 中的 "状态相关" action 变为"只读" (cursor: not-allowed, 点击无效 + tooltip "RX-only, 不可写入")
+- 卡片右上角小徽章: "RX" (蓝色 9px mono)
+- 编辑模式不允许切换为"可写" — 任何尝试都被拒绝
+
+**业务例**:
+- 主机发 cmd 0x10 Control Charge, payload 含 charge_v_set
+- 设备响应 cmd 0x80 Charge Ack, payload 含 pack_v
+- 仪表盘中 pack_v 是 fromOtherCmd=true (它是 device→host 字段)
+- 即使配置 role=slave, pack_v 仍然只读
+
+### 6.2 Detail 模式 (v3 新增) ⭐
+
+#### 6.2.1 进入方式
+
+- 点普通卡的"expand" action (上面 4 个 action 中的"状态相关", 根据卡片类型动态)
+- 或点卡片主体(除 action 外的任何区域)
+
+#### 6.2.2 呈现形式
+
+**全屏 modal** (覆盖整个 dashboard, 1440px 宽, 90vh 高, 14px 圆角, ambient-soft 阴影)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  [×]  Cell 1 电压    0x01 rx  ·  范围 2.8 - 4.2V  ·  ✓ 正常     │  ← 头部
+├──────────────────────────────────────────────────────────────────┤
+│  [实时] [通用 Modbus] [设备] [查询状态]      [实时|历史]  [图表 ▾] │  ← 4 sub-tab + toggle + dropdown
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│                                                                  │
+│              完整大图 (200px 高)                                 │
+│              折线/柱状/面积/散点/直方                            │
+│                                                                  │
+│                                                                  │
+├──────────────────────────────────────────────────────────────────┤
+│  Min: 3.21V     Max: 3.78V     Avg: 3.62V     N: 60 采样        │  ← stats 栏
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-## 3. 用户与场景
+#### 6.2.3 4 Sub-tab 内容 (v3 新增) ⭐
 
-### 主用户
+| Sub-tab           | 内容                                                                 |
+| ----------------- | -------------------------------------------------------------------- |
+| **实时**          | 当前 cmd 的实时数据, 大图 200px 高, 实时刷新                        |
+| **通用 Modbus**   | Modbus 协议通用字段 (Function code, Register, Quantity, CRC 等)        |
+| **设备**          | 设备元信息 (固件版本 / 序列号 / 型号 / 厂商 / 协议版本)              |
+| **查询状态**      | 当前 cmd 的查询历史: 发送次数 / 收到次数 / 错配次数 / 最后错误 / 延迟   |
 
-嵌入式 / 硬件方向工程师(3-10 人团队), 工作在 BMS / EMS / PCS 等多命令协议调试一线。详见 [PRODUCT.md §Users](../PRODUCT.md)。
+#### 6.2.4 实时/历史 Toggle
 
-### 典型场景 (v2 重写)
+- 实时: 60s 滚动窗口, 数据持续刷新, 时间窗标签 "实时 (60s)"
+- 历史: 全部历史, 数据静态显示(用户可手动重新查询), 时间窗标签 "历史 (全部)"
 
-#### 场景 1: 充电控制调试
-- 主机发命令 `0x10 Control Charge`, payload: `{charge_v_set: 56.0, charge_i_set: 10.0, charge_enable: 1}`
-- 设备响应命令 `0x80 Charge Ack`, payload: `{status: 0x00, error_code: 0}`
-- 工程师在 dashboard 看:
-  - KPI: **设定 56.0V / 实际 55.8V / 误差 0.2V** (设定-实际对比一目了然)
-  - 卡片: 充电功率趋势(10min), 设定线 560W + 实际线 558W 双线
-  - 告警: 实际电流 > 10.5A → 红色
+#### 6.2.5 图表类型 Dropdown
 
-#### 场景 2: 多命令并发监控
-- 设备同时跑 6 条命令:
-  - `0x01 Read Voltage` 每 200ms
-  - `0x02 Read Current` 每 500ms
-  - `0x03 Read Temp` 每 1s
-  - `0x04 Read SOC/SOH` 每 5s
-  - `0x10 Control Charge` 手动
-  - `0x11 Control Discharge` 手动
-- 工程师用 command group "实时数据组" (含 0x01/0x02/0x03), KPI strip 只看这个组
-- 切到 command group "控制组" (0x10/0x11), 看设定值历史
+- 折线 (line): 默认, 适合趋势
+- 柱状 (bar): 适合离散采样
+- 面积 (area): 折线 + 填充
+- 散点 (scatter): 适合稀疏数据
+- 直方 (histogram): 适合值分布
 
-#### 场景 3: 命令匹配 / 错配诊断
-- 主机发了 `0x10`, 但收到的是 `0x81` (不是预期的 `0x80 Ack`)
-- 工程师在告警栏看到: "cmd 0x10 期望响应 0x80, 实际收到 0x81" → 排查协议 bug
+切换时 < 100ms (Canvas 2D 复用, 仅改 render 函数)。
 
-### 当前痛点 (v1 没解决的)
+#### 6.2.6 Stats 栏
 
-- 字段名冲突: 多个命令可能有同名字段(如 `status`), v1 没法区分
-- 设定 vs 实际割裂: 工程师要在 tx/rx 两个流之间手动对照
-- 多命令轮询时序: v1 KPI 同时显示不同时刻的字段值, 看起来"乱跳"
+- Min / Max / Avg (3 个大数值, label 11px + body 13px)
+- N: 采样数 (label 11px)
 
-## 4. 目标与成功指标
+#### 6.2.7 退出方式
 
-| ID  | 目标                                | 衡量                                            |
-| --- | ----------------------------------- | ----------------------------------------------- |
-| G1  | 5 分钟内配置好仪表盘(多命令场景)   | 多命令配置 task completion time                 |
-| G2  | 实时刷新 ≤ 100ms                   | rx 命令响应 → dashboard render                  |
-| G3  | 告警 ≤ 500ms                        | 阈值越过 → 卡片变红                             |
-| G4  | 设定-实际对比 < 200ms              | tx 发送 → KPI 对比更新                          |
-| G5  | 100 张卡片渲染流畅                  | 主线程 ≥ 60fps                                  |
-| G6  | 多命令路由错误 < 0.1%              | cmd 路由失败次数 / 总消息数                     |
-| G7  | 命令错配检测 ≥ 99%                 | 收到非预期 cmd 时的告警触发率                   |
+- 点 [×] 按钮
+- 按 Esc
+- 点 modal 外部(灰色 backdrop)
 
-## 5. 范围
+### 6.3 KPI Stat Strip (v2, 沿用 + 调整)
 
-### 5.1 In Scope (v2)
+- 5-7 个 KPI, 一行, **高度固定 96px** (等高约束)
+- 字段: cmd / cmd group / 全局
+- 配色: 沿用 DESIGN.md token
+- 触发告警的 KPI 高亮
 
-- **协议命令模型** (FR-CMD):
-  - Command 列表定义(name, cmd_id, direction, cadence, fields)
-  - Command Group(多命令归类)
-  - Field Pair(设定-实际配对)
-- **模式切换**: topbar mode-switch 加 "仪表盘" 选项
-- **4 种基础卡片**: 数值 / 趋势 / 状态 / 复合
-- **KPI stat strip**: 5-7 紧凑值,可选 "设定-实际" 双值布局
-- **字段绑定**: **绑定 cmd_id + direction + field_name**(不是裸 field)
-- **命令感知**: 卡片显示 cmd_id 徽章;KPI strip 可按 cmd / cmd group 过滤
-- **设定-实际对比卡 (Pair Card)**: 新增第 5 种卡片,专门用于对比
-- **告警**: 阈值规则(上限/下限/范围/状态匹配),告警栏显示 cmd_id
-- **趋势**: 1min / 10min / 全程, 60px sparkline,**支持双线(设定+实际)**
-- **命令错配告警**: 期望 cmd_id vs 实际 cmd_id 不一致时触发
-- **配置导入导出**: 复用 SerialWebUserConfig 体系, **新增 dashboard.commands / dashboard.cmdGroups / dashboard.pairs**
-- **浅深双主题 / 中英双语**
+### 6.4 Command Panel (v2, 沿用)
 
-### 5.2 Out of Scope (v2)
+- 顶部命令选择条
+- rx (蓝) / tx (紫) 配色
+- 错配角标
 
-- 业务语义预置(电池/储能模板)— 仍是 generic
-- AI 异常检测
-- 远程告警(邮件/钉钉)
-- 多仪表盘 profile 切换
-- 卡片拖放重排 (v2 后续)
-- 命令冲突自动仲裁(命令间互斥逻辑,如"充电时不能放电")
-- 复杂复合表达式(`set + actual * 0.95`)
+### 6.5 告警 (v2, 沿用)
 
-## 6. 功能需求
+- 阈值检测 / 错配检测
+- 告警栏 cmd_id + direction 徽章
+- 持续 / 确认 / history
 
-### 6.1 协议命令模型 (FR-CMD)
+### 6.6 配置 (v2, 沿用 + v3 新增)
 
-- **FR1.1**: Command 定义数据形状
-  ```ts
-  Command = {
-    cmdId: 0x01,                  // 1 字节命令 ID
-    name: 'Read Voltage',         // 显示名 (i18n)
-    direction: 'rx',              // 'tx' (host→device) | 'rx' (device→host)
-    frameType: 'query',           // 'query' (轮询) | 'control' (手动/事件触发) | 'event' (设备主动上报)
-    cadence: 200,                 // 轮询周期 (ms); 0 = 手动
-    fields: [
-      { name: 'cell_1_v', type: 'float32', unit: 'V', precision: 3 },
-      ...
-    ],
-    expectResponse: 0x80,         // 期望响应 cmd_id; 错配告警
-    enabled: true                 // 是否在仪表盘中启用
-  }
-  ```
-- **FR1.2**: Command Group 定义
-  ```ts
-  CmdGroup = { id: 'voltage', name: '电压组', cmdIds: [0x01, 0x02, 0x04] }
-  ```
-- **FR1.3**: Field Pair 定义(setpoint-telemetry 配对)
-  ```ts
-  Pair = {
-    id: 'charge_v',
-    name: '充电电压',
-    setpoint: { cmd: 0x10, field: 'charge_v_set' },
-    telemetry: { cmd: 0x80, field: 'pack_v' },
-    unit: 'V',
-    alert: { tolerance: 0.5 }   // 差值 > 0.5V 告警
-  }
-  ```
-- **FR1.4**: Command / Group / Pair 列表从 parser 配置继承(v2 增强 parser)
-  - parser 配置里定义 command 表
-  - dashboard 直接引用, 不重复定义
-- **FR1.5**: Command 列表可在 dashboard 顶部"命令面板"折叠/展开
+- JSON 导入导出
+- localStorage 持久化
+- 卡片编辑器 (v3 调整: 含"卡片类型"细分: value / trend / pair / rx-only, 4 sub-tab 选项在编辑器内可配)
 
-### 6.2 模式切换 (FR-MODE)
+## 7. 非功能需求 (v3 调整)
 
-- **FR2.1**: topbar mode-switch 加第三个按钮 "仪表盘"
-- **FR2.2**: 切换时保留 monitor / parser 状态, 不销毁
-- **FR2.3**: 切到 dashboard 时, 默认显示空状态(无仪表盘配置)或最后一次的仪表盘
-- **FR2.4**: 切回 monitor / parser 时, 状态完整恢复
+- **NFR1**: 实时刷新 ≤ 100ms
+- **NFR2**: **50 张等高卡片**渲染流畅 (v2 是 100, v3 降低因 Detail modal 占用资源)
+- **NFR3**: Detail 模式 < 200ms 进入
+- **NFR4**: 图表类型切换 < 100ms
+- **NFR5-NFR9**: 沿用 v2
 
-### 6.3 卡片系统 (FR-CARD)
+## 8. 约束 (沿用 v2 + v3 新增)
 
-- **FR3.1**: 5 种卡片类型:
-  - **数值卡 (Value)**: 单一字段,大字号
-  - **趋势卡 (Trend)**: 单一字段,含 60px sparkline
-  - **状态卡 (State)**: 状态码,颜色编码
-  - **复合卡 (Composite)**: 多字段(avg/max/min)
-  - **对比卡 (Pair)** ⭐v2 新增: 显示设定-实际配对,大字号差值,双线 sparkline
-- **FR3.2**: 字段绑定改为 `(cmd, direction, field_name)` 三元组
-  ```ts
-  Card = {
-    id: 'c1',
-    type: 'pair',
-    pair: 'charge_v',          // 引用 FR1.3 的 Pair
-    title: '充电电压',
-    trendWindow: '10min',
-    alert: { tolerance: 0.5, level: 'warning' }
-  }
-  ```
-- **FR3.3**: 卡片显示 cmd_id 徽章(右下角小标签)
-  - 例: `0x01 rx` / `0x10 tx`
-  - 配色: rx 用 `--signal`, tx 用 `--accent`
-- **FR3.4**: 数值格式化(同 v1): 整数/小数/百分比/十六进制/二进制
-- **FR3.5**: 单位显示(同 v1)
-- **FR3.6**: 阈值告警(同 v1,但阈值规则附在 Pair / Card 上,字段带 cmd 上下文)
-- **FR3.7**: 单仪表盘 ≤ 50 卡片
+- **延用 DESIGN.md**: 颜色 / 字体 / 圆角 / 间距 / 阴影 token 全部继承
+- **v3 新增 token**: `--success` (#22c55e) 状态环正常色, 写入 design sidecar
+- **等高约束**: 普通卡 200px / KPI 96px, 严格
+- **RX-only 硬约束**: fromOtherCmd=true 字段永远只读, 不允许配置覆盖
+- **协议模型不变**: v2 的 Command / Direction / Pair 全部保留
+- **数据兼容性**: 旧 userConfig v1/v2 仍可解析
 
-### 6.4 KPI Stat Strip (FR-KPI)
+## 9. 风险与缓解 (v3 调整)
 
-- **FR4.1**: 5-7 紧凑数值卡, 一行布局
-- **FR4.2**: KPI 过滤
-  - 顶部"命令面板"下拉: 全部 / 选中 cmd / 选中 cmd group
-  - 选中后, KPI strip 只显示该范围内的卡片
-- **FR4.3**: 对比型 KPI (Pair KPI) ⭐v2 新增
-  - 显示 "设定 56.0V / 实际 55.8V / 误差 0.2V"
-  - 误差 > 阈值时高亮 `--warning` 或 `--danger`
-- **FR4.4**: 触发告警的 KPI 高亮
+| ID  | 风险                                | 缓解                                                            |
+| --- | ----------------------------------- | --------------------------------------------------------------- |
+| R1  | 卡片等高约束与 Pair 卡内容冲突      | Pair 卡普通模式显示紧凑(实际值主导 + sparkline 双线), 等高不变 |
+| R2  | Detail modal 占用资源               | 单 modal 模式 (用户同时只能看一个 Detail), 关闭即销毁         |
+| R3  | 4 sub-tab 数据源不一致              | "实时" 走 trendData, "通用 Modbus" 走 parser config, "设备" 走 state.deviceInfo, "查询状态" 走 state.parser.txStats |
+| R4  | 图表类型切换性能                    | 复用 Canvas 2D, 仅替换 render 函数, 不重建 canvas              |
+| R5  | RX-only 字段被错误编辑              | 编辑器检测 fromOtherCmd=true → 显示"只读"提示, 保存时校验    |
+| R6  | Detail 模式回到普通模式状态丢失     | Detail 内的设置 (图表类型, 时间窗) 仅 Detail 内有效, 退出后回到普通模式默认 |
 
-### 6.5 趋势可视化 (FR-TREND)
+## 10. 开放问题 (v3 精简, 多数已决)
 
-- **FR5.1**: 3 档时间窗: 1min / 10min / 全程
-- **FR5.2**: 60px 高度 sparkline
-- **FR5.3**: 双线趋势 ⭐v2 新增
-  - 对比卡的趋势区显示两条线(设定=虚线,实际=实线)
-  - 颜色: 设定用 `--text-soft`,实际用 `--accent`
-- **FR5.4**: 阈值线(虚线, 用户配置时显示)
-- **FR5.5**: 鼠标悬停显示具体数值
-- **FR5.6**: 趋势数据滚动窗口, 每字段 1000 采样点 LRU
+- **O1-O2**: 拖放重排 / 多 profile — v3 后续
+- **O3**: 告警声音 — v3 可选
+- **O4**: 复合表达式 — v3 仅 avg/max/min + Pair
+- **O5**: 编辑器位置 — **右侧抽屉** (沿用 v2)
+- **O6**: 趋势数据导出 — v3 CSV
+- **O7**: parser v2 升级 — **是, Phase 0 前置**
+- **O8**: UserConfig v3 bump? — 建议, 加新字段 optional
+- **O9**: 错配告警默认开启? — **是**
+- **O10** ⭐: Detail 模式是 modal 还是 page? — **建议 modal (覆盖 dashboard), 不破坏 CommandPanel 上下文**
+- **O11** ⭐: 4 sub-tab 默认显示哪个? — **建议 "实时" (最常用)**
+- **O12** ⭐: RX-only 状态环是否与告警状态环合并? — **建议分开: 状态环 = 数据来源色 (蓝), 告警边框 = 告警 level (橙/红)**
 
-### 6.6 告警 (FR-ALERT)
+## 11. v2 → v3 UI 规范对照
 
-- **FR6.1**: 阈值规则触发后, 卡片 + KPI 立即变红
-- **FR6.2**: 告警栏每条告警显示:
-  - 时间
-  - **cmd_id + direction 徽章** ⭐v2 新增
-  - 字段名
-  - 当前值
-  - 阈值 / 配对差值
-  - 严重等级
-- **FR6.3**: 告警可点击定位到对应卡片
-- **FR6.4**: 告警可确认(acknowledge)
-- **FR6.5**: 告警等级: warning(橙) / danger(红)
-- **FR6.6**: 1s debounce
-- **FR6.7**: 告警栏可折叠
-- **FR6.8**: **命令错配告警** ⭐v2 新增
-  - 主机发了 cmd 0x10, 期望响应 0x80
-  - 收到 0x81 → 告警: "cmd 0x10 响应错配: 期望 0x80, 收到 0x81"
-  - 严重等级默认 danger
+| 维度              | v2                              | v3                                                       |
+| ----------------- | ------------------------------- | -------------------------------------------------------- |
+| 卡片高度          | 异形 (随内容变)                  | **统一 200px** (普通模式) / 96px (KPI)                    |
+| 卡片内容          | 自由布局                        | **5 区域强约束布局** (状态环/字段/主值/趋势/底部)         |
+| Action 数量       | 不固定                          | **固定 4 个** (min/max/close/状态相关)                   |
+| 详细分析          | 仅有趋势卡 (60px sparkline)     | **Detail 模式** (200px 大图 + 4 sub-tab + 图表类型切换)   |
+| 图表类型          | 仅折线                          | **5 种** (折线/柱状/面积/散点/直方)                      |
+| RX-only           | 未明确                          | **fromOtherCmd=true 永久只读, 状态环蓝, action 禁用**    |
+| 状态环            | 无                              | **新增, 5 种颜色** (绿/橙/红/灰/蓝)                     |
+| 状态环 + 告警边框 | 不分离                          | **分离**: 状态环=数据源, 边框=告警 level                  |
 
-### 6.7 配置 (FR-CONFIG)
+## 12. 重构说明 (v2 → v3)
 
-- **FR7.1**: JSON 导入/导出(复用 SerialWebUserConfig)
-  ```json
-  {
-    "type": "SerialWebUserConfig",
-    "version": 1,
-    "userConfig": {
-      ...
-      "dashboard": {
-        "commands": [ ... ],      // ⭐ v2 新增
-        "cmdGroups": [ ... ],     // ⭐ v2 新增
-        "pairs": [ ... ],         // ⭐ v2 新增
-        "kpiStrip": [ ... ],
-        "cards": [ ... ]
-      }
-    }
-  }
-  ```
-- **FR7.2**: localStorage 持久化(`serialweb:prefs.dashboard`)
-- **FR7.3**: 卡片编辑器
-  - 字段选择前先选 cmd(或选 Pair)
-  - 阈值设置同 v1
-  - 趋势窗同 v1
+v2 在协议模型 (Command / Direction / Pair) 上对了, UI 落地有缺陷:
 
-## 7. 非功能需求
+| 缺陷                                  | 影响                                       | v3 修复                                   |
+| ------------------------------------- | ------------------------------------------ | ----------------------------------------- |
+| 卡片高度不统一                        | 排版乱, 网格错位                           | **强制等高 200px**                       |
+| 缺少"普通 vs Detail"双模式            | 用户要么看概要, 要么看图表, 二选一         | **双模式**: 普通紧凑 + Detail 全屏分析     |
+| 缺少 4 sub-tab 详细分析维度          | 仪表盘只能看实时, 不能查 Modbus 通用/设备  | **4 sub-tab** 覆盖完整分析需求            |
+| 图表类型单一                          | 离散数据 / 值分布无法展示                  | **5 种图表切换**                          |
+| RX-only 字段没保护                    | 可能被误编辑, 引发协议 bug                  | **fromOtherCmd 永久只读** + UI 标记       |
+| 状态环与告警边框不分离                | 视觉混乱, 数据源与告警难区分                | **分离**: 状态环=数据源, 边框=告警 level  |
 
-- **NFR1**: rx 实时刷新 ≤ 100ms
-- **NFR2**: 100 张卡片渲染流畅
-- **NFR3**: 趋势数据 < 5MB / 字段
-- **NFR4**: 模式切换 < 200ms
-- **NFR5-NFR7**: 暗色 / 双语 / Chromium(同 v1)
-- **NFR8**: 命令路由事件不阻塞主线程(异步 event bus)
-- **NFR9**: 单文件 HTML 原则
-
-## 8. 约束
-
-- 复用 DESIGN.md token(8 条 Named Rules 全部继承)
-- 复用 PRODUCT.md 约束(单文件 / Chromium / 数据兼容性)
-- **parser 配置是 command 表的 source of truth**;dashboard 引用之, 不重新定义
-- 复用 SerialWebUserConfig 体系, version bump 到 v2
-- 数据兼容性字段不破坏(旧 userConfig 仍可解析,dashboard 字段缺失时为空)
-
-## 9. 风险与缓解
-
-| ID  | 风险                                | 缓解                                                  |
-| --- | ----------------------------------- | ----------------------------------------------------- |
-| R1  | Command 列表膨胀 → UI 杂乱         | Command Group 分组 + 可折叠;KPI 按 group 过滤        |
-| R2  | 多命令并发 → 事件乱序              | Event bus 按 cmd_id + timestamp 排序;主线程单消费者 |
-| R3  | 同名字段冲突(多命令)               | 字段全名 = `cmd.field`,不靠裸 name                    |
-| R4  | 设定-实际配对错配                  | Pair 定义独立,Card 引用 Pair, 配对关系不重复          |
-| R5  | 命令错配漏报                      | 收到非预期 cmd → 立即告警, 不依赖业务字段解析         |
-| R6  | Card 数量过多 + Pair 渲染负担      | 软限制 50 卡;Pair 趋势用 2 个 sparkline(不开双倍)   |
-| R7  | parser 配置 v1 → v2 升级         | 旧 parser config 兼容,command 字段为空时降级到 v1 模型 |
-
-## 10. 开放问题
-
-- **O1**: v2 是否含"卡片拖放重排"? — 仍建议 v2 后续
-- **O2**: 多仪表盘 profile? — 仍建议 v2 后续
-- **O3**: 告警声音? — v2 可选,Web Audio API beep
-- **O4**: 复合卡表达式范围? — v2 仅 avg/max/min + 设定-实际配对
-- **O5**: 编辑器位置 — **已选右侧抽屉**
-- **O6**: 趋势数据导出? — v2 导出 CSV
-- **O7** ⭐: parser v2 是否同步升级? — Command 表应在 parser 配, dashboard 引用
-- **O8** ⭐: UserConfig 是否 bump 到 v2? — 建议, 加新字段为 optional 兼容 v1
-- **O9** ⭐: 命令错配告警是否默认开启? — 建议默认开, 用户可关
-
-## 11. 重构说明 (v1 → v2)
-
-v1 设计漏掉了工业协议的核心特征, 关键缺陷:
-
-| 缺陷                                | 影响                                  | v2 修复                          |
-| ----------------------------------- | ------------------------------------- | -------------------------------- |
-| 字段绑定是裸 `field_name`            | 跨命令同名字段冲突无法区分            | `(cmd, direction, field)` 三元组 |
-| 没有命令模型                        | 多命令并发无法路由                    | Command 第一公民                  |
-| 没有 tx / rx 方向                   | 控制字段和数据字段混在一起            | direction 标签 + 配色区分        |
-| 没有设定-实际配对                    | 工程师看不到"我设了 vs 实际跑"        | Pair Card + Pair KPI + 双线趋势  |
-| 没有命令错配检测                    | 协议 bug 排查难                      | FR6.8 期望响应 vs 实际响应       |
-| 告警无 cmd 上下文                    | 多个命令同时告警时分不清              | 告警栏加 cmd_id + direction 徽章 |
-| KPI 不能按命令过滤                  | 多命令场景下 KPI 跳变                  | FR4.2 命令面板下拉过滤           |
-
-v1 的需求文档和方案文档已被 v2 覆盖。架构分析 (docs/architecture.md) 不变, dashboard 模块尚未实现。
+v2 协议模型不变, v3 是 UI 层重构。Phase 0 (parser v2 升级) 仍有效。
