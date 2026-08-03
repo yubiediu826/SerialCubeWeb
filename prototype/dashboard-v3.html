@@ -410,43 +410,45 @@
     /* 小卡片 (列表视图) */
     .list-card {
       width: 100%;
-      height: 44px;
-      padding: 8px 14px;
+      min-height: 80px;
+      padding: 10px 12px;
       background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: var(--radius-small);
-      display: grid;
-      grid-template-columns: auto 1fr auto auto auto;
-      gap: 12px;
-      align-items: center;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
       cursor: pointer;
       transition: border-color 0.15s ease;
       flex-shrink: 0;
+      position: relative;
     }
     .list-card:hover { border-color: var(--border-strong); }
     .list-card.alert-warning { border-color: var(--warning); }
     .list-card.alert-danger { border-color: var(--danger); }
-    .list-card .lc-status-ring { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+    .list-card .lc-status-ring { position: absolute; top: 10px; right: 10px; width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
     .list-card .lc-status-ring.warn { background: var(--warning); }
     .list-card .lc-status-ring.danger { background: var(--danger); }
     .list-card .lc-status-ring.rx { background: var(--signal); }
     .list-card .lc-label {
-      font-size: 12px; color: var(--text); font-weight: 600;
+      font-size: 11px; color: var(--text-soft); font-weight: 600;
       display: flex; align-items: center; gap: 6px;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .list-card .lc-label .lc-field { font-family: var(--font-mono); font-size: 10px; color: var(--text-soft); font-weight: 500; }
     .list-card .lc-value {
       font-family: var(--font-mono);
-      font-size: 16px; font-weight: 800;
+      font-size: 18px; font-weight: 800;
       color: var(--text);
+      line-height: 1.1;
     }
     .list-card .lc-value .unit { font-size: 11px; color: var(--text-soft); margin-left: 3px; font-weight: 600; }
     .list-card .lc-range {
       font-family: var(--font-mono);
       font-size: 10px; color: var(--text-soft);
     }
-    .list-card .lc-actions { display: flex; gap: 1px; }
+    .list-card .lc-actions { position: absolute; bottom: 6px; right: 6px; display: flex; gap: 1px; opacity: 0; transition: opacity 0.15s; }
+    .list-card:hover .lc-actions { opacity: 1; }
 
     /* Alert Drawer */
     .alert-drawer {
@@ -1262,6 +1264,77 @@
     }
     return crc;
   }
+  function crc16Ccitt(bytes, init) {
+    let crc = init ?? 0xFFFF;
+    for (let i = 0; i < bytes.length; i++) {
+      crc ^= (bytes[i] << 8);
+      for (let j = 0; j < 8; j++) {
+        crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+      }
+    }
+    return crc;
+  }
+  function crc8(bytes, init, poly) {
+    let crc = init ?? 0x00;
+    const p = poly ?? 0x07;
+    for (let i = 0; i < bytes.length; i++) {
+      crc ^= bytes[i];
+      for (let j = 0; j < 8; j++) {
+        crc = (crc & 0x80) ? ((crc << 1) ^ p) & 0xFF : (crc << 1) & 0xFF;
+      }
+    }
+    return crc;
+  }
+  function crcChecksum(bytes) {
+    return bytes.reduce((a, b) => (a + b) & 0xFF, 0);
+  }
+  function crcXor(bytes) {
+    return bytes.reduce((a, b) => a ^ b, 0);
+  }
+  function computeCrc(type, bytes, init) {
+    switch (type) {
+      case 'none': return 0;
+      case 'checksum': return crcChecksum(bytes);
+      case 'xor': return crcXor(bytes);
+      case 'crc8': return crc8(bytes, init);
+      case 'crc16-modbus': return crc16Modbus(bytes);
+      case 'crc16-ccitt': return crc16Ccitt(bytes, init);
+      default: return 0;
+    }
+  }
+  function crcByteSize(type) {
+    return (type === 'crc16-modbus' || type === 'crc16-ccitt') ? 2 : 1;
+  }
+  function crcTypeLabel(t) {
+    return { none: '无', checksum: 'Checksum', xor: 'XOR', crc8: 'CRC-8', 'crc16-modbus': 'CRC-16 MODBUS', 'crc16-ccitt': 'CRC-16 CCITT' }[t] || t;
+  }
+  // 把 dataFields 数组按协议 + 字段类型编码为字节
+  function encodeDataFields(cmd, protocol) {
+    const out = [];
+    const protoEndian = (protocol && protocol.byteOrder) || 'BE';
+    for (const fname of (cmd.dataFields || [])) {
+      const df = DATA_FIELDS.find(d => d.name === fname);
+      if (!df) continue;
+      const v = Number(currentVals[fname] ?? parseHexOr0(df.default)) || 0;
+      const bo = df.byteOrder || protoEndian;
+      const t = df.type;
+      if (t === 'u8' || t === 'i8') {
+        out.push(v & 0xFF);
+      } else if (t === 'u16' || t === 'i16') {
+        if (bo === 'LE') { out.push(v & 0xFF, (v >> 8) & 0xFF); }
+        else { out.push((v >> 8) & 0xFF, v & 0xFF); }
+      } else if (t === 'u32' || t === 'i32') {
+        if (bo === 'LE') { out.push(v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF); }
+        else { out.push((v >> 24) & 0xFF, (v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF); }
+      } else if (t === 'float') {
+        // 简化: 4 字节整数表示(非真正 IEEE754,prototype 用)
+        const iv = Math.round(v);
+        if (bo === 'LE') { out.push(iv & 0xFF, (iv >> 8) & 0xFF, (iv >> 16) & 0xFF, (iv >> 24) & 0xFF); }
+        else { out.push((iv >> 24) & 0xFF, (iv >> 16) & 0xFF, (iv >> 8) & 0xFF, iv & 0xFF); }
+      }
+    }
+    return out;
+  }
 
   function parseHexOr0(s) {
     if (s === null || s === undefined || s === '') return 0;
@@ -1279,11 +1352,15 @@
       name: 'BMS TLV v1',
       byteOrder: 'BE',
       crcRange: 'all',  // 'all' | 'no_header' | 'no_tail' | 'no_header_tail' | 'data_only'
+      crcType: 'crc16-modbus',
+      crcInit: '0xFFFF',
+      crcEndian: 'LE',
       fields: [
         { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
         { id: 'f2', name: 'addr',   type: 'addr',   size: 1, byteOrder: null, default: '0x01' },
         { id: 'f3', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
         { id: 'f4', name: 'length', type: 'length', size: 1, byteOrder: 'BE', default: 'auto' },
+        { id: 'f4d',name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
         { id: 'f5', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' },
         { id: 'f6', name: 'tail',   type: 'tail',   size: 1, byteOrder: null, default: '0x55' }
       ]
@@ -1293,6 +1370,9 @@
       name: 'Modbus RTU',
       byteOrder: 'LE',
       crcRange: 'no_header',
+      crcType: 'crc16-modbus',
+      crcInit: '0xFFFF',
+      crcEndian: 'LE',
       fields: [
         { id: 'm1', name: 'addr',   type: 'addr', size: 1, byteOrder: null, default: '0x01' },
         { id: 'm2', name: 'func',   type: 'cmd',  size: 1, byteOrder: null, default: '0x03' },
@@ -1431,11 +1511,11 @@
   function buildFrame(protocol, cmd) {
     if (!protocol) return { bytes: [], sections: [] };
     const sections = [];
-    const data = [];
-    for (let i = 0; i < (cmd.dataSize || 0) / 2; i++) {
-      const v = i * 100 + Math.floor(Math.random() * 50);
-      data.push((v >> 8) & 0xFF, v & 0xFF);
-    }
+    // 从 cmd.dataFields 真实编码 data 段(按 u8/u16/u32/float + 字节序)
+    const data = encodeDataFields(cmd, protocol);
+    const crcType = protocol.crcType || 'crc16-modbus';
+    const crcSize = crcByteSize(crcType);
+    const crcEndian = protocol.crcEndian || 'LE';
     for (const f of protocol.fields) {
       let bytes = [];
       if (f.type === 'header' || f.type === 'addr' || f.type === 'tail') {
@@ -1447,7 +1527,7 @@
       } else if (f.type === 'data') {
         bytes = [...data];
       } else if (f.type === 'crc') {
-        bytes = [0, 0];
+        bytes = new Array(crcSize).fill(0);
       }
       sections.push({ type: f.type, name: f.name, bytes });
     }
@@ -1465,7 +1545,7 @@
         if (crcFieldIdx < 0) return true;
         let offset = 0;
         for (let k = 0; k < crcFieldIdx; k++) offset += protocol.fields[k].size || sections[k].bytes.length;
-        return i < offset || i >= offset + (protocol.fields[crcFieldIdx].size || 2);
+        return i < offset || i >= offset + (protocol.fields[crcFieldIdx].size || crcSize);
       });
     } else if (crcRange === 'no_header') {
       // 不含帧头
@@ -1480,7 +1560,7 @@
         let offset = 0;
         for (let k = 0; k < crcFieldIdx; k++) offset += protocol.fields[k].size || sections[k].bytes.length;
         crcStart = offset;
-        crcEnd = offset + (protocol.fields[crcFieldIdx].size || 2);
+        crcEnd = offset + (protocol.fields[crcFieldIdx].size || crcSize);
       }
       crcInputBytes = allBytes.filter((_, i) => (i >= headerEnd && i < crcStart) || i >= crcEnd);
     } else if (crcRange === 'no_tail') {
@@ -1490,7 +1570,7 @@
         let offset = 0;
         for (let k = 0; k < crcFieldIdx; k++) offset += protocol.fields[k].size || sections[k].bytes.length;
         crcStart = offset;
-        crcEnd = offset + (protocol.fields[crcFieldIdx].size || 2);
+        crcEnd = offset + (protocol.fields[crcFieldIdx].size || crcSize);
       }
       crcInputBytes = allBytes.filter((_, i) => (i < crcStart) || i >= crcEnd);
     } else if (crcRange === 'no_header_tail') {
@@ -1505,7 +1585,7 @@
         let offset = 0;
         for (let k = 0; k < crcFieldIdx; k++) offset += protocol.fields[k].size || sections[k].bytes.length;
         crcStart = offset;
-        crcEnd = offset + (protocol.fields[crcFieldIdx].size || 2);
+        crcEnd = offset + (protocol.fields[crcFieldIdx].size || crcSize);
       }
       // 排除 header 和 tail
       const tailFieldIdx = protocol.fields.findIndex(f => f.type === 'tail');
@@ -1531,9 +1611,17 @@
         crcInputBytes = allBytes.slice(offset, offset + data.length);
       }
     }
-    const crc = crc16Modbus(crcInputBytes);
+    const crcInit = parseHexOr0(protocol.crcInit);
+    const crcVal = computeCrc(crcType, crcInputBytes, crcInit);
     for (const s of sections) {
-      if (s.type === 'crc') s.bytes = [(crc >> 8) & 0xFF, crc & 0xFF];
+      if (s.type === 'crc') {
+        if (crcSize === 1) {
+          s.bytes = [crcVal & 0xFF];
+        } else {
+          if (crcEndian === 'BE') s.bytes = [(crcVal >> 8) & 0xFF, crcVal & 0xFF];
+          else s.bytes = [crcVal & 0xFF, (crcVal >> 8) & 0xFF];
+        }
+      }
     }
     const finalBytes = [];
     sections.forEach(s => finalBytes.push(...s.bytes));
@@ -1580,14 +1668,17 @@
     el.innerHTML = '';
     const filtered = CARDS.filter(c => selectedCmd === 'all' || matchCard(c, selectedCmd));
     if (cardLayout === 'list') {
-      el.style.flexDirection = 'column';
+      el.style.display = 'grid';
+      el.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
+      el.style.gap = '8px';
       el.style.alignItems = 'stretch';
-      el.style.gap = '4px';
       filtered.forEach(c => el.appendChild(renderListCard(c)));
     } else {
+      el.style.display = 'flex';
       el.style.flexDirection = 'row';
       el.style.alignItems = 'flex-start';
       el.style.gap = '12px';
+      el.style.flexWrap = 'wrap';
       filtered.forEach(c => el.appendChild(renderCard(c)));
       const add = document.createElement('div');
       add.className = 'card-add-slot';
@@ -1678,7 +1769,7 @@
         <span class="lc-status-ring ${dCls}"></span>
         <span class="lc-label">${c.title} <span class="lc-field">pair</span></span>
         <span class="lc-value">SET ${set.toFixed(1)} / ACT ${act.toFixed(1)}</span>
-        <span class="lc-range">Δ ${delta > 0 ? '+' : ''}${delta.toFixed(1)}</span>
+        <span class="lc-range">Δ ${delta > 0 ? '+' : ''}${delta.toFixed(1)} · ${c.range ? `${c.range[0]}-${c.range[1]}${c.unit}` : '—'}</span>
         <span class="lc-actions">
           <button class="card-action edit-btn" title="编辑" onclick="event.stopPropagation(); openCardEdit('${c.id}')">✎</button>
         </span>
@@ -1693,7 +1784,7 @@
       const flashClass = (lastValues[c.field] !== undefined && Math.abs(v - lastValues[c.field]) > 0.001) ? ' flash' : '';
       card.innerHTML = `
         <span class="lc-status-ring ${ring}"></span>
-        <span class="lc-label">${c.title} <span class="lc-field">${cmdHex} · ${c.field}</span></span>
+        <span class="lc-label">${c.title} <span class="lc-field">${cmdHex}·${c.field}</span></span>
         <span class="lc-value${flashClass}">${v.toFixed(c.precision || 2)}<span class="unit">${c.unit || ''}</span></span>
         <span class="lc-range">${c.range ? `${c.range[0]}-${c.range[1]}${c.unit}` : '—'}</span>
         <span class="lc-actions">
@@ -1840,7 +1931,7 @@
     addTab.onclick = () => {
       const id = 'proto_' + Date.now().toString(36);
       PROTOCOLS.push({
-        id, name: '新协议', byteOrder: 'BE', crcRange: 'all',
+        id, name: '新协议', byteOrder: 'BE', crcRange: 'all', crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE',
         fields: [
           { id: 'h' + Date.now().toString(36), name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
           { id: 'a' + Date.now().toString(36), name: 'addr',   type: 'addr',   size: 1, byteOrder: null, default: '0x01' },
@@ -1898,31 +1989,60 @@
         <div class="data-field-list" id="data-field-list"></div>
       </div>
 
-      <!-- 3. 帧预览 -->
+      <!-- 3. CRC 设置 -->
       <div class="proto-section">
         <div class="proto-section-head">
           <div class="proto-section-title">
             <span class="num">3</span>
-            <span>帧预览</span>
+            <span>CRC 设置 (类型 · 初始值 · 字节序 · 校验范围)</span>
           </div>
-          <span style="font-size: 11px; color: var(--text-soft);">基于 <strong>${previewCmd ? `0x${previewCmd.id.toString(16).padStart(2,'0').toUpperCase()} ${previewCmd.name}` : '无'}</strong></span>
         </div>
-        <div class="form-row" style="margin-bottom: 8px;">
-          <label>CRC 校验范围</label>
-          <select class="form-select" id="proto-crc-range" style="max-width: 320px;">
-            <option value="all" ${proto.crcRange === 'all' ? 'selected' : ''}>全部字段 (header → tail)</option>
+        <div class="form-row col-3" style="margin-bottom: 8px;">
+          <label>CRC 类型</label>
+          <select class="form-select" id="proto-crc-type">
+            <option value="none" ${(proto.crcType || 'crc16-modbus') === 'none' ? 'selected' : ''}>无</option>
+            <option value="checksum" ${proto.crcType === 'checksum' ? 'selected' : ''}>Checksum (8-bit sum)</option>
+            <option value="xor" ${proto.crcType === 'xor' ? 'selected' : ''}>XOR (8-bit)</option>
+            <option value="crc8" ${proto.crcType === 'crc8' ? 'selected' : ''}>CRC-8 (poly 0x07)</option>
+            <option value="crc16-modbus" ${(!proto.crcType || proto.crcType === 'crc16-modbus') ? 'selected' : ''}>CRC-16 MODBUS (poly 0xA001)</option>
+            <option value="crc16-ccitt" ${proto.crcType === 'crc16-ccitt' ? 'selected' : ''}>CRC-16 CCITT (poly 0x1021)</option>
+          </select>
+          <label>初始值 (hex)</label>
+          <input class="form-input mono" id="proto-crc-init" value="${escapeHtml(proto.crcInit || (proto.crcType === 'crc8' || proto.crcType === 'checksum' || proto.crcType === 'xor' ? '0x00' : '0xFFFF'))}" placeholder="0xFFFF">
+          <label>CRC 字节序</label>
+          <select class="form-select" id="proto-crc-endian">
+            <option value="LE" ${(!proto.crcEndian || proto.crcEndian === 'LE') ? 'selected' : ''}>LE 小端</option>
+            <option value="BE" ${proto.crcEndian === 'BE' ? 'selected' : ''}>BE 大端</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>校验范围</label>
+          <select class="form-select" id="proto-crc-range" style="max-width: 360px;">
+            <option value="all" ${(!proto.crcRange || proto.crcRange === 'all') ? 'selected' : ''}>全部字段 (header → tail)</option>
             <option value="no_header" ${proto.crcRange === 'no_header' ? 'selected' : ''}>不含帧头 (Modbus 风格)</option>
             <option value="no_tail" ${proto.crcRange === 'no_tail' ? 'selected' : ''}>不含帧尾</option>
             <option value="no_header_tail" ${proto.crcRange === 'no_header_tail' ? 'selected' : ''}>不含帧头帧尾</option>
             <option value="data_only" ${proto.crcRange === 'data_only' ? 'selected' : ''}>只对 data 段</option>
           </select>
         </div>
+      </div>
+
+      <!-- 4. 帧预览 -->
+      <div class="proto-section">
+        <div class="proto-section-head">
+          <div class="proto-section-title">
+            <span class="num">4</span>
+            <span>帧预览</span>
+          </div>
+          <span style="font-size: 11px; color: var(--text-soft);">基于 <strong>${previewCmd ? `0x${previewCmd.id.toString(16).padStart(2,'0').toUpperCase()} ${previewCmd.name}` : '无'}</strong></span>
+        </div>
         <div class="frame-preview">
           <div class="frame-bytes" id="frame-bytes"></div>
           <div class="frame-meta">
             <div class="meta-item"><span class="meta-key">总字节</span><span class="meta-val" id="meta-total">—</span></div>
-            <div class="meta-item"><span class="meta-key">CRC16</span><span class="meta-val" id="meta-crc">—</span></div>
-            <div class="meta-item"><span class="meta-key">CRC 范围</span><span class="meta-val" id="meta-crc-range">—</span></div>
+            <div class="meta-item"><span class="meta-key">CRC 类型</span><span class="meta-val" id="meta-crc-type">—</span></div>
+            <div class="meta-item"><span class="meta-key">CRC 值</span><span class="meta-val" id="meta-crc">—</span></div>
+            <div class="meta-item"><span class="meta-key">校验范围</span><span class="meta-val" id="meta-crc-range">—</span></div>
           </div>
           <div class="legend">
             <span class="legend-item"><span class="dot header"></span>header 帧头</span>
@@ -1942,6 +2062,16 @@
     renderFramePreview(frame, proto);
     document.getElementById('proto-name').oninput = (e) => { proto.name = e.target.value || '未命名'; renderProtoEditor(); };
     document.getElementById('proto-endian').onchange = (e) => { proto.byteOrder = e.target.value; renderFramePreview(buildFrame(proto, previewCmd), proto); };
+    document.getElementById('proto-crc-type').onchange = (e) => {
+      proto.crcType = e.target.value;
+      // 切换类型时自动调整默认初始值
+      if (!proto.crcInit || proto.crcInit === '0xFFFF' || proto.crcInit === '0x00') {
+        proto.crcInit = (e.target.value === 'crc8' || e.target.value === 'checksum' || e.target.value === 'xor' || e.target.value === 'none') ? '0x00' : '0xFFFF';
+      }
+      renderProtoEditor();
+    };
+    document.getElementById('proto-crc-init').oninput = (e) => { proto.crcInit = e.target.value; renderFramePreview(buildFrame(proto, previewCmd), proto); };
+    document.getElementById('proto-crc-endian').onchange = (e) => { proto.crcEndian = e.target.value; renderFramePreview(buildFrame(proto, previewCmd), proto); };
     document.getElementById('proto-crc-range').onchange = (e) => { proto.crcRange = e.target.value; renderFramePreview(buildFrame(proto, previewCmd), proto); document.getElementById('meta-crc-range').textContent = crcRangeLabel(e.target.value); };
     document.getElementById('add-field-btn').onclick = () => {
       proto.fields.push({ id: 'f' + Date.now().toString(36), name: 'new_field', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' });
@@ -2066,12 +2196,16 @@
     document.getElementById('meta-total').textContent = frame.bytes.length + ' 字节';
     const crcField = frame.sections.find(s => s.type === 'crc');
     let crc = '—';
-    if (crcField) {
-      const v = (crcField.bytes[0] << 8) | crcField.bytes[1];
-      crc = '0x' + v.toString(16).padStart(4, '0').toUpperCase();
+    if (crcField && crcField.bytes.length >= 1) {
+      const v = crcField.bytes.length === 1
+        ? crcField.bytes[0]
+        : ((crcField.bytes[0] << 8) | crcField.bytes[1]);
+      crc = '0x' + v.toString(16).padStart(crcField.bytes.length * 2, '0').toUpperCase();
     }
     document.getElementById('meta-crc').textContent = crc;
     if (proto) {
+      const tEl = document.getElementById('meta-crc-type');
+      if (tEl) tEl.textContent = crcTypeLabel(proto.crcType || 'crc16-modbus');
       const rEl = document.getElementById('meta-crc-range');
       if (rEl) rEl.textContent = crcRangeLabel(proto.crcRange || 'all');
     }
@@ -2512,17 +2646,22 @@
   };
   document.getElementById('proto-reset').onclick = () => {
     PROTOCOLS = [
-      { id: 'proto_bms', name: 'BMS TLV v1', byteOrder: 'BE', crcRange: 'all', fields: [
+      { id: 'proto_bms', name: 'BMS TLV v1', byteOrder: 'BE', crcRange: 'all', crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE', fields: [
         { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
         { id: 'f2', name: 'addr',   type: 'addr',   size: 1, byteOrder: null, default: '0x01' },
         { id: 'f3', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
         { id: 'f4', name: 'length', type: 'length', size: 1, byteOrder: 'BE', default: 'auto' },
+        { id: 'f4d',name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
         { id: 'f5', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' },
         { id: 'f6', name: 'tail',   type: 'tail',   size: 1, byteOrder: null, default: '0x55' }
       ]},
-      { id: 'proto_modbus', name: 'Modbus RTU', byteOrder: 'LE', crcRange: 'no_header', fields: [
+      { id: 'proto_modbus', name: 'Modbus RTU', byteOrder: 'LE', crcRange: 'no_header', crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE', fields: [
         { id: 'm1', name: 'addr', type: 'addr', size: 1, default: '0x01' },
         { id: 'm2', name: 'func', type: 'cmd', size: 1, default: '0x03' },
+        { id: 'm3', name: 'reg_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+        { id: 'm4', name: 'reg_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+        { id: 'm5', name: 'qty_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+        { id: 'm6', name: 'qty_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x04' },
         { id: 'm7', name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' }
       ]}
     ];
