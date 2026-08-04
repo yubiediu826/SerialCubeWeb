@@ -5899,7 +5899,7 @@
     }
 .dashboard-host     .pair-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .dashboard-host     .pair-cell .label { font-size: 8px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; }
-.dashboard-host     .pair-cell .val { font-family: var(--font-mono); font-size: 14px; font-weight: 800; }
+.dashboard-host     .pair-cell .val { font-family: var(--font-mono); font-size: 20px; font-weight: 800; }  /* v4.9.11: 14→20 跟 trend 大卡 22px 数字看齐 */
 .dashboard-host     .pair-cell.setpoint .val { color: var(--text-soft); font-weight: 700; }
 .dashboard-host     .pair-cell.actual .val { color: var(--text); font-weight: 800; }
 .dashboard-host     .pair-cell.delta .val { font-size: 11px; padding: 1px 5px; border-radius: 3px; }
@@ -5983,6 +5983,11 @@
     }
 .dashboard-host     .list-card .lc-actions { position: absolute; bottom: 6px; right: 6px; display: flex; gap: 1px; opacity: 0; transition: opacity 0.15s; }
 .dashboard-host     .list-card:hover .lc-actions { opacity: 1; }
+    /* v4.9.11: pair list-card SET/ACT 单行不 wrap (跟 trend card 同样 2 行, 高度一致)
+       全部命令视图下 pair 跟 trend 在同一 grid row, 22px font 14 字 wrap 成 2 行让 pair 高 ~24px.
+       150px 容器内 12px mono ~ 7.2px/char, "SET 56.0 / ACT 55.0" 18 字符 = ~130px 刚好 fit */
+.dashboard-host     .list-card.is-pair .lc-value { font-size: 12px; font-weight: 700; white-space: nowrap; line-height: 1.2; }
+.dashboard-host     .list-card.is-pair .lc-range { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     /* Alert Drawer */
 .dashboard-host     .alert-drawer {
@@ -9736,7 +9741,7 @@
 
         NS.renderListCard = function (c) {
           const card = document.createElement('div');
-          card.className = 'list-card';
+          card.className = 'list-card' + (c.type === 'pair' ? ' is-pair' : '');
           if (c.type === 'pair') {
             // v4.4.3: pair 卡 SET/ACT 派生, 用 c.pairId 决定 (跟 renderCard 一致)
             // v4.9.6: 加 'discharge_v' 分支
