@@ -6162,6 +6162,16 @@
 .dashboard-host     .form-input:focus, .form-select:focus { outline: none; border-color: var(--accent); }
 .dashboard-host     .form-input:disabled, .form-input[readonly] { background: var(--bg-terminal); color: var(--text-soft); }
 .dashboard-host     .form-hint { font-size: 10px; color: var(--text-soft); margin-top: 4px; }
+    /* v4.9.1: 只读自动算显示 (dataSize 自动算 / 协议字段自动算等) */
+.dashboard-host     .readonly-auto-calc {
+      display: inline-flex; align-items: center;
+      height: 32px; padding: 0 10px;
+      background: var(--bg-terminal); border: 1px solid var(--border);
+      border-radius: var(--radius-small); font-size: 12px;
+      color: var(--text-soft);
+      font-family: var(--font-mono);
+    }
+.dashboard-host     .readonly-auto-calc.warn { color: var(--warning); border-color: var(--warning); }
 .dashboard-host     .form-section-title {
       font-size: 12px; font-weight: 700; color: var(--text);
       margin: 16px 0 8px;
@@ -6419,6 +6429,16 @@
 .dashboard-host     .cmd-list-item .name { font-weight: 700; }
 .dashboard-host     .cmd-list-item .fields { font-family: var(--font-mono); font-size: 10px; color: var(--text-soft); }
 .dashboard-host     .cmd-list-item .cadence { font-family: var(--font-mono); font-size: 11px; color: var(--text-soft); text-align: right; }
+    /* v4.9.1: 命令管理 modal 列表行 (data 长度 / data 字段展示) */
+.dashboard-host     .cmd-row {
+      display: grid; grid-template-columns: 50px 70px 1fr 100px 1fr 80px 28px;
+      gap: 10px; align-items: center;
+      padding: 8px 10px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-small);
+      font-size: 12px;
+    }
+.dashboard-host     .cmd-row .cmd-data { font-family: var(--font-mono); font-size: 10px; color: var(--text-soft); }
 
 .dashboard-host     .card-edit-list { display: flex; flex-direction: column; gap: 6px; }
 .dashboard-host     .card-edit-item {
@@ -7216,7 +7236,7 @@
             </div>
             <div class="form-row col-2">
               <label>data 长度 (字节)</label>
-              <input class="form-input mono" type="number" id="dh-cmd-form-datasize" value="0">
+              <span class="readonly-auto-calc" id="dh-cmd-form-datasize">自动算 0 bytes</span>
               <label style="grid-column: auto; margin-left: 8px;">期望响应 (Hex)</label>
               <input class="form-input mono" id="dh-cmd-form-expect" placeholder="0x92 (rx 命令, 错配检测用)">
             </div>
@@ -9362,6 +9382,9 @@
           }
         ];
 
+        // v4.9.1: dataSize 自动算 - type → 字节数映射 (NS.computeDataSize 用)
+        NS._FIELD_BYTE_SIZE = { u8: 1, i8: 1, u16: 2, i16: 2, u32: 4, i32: 4, float: 4, double: 8 };
+
         // v4.4.3: 加 0x10 Set 命令配对字段 (TX 方向, 用户设定值, mock 模式不抖)
         // set 字段单位 V (电压) / A (电流), pair 卡 (c7) 对比 SET vs ACT (pack_v_avg * 15 模拟 4 cell 串联)
         NS.DATA_FIELDS = [
@@ -10492,6 +10515,21 @@
           return out;
         };
 
+        // --- v4.9.1: dataSize 自动算 - 按 cmd.dataFields + DATA_FIELDS 算字节数 ---
+        // 返 0 = 缺字段 / string 变长 / 未知 type (UI 该报警)
+        NS.computeDataSize = function (cmd) {
+          if (!cmd || !cmd.dataFields) return 0;
+          let total = 0;
+          for (const fname of cmd.dataFields) {
+            const field = NS.DATA_FIELDS.find((f) => f.name === fname);
+            if (!field) return 0;
+            const size = NS._FIELD_BYTE_SIZE[field.type] || 0;
+            if (!size) return 0;
+            total += size;
+          }
+          return total;
+        };
+
         // --- 公共抽函数: CRC 输入字节范围 (v4.8a) ---
         // 按 protocol.crcRange 决定哪些 section 参与 CRC 运算
         // 返回字节数组 (用于 NS.computeCrc)
@@ -11121,12 +11159,14 @@
             const row = document.createElement('div');
             row.className = 'cmd-row';
             const idHex = cmd.id.toString(16).padStart(2, '0').toUpperCase();
+            const autoSize = NS.computeDataSize(cmd);
             row.innerHTML = `
               <span class="dir-badge ${cmd.direction}">${cmd.direction.toUpperCase()}</span>
               <span class="cmd-id">0x${idHex}</span>
               <span class="cmd-name">${NS.escapeHtml(cmd.name)}</span>
               <span class="cmd-proto">${NS.escapeHtml(cmd.protocol || '—')}</span>
               <span class="cmd-fields">${(cmd.dataFields || []).join(', ')}</span>
+              <span class="cmd-data">data ${autoSize} bytes</span>
               <button class="del-btn" title="删除">×</button>
             `;
             row.querySelector('.del-btn').onclick = () => {
@@ -11141,6 +11181,29 @@
           const protoSel = document.getElementById('dh-cmd-form-proto');
           if (protoSel) {
             protoSel.innerHTML = NS.PROTOCOLS.map((p) => `<option value="${p.id}">${NS.escapeHtml(p.name)}</option>`).join('');
+          }
+          NS.updateCmdFormDataSize();
+        };
+        // v4.9.1: 添加命令表单 - data 长度自动算显示
+        // 按 dh-cmd-form-fields 输入实时刷新, 仅当字段名有错 / 未知 type 才报警
+        NS.updateCmdFormDataSize = function () {
+          const fieldsEl = document.getElementById('dh-cmd-form-fields');
+          const dsEl = document.getElementById('dh-cmd-form-datasize');
+          if (!dsEl) return;
+          const fields = fieldsEl ? fieldsEl.value.split(',').map((s) => s.trim()).filter(Boolean) : [];
+          if (fields.length === 0) {
+            // 没填字段 - 默认 0 bytes (无 warn)
+            dsEl.textContent = '自动算 0 bytes';
+            dsEl.classList.remove('warn');
+            return;
+          }
+          const autoSize = NS.computeDataSize({ dataFields: fields });
+          if (autoSize > 0) {
+            dsEl.textContent = `自动算 ${autoSize} bytes`;
+            dsEl.classList.remove('warn');
+          } else {
+            dsEl.textContent = '自动算 — (string 变长 / 缺字段)';
+            dsEl.classList.add('warn');
           }
         };
 
@@ -11315,6 +11378,9 @@
           document.querySelectorAll('[data-close]').forEach((btn) => {
             btn.addEventListener('click', () => NS.closeModal(btn.getAttribute('data-close')));
           });
+          // v4.9.1: 命令管理表单 - data 长度自动算 (按 data 字段输入实时刷新)
+          const cmdFieldsEl = document.getElementById('dh-cmd-form-fields');
+          if (cmdFieldsEl) cmdFieldsEl.addEventListener('input', NS.updateCmdFormDataSize);
           // backdrop 点击关闭
           ['dh-proto', 'dh-cmd-config', 'dh-card-config', 'dh-card-edit', 'dh-ie', 'dh-alerts', 'dh-detail'].forEach((name) => {
             const bd = document.getElementById(name + '-backdrop');
@@ -11390,7 +11456,8 @@
             const frame = document.getElementById('dh-cmd-form-frame').value;
             const cadence = parseInt(document.getElementById('dh-cmd-form-cadence').value) || 0;
             const fields = document.getElementById('dh-cmd-form-fields').value.split(',').map((s) => s.trim()).filter(Boolean);
-            const datasize = parseInt(document.getElementById('dh-cmd-form-datasize').value) || 0;
+            // v4.9.1: dataSize 自动算 (dataSize 字段保留, 旧 config 兼容)
+            const datasize = NS.computeDataSize({ dataFields: fields });
             const expect = NS.parseHexOr0(document.getElementById('dh-cmd-form-expect').value.trim());
             if (!id && id !== 0) { NS.toast('请填命令 ID', 'warn'); return; }
             if (!name) { NS.toast('请填名称', 'warn'); return; }
