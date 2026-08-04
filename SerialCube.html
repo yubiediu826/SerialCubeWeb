@@ -10981,8 +10981,8 @@
           if (!ackCmd || !bytes || bytes.length < 6) return out;
           const proto = NS.PROTOCOLS.find((p) => p.id === protoId);
           const protoEndian = (proto && proto.byteOrder) || 'BE';
-          const dataLen = bytes.length - 6;
-          const data = bytes.slice(3, 3 + dataLen);
+          const dataLen = bytes.length - 7;
+          const data = bytes.slice(4, 4 + dataLen);
           let off = 0;
           for (const fname of (ackCmd.dataFields || [])) {
             const df = NS.DATA_FIELDS.find((f) => f.name === fname);
