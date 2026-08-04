@@ -10540,6 +10540,31 @@
         // (保证 UI 仍能调用 buildFrame, 等 Task 8 替换为 dispatcher)
         NS.buildFrame = NS._buildFrameFixedHeader;
 
+        // --- kind 1-7 stub (v4.8a 中间状态, v4.8b 实现) ---
+        // 每个 stub 返回 { error: 'NOT_IMPLEMENTED' }, 协议编辑器"验证"按钮会显示
+        // Task 11-17 逐个替换为真实实现
+        NS._buildFrameRaw = function (protocol, cmd) {
+          return { error: 'NOT_IMPLEMENTED', kind: 'raw', note: 'v4.8b 实现' };
+        };
+        NS._buildFrameCmdSplit = function (protocol, cmd) {
+          return { error: 'NOT_IMPLEMENTED', kind: 'cmd-split', note: 'v4.8b 实现' };
+        };
+        NS._buildFrameAddrSplit = function (protocol, cmd) {
+          return { error: 'NOT_IMPLEMENTED', kind: 'addr-split', note: 'v4.8b 实现' };
+        };
+        NS._buildFrameCtrlBit7 = function (protocol, cmd) {
+          return { error: 'NOT_IMPLEMENTED', kind: 'ctrl-bit7', note: 'v4.8b 实现' };
+        };
+        NS._buildFrameTypeHighBit = function (protocol, cmd) {
+          return { error: 'NOT_IMPLEMENTED', kind: 'type-high-bit', note: 'v4.8b 实现' };
+        };
+        NS._buildFrameMsgidMixed = function (protocol, cmd) {
+          return { error: 'NOT_IMPLEMENTED', kind: 'msgid-mixed', note: 'v4.8b 实现' };
+        };
+        NS._buildFrameTlv = function (protocol, cmd) {
+          return { error: 'NOT_IMPLEMENTED', kind: 'tlv', note: 'v4.8b 实现' };
+        };
+
         // --- 协议编辑器 (proto modal) ---
         NS.renderProtoEditor = function () {
           const tabsEl = document.getElementById('dh-proto-tabs');
