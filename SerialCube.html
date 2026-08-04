@@ -9410,7 +9410,10 @@
           { id: 0x03, name: 'Read Temp',    direction: 'rx', frameType: 'query',   cadence: 1000, protocol: 'proto_bms', dataFields: ['temperature'], dataSize: 2, expectResponse: 0x80 },
           { id: 0x04, name: 'Read SOC',     direction: 'rx', frameType: 'query',   cadence: 2000, protocol: 'proto_bms', dataFields: ['soc'], dataSize: 2, expectResponse: 0x80 },
           { id: 0x10, name: 'Control Charge', direction: 'tx', frameType: 'control', cadence: 0, protocol: 'proto_bms', dataFields: ['charge_v_set', 'charge_i_set'], dataSize: 4, expectResponse: 0x90 },
-          { id: 0x11, name: 'Control Disch',  direction: 'tx', frameType: 'control', cadence: 0, protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2, expectResponse: 0x91 }
+          { id: 0x11, name: 'Control Disch',  direction: 'tx', frameType: 'control', cadence: 0, protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2, expectResponse: 0x91 },
+          // v4.9.2: ACK 命令定义 (方向 rx, frameType response, cadence 0 不主动 query)
+          { id: 0x90, name: 'Charge Ack', direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['charge_v_set', 'charge_i_set'], dataSize: 4 },
+          { id: 0x91, name: 'Disch Ack',  direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2 }
         ];
 
         // v4.4.3: c9 pair 卡 (充电设定 vs 实际) + c10 trend 卡 (充电设定值)
@@ -9461,7 +9464,7 @@
           const initVals = {
             'cell_1_v': 3.71, 'cell_2_v': 3.72, 'cell_3_v': 3.69, 'cell_4_v': 3.73,
             'pack_i': 1.2, 'temperature': 25.3, 'soc': 87.5,
-            'charge_v_set': 56.0, 'charge_i_set': 10.0, 'discharge_v_set': 0
+            'charge_v_set': 56.0, 'charge_i_set': 0, 'discharge_v_set': 0  // v4.9.2: set 字段初始 0, 等用户触发 0x10/0x11
           };
           const now = Date.now();
           NS.COMMANDS.forEach((cmd) => {
@@ -11295,7 +11298,16 @@
               }));
             }
             if (uc.dataFields) NS.DATA_FIELDS = uc.dataFields;
-            if (uc.commands) NS.COMMANDS = uc.commands;
+            if (uc.commands) {
+              NS.COMMANDS = uc.commands;
+              // v4.9.2: 容错 - 旧 config 可能没 0x90/0x91 ACK 定义, 自动补
+              if (!NS.COMMANDS.find((c) => c.id === 0x90)) {
+                NS.COMMANDS.push({ id: 0x90, name: 'Charge Ack', direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['charge_v_set', 'charge_i_set'], dataSize: 4 });
+              }
+              if (!NS.COMMANDS.find((c) => c.id === 0x91)) {
+                NS.COMMANDS.push({ id: 0x91, name: 'Disch Ack', direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2 });
+              }
+            }
             if (uc.cards) NS.CARDS = uc.cards;
             if (uc.settings) {
               if (typeof uc.settings.cmdMismatchEnabled === 'boolean') NS.cmdMismatchEnabled = uc.settings.cmdMismatchEnabled;
