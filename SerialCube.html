@@ -6369,6 +6369,27 @@
 .dashboard-host     .frame-meta .meta-item .meta-key { font-weight: 700; }
 .dashboard-host     .frame-meta .meta-item .meta-val { color: var(--text); margin-left: 4px; }
 
+    /* v4.9.4: Pair trigger modal (0x10/0x11 共用) - 字段行 + 数字 stepper + 字节预览框 */
+.dashboard-host     #dh-pair-trigger-fields {
+      display: flex; flex-direction: column; gap: 12px;
+      margin: 8px 0 4px;
+    }
+.dashboard-host     #dh-pair-trigger-fields .field-row {
+      display: flex; align-items: center; gap: 12px;
+    }
+.dashboard-host     #dh-pair-trigger-fields .field-label {
+      flex: 0 0 100px; font-size: 13px; color: var(--text-soft);
+    }
+.dashboard-host     #dh-pair-trigger-fields .field-input { flex: 1; }
+.dashboard-host     #dh-pair-trigger-fields .field-unit {
+      flex: 0 0 30px; font-size: 12px; color: var(--text-soft);
+    }
+.dashboard-host     #dh-pair-trigger-bytes {
+      font-family: var(--font-mono); font-size: 12px; line-height: 1.5;
+      white-space: pre-wrap; word-break: break-all;
+      color: var(--text); margin: 0;
+    }
+
 .dashboard-host     .legend {
       display: flex; flex-wrap: wrap; gap: 8px;
       padding: 6px 10px;
@@ -7410,6 +7431,27 @@
             </select>
           </div>
           <div class="modal-body detail-body" id="dh-detail-body"></div>
+        </div>
+
+        <!-- v4.9.4: Pair trigger modal (0x10/0x11 共用) - 输 SET + 实时字节预览 (Task 5 才接发送) -->
+        <div class="modal-backdrop" id="dh-pair-trigger-backdrop"></div>
+        <div class="modal" id="dh-pair-trigger-modal">
+          <div class="modal-header">
+            <button class="close-btn" data-close="dh-pair-trigger">×</button>
+            <span class="modal-title" id="dh-pair-trigger-title">触发命令</span>
+            <span class="modal-subtitle" id="dh-pair-trigger-subtitle">字段</span>
+          </div>
+          <div class="modal-body">
+            <div class="form-section-title">设置值</div>
+            <div id="dh-pair-trigger-fields"></div>
+            <div class="form-section-title" style="margin-top: 18px;">字节预览 (buildFrame)</div>
+            <pre id="dh-pair-trigger-bytes" class="frame-preview">—</pre>
+          </div>
+          <div class="modal-footer">
+            <button class="toolbar-btn" data-close="dh-pair-trigger">取消</button>
+            <span class="spacer"></span>
+            <button class="toolbar-btn primary" id="dh-pair-trigger-confirm-btn">触发</button>
+          </div>
         </div>
       </div>
     </section>
@@ -9652,7 +9694,7 @@
               e.stopPropagation();
               if (act === 'edit') NS.openCardEdit(c.id);
               else if (act === 'detail') NS.__openDetail(c.id);
-              else if (act === 'trigger') NS.toast('触发 ' + c.title + ' (v4.4 占位)', 'info');
+              else if (act === 'trigger') NS.openPairTriggerModal(c.cmd, c);
             });
           });
           return card;
@@ -10495,10 +10537,13 @@
         NS.encodeDataFields = function (cmd, protocol) {
           const out = [];
           const protoEndian = (protocol && protocol.byteOrder) || 'BE';
+          // v4.9.4: 支持 cmd.dataFieldsValues 覆盖 (用于 modal 实时预览; 不影响 currentVals 全局状态)
+          const overrideMap = (cmd && cmd.dataFieldsValues) || null;
           for (const fname of (cmd.dataFields || [])) {
             const df = NS.DATA_FIELDS.find((d) => d.name === fname);
             if (!df) continue;
-            const v = Number(NS.currentVals[fname] != null ? NS.currentVals[fname] : NS.parseHexOr0(df.default)) || 0;
+            const override = overrideMap ? overrideMap[fname] : undefined;
+            const v = Number(override != null ? override : (NS.currentVals[fname] != null ? NS.currentVals[fname] : NS.parseHexOr0(df.default))) || 0;
             const bo = df.byteOrder || protoEndian;
             const t = df.type;
             if (t === 'u8' || t === 'i8') {
@@ -10934,6 +10979,94 @@
           clearTimeout(waiter.timeoutId);
           waiter.resolve(bytes);
           return true;
+        };
+
+        // --- v4.9.4: Pair trigger modal (0x10/0x11 共用) ---
+        // 输 SET + 实时字节预览 (buildFrame 实时反映输入)
+        // Task 5 才接真发送 (sendPayload + ack waiter); 本任务不接
+        // 同 cmd 互斥 (Q8 决策): txPendingCmds.has(cmdId) → 弹 warn toast
+        NS.openPairTriggerModal = function (cmdId, sourceCard) {
+          const cmd = NS.COMMANDS.find((c) => c.id === cmdId);
+          if (!cmd) return;
+          const proto = NS.PROTOCOLS.find((p) => p.id === cmd.protocol);
+          if (!proto) return;
+
+          // 同 cmd 互斥检查
+          if (NS.txPendingCmds.has(cmdId)) {
+            NS.toast('请等待上次响应 (cmd 0x' + cmdId.toString(16).padStart(2, '0').toUpperCase() + ')', 'warn');
+            return;
+          }
+
+          // 临时 userSet (modal 内编辑; 不写 NS.currentVals, 直到 Task 5 真发送才写)
+          const userSet = {};
+          cmd.dataFields.forEach((f) => {
+            userSet[f] = NS.currentVals[f] != null ? NS.currentVals[f] : 0;
+          });
+
+          // 渲染标题 + subtitle
+          const titleEl = document.getElementById('dh-pair-trigger-title');
+          const subtitleEl = document.getElementById('dh-pair-trigger-subtitle');
+          const fieldsEl = document.getElementById('dh-pair-trigger-fields');
+          const bytesEl = document.getElementById('dh-pair-trigger-bytes');
+          if (titleEl) titleEl.textContent = '触发 0x' + cmdId.toString(16).padStart(2, '0').toUpperCase() + ' ' + cmd.name;
+          if (subtitleEl) {
+            const fieldDescs = cmd.dataFields.map((f) => {
+              const h = NS._FIELD_HINT[f];
+              return h ? (h.label + ' (' + h.unit + ')') : f;
+            });
+            subtitleEl.textContent = '字段 · ' + fieldDescs.join(' / ');
+          }
+
+          // 字段输入框 (数字 stepper, 优先用 _FIELD_HINT 兜底)
+          fieldsEl.innerHTML = '';
+          cmd.dataFields.forEach((f) => {
+            const h = NS._FIELD_HINT[f] || { label: f, unit: '', min: 0, max: 100, step: 0.1 };
+            const row = document.createElement('div');
+            row.className = 'field-row';
+            row.innerHTML = ''
+              + '<span class="field-label">' + NS.escapeHtml(h.label) + '</span>'
+              + '<input class="compact-input field-input" type="number" data-field="' + NS.escapeHtml(f) + '"'
+              + ' min="' + h.min + '" max="' + h.max + '" step="' + h.step + '" value="' + userSet[f] + '">'
+              + '<span class="field-unit">' + NS.escapeHtml(h.unit) + '</span>';
+            fieldsEl.appendChild(row);
+          });
+
+          // 实时字节预览 (用 cmd.dataFieldsValues 覆盖; 写完后立即还原 NS.currentVals)
+          const updatePreview = () => {
+            fieldsEl.querySelectorAll('input[data-field]').forEach((input) => {
+              const v = parseFloat(input.value);
+              userSet[input.dataset.field] = isNaN(v) ? 0 : v;
+            });
+            const cmdWithInput = { ...cmd, dataFieldsValues: { ...NS.currentVals, ...userSet } };
+            const frame = NS.buildFrame(proto, cmdWithInput);
+            if (frame.error) {
+              bytesEl.textContent = '错误: ' + frame.error;
+              bytesEl.style.color = 'var(--danger)';
+            } else {
+              bytesEl.textContent = frame.bytes.map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+              bytesEl.style.color = '';
+            }
+          };
+          fieldsEl.querySelectorAll('input[data-field]').forEach((input) => {
+            input.addEventListener('input', updatePreview);
+          });
+          updatePreview();
+
+          // 显示 modal (用 openModal/closeModal 跟现有 5 modals 一致; data-close 自动绑关闭)
+          NS.openModal('dh-pair-trigger');
+
+          // 暂不接发送 (Task 5); 触发按钮只 toast 占位
+          const confirmBtn = document.getElementById('dh-pair-trigger-confirm-btn');
+          if (confirmBtn) {
+            confirmBtn.onclick = () => {
+              NS.toast('触发逻辑将在 Task 5 实施', 'info');
+            };
+          }
+          // backdrop 点击关闭 (openModal/closeModal + data-close 都不处理 backdrop click)
+          const backdrop = document.getElementById('dh-pair-trigger-backdrop');
+          if (backdrop) {
+            backdrop.onclick = () => NS.closeModal('dh-pair-trigger');
+          }
         };
 
         // --- 协议编辑器 (proto modal) ---
