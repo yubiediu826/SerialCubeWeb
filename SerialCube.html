@@ -11331,11 +11331,7 @@
                 <input class="form-input" id="dh-proto-name" value="${NS.escapeHtml(proto.name)}" placeholder="(必填)">
               </div>
               <div class="form-row" style="margin-bottom: 0;">
-                <label>默认字节序</label>
-                <select class="form-select" id="dh-proto-endian" style="max-width: 240px;">
-                  <option value="BE" ${proto.byteOrder === 'BE' ? 'selected' : ''}>BE 大端 (Motorola)</option>
-                  <option value="LE" ${proto.byteOrder === 'LE' ? 'selected' : ''}>LE 小端 (Intel)</option>
-                </select>
+                <span class="hint-text">字段级字节序独立设置（每个字段可单独选 BE/LE）</span>
               </div>
             </div>
             <div class="proto-section">
@@ -11427,11 +11423,19 @@
           NS._renderFramePreview(frame, proto);
           const onChange = () => NS._renderFramePreview(NS.buildFrame(proto, previewCmd), proto);
           document.getElementById('dh-proto-name').oninput = (e) => { proto.name = e.target.value || '未命名'; };
-          document.getElementById('dh-proto-endian').onchange = (e) => { proto.byteOrder = e.target.value; onChange(); };
+          // v4.9.9a: 协议级"默认字节序" UI 已移除 (字段级独立设字节序), proto.byteOrder 字段保留 (代码兜底新字段 byteOrder)
           document.getElementById('dh-proto-crc-type').onchange = (e) => {
             proto.crcType = e.target.value;
             if (!proto.crcInit || proto.crcInit === '0xFFFF' || proto.crcInit === '0x00') {
               proto.crcInit = (e.target.value === 'crc8' || e.target.value === 'checksum' || e.target.value === 'xor' || e.target.value === 'none') ? '0x00' : '0xFFFF';
+            }
+            // v4.9.9a: CRC 类型切换自动同步 crc 字段 size (否则 1B checksum 帧 size=2 不对)
+            // size map: none=0, checksum/xor/crc8=1, crc16-*=2
+            const crcSizeMap = { 'none': 0, 'checksum': 1, 'xor': 1, 'crc8': 1, 'crc16-modbus': 2, 'crc16-ccitt': 2 };
+            const newSize = crcSizeMap[e.target.value];
+            if (newSize != null) {
+              const crcField = (proto.fields || []).find((f) => f.type === 'crc');
+              if (crcField) crcField.size = newSize;
             }
             NS.renderProtoEditor();
           };
