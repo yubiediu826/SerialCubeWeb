@@ -10904,7 +10904,13 @@
             if (obj.type !== 'SerialWebUserConfig') throw new Error('type 不是 SerialWebUserConfig');
             const uc = obj.userConfig && obj.userConfig.dashboard;
             if (!uc) throw new Error('userConfig.dashboard 缺失');
-            if (uc.protocols) NS.PROTOCOLS = uc.protocols;
+            if (uc.protocols) {
+              // v4.8a: 兼容旧 user config (无 kind 字段 → kind 0 'fixed-header')
+              NS.PROTOCOLS = uc.protocols.map((p) => ({
+                ...p,
+                kind: p.kind || 'fixed-header'
+              }));
+            }
             if (uc.dataFields) NS.DATA_FIELDS = uc.dataFields;
             if (uc.commands) NS.COMMANDS = uc.commands;
             if (uc.cards) NS.CARDS = uc.cards;
