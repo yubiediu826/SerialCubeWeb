@@ -10,8 +10,8 @@
 ## 1. 当前项目状态
 
 **仓库**: `D:\WorkSpace\SerialCubeWeb` (SerialCube.html 单文件, GitHub Pages 部署)
-**最新 commit**: `e32cc64` (v4.9.5 pair trigger 真实发送 + Mock ack 模拟) + v4.9.6 即将提交
-**v4.9-sub3 分支**: 5 commits ahead of v4.8 base, 全部 push
+**最新 commit**: `e32cc64` (v4.9.5) + `f30c391` (v4.9.6) + `36574b5` (HANDOFF 更新)
+**v4.9-sub3 分支**: 7 commits ahead of v4.8 base, 全部 push
 **worktree**: `D:\WorkSpace\SerialCubeWeb\.worktrees\v4.9-sub3\` (本任务在此路径完成)
 
 **v4.8 + v4.9 sub-3 全部完成** ✅:
@@ -45,7 +45,8 @@
 | `93f352f` | v4.9.3 ack 解析抽象 + TX trigger 状态空间 | 实施 |
 | `4b60682` | v4.9.4 弹 modal 输 SET + 实时字节预览 + ↗ 按钮改造 | 实施 |
 | `e32cc64` | v4.9.5 pair trigger 真实发送 + Mock ack 模拟 + 状态机 | 实施 |
-| `即将` | v4.9.6 c11/c12 + settings + RX 接入 + HANDOFF | +89 行 |
+| `f30c391` | v4.9.6 c11/c12 + pairTriggerTimeout settings + 真串口 RX 接入 | 实施 |
+| `36574b5` | HANDOFF.md 更新到 v4.9 (sub-3 全部完成) | docs |
 
 **v4.9 sub-3 Plan 修正 0 处** (5 个 task 全部按 plan 实施, Task 6 收尾中)。
 
