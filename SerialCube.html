@@ -10495,9 +10495,11 @@
           return [crcValue & 0xFF, (crcValue >> 8) & 0xFF];
         };
 
-        // --- buildFrame: 按 protocol.fields 切分字节, 并按 crcRange 算 CRC ---
-        NS.buildFrame = function (protocol, cmd) {
-          if (!protocol) return { bytes: [], sections: [] };
+        // --- _buildFrameFixedHeader: kind 0 (legacy, 跟现状 buildFrame 行为 100% 一致) ---
+        // 跟现状 buildFrame 行为 100% 一致: header/tail 写死, 方向不参与
+        // 重构: 用 Task 5 抽出的 2 个公共函数 (_computeCrcInput + _encodeCrcBytes) 替代内联逻辑
+        NS._buildFrameFixedHeader = function (protocol, cmd) {
+          if (!protocol || !cmd) return { error: 'NO_PROTOCOL' };
           const sections = [];
           const data = NS.encodeDataFields(cmd, protocol);
           const crcType = protocol.crcType || 'crc16-modbus';
@@ -10519,76 +10521,14 @@
           }
           const allBytes = [];
           sections.forEach((s) => allBytes.push(...s.bytes));
-          // 算 CRC (按 crcRange 决定输入字节范围)
-          const crcRange = protocol.crcRange || 'all';
+          // 算 CRC (用抽出的公共函数)
+          const crcInput = NS._computeCrcInput(protocol, allBytes, sections);
           const crcInit = NS.parseHexOr0(protocol.crcInit);
-          const crcFieldIdx = protocol.fields.findIndex((f) => f.type === 'crc');
-          const offsetBeforeCrc = protocol.fields.slice(0, crcFieldIdx).reduce((sum, f, k) => {
-            return sum + (f.size || sections[k].bytes.length);
-          }, 0);
-          const crcFieldSize = crcFieldIdx >= 0 ? (protocol.fields[crcFieldIdx].size || crcSize) : crcSize;
-          let crcInputBytes = [];
-          if (crcRange === 'all') {
-            crcInputBytes = allBytes.filter((_, i) => i < offsetBeforeCrc || i >= offsetBeforeCrc + crcFieldSize);
-          } else if (crcRange === 'no_header') {
-            const headerFieldIdx = protocol.fields.findIndex((f) => f.type === 'header');
-            const headerSize = headerFieldIdx >= 0 ? (protocol.fields[headerFieldIdx].size || 1) : 1;
-            const off = protocol.fields.slice(0, headerFieldIdx).reduce((s, f, k) => s + (f.size || sections[k].bytes.length), 0);
-            crcInputBytes = allBytes.filter((_, i) => i < off || i >= off + headerSize || i >= offsetBeforeCrc);
-            // 简化: no_header 直接排除 header 段
-            crcInputBytes = [];
-            let off2 = 0;
-            for (let k = 0; k < protocol.fields.length; k++) {
-              if (protocol.fields[k].type === 'header' || protocol.fields[k].type === 'crc') {
-                off2 += protocol.fields[k].size || sections[k].bytes.length;
-                continue;
-              }
-              for (let b = 0; b < (protocol.fields[k].size || sections[k].bytes.length); b++) {
-                crcInputBytes.push(allBytes[off2 + b]);
-              }
-              off2 += protocol.fields[k].size || sections[k].bytes.length;
-            }
-          } else if (crcRange === 'no_tail') {
-            crcInputBytes = [];
-            let off = 0;
-            for (let k = 0; k < protocol.fields.length; k++) {
-              if (protocol.fields[k].type === 'tail' || protocol.fields[k].type === 'crc') {
-                off += protocol.fields[k].size || sections[k].bytes.length;
-                continue;
-              }
-              for (let b = 0; b < (protocol.fields[k].size || sections[k].bytes.length); b++) {
-                crcInputBytes.push(allBytes[off + b]);
-              }
-              off += protocol.fields[k].size || sections[k].bytes.length;
-            }
-          } else if (crcRange === 'no_header_tail') {
-            crcInputBytes = [];
-            let off = 0;
-            for (let k = 0; k < protocol.fields.length; k++) {
-              const t = protocol.fields[k].type;
-              if (t === 'header' || t === 'tail' || t === 'crc') {
-                off += protocol.fields[k].size || sections[k].bytes.length;
-                continue;
-              }
-              for (let b = 0; b < (protocol.fields[k].size || sections[k].bytes.length); b++) {
-                crcInputBytes.push(allBytes[off + b]);
-              }
-              off += protocol.fields[k].size || sections[k].bytes.length;
-            }
-          } else if (crcRange === 'data_only') {
-            const dataSection = sections.find((s) => s.type === 'data');
-            crcInputBytes = dataSection ? [...dataSection.bytes] : [];
-          }
-          let crcValue = NS.computeCrc(crcType, crcInputBytes, crcInit);
+          const crcValue = NS.computeCrc(crcType, crcInput, crcInit);
           // 写回 crc section
           const crcSection = sections.find((s) => s.type === 'crc');
           if (crcSection) {
-            const be = (protocol.crcEndian || 'LE') === 'BE';
-            if (crcSection.bytes.length === 2) {
-              crcSection.bytes = be ? [((crcValue >> 8) & 0xFF), (crcValue & 0xFF)] : [(crcValue & 0xFF), ((crcValue >> 8) & 0xFF)];
-            } else {
-              crcSection.bytes = [crcValue & 0xFF];
-            }
+            crcSection.bytes = NS._encodeCrcBytes(crcValue, protocol.crcEndian || 'LE');
             // 重新合并 allBytes
             const merged = [];
             sections.forEach((s) => merged.push(...s.bytes));
@@ -10596,6 +10536,9 @@
           }
           return { bytes: allBytes, sections };
         };
+        // v4.8a 中间状态: 保持 NS.buildFrame 出口指向 _buildFrameFixedHeader
+        // (保证 UI 仍能调用 buildFrame, 等 Task 8 替换为 dispatcher)
+        NS.buildFrame = NS._buildFrameFixedHeader;
 
         // --- 协议编辑器 (proto modal) ---
         NS.renderProtoEditor = function () {
