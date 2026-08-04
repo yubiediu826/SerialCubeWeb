@@ -10615,26 +10615,183 @@
         // --- kind 1-7 stub (v4.8a 中间状态, v4.8b 实现) ---
         // 每个 stub 返回 { error: 'NOT_IMPLEMENTED' }, 协议编辑器"验证"按钮会显示
         // Task 11-17 逐个替换为真实实现
+        // --- v4.8b: kind 1-7 真实实现 ---
+        // 方向: cmd.direction='tx' 主机发送 (MB), 'rx' 主机接收 (CB)
+
+        // kind 1: raw — header 字节按方向决定 (MB=0x5A, CB=0x55)
         NS._buildFrameRaw = function (protocol, cmd) {
-          return { error: 'NOT_IMPLEMENTED', kind: 'raw', note: 'v4.8b 实现', bytes: [], sections: [] };
+          if (!protocol || !cmd) return { error: 'NO_PROTOCOL', bytes: [], sections: [] };
+          const sections = [];
+          const data = NS.encodeDataFields(cmd, protocol);
+          const headerByte = (cmd.direction === 'rx') ? 0x55 : 0x5A;
+          sections.push({ type: 'header', name: 'header', bytes: [headerByte] });
+          sections.push({ type: 'cmd', name: 'cmd', bytes: [cmd.id & 0xFF] });
+          sections.push({ type: 'length', name: 'length', bytes: [data.length & 0xFF] });
+          sections.push({ type: 'data', name: 'data', bytes: [...data] });
+          const allBytes = sections.flatMap((s) => s.bytes);
+          const crcInput = NS._computeCrcInput(protocol, allBytes, sections);
+          const crcType = protocol.crcType || 'crc16-modbus';
+          const crcValue = NS.computeCrc(crcType, crcInput, NS.parseHexOr0(protocol.crcInit));
+          sections.push({ type: 'crc', name: 'crc', bytes: NS._encodeCrcBytes(crcValue, protocol.crcEndian || 'LE') });
+          const tailField = protocol.fields.find((f) => f.type === 'tail');
+          const tailByte = tailField ? (NS.parseHexOr0(tailField.default) & 0xFF) : 0x55;
+          sections.push({ type: 'tail', name: 'tail', bytes: [tailByte] });
+          return { bytes: sections.flatMap((s) => s.bytes), sections };
         };
+
+        // kind 2: cmd-split — header 写死, cmd bit7 编码方向
         NS._buildFrameCmdSplit = function (protocol, cmd) {
-          return { error: 'NOT_IMPLEMENTED', kind: 'cmd-split', note: 'v4.8b 实现', bytes: [], sections: [] };
+          if (!protocol || !cmd) return { error: 'NO_PROTOCOL', bytes: [], sections: [] };
+          const sections = [];
+          const data = NS.encodeDataFields(cmd, protocol);
+          const headerField = protocol.fields.find((f) => f.type === 'header');
+          const headerByte = headerField ? (NS.parseHexOr0(headerField.default) & 0xFF) : 0xAA;
+          sections.push({ type: 'header', name: 'header', bytes: [headerByte] });
+          const cmdByte = (cmd.id & 0x7F) | ((cmd.direction === 'rx') ? 0x80 : 0);
+          sections.push({ type: 'cmd', name: 'cmd', bytes: [cmdByte & 0xFF] });
+          sections.push({ type: 'length', name: 'length', bytes: [data.length & 0xFF] });
+          sections.push({ type: 'data', name: 'data', bytes: [...data] });
+          const allBytes = sections.flatMap((s) => s.bytes);
+          const crcInput = NS._computeCrcInput(protocol, allBytes, sections);
+          const crcType = protocol.crcType || 'crc16-modbus';
+          const crcValue = NS.computeCrc(crcType, crcInput, NS.parseHexOr0(protocol.crcInit));
+          sections.push({ type: 'crc', name: 'crc', bytes: NS._encodeCrcBytes(crcValue, protocol.crcEndian || 'LE') });
+          const tailField = protocol.fields.find((f) => f.type === 'tail');
+          const tailByte = tailField ? (NS.parseHexOr0(tailField.default) & 0xFF) : 0x55;
+          sections.push({ type: 'tail', name: 'tail', bytes: [tailByte] });
+          return { bytes: sections.flatMap((s) => s.bytes), sections };
         };
+
+        // kind 3: addr-split — srcAddr/dstAddr 互换编码方向
         NS._buildFrameAddrSplit = function (protocol, cmd) {
-          return { error: 'NOT_IMPLEMENTED', kind: 'addr-split', note: 'v4.8b 实现', bytes: [], sections: [] };
+          if (!protocol || !cmd) return { error: 'NO_PROTOCOL', bytes: [], sections: [] };
+          const sections = [];
+          const data = NS.encodeDataFields(cmd, protocol);
+          const headerField = protocol.fields.find((f) => f.type === 'header');
+          const headerByte = headerField ? (NS.parseHexOr0(headerField.default) & 0xFF) : 0xAA;
+          sections.push({ type: 'header', name: 'header', bytes: [headerByte] });
+          const hostId = NS.parseHexOr0(protocol.hostId || '0x01') & 0xFF;
+          const devId = NS.parseHexOr0(protocol.devId || '0x02') & 0xFF;
+          const isMb = (cmd.direction !== 'rx');
+          sections.push({ type: 'srcAddr', name: 'srcAddr', bytes: [isMb ? hostId : devId] });
+          sections.push({ type: 'dstAddr', name: 'dstAddr', bytes: [isMb ? devId : hostId] });
+          sections.push({ type: 'cmd', name: 'cmd', bytes: [cmd.id & 0xFF] });
+          sections.push({ type: 'length', name: 'length', bytes: [data.length & 0xFF] });
+          sections.push({ type: 'data', name: 'data', bytes: [...data] });
+          const allBytes = sections.flatMap((s) => s.bytes);
+          const crcInput = NS._computeCrcInput(protocol, allBytes, sections);
+          const crcType = protocol.crcType || 'crc16-modbus';
+          const crcValue = NS.computeCrc(crcType, crcInput, NS.parseHexOr0(protocol.crcInit));
+          sections.push({ type: 'crc', name: 'crc', bytes: NS._encodeCrcBytes(crcValue, protocol.crcEndian || 'LE') });
+          const tailField = protocol.fields.find((f) => f.type === 'tail');
+          const tailByte = tailField ? (NS.parseHexOr0(tailField.default) & 0xFF) : 0x55;
+          sections.push({ type: 'tail', name: 'tail', bytes: [tailByte] });
+          return { bytes: sections.flatMap((s) => s.bytes), sections };
         };
+
+        // kind 4: ctrl-bit7 — ctrl 字节 bit7 编码方向
         NS._buildFrameCtrlBit7 = function (protocol, cmd) {
-          return { error: 'NOT_IMPLEMENTED', kind: 'ctrl-bit7', note: 'v4.8b 实现', bytes: [], sections: [] };
+          if (!protocol || !cmd) return { error: 'NO_PROTOCOL', bytes: [], sections: [] };
+          const sections = [];
+          const data = NS.encodeDataFields(cmd, protocol);
+          const headerField = protocol.fields.find((f) => f.type === 'header');
+          const headerByte = headerField ? (NS.parseHexOr0(headerField.default) & 0xFF) : 0xAA;
+          sections.push({ type: 'header', name: 'header', bytes: [headerByte] });
+          const ctrlDefault = NS.parseHexOr0(protocol.ctrlDefault || '0x00') & 0x7F;
+          const ctrlByte = ctrlDefault | ((cmd.direction === 'rx') ? 0x80 : 0);
+          sections.push({ type: 'ctrl', name: 'ctrl', bytes: [ctrlByte] });
+          sections.push({ type: 'cmd', name: 'cmd', bytes: [cmd.id & 0xFF] });
+          sections.push({ type: 'length', name: 'length', bytes: [data.length & 0xFF] });
+          sections.push({ type: 'data', name: 'data', bytes: [...data] });
+          const allBytes = sections.flatMap((s) => s.bytes);
+          const crcInput = NS._computeCrcInput(protocol, allBytes, sections);
+          const crcType = protocol.crcType || 'crc16-modbus';
+          const crcValue = NS.computeCrc(crcType, crcInput, NS.parseHexOr0(protocol.crcInit));
+          sections.push({ type: 'crc', name: 'crc', bytes: NS._encodeCrcBytes(crcValue, protocol.crcEndian || 'LE') });
+          const tailField = protocol.fields.find((f) => f.type === 'tail');
+          const tailByte = tailField ? (NS.parseHexOr0(tailField.default) & 0xFF) : 0x55;
+          sections.push({ type: 'tail', name: 'tail', bytes: [tailByte] });
+          return { bytes: sections.flatMap((s) => s.bytes), sections };
         };
+
+        // kind 5: type-high-bit — type 字节 bit7 编码方向
         NS._buildFrameTypeHighBit = function (protocol, cmd) {
-          return { error: 'NOT_IMPLEMENTED', kind: 'type-high-bit', note: 'v4.8b 实现', bytes: [], sections: [] };
+          if (!protocol || !cmd) return { error: 'NO_PROTOCOL', bytes: [], sections: [] };
+          const sections = [];
+          const data = NS.encodeDataFields(cmd, protocol);
+          const headerField = protocol.fields.find((f) => f.type === 'header');
+          const headerByte = headerField ? (NS.parseHexOr0(headerField.default) & 0xFF) : 0xAA;
+          sections.push({ type: 'header', name: 'header', bytes: [headerByte] });
+          const typeDefault = NS.parseHexOr0(protocol.typeDefault || '0x00') & 0x7F;
+          const typeByte = typeDefault | ((cmd.direction === 'rx') ? 0x80 : 0);
+          sections.push({ type: 'type', name: 'type', bytes: [typeByte] });
+          sections.push({ type: 'cmd', name: 'cmd', bytes: [cmd.id & 0xFF] });
+          sections.push({ type: 'length', name: 'length', bytes: [data.length & 0xFF] });
+          sections.push({ type: 'data', name: 'data', bytes: [...data] });
+          const allBytes = sections.flatMap((s) => s.bytes);
+          const crcInput = NS._computeCrcInput(protocol, allBytes, sections);
+          const crcType = protocol.crcType || 'crc16-modbus';
+          const crcValue = NS.computeCrc(crcType, crcInput, NS.parseHexOr0(protocol.crcInit));
+          sections.push({ type: 'crc', name: 'crc', bytes: NS._encodeCrcBytes(crcValue, protocol.crcEndian || 'LE') });
+          const tailField = protocol.fields.find((f) => f.type === 'tail');
+          const tailByte = tailField ? (NS.parseHexOr0(tailField.default) & 0xFF) : 0x55;
+          sections.push({ type: 'tail', name: 'tail', bytes: [tailByte] });
+          return { bytes: sections.flatMap((s) => s.bytes), sections };
         };
+
+        // kind 6: msgid-mixed — 2B msgID bit15+7+8 packed
         NS._buildFrameMsgidMixed = function (protocol, cmd) {
-          return { error: 'NOT_IMPLEMENTED', kind: 'msgid-mixed', note: 'v4.8b 实现', bytes: [], sections: [] };
+          if (!protocol || !cmd) return { error: 'NO_PROTOCOL', bytes: [], sections: [] };
+          const sections = [];
+          const data = NS.encodeDataFields(cmd, protocol);
+          const directionBit = (cmd.direction === 'rx') ? 1 : 0;
+          const func = (cmd.func != null ? cmd.func : ((cmd.id >> 8) & 0x7F)) & 0x7F;
+          const addr = (cmd.addr != null ? cmd.addr : (cmd.id & 0xFF)) & 0xFF;
+          const msgIdValue = (directionBit << 15) | (func << 8) | addr;
+          const be = (protocol.msgIdEndian || 'BE') === 'BE';
+          const msgIdBytes = be
+            ? [(msgIdValue >> 8) & 0xFF, msgIdValue & 0xFF]
+            : [msgIdValue & 0xFF, (msgIdValue >> 8) & 0xFF];
+          sections.push({ type: 'msgID', name: 'msgID', bytes: msgIdBytes });
+          sections.push({ type: 'length', name: 'length', bytes: [data.length & 0xFF] });
+          sections.push({ type: 'data', name: 'data', bytes: [...data] });
+          const allBytes = sections.flatMap((s) => s.bytes);
+          const crcInput = NS._computeCrcInput(protocol, allBytes, sections);
+          const crcType = protocol.crcType || 'crc16-modbus';
+          const crcValue = NS.computeCrc(crcType, crcInput, NS.parseHexOr0(protocol.crcInit));
+          sections.push({ type: 'crc', name: 'crc', bytes: NS._encodeCrcBytes(crcValue, protocol.crcEndian || 'LE') });
+          const tailField = protocol.fields.find((f) => f.type === 'tail');
+          const tailByte = tailField ? (NS.parseHexOr0(tailField.default) & 0xFF) : 0x55;
+          sections.push({ type: 'tail', name: 'tail', bytes: [tailByte] });
+          return { bytes: sections.flatMap((s) => s.bytes), sections };
         };
+
+        // kind 7: tlv — 循环 TLV 段 (cmd.tlvs = [{type, value}, ...])
         NS._buildFrameTlv = function (protocol, cmd) {
-          return { error: 'NOT_IMPLEMENTED', kind: 'tlv', note: 'v4.8b 实现', bytes: [], sections: [] };
+          if (!protocol || !cmd) return { error: 'NO_PROTOCOL', bytes: [], sections: [] };
+          const sections = [];
+          const headerField = protocol.fields.find((f) => f.type === 'header');
+          const headerByte = headerField ? (NS.parseHexOr0(headerField.default) & 0xFF) : 0xAA;
+          sections.push({ type: 'header', name: 'header', bytes: [headerByte] });
+          const tlvs = cmd.tlvs || [];
+          const tlvSection = { type: 'tlv', name: 'tlv', bytes: [] };
+          for (const tlv of tlvs) {
+            const typeByte = (NS.parseHexOr0(tlv.type) & 0x7F) | ((cmd.direction === 'rx') ? 0x80 : 0);
+            const valueBytes = tlv.value || [];
+            tlvSection.bytes.push(typeByte & 0xFF);
+            tlvSection.bytes.push(valueBytes.length & 0xFF);
+            for (const b of valueBytes) tlvSection.bytes.push(b & 0xFF);
+          }
+          sections.push(tlvSection);
+          const allBytes = sections.flatMap((s) => s.bytes);
+          const crcInput = NS._computeCrcInput(protocol, allBytes, sections);
+          const crcType = protocol.crcType || 'crc16-modbus';
+          const crcValue = NS.computeCrc(crcType, crcInput, NS.parseHexOr0(protocol.crcInit));
+          sections.push({ type: 'crc', name: 'crc', bytes: NS._encodeCrcBytes(crcValue, protocol.crcEndian || 'LE') });
+          const tailField = protocol.fields.find((f) => f.type === 'tail');
+          const tailByte = tailField ? (NS.parseHexOr0(tailField.default) & 0xFF) : 0x55;
+          sections.push({ type: 'tail', name: 'tail', bytes: [tailByte] });
+          return { bytes: sections.flatMap((s) => s.bytes), sections };
         };
 
         // --- 协议编辑器 (proto modal) ---
