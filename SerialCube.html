@@ -11006,13 +11006,14 @@
           }
         };
 
-        // 简单 ack bytes 解析 (按 ackCmd.dataFields 顺序切, 跳过 header/cmd/length/crc/tail)
+        // 简单 ack bytes 解析 (按 ackCmd.dataFields 顺序切, 跳过 header/addr/cmd/length/crc/tail)
         // 仅 kind 0 fixed-header 协议; 完整 parseFrame 留后续 sub-2 重构
-        //   bytes 布局: header(1) + cmd(1) + length(1) + data(N) + crc(2) + tail(1) = 6 + N
+        //   bytes 布局 (proto_bms kind=0): header(0xAA=1) + addr(1) + cmd(1) + length(1) + data(N) + crc(2) + tail(0x55=1) = 7 + N
+        //   v4.9.7 修: 旧注释漏写 addr 字节, 现已对齐实际帧布局
         //   返 { fieldName: number } — 直接整数值, 不做单位换算 (跟现状 encodeDataFields 一致)
         NS._parseAckFields = function (ackCmd, bytes, protoId) {
           const out = {};
-          if (!ackCmd || !bytes || bytes.length < 6) return out;
+          if (!ackCmd || !bytes || bytes.length < 7) return out;  // v4.9.7 修: 最小帧 = 7 字节 (含 addr)
           const proto = NS.PROTOCOLS.find((p) => p.id === protoId);
           const protoEndian = (proto && proto.byteOrder) || 'BE';
           const dataLen = bytes.length - 7;

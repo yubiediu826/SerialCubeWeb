@@ -1,8 +1,8 @@
 # SerialCube 项目 Mavis 会话交接文档
 
-**日期**: 2026-08-04
-**来源 session**: mvs_624d8a7c80df49169cf53699a6d5b900 (root) → v4.9 sub-3 branch
-**会话时长**: ~3 小时 (8:32 → ~12:00)
+**日期**: 2026-08-04 (v4.9.9d 后更新)
+**来源 session**: mvs_624d8a7c80df49169cf53699a6d5b900 (root) → v4.9 sub-3 branch → merge 回 main
+**会话时长**: ~3 小时 (8:32 → 12:00) sub-3 主体 + ~5 小时 (15:34 → 20:08) fix/收尾
 **目的**: 新 session (root 或 branch) 开场快速恢复工作
 
 ---
@@ -10,18 +10,19 @@
 ## 1. 当前项目状态
 
 **仓库**: `D:\WorkSpace\SerialCubeWeb` (SerialCube.html 单文件, GitHub Pages 部署)
-**最新 commit**: `e32cc64` (v4.9.5) + `f30c391` (v4.9.6) + `36574b5` (HANDOFF 更新)
-**v4.9-sub3 分支**: 7 commits ahead of v4.8 base, 全部 push
-**worktree**: `D:\WorkSpace\SerialCubeWeb\.worktrees\v4.9-sub3\` (本任务在此路径完成)
+**最新 commit**: `e551ece` (v4.9.9d) — main 分支, 全部 push
+**v4.9.7-9d 全部已 push**: 6 commits 后续 fix (Frame offset + ASCII 帧 + 协议编辑器 UI 4 个 fix)
+**worktree**: 全部合并回 main, `.worktrees/` 仅剩 `.gitignore` 占位
 
-**v4.8 + v4.9 sub-3 全部完成** ✅:
+**v4.8 + v4.9 sub-3 + v4.9.7-9d 全部完成** ✅:
 - v4.8: 11 个实施 commit + 2 个 spec/plan commit
-- v4.9 sub-3: 5 个 commit (dataSize 自动算 / 0x90 0x91 ACK / ack 解析抽象 / modal UI / 真实发送) + v4.9.6 收尾 (c11 c12 + settings + RX 接入 + HANDOFF)
+- v4.9 sub-3 主体: 5 个 commit + v4.9.6 收尾 (c11 c12 + settings + RX 接入 + HANDOFF)
+- v4.9.7-9d 收尾: 6 个 fix commit (Frame offset / ASCII 帧 / 协议编辑器 4 UI 修复) + 注释/handoff 修正
 - AGENTS.md 数据兼容性 5 条全部不动
 
 ---
 
-## 2. v4.8 + v4.9 sub-3 实施清单 (16 commits)
+## 2. v4.8 + v4.9 完整实施清单 (22 commits)
 
 ### v4.8 (11 commits)
 | Commit | 内容 | 大小 |
@@ -48,7 +49,18 @@
 | `f30c391` | v4.9.6 c11/c12 + pairTriggerTimeout settings + 真串口 RX 接入 | 实施 |
 | `36574b5` | HANDOFF.md 更新到 v4.9 (sub-3 全部完成) | docs |
 
+### v4.9.7-9d 收尾 (6 commits, 浏览器 review + 真串口测试驱动)
+| Commit | 内容 | 驱动 |
+|---|---|---|
+| `1adc15f` | **v4.9.7**: 🔥 `_parseAckFields` 修帧布局 offset (7+N 含 addr, 原 6+N 错) | 端到端真 buildFrame 输出 11 字节帧 dispatch 暴露 |
+| `e028be3` | **v4.9.8**: RX 接入加 ASCII 帧解析分支 (设备实际发 ASCII 数字, 不是 binary) | com50/51 真串口自测 |
+| `21e720e` | **v4.9.9a**: 协议编辑器 UI 简化 (移除冗余默认字节序) + CRC 切换自动同步字段 size | 协议编辑器 review |
+| `a959d59` | **v4.9.9b**: 验证按钮重命名 "✓ 验证" → "✓ 试生成字节" (tooltip) | UX review |
+| `3756cff` | **v4.9.9c**: 协议编辑器 3 处 UI 修复 (cmd-config 列标题 + 3 个 dropdown 兜底) | UI review |
+| `e551ece` | **v4.9.9d**: 卡片配置列标题 + 修 class 不匹配 bug (`card-edit-row` → `card-edit-item`) | UI review |
+
 **v4.9 sub-3 Plan 修正 0 处** (5 个 task 全部按 plan 实施, Task 6 收尾中)。
+**v4.9.7-9d 收尾无 spec/plan** (全部为 review 驱动的 fix, 单文件小改, 不开 sub-spec)。
 
 ---
 
@@ -67,7 +79,7 @@
 - [ ] 范围错误: 输入 500 → toast "范围错误" → input 还原
 - [ ] RX 接入 (真串口):  连 com50 → 触发 0x10 → com51 回 0xAA 01 90 04 ... 55 → dashboard c9/c10 更新
 - [ ] 旧 user config 兼容: 刷新页面, NS.CARDS 仍有 12 张 + state.settings.pairTriggerTimeout 有值
-- [ ] 协议编辑器 验证 按钮 (v4.8a 行为): "BMS TLV v1 (Legacy)" tab → 验证 → "协议验证 OK" toast
+- [ ] 协议编辑器 试生成字节 按钮 (v4.9.9b 后): "BMS TLV v1 (Legacy)" tab → 试生成字节 → "试生成字节 OK" toast
 
 ### 后续 sub (留 spec/plan/session)
 - **🔥 v5 历史回放**: `.timeline` 录制/回放打磨, 1-2 小时, 独立大块 ← 提升到最高优先级 (sub-3 完成)
