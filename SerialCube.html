@@ -6547,6 +6547,16 @@
       width: 8px; height: 8px; border-radius: 50%; background: var(--text-soft);
     }
 .dashboard-host     .system-menu .menu-row.active .dot { background: var(--accent); }
+    /* v4.9.6: 系统菜单 settings-row (含 input) */
+    .dashboard-host     .system-menu .menu-row.menu-row-input { cursor: default; gap: 6px; }
+    .dashboard-host     .system-menu .menu-row.menu-row-input:hover { background: transparent; color: inherit; }
+    .dashboard-host     .system-menu .menu-row .menu-label { color: var(--text-soft); font-size: 11px; flex: 1; }
+    .dashboard-host     .system-menu .menu-row .menu-input {
+      width: 88px; height: 24px; padding: 2px 6px; font-size: 12px;
+      background: var(--surface-2); color: var(--text);
+      border: 1px solid var(--border); border-radius: 4px; outline: none;
+    }
+    .dashboard-host     .system-menu .menu-row .menu-input:focus { border-color: var(--accent); }
 
     /* toast */
 .dashboard-host     .toast-layer { position: fixed; top: 70px; right: 16px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
@@ -7195,6 +7205,11 @@
           <div class="menu-section">外观</div>
           <div class="menu-row" id="dh-menu-theme">切换深色 / 浅色</div>
           <div class="menu-row" id="dh-menu-reset">重置数据</div>
+          <div class="menu-section">Pair Trigger</div>
+          <div class="menu-row menu-row-input">
+            <span class="menu-label">触发超时 (ms)</span>
+            <input type="number" id="dh-menu-pair-trigger-timeout" min="1000" max="10000" step="500" value="3000" class="menu-input">
+          </div>
         </div>
         <div class="alert-drawer" id="dh-alert-drawer">
           <div class="alert-drawer-head">
@@ -7634,6 +7649,8 @@
         timelineProgress: document.getElementById('timeline-progress'),
         systemMenuBtn: document.getElementById('system-menu-btn'),
         systemMenu: document.getElementById('system-menu'),
+        // v4.9.6: 系统菜单 "Pair trigger 超时" 输入
+        pairTriggerTimeoutInput: document.getElementById('dh-menu-pair-trigger-timeout'),
         configMenuRow: document.getElementById('config-menu-row'),
         configMenuConfirmRow: document.getElementById('config-menu-confirm-row'),
         copyUserConfigBtn: document.getElementById('copy-user-config-btn'),
@@ -7826,7 +7843,9 @@
           appendTimestamp: true,
           sendMode: 'ascii',
           newlineMode: 'rn',
-          appendNewline: true
+          appendNewline: true,
+          // v4.9.6: pair trigger 等待 ack 超时 (ms), 默认 3000, 范围 1000-10000
+          pairTriggerTimeout: 3000
         },
         sendDraft: {
           text: '',
@@ -9485,7 +9504,10 @@
           { id: 'c7', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_4_v',    title: 'Cell 4 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true },
           { id: 'c8', type: 'trend', cmd: 0x01, dir: 'rx', field: 'pack_v_avg',  title: 'Pack 均压',  unit: 'V', range: [2.8, 4.2], precision: 3, fromOtherCmd: true },
           { id: 'c9', type: 'pair',  cmd: 0x10, dir: 'tx', pairId: 'charge_v',     title: '充电电压',    unit: 'V', fromOtherCmd: false },
-          { id: 'c10', type: 'trend', cmd: 0x10, dir: 'tx', field: 'charge_v_set', title: '充电设定',    unit: 'V', range: [0, 60],   precision: 1, fromOtherCmd: false }
+          { id: 'c10', type: 'trend', cmd: 0x10, dir: 'tx', field: 'charge_v_set', title: '充电设定',    unit: 'V', range: [0, 60],   precision: 1, fromOtherCmd: false },
+          // v4.9.6: c11/c12 放电卡片 — 跟 c9/c10 风格一致 (pair / trend), field/pairId/range/precision 全填
+          { id: 'c11', type: 'pair',  cmd: 0x11, dir: 'tx', pairId: 'discharge_v',    title: '放电电压',    unit: 'V', fromOtherCmd: false },
+          { id: 'c12', type: 'trend', cmd: 0x11, dir: 'tx', field: 'discharge_v_set', title: '放电设定',    unit: 'V', range: [0, 60],   precision: 1, fromOtherCmd: false }
         ];
 
         // === UI 状态 ===
@@ -9629,9 +9651,13 @@
             // v4.4.3: pair 卡 SET/ACT 派生, 用 c.pairId 决定 set/act 字段
             // pairId 'charge_v' → set = charge_v_set (0x10 TX), act = pack_v_avg * 15 (0x01 RX 派生 4 cell 串联)
             // 后续扩展: pairId 'charge_i' → set = charge_i_set, act = pack_i (等等)
+            // v4.9.6: 加 'discharge_v' 分支, c11 跟 c9 共用 pack_v_avg*15 公式
             let set = 0, act = 0;
             if (c.pairId === 'charge_v') {
               set = NS.currentVals.charge_v_set != null ? NS.currentVals.charge_v_set : 0;
+              act = (NS.currentVals.pack_v_avg != null ? NS.currentVals.pack_v_avg : 0) * 15;
+            } else if (c.pairId === 'discharge_v') {
+              set = NS.currentVals.discharge_v_set != null ? NS.currentVals.discharge_v_set : 0;
               act = (NS.currentVals.pack_v_avg != null ? NS.currentVals.pack_v_avg : 0) * 15;
             } else {
               // fallback: 任意 pairId, 用通用 lookup
@@ -9729,9 +9755,13 @@
           card.className = 'list-card';
           if (c.type === 'pair') {
             // v4.4.3: pair 卡 SET/ACT 派生, 用 c.pairId 决定 (跟 renderCard 一致)
+            // v4.9.6: 加 'discharge_v' 分支
             let set = 0, act = 0;
             if (c.pairId === 'charge_v') {
               set = NS.currentVals.charge_v_set != null ? NS.currentVals.charge_v_set : 0;
+              act = (NS.currentVals.pack_v_avg != null ? NS.currentVals.pack_v_avg : 0) * 15;
+            } else if (c.pairId === 'discharge_v') {
+              set = NS.currentVals.discharge_v_set != null ? NS.currentVals.discharge_v_set : 0;
               act = (NS.currentVals.pack_v_avg != null ? NS.currentVals.pack_v_avg : 0) * 15;
             } else {
               set = NS.currentVals[c.pairId + '_set'] != null ? NS.currentVals[c.pairId + '_set'] : 0;
@@ -11003,6 +11033,32 @@
           clearTimeout(waiter.timeoutId);
           waiter.resolve(bytes);
           return true;
+        };
+
+        // v4.9.6: 真串口 RX 接入 — 扫描 0xAA...0x55 帧, 识别 0x90/0x91 ack 后调用 _triggerAckHandler
+        //   仅识别 proto_bms kind=0 fixed-header 帧布局 (sub-3 不动其他 kind, 留 sub-2 parseFrame 通用化)
+        //   帧布局: header(0xAA) + addr(0x01) + cmd(0x90/0x91) + length(N) + data(N) + crc(2) + tail(0x55) = 7+N bytes
+        //   CRC 暂不校验 (设备可能回 OK 但 CRC 误差, 影响业务; v4.9.6 只识别帧边界)
+        //   同 cmd 已 pending 时多次 ack: 由 _triggerAckHandler 内 waiter.delete 幂等保护
+        NS.tryDispatchAckFrames = function (bytes) {
+          if (!bytes || bytes.length < 7) return;
+          // 滑动窗口扫描 0xAA 起始字节
+          let i = 0;
+          while (i < bytes.length - 6) {
+            if (bytes[i] !== 0xAA) { i += 1; continue; }
+            // 至少需要 7 字节 (header+addr+cmd+length+crc_lo+crc_hi+tail) 才能算最小帧
+            const cmd = bytes[i + 2];
+            if (cmd !== 0x90 && cmd !== 0x91) { i += 1; continue; }
+            const length = bytes[i + 3];
+            const totalLen = 4 + length + 2 + 1; // header+addr+cmd+length + data + crc + tail = 7 + N
+            if (i + totalLen > bytes.length) { i += 1; continue; } // 帧不完整, 继续扫
+            const tail = bytes[i + totalLen - 1];
+            if (tail !== 0x55) { i += 1; continue; } // 边界不对齐, 继续扫
+            // 提取完整帧, 喂给 _triggerAckHandler
+            const frame = bytes.slice(i, i + totalLen);
+            NS._triggerAckHandler(cmd, frame);
+            i += totalLen; // 跳到下一帧起点
+          }
         };
 
         // --- v4.9.4: Pair trigger modal (0x10/0x11 共用) ---
@@ -13476,6 +13532,14 @@
             }
             if (value && value.byteLength) {
               const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+              // v4.9.6: 0x90/0x91 ack frame 识别 (只对 proto_bms kind=0 fixed-header 协议)
+              //   帧布局: header(0xAA) + addr(0x01) + cmd(0x90/0x91) + length(N) + data(N) + crc(2) + tail(0x55) = 7+N bytes
+              //   扫描整段 bytes, 找到 0xAA → 验证 cmd/length/tail → 整帧提取 → 喂给 _triggerAckHandler
+              try {
+                NS.tryDispatchAckFrames?.(bytes);
+              } catch (ackError) {
+                console.error('tryDispatchAckFrames failed', ackError);
+              }
               const timestamp = nowPreciseMs();
               try {
                 queueRxBytes(bytes, timestamp, { source: 'serial-read' });
@@ -18152,7 +18216,13 @@
           appendTimestamp: typeof source.appendTimestamp === 'boolean' ? source.appendTimestamp : state.settings.appendTimestamp,
           sendMode: source.sendMode === 'hex' ? 'hex' : 'ascii',
           newlineMode: ['r', 'n', 'rn'].includes(source.newlineMode) ? source.newlineMode : state.settings.newlineMode,
-          appendNewline: typeof source.appendNewline === 'boolean' ? source.appendNewline : state.settings.appendNewline
+          appendNewline: typeof source.appendNewline === 'boolean' ? source.appendNewline : state.settings.appendNewline,
+          // v4.9.6: pair trigger 超时, 旧 user config 无此字段 → 兜底用 state.settings 当前值
+          pairTriggerTimeout: (() => {
+            const v = Number(source.pairTriggerTimeout);
+            if (Number.isFinite(v) && v >= 1000 && v <= 10000) return v;
+            return state.settings.pairTriggerTimeout;
+          })()
         };
       }
 
@@ -19312,6 +19382,22 @@
           });
         });
         refs.systemMenuBtn.addEventListener('click', () => toggleMenu(refs.systemMenu));
+        // v4.9.6: 系统菜单 "Pair trigger 超时" 输入绑定
+        if (refs.pairTriggerTimeoutInput) {
+          // 初始化 input 值 (从 state.settings, 兜底 3000)
+          refs.pairTriggerTimeoutInput.value = String(state.settings.pairTriggerTimeout || 3000);
+          refs.pairTriggerTimeoutInput.addEventListener('change', () => {
+            const raw = parseInt(refs.pairTriggerTimeoutInput.value, 10);
+            if (Number.isFinite(raw) && raw >= 1000 && raw <= 10000) {
+              state.settings.pairTriggerTimeout = raw;
+              scheduleLocalPrefsSave();
+              toast('已保存', 'Pair trigger 超时设为 ' + raw + 'ms。', 'success');
+            } else {
+              toast('范围错误', 'Pair trigger 超时需 1000-10000 ms。', 'warn');
+              refs.pairTriggerTimeoutInput.value = String(state.settings.pairTriggerTimeout || 3000);
+            }
+          });
+        }
         refs.downloadLocalLink?.addEventListener('click', downloadLocalIndexHtml);
         refs.versionInfoBtn?.addEventListener('click', (event) => {
           event.stopPropagation();
