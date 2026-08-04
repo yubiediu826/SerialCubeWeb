@@ -10437,6 +10437,64 @@
           return out;
         };
 
+        // --- 公共抽函数: CRC 输入字节范围 (v4.8a) ---
+        // 按 protocol.crcRange 决定哪些 section 参与 CRC 运算
+        // 返回字节数组 (用于 NS.computeCrc)
+        NS._computeCrcInput = function (protocol, allBytes, sections) {
+          const crcRange = protocol.crcRange || 'all';
+          const crcFieldIdx = protocol.fields.findIndex((f) => f.type === 'crc');
+          const crcFieldSize = crcFieldIdx >= 0 ? (protocol.fields[crcFieldIdx].size || 2) : 2;
+          if (crcRange === 'all') {
+            // 全部字段参与, 排除 crc 字段本身
+            const offsetBeforeCrc = protocol.fields.slice(0, crcFieldIdx).reduce((sum, f, k) => {
+              return sum + (f.size || sections[k].bytes.length);
+            }, 0);
+            return allBytes.filter((_, i) => i < offsetBeforeCrc || i >= offsetBeforeCrc + crcFieldSize);
+          }
+          // 其他 crcRange 按段排除
+          const excluded = new Set();
+          if (crcRange === 'no_header' || crcRange === 'no_header_tail') {
+            const headerIdx = protocol.fields.findIndex((f) => f.type === 'header');
+            if (headerIdx >= 0) excluded.add(headerIdx);
+          }
+          if (crcRange === 'no_tail' || crcRange === 'no_header_tail') {
+            // tail 段在 protocol.fields 数组的倒数第一或倒数第二 (crc 之后)
+            for (let i = protocol.fields.length - 1; i >= 0; i--) {
+              if (protocol.fields[i].type === 'tail') { excluded.add(i); break; }
+            }
+          }
+          if (crcRange === 'data_only') {
+            const dataSection = sections.find((s) => s.type === 'data');
+            return dataSection ? [...dataSection.bytes] : [];
+          }
+          excluded.add(crcFieldIdx);
+          // 按段重组输入字节
+          const out = [];
+          let off = 0;
+          for (let k = 0; k < protocol.fields.length; k++) {
+            const size = protocol.fields[k].size || sections[k].bytes.length;
+            if (!excluded.has(k)) {
+              for (let b = 0; b < size; b++) out.push(allBytes[off + b]);
+            }
+            off += size;
+          }
+          return out;
+        };
+
+        // --- 公共抽函数: CRC 字节编码 (v4.8a) ---
+        // 按 endianness 切 CRC 值为字节数组
+        NS._encodeCrcBytes = function (crcValue, endian) {
+          const be = (endian || 'LE') === 'BE';
+          if (crcValue > 0xFFFF) {
+            // CRC-32 (4 字节)
+            if (be) return [(crcValue >> 24) & 0xFF, (crcValue >> 16) & 0xFF, (crcValue >> 8) & 0xFF, crcValue & 0xFF];
+            return [crcValue & 0xFF, (crcValue >> 8) & 0xFF, (crcValue >> 16) & 0xFF, (crcValue >> 24) & 0xFF];
+          }
+          // CRC-16 / CRC-8 (1-2 字节)
+          if (be) return [(crcValue >> 8) & 0xFF, crcValue & 0xFF];
+          return [crcValue & 0xFF, (crcValue >> 8) & 0xFF];
+        };
+
         // --- buildFrame: 按 protocol.fields 切分字节, 并按 crcRange 算 CRC ---
         NS.buildFrame = function (protocol, cmd) {
           if (!protocol) return { bytes: [], sections: [] };
