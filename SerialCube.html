@@ -5747,11 +5747,11 @@
     }
 .dashboard-host     .card-add-slot {
       /* v4.4.2.1 修复: 跟 .card-default 视觉完全对齐.
-         .card-default content-box 280x200 + padding 20 + border 2 = 实际 306x222.
-         add 卡 用 box-sizing: border-box + width 306 height 222, 总 306x222 = cards 实际尺寸, 等高等宽.
+         .card-default content-box 280x230 + padding 20 + border 2 = 实际 306x252.
+         add 卡 用 box-sizing: border-box + width 306 height 252, 总 306x252 = cards 实际尺寸, 等高等宽.
          1px dashed + 同样 padding, 视觉上 add 卡 就是 "空卡片, 内部只有 + 和提示词", 不再"鼓出来". */
       box-sizing: border-box;
-      width: 306px; height: 222px;
+      width: 306px; height: 252px;  /* v4.9.11d: 222→252 跟 card 280x230 对齐 */
       padding: 10px 12px;
       border: 1px dashed var(--border);
       border-radius: var(--radius);
@@ -5804,20 +5804,20 @@
       font-family: var(--font-mono);
     }
 .dashboard-host     .card-group-sep {
-      width: 1px; min-height: 200px;
+      width: 1px; min-height: 230px;  /* v4.9.11d: 200→230 跟 card 高度对齐 */
       background: var(--border);
       margin: 0 6px;
     }
 
 .dashboard-host     .card-default {
-      width: 280px; height: 200px;
-      min-width: 0;  /* v4.4 修复: 防止 card 内部 min-content (canvas 等) 撑大 grid track, 导致单列超大 */
+      width: 280px; height: 230px;  /* v4.9.11d: 200→230 给 trend sparkline 增高 */
+      min-width: 0;
       padding: 10px 12px;
       background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       display: grid;
-      grid-template-rows: 24px 56px 60px 24px;
+      grid-template-rows: 24px 56px 90px 24px;  /* v4.9.11d: trend 60→90 */
       grid-template-areas:
         "header"
         "value"
@@ -5833,7 +5833,7 @@
 .dashboard-host     .card-default:hover { box-shadow: var(--shadow-soft); }
 .dashboard-host     .card-default.alert-warning { border-color: var(--warning); }
 .dashboard-host     .card-default.alert-danger { border-color: var(--danger); }
-.dashboard-host     .card-default.pair { grid-template-rows: 24px 56px 60px 24px; }
+.dashboard-host     .card-default.pair { grid-template-rows: 24px 56px 90px 24px; }
 
 .dashboard-host     .card-header {
       grid-area: header;
@@ -5908,12 +5908,12 @@
 .dashboard-host     .pair-cell.delta .val.bad { background: rgba(224, 87, 94, 0.14); color: var(--danger); }
 .dashboard-host     .card-trend {
       grid-area: trend;
-      width: calc(100% - 8px);
-      height: 80px;
-      margin: 0 4px;
+      width: calc(100% - 16px);  /* v4.9.11d: 8→16, 8px 边距更明显 */
+      height: 100%;
+      margin: 0 8px;
       position: relative;
       background: var(--bg-terminal);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-strong);  /* v4.9.11d: border → border-strong 更明显 */
       border-radius: 6px;
       overflow: hidden;
     }
