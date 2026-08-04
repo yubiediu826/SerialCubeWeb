@@ -5864,6 +5864,15 @@
 .dashboard-host     .card-action.disabled, .card-action:disabled {
       opacity: 0.35; cursor: not-allowed; pointer-events: none;
     }
+/* v4.9.5: 触发按钮 PENDING 状态 - 旋转动画 + 半透 (同 cmd 互斥锁) */
+.dashboard-host     .card-action.is-loading {
+  animation: card-action-spin 0.8s linear infinite;
+  opacity: 0.5; cursor: wait;
+}
+@keyframes card-action-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 .dashboard-host     .rx-badge {
       position: absolute; top: 6px; right: 6px;
       font-family: var(--font-mono); font-size: 8px; font-weight: 700;
@@ -6389,6 +6398,11 @@
       white-space: pre-wrap; word-break: break-all;
       color: var(--text); margin: 0;
     }
+/* v4.9.5: 数字 stepper 错误态 (NaN 校验失败) */
+.dashboard-host     #dh-pair-trigger-fields input.error {
+  border-color: var(--danger);
+  background: rgba(220, 38, 38, 0.05);
+}
 
 .dashboard-host     .legend {
       display: flex; flex-wrap: wrap; gap: 8px;
@@ -9627,6 +9641,9 @@
             const delta = act - set;
             const dCls = Math.abs(delta) < 0.5 ? 'ok' : (Math.abs(delta) < 1.0 ? 'warn' : 'bad');
             const pairState = dCls;
+            // v4.9.5: pair 触发按钮 PENDING 状态 (同 cmd 互斥, 锁住 + 旋转动画)
+            const isPending = NS.txPendingCmds && NS.txPendingCmds.has(c.cmd);
+            const cmdHex = c.cmd.toString(16).padStart(2, '0').toUpperCase();
             card.classList.add('alert-' + pairState);
             card.innerHTML = '<div class="card-header">'
               + '<div class="card-title-group">'
@@ -9636,7 +9653,9 @@
               + '</div>'
               + '<div class="card-actions">'
               + '<button class="card-action" title="Pair 详情" data-action="detail">⇄</button>'
-              + '<button class="card-action" title="触发 0x' + c.cmd.toString(16).padStart(2, '0').toUpperCase() + '" data-action="trigger">↗</button>'
+              + '<button class="card-action' + (isPending ? ' is-loading disabled' : '') + '"'
+              + (isPending ? ' disabled title="等待响应中..."' : ' title="触发 ' + cmdHex + '" data-action="trigger"')
+              + '>↗</button>'
               + '<button class="card-action edit-btn" title="编辑" data-action="edit">✎</button>'
               + '</div></div>'
               + '<div class="card-value pair" data-action="detail">'
@@ -9657,6 +9676,9 @@
             const stateLabel = c.fromOtherCmd ? 'RX' : (alert === 'danger' ? '⚠ 越限' : (alert === 'warning' ? '⚠ 警告' : '✓ 正常'));
             const stateClass = c.fromOtherCmd ? 'rx' : (alert || 'ok');
             const cmdHex = c.cmd ? c.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
+            // v4.9.5: 触发按钮 PENDING 状态 (同 cmd 互斥, 锁住 + 旋转动画; 与 c.fromOtherCmd 复合)
+            const isPending = NS.txPendingCmds && NS.txPendingCmds.has(c.cmd);
+            const lockForPending = !c.fromOtherCmd && isPending;
             if (alert) card.classList.add('alert-' + alert);
             const flashClass = (NS.lastValues[c.field] !== undefined && Math.abs(v - NS.lastValues[c.field]) > 0.001) ? ' flash' : '';
             card.innerHTML = '<div class="card-header">'
@@ -9666,7 +9688,9 @@
               + '<span class="card-unit">' + NS.escapeHtml(c.unit || '') + '</span>'
               + '</div>'
               + '<div class="card-actions">'
-              + '<button class="card-action ' + (c.fromOtherCmd ? 'disabled' : '') + '" ' + (c.fromOtherCmd ? 'disabled title="RX-only, 不可写入"' : 'title="触发" data-action="trigger"') + '>' + (c.fromOtherCmd ? '🔒' : '↗') + '</button>'
+              + '<button class="card-action' + (c.fromOtherCmd ? ' disabled' : '') + (lockForPending ? ' is-loading disabled' : '') + '"'
+              + (c.fromOtherCmd ? ' disabled title="RX-only, 不可写入"' : (lockForPending ? ' disabled title="等待响应中..."' : ' title="触发" data-action="trigger"'))
+              + '>' + (c.fromOtherCmd ? '🔒' : '↗') + '</button>'
               + '<button class="card-action edit-btn" title="编辑" data-action="edit">✎</button>'
               + '</div></div>'
               + (c.fromOtherCmd ? '<span class="rx-badge">RX</span>' : '')
@@ -11055,11 +11079,104 @@
           // 显示 modal (用 openModal/closeModal 跟现有 5 modals 一致; data-close 自动绑关闭)
           NS.openModal('dh-pair-trigger');
 
-          // 暂不接发送 (Task 5); 触发按钮只 toast 占位
+          // 触发按钮 - 真实发送 + 等 ack + 状态机 (v4.9.5)
           const confirmBtn = document.getElementById('dh-pair-trigger-confirm-btn');
           if (confirmBtn) {
-            confirmBtn.onclick = () => {
-              NS.toast('触发逻辑将在 Task 5 实施', 'info');
+            confirmBtn.onclick = async () => {
+              const cmdHex = '0x' + cmdId.toString(16).padStart(2, '0').toUpperCase();
+
+              // 1. NaN 校验 → 输入框 .error 错误态
+              let valid = true;
+              fieldsEl.querySelectorAll('input[data-field]').forEach((input) => {
+                const v = parseFloat(input.value);
+                if (isNaN(v)) { valid = false; input.classList.add('error'); }
+                else { input.classList.remove('error'); userSet[input.dataset.field] = v; }
+              });
+              if (!valid) {
+                NS.toast('输入有误', 'danger', 4000);
+                return;
+              }
+
+              // 2. buildFrame 校验 (Q4: 不写 currentVals, 只用 userSet 覆盖)
+              const cmdWithInput = {
+                ...cmd,
+                dataFieldsValues: { ...NS.currentVals, ...userSet }
+              };
+              const frame = NS.buildFrame(proto, cmdWithInput);
+              if (frame.error) {
+                NS.toast('协议错误: ' + frame.error, 'danger', 4000);
+                return;
+              }
+
+              // 3. 关闭 modal
+              NS.closeModal('dh-pair-trigger');
+
+              // 4. 推 waiter (ack cmd id = cmd.expectResponse, 默认 3000ms 兜底)
+              const ackCmdId = cmd.expectResponse;
+              const timeoutMs = (state.settings && state.settings.pairTriggerTimeout) || 3000;
+              let ackResolve, ackReject;
+              const ackPromise = new Promise((resolve, reject) => {
+                ackResolve = resolve;
+                ackReject = reject;
+              });
+              const timeoutId = setTimeout(() => {
+                if (NS.txAckWaiters.has(ackCmdId)) {
+                  NS.txAckWaiters.delete(ackCmdId);
+                  ackReject(new Error('TIMEOUT'));
+                }
+              }, timeoutMs);
+              NS.txAckWaiters.set(ackCmdId, {
+                resolve: ackResolve, reject: ackReject, timeoutId,
+                triggerCmdId: cmdId, ts: Date.now()
+              });
+
+              // 5. 标记 pending + 锁按钮 + 顶部 toast (info/不自动消失)
+              NS.txPendingCmds.add(cmdId);
+              NS.renderKpiCards();
+              NS.toast(
+                '已发送 ' + cmdHex + ' (' + frame.bytes.length + 'B), 等待设备 ack…',
+                'info', 0
+              );
+
+              // 6. 发 (sendPayload 内部: 未连接 → 弹 warn toast + return false)
+              const sendOk = await sendPayload(frame.bytes, 'pair-trigger');
+              if (!sendOk) {
+                // 发送失败: 清 waiter + 清 pending + 重渲染按钮 (不弹 ack 失败 toast, sendPayload 已弹 warn)
+                NS.txAckWaiters.delete(ackCmdId);
+                clearTimeout(timeoutId);
+                NS.txPendingCmds.delete(cmdId);
+                NS.renderKpiCards();
+                return;
+              }
+
+              // 7. Mock 模式: 30ms 后模拟设备回 ack (Q5 决策)
+              //   临时改 NS.currentVals → buildFrame 拿 ack bytes → 还原 (避免脏数据影响 mock 渲染)
+              if (!state.serial.connected && !NS._mockAckDisabled) {
+                setTimeout(() => {
+                  const saved = { ...NS.currentVals };
+                  Object.assign(NS.currentVals, userSet);
+                  const ackCmd = NS.COMMANDS.find((c) => c.id === ackCmdId);
+                  const ackFrame = ackCmd ? NS.buildFrame(proto, ackCmd) : null;
+                  Object.keys(saved).forEach((k) => { NS.currentVals[k] = saved[k]; });
+                  if (ackFrame && !ackFrame.error) {
+                    NS._triggerAckHandler(ackCmdId, ackFrame.bytes);
+                  }
+                }, 30);
+              }
+
+              // 8. 等 ack / timeout
+              try {
+                await ackPromise;
+                NS.toast(cmdHex + ' ack 收到 ✓', 'success', 2000);
+              } catch (e) {
+                NS.toast(
+                  cmdHex + ' 未收到响应 (timeout ' + timeoutMs + 'ms)',
+                  'danger', 4000
+                );
+              } finally {
+                NS.txPendingCmds.delete(cmdId);
+                NS.renderKpiCards();
+              }
             };
           }
           // backdrop 点击关闭 (openModal/closeModal + data-close 都不处理 backdrop click)
@@ -11576,7 +11693,8 @@
         };
 
         // --- Toast 通知 ---
-        NS.toast = function (msg, type) {
+        // v4.9.5: 加 durationMs 3rd 参数 (默认 2500 向后兼容; 0 = 不自动消失, 等待中)
+        NS.toast = function (msg, type, durationMs) {
           type = type || 'info';
           const layer = document.getElementById('dh-toast-layer');
           if (!layer) return;
@@ -11584,8 +11702,10 @@
           t.className = 'toast ' + type;
           t.textContent = msg;
           layer.appendChild(t);
-          setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100%)'; t.style.transition = 'all 0.3s'; }, 2500);
-          setTimeout(() => t.remove(), 2900);
+          if (durationMs === 0) return; // 等待中, 不自动消失
+          const ms = (durationMs == null) ? 2500 : durationMs;
+          setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100%)'; t.style.transition = 'all 0.3s'; }, ms);
+          setTimeout(() => t.remove(), ms + 400);
         };
 
         // --- Modal 控制 ---
