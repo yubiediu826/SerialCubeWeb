@@ -10835,6 +10835,107 @@
           return { bytes: sections.flatMap((s) => s.bytes), sections };
         };
 
+        // --- v4.9.3: TX trigger 状态空间 (Task 3) ---
+        // 开 UI 前的"地基": 字段 hint + bytes 解码 + ack 解析 + waiter 状态 + handler
+        // 不接任何 modal / 按钮 / toast — Task 4-5 才接 UI
+
+        // 字段 hint (modal 数字 stepper 兜底): label / unit / min / max / step
+        NS._FIELD_HINT = {
+          'charge_v_set':    { label: '充电电压', unit: 'V', min: 0, max: 60, step: 0.1 },
+          'charge_i_set':    { label: '充电电流', unit: 'A', min: 0, max: 30, step: 0.1 },
+          'discharge_v_set': { label: '放电电压', unit: 'V', min: 0, max: 60, step: 0.1 }
+        };
+
+        // mock ack 调试开关 (DevTools 用, 不暴露 UI; Task 5 实施时用得到)
+        NS._mockAckDisabled = false;
+
+        // bytes → number (按 type + byteOrder)
+        //   支持 u8 / u16 / u32 / i8 / i16 / i32 / float / double
+        //   endian: 'BE' (默认) | 'LE'
+        NS._bytesToNumber = function (bytes, endian, type) {
+          if (!bytes || !bytes.length) return 0;
+          // DataView 要求 buffer >= 8 (float64); 不足补 0
+          const buf = new ArrayBuffer(Math.max(bytes.length, 8));
+          const u8 = new Uint8Array(buf);
+          for (let i = 0; i < bytes.length; i++) u8[i] = bytes[i];
+          const dv = new DataView(buf);
+          const isLE = (endian || 'BE') === 'LE';
+          switch (type) {
+            case 'u8':     return dv.getUint8(0);
+            case 'i8':     return dv.getInt8(0);
+            case 'u16':    return dv.getUint16(0, isLE);
+            case 'i16':    return dv.getInt16(0, isLE);
+            case 'u32':    return dv.getUint32(0, isLE);
+            case 'i32':    return dv.getInt32(0, isLE);
+            case 'float':  return dv.getFloat32(0, isLE);
+            case 'double': return dv.getFloat64(0, isLE);
+            default:       return 0;
+          }
+        };
+
+        // 简单 ack bytes 解析 (按 ackCmd.dataFields 顺序切, 跳过 header/cmd/length/crc/tail)
+        // 仅 kind 0 fixed-header 协议; 完整 parseFrame 留后续 sub-2 重构
+        //   bytes 布局: header(1) + cmd(1) + length(1) + data(N) + crc(2) + tail(1) = 6 + N
+        //   返 { fieldName: number } — 直接整数值, 不做单位换算 (跟现状 encodeDataFields 一致)
+        NS._parseAckFields = function (ackCmd, bytes, protoId) {
+          const out = {};
+          if (!ackCmd || !bytes || bytes.length < 6) return out;
+          const proto = NS.PROTOCOLS.find((p) => p.id === protoId);
+          const protoEndian = (proto && proto.byteOrder) || 'BE';
+          const dataLen = bytes.length - 6;
+          const data = bytes.slice(3, 3 + dataLen);
+          let off = 0;
+          for (const fname of (ackCmd.dataFields || [])) {
+            const df = NS.DATA_FIELDS.find((f) => f.name === fname);
+            if (!df) continue;
+            const size = NS._FIELD_BYTE_SIZE[df.type] || 2;
+            if (off + size > data.length) break;
+            const slice = data.slice(off, off + size);
+            out[fname] = NS._bytesToNumber(slice, df.byteOrder || protoEndian, df.type);
+            off += size;
+          }
+          return out;
+        };
+
+        // TX trigger 状态空间
+        //   txPendingCmds: 跟踪 pending 中的 cmd (用于同 cmd 互斥, 跨 cmd 独立)
+        //   txAckWaiters: ack 等待表
+        //     key = ack cmd id (0x90 / 0x91)
+        //     value = { resolve, reject, timeoutId, triggerCmdId, ts }
+        NS.txPendingCmds = new Set();
+        NS.txAckWaiters = new Map();
+
+        // trigger ack handler
+        //   查 waiter → 解析 ack bytes → 写 currentVals + push trendData → resolve
+        //   返 true = 处理了 (trigger 响应); false = 放行 (非 trigger 响应, 给上层继续处理)
+        NS._triggerAckHandler = function (rxCmdId, bytes) {
+          // 1. 查 waiter
+          const waiter = NS.txAckWaiters.get(rxCmdId);
+          if (!waiter) return false;
+          // 2. 找 cmd
+          const cmd = NS.COMMANDS.find((c) => c.id === waiter.triggerCmdId);
+          if (!cmd) return false;
+          const ackCmd = NS.COMMANDS.find((c) => c.id === rxCmdId);
+          if (!ackCmd) return false;
+          // 3. 解析 (ackCmd.dataFields 决定切几个字段)
+          const parsed = NS._parseAckFields(ackCmd, bytes, cmd.protocol);
+          // 4. 写 currentVals + push trendData (按 trigger cmd.dataFields 写)
+          cmd.dataFields.forEach((field) => {
+            if (parsed[field] != null) {
+              NS.currentVals[field] = parsed[field];
+              const key = cmd.id.toString(16).padStart(2, '0').toUpperCase() + '.' + field;
+              NS.trendData[key] = NS.trendData[key] || [];
+              NS.trendData[key].push({ t: Date.now(), v: parsed[field] });
+              if (NS.trendData[key].length > 60) NS.trendData[key].shift();
+            }
+          });
+          // 5. resolve waiter + 清理
+          NS.txAckWaiters.delete(rxCmdId);
+          clearTimeout(waiter.timeoutId);
+          waiter.resolve(bytes);
+          return true;
+        };
+
         // --- 协议编辑器 (proto modal) ---
         NS.renderProtoEditor = function () {
           const tabsEl = document.getElementById('dh-proto-tabs');
