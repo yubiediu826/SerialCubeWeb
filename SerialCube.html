@@ -9280,7 +9280,7 @@
         };
         NS.PROTOCOLS = [
           {
-            id: 'proto_bms', name: 'BMS TLV v1', byteOrder: 'BE', crcRange: 'all',
+            id: 'proto_bms', kind: 'fixed-header', name: 'BMS TLV v1 (Legacy)', byteOrder: 'BE', crcRange: 'all',
             crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE',
             fields: [
               { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
@@ -9293,7 +9293,7 @@
             ]
           },
           {
-            id: 'proto_modbus', name: 'Modbus RTU', byteOrder: 'LE', crcRange: 'no_header',
+            id: 'proto_modbus', kind: 'fixed-header', name: 'Modbus RTU (Legacy)', byteOrder: 'LE', crcRange: 'no_header',
             crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE',
             fields: [
               { id: 'm1', name: 'addr',   type: 'addr', size: 1, byteOrder: null, default: '0x01' },
