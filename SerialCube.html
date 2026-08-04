@@ -6259,27 +6259,28 @@
   right: 20px;
   padding: 10px 16px;
   border-radius: var(--radius-small);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  background: var(--accent);
+  color: #fff;
+  border: none;
   font-size: 13px;
+  font-weight: 600;
   z-index: 9999;
   opacity: 0;
   transform: translateY(-10px);
   transition: opacity 0.18s ease, transform 0.18s ease;
   pointer-events: none;
   max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 .dh-proto-toast.show {
   opacity: 1;
   transform: translateY(0);
 }
 .dh-proto-toast.error {
-  border-color: var(--danger);
-  color: var(--danger);
+  background: var(--danger);
 }
 .dh-proto-toast.ok {
-  border-color: var(--accent);
-  color: var(--accent-strong);
+  background: var(--success, #16a34a);
 }
 
     .proto-.dashboard-host {
@@ -6464,9 +6465,11 @@
 .dashboard-host     .cmd-list-item .name { font-weight: 700; }
 .dashboard-host     .cmd-list-item .fields { font-family: var(--font-mono); font-size: 10px; color: var(--text-soft); }
 .dashboard-host     .cmd-list-item .cadence { font-family: var(--font-mono); font-size: 11px; color: var(--text-soft); text-align: right; }
-    /* v4.9.1: 命令管理 modal 列表行 (data 长度 / data 字段展示) */
+    /* v4.9.1: 命令管理 modal 列表行 (data 长度 / data 字段展示)
+       v4.9.10: 数据字段列 1fr → 1.5fr, 让 RX 0x01 5 字段 (cell_1_v, cell_2_v, cell_3_v, cell_4_v, pack_v_avg) 不被压缩
+       名称列 1fr → 0.7fr, 释放空间给数据字段; 名称本身短, 不影响阅读 */
 .dashboard-host     .cmd-row {
-      display: grid; grid-template-columns: 50px 70px 1fr 100px 1fr 80px 28px;
+      display: grid; grid-template-columns: 50px 70px 0.7fr 100px 1.5fr 80px 28px;
       gap: 10px; align-items: center;
       padding: 8px 10px;
       background: var(--bg); border: 1px solid var(--border);
@@ -6474,9 +6477,10 @@
       font-size: 12px;
     }
 .dashboard-host     .cmd-row .cmd-data { font-family: var(--font-mono); font-size: 10px; color: var(--text-soft); }
+.dashboard-host     .cmd-row .cmd-fields { min-width: 0; word-break: break-all; }
     /* v4.9.9c: 命令管理 modal 列标题行 (跟 .cmd-row 同 7 列 grid) */
 .dashboard-host     .cmd-list-header {
-      display: grid; grid-template-columns: 50px 70px 1fr 100px 1fr 80px 28px;
+      display: grid; grid-template-columns: 50px 70px 0.7fr 100px 1.5fr 80px 28px;
       gap: 10px; align-items: center;
       padding: 4px 10px 8px;
       font-size: 10px; font-weight: 600; color: var(--text-soft);
@@ -7458,6 +7462,8 @@
             </div>
           </div>
           <div class="modal-footer">
+            <button class="toolbar-btn" data-close="dh-alerts">关闭</button>
+            <span class="spacer"></span>
             <button class="toolbar-btn primary" data-close="dh-alerts">完成</button>
           </div>
         </div>
