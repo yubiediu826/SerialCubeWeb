@@ -5908,10 +5908,12 @@
 .dashboard-host     .pair-cell.delta .val.bad { background: rgba(224, 87, 94, 0.14); color: var(--danger); }
 .dashboard-host     .card-trend {
       grid-area: trend;
-      width: 100%;
-      height: 60px;
+      width: calc(100% - 8px);
+      height: 80px;
+      margin: 0 4px;
       position: relative;
       background: var(--bg-terminal);
+      border: 1px solid var(--border);
       border-radius: 6px;
       overflow: hidden;
     }
