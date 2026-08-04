@@ -5804,20 +5804,20 @@
       font-family: var(--font-mono);
     }
 .dashboard-host     .card-group-sep {
-      width: 1px; min-height: 200px;  /* v4.9.11e: 恢复 200, 跟 card 高度对齐 */
+      width: 1px; min-height: 218px;  /* v4.9.12: 200→218 跟新 card 高度对齐 */
       background: var(--border);
       margin: 0 6px;
     }
 
 .dashboard-host     .card-default {
-      width: 280px; height: 200px;  /* v4.9.11e: 恢复 200, v4.9.11d 230 把 card 撑高错乱 */
-      min-width: 0;
+      width: 280px; height: 218px;  /* v4.9.12: 200→218 容纳新 trend row 80 (label 12 + canvas 68) */
+      min-width: 280px; max-width: 280px;  /* v4.9.12: 强制固定 280 宽, 避免 grid 1fr 把 trend card 撑大到 420+ 导致 pair/trend 不一致 */
       padding: 10px 12px;
       background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       display: grid;
-      grid-template-rows: 24px 56px 60px 24px;
+      grid-template-rows: 24px 56px 80px 24px;  /* v4.9.12: trend row 60→80 容纳 flex column 布局 (label 12 + canvas 68) */
       grid-template-areas:
         "header"
         "value"
@@ -5833,7 +5833,7 @@
 .dashboard-host     .card-default:hover { box-shadow: var(--shadow-soft); }
 .dashboard-host     .card-default.alert-warning { border-color: var(--warning); }
 .dashboard-host     .card-default.alert-danger { border-color: var(--danger); }
-.dashboard-host     .card-default.pair { grid-template-rows: 24px 56px 60px 24px; }
+.dashboard-host     .card-default.pair { grid-template-rows: 24px 56px 80px 24px; }  /* v4.9.12: trend row 60→80 跟 trend card 一致 */
 
 .dashboard-host     .card-header {
       grid-area: header;
@@ -5883,6 +5883,7 @@
     }
 .dashboard-host     .card-value {
       grid-area: value;
+      width: 100%;  /* v4.9.11g: 跟 v4.9.12 min/max-width 280 配套, 强制 fill cell */
       display: flex; align-items: center; justify-content: center;
       font-family: var(--font-mono);
       font-size: 32px; font-weight: 800; line-height: 1;  /* v4.4.1: 26→32 数值更突出 */
@@ -5909,22 +5910,16 @@
 .dashboard-host     .card-trend {
       grid-area: trend;
       width: calc(100% - 8px);
-      height: 80px;  /* v4.9.11f: 60→80 sparkline 增高, 固定高度不撑大 card */
+      height: 80px;  /* v4.9.12: 80px sparkline 容器, 纯净无 label 文字遮挡 */
       margin: 0 4px;
-      position: relative;
+      box-sizing: border-box;  /* v4.9.12: border-box 让 height 80 包含 border, canvas 100% 不会撑大 */
       background: var(--bg-terminal);
       border: 1px solid var(--border);
       border-radius: 6px;
       overflow: hidden;
     }
-.dashboard-host     .card-trend canvas { width: 100%; height: 100%; display: block; }
-.dashboard-host     .card-trend-label {
-      position: absolute; top: 4px; left: 6px;
-      font-family: var(--font-mono); font-size: 8px;
-      color: var(--text-soft);
-      font-weight: 600;
-      pointer-events: none;
-    }
+.dashboard-host     .card-trend canvas { width: 100%; height: 100%; display: block; }  /* v4.9.12: canvas 100% × 100% 占满容器, 无 label 干扰 */
+.dashboard-host     .card-trend-label { display: none; }  /* v4.9.12: 移除 .card-trend-label DOM 渲染, 简化 UI 跟 pair card 完全一致 (无 sparkline 内的元信息文本) */
 .dashboard-host     .card-footer {
       grid-area: footer;
       display: flex; align-items: center; justify-content: space-between;
