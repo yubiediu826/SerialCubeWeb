@@ -6209,6 +6209,60 @@
 .dashboard-host     .proto-tab .del-btn { margin-left: 4px; font-size: 11px; opacity: 0.5; }
 .dashboard-host     .proto-tab .del-btn:hover { opacity: 1; color: var(--danger); }
 
+/* v4.8a: 协议编辑器 验证 按钮 + 错误 UI */
+.dashboard-host     .proto-tab.has-error {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: rgba(224, 87, 94, 0.08);
+}
+.dashboard-host     .proto-tab.has-error::after {
+  content: ' ⚠';
+  margin-left: 2px;
+}
+.dashboard-host     .dh-frame-bytes.has-error {
+  background: rgba(224, 87, 94, 0.08);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-small);
+  padding: 12px;
+}
+.dashboard-host     .proto-error-box {
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.dashboard-host     .proto-error-box strong {
+  font-weight: 700;
+}
+.dh-proto-toast {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  padding: 10px 16px;
+  border-radius: var(--radius-small);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: none;
+  max-width: 400px;
+}
+.dh-proto-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.dh-proto-toast.error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.dh-proto-toast.ok {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
     .proto-.dashboard-host {
       display: flex; flex-direction: column;
       gap: 12px;
@@ -7104,6 +7158,7 @@
             <span class="modal-title">协议编辑器</span>
             <span class="modal-subtitle">TLV 帧结构 · 字段 / 大小端 / 数据段 / 帧预览</span>
             <span style="flex: 1;"></span>
+            <button class="toolbar-btn" id="dh-proto-validate-btn">✓ 验证</button>
             <button class="toolbar-btn" id="dh-proto-import">⎘ 导入 JSON</button>
             <button class="toolbar-btn" id="dh-proto-export">↓ 导出 JSON</button>
           </div>
@@ -10805,6 +10860,71 @@
             row.ondragstart = (e) => { e.dataTransfer.setData('data-field', df.name); };
             el.appendChild(row);
           });
+        };
+
+        // --- 协议编辑器 验证 按钮 + 错误 UI (v4.8a) ---
+        // 验证按钮: 调 NS.buildFrame, 错误时红框 + toast
+        const _validateBtn = document.getElementById('dh-proto-validate-btn');
+        if (_validateBtn && !_validateBtn._v48Bound) {
+          _validateBtn._v48Bound = true;
+          _validateBtn.onclick = () => {
+            const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
+            const cmd = NS.COMMANDS.find((c) => c.protocol === proto.id) || NS.COMMANDS[0];
+            const result = NS.buildFrame(proto, cmd);
+            if (result.error) {
+              const tab = document.querySelector('.proto-tab.active');
+              if (tab) tab.classList.add('has-error');
+              NS._showProtoError(result);
+            } else {
+              document.querySelectorAll('.proto-tab.has-error').forEach((t) => t.classList.remove('has-error'));
+              NS._clearProtoError();
+              NS._showProtoOk();
+            }
+          };
+        }
+
+        NS._showProtoError = function (result) {
+          // 1. 字节预览区替换红框
+          const bytesEl = document.getElementById('dh-frame-bytes');
+          if (bytesEl) {
+            bytesEl.classList.add('has-error');
+            bytesEl.innerHTML = `<div class="proto-error-box">协议错误: <strong>${result.error}</strong>${
+              result.kind ? ` (kind: ${result.kind})` : ''
+            }${result.note ? `<br><small>${result.note}</small>` : ''}</div>`;
+          }
+          // 2. 顶部 toast
+          NS._toast(`协议错误: ${result.error}${result.kind ? ` (kind: ${result.kind})` : ''}`, 'error');
+          // 3. console.error
+          console.error('[v4.8a buildFrame]', result);
+        };
+
+        NS._clearProtoError = function () {
+          const bytesEl = document.getElementById('dh-frame-bytes');
+          if (bytesEl) {
+            bytesEl.classList.remove('has-error');
+            // 重新渲染字节预览
+            const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
+            const cmd = NS.COMMANDS.find((c) => c.protocol === proto.id) || NS.COMMANDS[0];
+            if (proto) NS._renderFramePreview(NS.buildFrame(proto, cmd), proto);
+          }
+        };
+
+        NS._showProtoOk = function () {
+          NS._toast('协议验证 OK', 'ok');
+        };
+
+        // --- 简单 toast (v4.8a, 协议编辑器用) ---
+        NS._toast = function (message, type) {
+          let toastEl = document.getElementById('dh-proto-toast');
+          if (!toastEl) {
+            toastEl = document.createElement('div');
+            toastEl.id = 'dh-proto-toast';
+            toastEl.className = 'dh-proto-toast';
+            document.body.appendChild(toastEl);
+          }
+          toastEl.className = 'dh-proto-toast ' + (type || 'info') + ' show';
+          toastEl.textContent = message;
+          setTimeout(() => { toastEl.classList.remove('show'); }, 3000);
         };
 
         NS._renderFramePreview = function (frame, proto) {
