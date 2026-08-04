@@ -10538,31 +10538,48 @@
         };
         // v4.8a 中间状态: 保持 NS.buildFrame 出口指向 _buildFrameFixedHeader
         // (保证 UI 仍能调用 buildFrame, 等 Task 8 替换为 dispatcher)
-        NS.buildFrame = NS._buildFrameFixedHeader;
+        // Task 8 替换为 dispatcher, dispatcher 错误时也返 bytes/sections (空数组)
+        // 兼容现状 _renderFramePreview / _renderFieldList 直接用 .bytes 的调用方
+        NS.buildFrame = function (protocol, cmd) {
+          if (!protocol) return { error: 'NO_PROTOCOL', bytes: [], sections: [] };
+          const kind = protocol.kind || 'fixed-header';
+          if (!NS._KIND_TEMPLATES[kind]) return { error: 'UNKNOWN_KIND', kind, bytes: [], sections: [] };
+          switch (kind) {
+            case 'fixed-header':  return NS._buildFrameFixedHeader(protocol, cmd);
+            case 'raw':           return NS._buildFrameRaw(protocol, cmd);
+            case 'cmd-split':     return NS._buildFrameCmdSplit(protocol, cmd);
+            case 'addr-split':    return NS._buildFrameAddrSplit(protocol, cmd);
+            case 'ctrl-bit7':     return NS._buildFrameCtrlBit7(protocol, cmd);
+            case 'type-high-bit': return NS._buildFrameTypeHighBit(protocol, cmd);
+            case 'msgid-mixed':   return NS._buildFrameMsgidMixed(protocol, cmd);
+            case 'tlv':           return NS._buildFrameTlv(protocol, cmd);
+          }
+          return { error: 'UNKNOWN_KIND', kind, bytes: [], sections: [] };
+        };
 
         // --- kind 1-7 stub (v4.8a 中间状态, v4.8b 实现) ---
         // 每个 stub 返回 { error: 'NOT_IMPLEMENTED' }, 协议编辑器"验证"按钮会显示
         // Task 11-17 逐个替换为真实实现
         NS._buildFrameRaw = function (protocol, cmd) {
-          return { error: 'NOT_IMPLEMENTED', kind: 'raw', note: 'v4.8b 实现' };
+          return { error: 'NOT_IMPLEMENTED', kind: 'raw', note: 'v4.8b 实现', bytes: [], sections: [] };
         };
         NS._buildFrameCmdSplit = function (protocol, cmd) {
-          return { error: 'NOT_IMPLEMENTED', kind: 'cmd-split', note: 'v4.8b 实现' };
+          return { error: 'NOT_IMPLEMENTED', kind: 'cmd-split', note: 'v4.8b 实现', bytes: [], sections: [] };
         };
         NS._buildFrameAddrSplit = function (protocol, cmd) {
-          return { error: 'NOT_IMPLEMENTED', kind: 'addr-split', note: 'v4.8b 实现' };
+          return { error: 'NOT_IMPLEMENTED', kind: 'addr-split', note: 'v4.8b 实现', bytes: [], sections: [] };
         };
         NS._buildFrameCtrlBit7 = function (protocol, cmd) {
-          return { error: 'NOT_IMPLEMENTED', kind: 'ctrl-bit7', note: 'v4.8b 实现' };
+          return { error: 'NOT_IMPLEMENTED', kind: 'ctrl-bit7', note: 'v4.8b 实现', bytes: [], sections: [] };
         };
         NS._buildFrameTypeHighBit = function (protocol, cmd) {
-          return { error: 'NOT_IMPLEMENTED', kind: 'type-high-bit', note: 'v4.8b 实现' };
+          return { error: 'NOT_IMPLEMENTED', kind: 'type-high-bit', note: 'v4.8b 实现', bytes: [], sections: [] };
         };
         NS._buildFrameMsgidMixed = function (protocol, cmd) {
-          return { error: 'NOT_IMPLEMENTED', kind: 'msgid-mixed', note: 'v4.8b 实现' };
+          return { error: 'NOT_IMPLEMENTED', kind: 'msgid-mixed', note: 'v4.8b 实现', bytes: [], sections: [] };
         };
         NS._buildFrameTlv = function (protocol, cmd) {
-          return { error: 'NOT_IMPLEMENTED', kind: 'tlv', note: 'v4.8b 实现' };
+          return { error: 'NOT_IMPLEMENTED', kind: 'tlv', note: 'v4.8b 实现', bytes: [], sections: [] };
         };
 
         // --- 协议编辑器 (proto modal) ---
