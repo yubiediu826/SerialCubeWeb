@@ -6490,12 +6490,27 @@
 
 .dashboard-host     .card-edit-list { display: flex; flex-direction: column; gap: 6px; }
 .dashboard-host     .card-edit-item {
-      display: grid; grid-template-columns: 24px 1fr 100px 80px 80px auto auto;
+      display: grid; grid-template-columns: 60px 70px 1fr 80px auto auto;
       gap: 10px; align-items: center;
       padding: 8px 10px;
       background: var(--bg); border: 1px solid var(--border);
       border-radius: var(--radius-small);
       font-size: 12px;
+    }
+    /* v4.9.9d: 卡片配置列标题行 (跟 .card-edit-item 同 6 列 grid) */
+.dashboard-host     .card-edit-list-header {
+      display: grid; grid-template-columns: 60px 70px 1fr 80px auto auto;
+      gap: 10px; align-items: center;
+      padding: 4px 10px 8px;
+      font-size: 10px; font-weight: 600; color: var(--text-soft);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border-soft);
+      margin-bottom: 2px;
+    }
+.dashboard-host     .card-edit-list-header .ce-type {
+      font-size: 10px; font-weight: 600; color: var(--text-soft);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      background: transparent; padding: 0;
     }
 .dashboard-host     .card-edit-item .drag-handle { color: var(--text-soft); cursor: grab; text-align: center; }
 .dashboard-host     .card-edit-item .type-tag { font-size: 10px; padding: 2px 6px; border-radius: 3px; background: var(--bg-terminal); color: var(--text-soft); font-weight: 700; text-transform: uppercase; }
@@ -11730,9 +11745,21 @@
           const el = document.getElementById('dh-card-edit-list');
           if (!el) return;
           el.innerHTML = '';
+          // v4.9.9d: 列标题行 (类型/命令/标题/单位/操作)
+          const header = document.createElement('div');
+          header.className = 'card-edit-list-header';
+          header.innerHTML = `
+            <span class="ce-type">类型</span>
+            <span class="ce-cmd">命令</span>
+            <span class="ce-title">标题</span>
+            <span class="ce-unit">单位</span>
+            <span class="edit-btn"></span>
+            <span class="del-btn"></span>
+          `;
+          el.appendChild(header);
           NS.CARDS.forEach((c) => {
             const row = document.createElement('div');
-            row.className = 'card-edit-row';
+            row.className = 'card-edit-item';
             const idHex = c.cmd ? c.cmd.toString(16).padStart(2, '0').toUpperCase() : '—';
             row.innerHTML = `
               <span class="ce-type">${c.type === 'pair' ? 'PAIR' : 'TREND'}</span>
