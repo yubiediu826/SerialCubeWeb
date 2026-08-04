@@ -9265,6 +9265,19 @@
         const NS = window.__serialWebDashboard = window.__serialWebDashboard || {};
 
         // === 状态层: 三层数据模型 (协议帧 → 字段类型 → 命令 → 卡片) ===
+        // === v4.8a: 8 kind 协议模板 metadata ===
+        // 8 种 TLV 协议类型: kind 0 = fixed-header (legacy, 现状协议), kind 1-7 = 新协议类型
+        // 方向定义: cmd.direction='tx' 主机发送 (MB), cmd.direction='rx' 主机接收 (CB)
+        NS._KIND_TEMPLATES = {
+          'fixed-header':  { name: 'Fixed Header (Legacy)',  desc: 'header 写死, 方向不参与 frame 编码' },
+          'raw':           { name: 'Raw (MB/CB 不同帧头)',   desc: 'MB=0x5A, CB=0x55, 主机从机不同单字节帧头' },
+          'cmd-split':     { name: 'Cmd Split (同帧头 + 命令分区)', desc: 'cmd bit7 编码方向: 0=MB, 1=CB' },
+          'addr-split':    { name: 'Addr Split (同帧头 + 地址区分)', desc: 'srcAddr / dstAddr 互换编码方向' },
+          'ctrl-bit7':     { name: 'Ctrl Bit7 (控制位方向)', desc: 'ctrl 字节 bit7 编码方向' },
+          'type-high-bit': { name: 'Type High Bit (Type 高位方向)', desc: 'type 字节 bit7 编码方向' },
+          'msgid-mixed':   { name: 'MsgID Mixed (消息 ID 15+7+8 packed)', desc: 'msgID bit15 方向, bit14-8=func(7), bit7-0=addr(8)' },
+          'tlv':           { name: 'Pure TLV (Type+Length+Value 循环)', desc: 'tlv type bit7 编码方向' }
+        };
         NS.PROTOCOLS = [
           {
             id: 'proto_bms', name: 'BMS TLV v1', byteOrder: 'BE', crcRange: 'all',
