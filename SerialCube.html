@@ -7228,7 +7228,7 @@
             <span class="modal-title">协议编辑器</span>
             <span class="modal-subtitle">TLV 帧结构 · 字段 / 大小端 / 数据段 / 帧预览</span>
             <span style="flex: 1;"></span>
-            <button class="toolbar-btn" id="dh-proto-validate-btn">✓ 验证</button>
+            <button class="toolbar-btn" id="dh-proto-validate-btn" title="用当前协议的 1 个 cmd 调 buildFrame, 成功显示字节 / 失败红框 + 错误码">✓ 试生成字节</button>
             <button class="toolbar-btn" id="dh-proto-import">⎘ 导入 JSON</button>
             <button class="toolbar-btn" id="dh-proto-export">↓ 导出 JSON</button>
           </div>
@@ -11567,7 +11567,7 @@
             }${result.note ? `<br><small>${result.note}</small>` : ''}</div>`;
           }
           // 2. 顶部 toast
-          NS._toast(`协议错误: ${result.error}${result.kind ? ` (kind: ${result.kind})` : ''}`, 'error');
+          NS._toast(`试生成字节失败: ${result.error}${result.kind ? ` (kind: ${result.kind})` : ''}`, 'error');
           // 3. console.error
           console.error('[v4.8a buildFrame]', result);
         };
@@ -11584,7 +11584,7 @@
         };
 
         NS._showProtoOk = function () {
-          NS._toast('协议验证 OK', 'ok');
+          NS._toast('试生成字节 OK', 'ok');
         };
 
         // --- 简单 toast (v4.8a, 协议编辑器用) ---
