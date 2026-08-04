@@ -6474,6 +6474,19 @@
       font-size: 12px;
     }
 .dashboard-host     .cmd-row .cmd-data { font-family: var(--font-mono); font-size: 10px; color: var(--text-soft); }
+    /* v4.9.9c: 命令管理 modal 列标题行 (跟 .cmd-row 同 7 列 grid) */
+.dashboard-host     .cmd-list-header {
+      display: grid; grid-template-columns: 50px 70px 1fr 100px 1fr 80px 28px;
+      gap: 10px; align-items: center;
+      padding: 4px 10px 8px;
+      font-size: 10px; font-weight: 600; color: var(--text-soft);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border-soft);
+      margin-bottom: 2px;
+    }
+.dashboard-host     .cmd-list-header .dir-badge,
+.dashboard-host     .cmd-list-header .cmd-id { background: transparent; padding: 0; }
+.dashboard-host     .cmd-list-header .cmd-data { font-family: var(--font-mono); }
 
 .dashboard-host     .card-edit-list { display: flex; flex-direction: column; gap: 6px; }
 .dashboard-host     .card-edit-item {
@@ -9428,34 +9441,37 @@
           'msgid-mixed':   { name: 'MsgID Mixed (消息 ID 15+7+8 packed)', desc: 'msgID bit15 方向, bit14-8=func(7), bit7-0=addr(8)' },
           'tlv':           { name: 'Pure TLV (Type+Length+Value 循环)', desc: 'tlv type bit7 编码方向' }
         };
-        NS.PROTOCOLS = [
-          {
-            id: 'proto_bms', kind: 'fixed-header', name: 'BMS TLV v1 (Legacy)', byteOrder: 'BE', crcRange: 'all',
-            crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE',
-            fields: [
-              { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
-              { id: 'f2', name: 'addr',   type: 'addr',   size: 1, byteOrder: null, default: '0x01' },
-              { id: 'f3', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
-              { id: 'f4', name: 'length', type: 'length', size: 1, byteOrder: 'BE', default: 'auto' },
-              { id: 'f4d',name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
-              { id: 'f5', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' },
-              { id: 'f6', name: 'tail',   type: 'tail',   size: 1, byteOrder: null, default: '0x55' }
-            ]
-          },
-          {
-            id: 'proto_modbus', kind: 'fixed-header', name: 'Modbus RTU (Legacy)', byteOrder: 'LE', crcRange: 'no_header',
-            crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE',
-            fields: [
-              { id: 'm1', name: 'addr',   type: 'addr', size: 1, byteOrder: null, default: '0x01' },
-              { id: 'm2', name: 'func',   type: 'cmd',  size: 1, byteOrder: null, default: '0x03' },
-              { id: 'm3', name: 'reg_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
-              { id: 'm4', name: 'reg_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
-              { id: 'm5', name: 'qty_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
-              { id: 'm6', name: 'qty_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
-              { id: 'm7', name: 'crc',    type: 'crc',  size: 2, byteOrder: 'LE', default: 'auto' }
-            ]
-          }
-        ];
+        NS._defaultProtocols = function () {
+          return [
+            {
+              id: 'proto_bms', kind: 'fixed-header', name: 'BMS TLV v1 (Legacy)', byteOrder: 'BE', crcRange: 'all',
+              crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE',
+              fields: [
+                { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
+                { id: 'f2', name: 'addr',   type: 'addr',   size: 1, byteOrder: null, default: '0x01' },
+                { id: 'f3', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
+                { id: 'f4', name: 'length', type: 'length', size: 1, byteOrder: 'BE', default: 'auto' },
+                { id: 'f4d',name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
+                { id: 'f5', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' },
+                { id: 'f6', name: 'tail',   type: 'tail',   size: 1, byteOrder: null, default: '0x55' }
+              ]
+            },
+            {
+              id: 'proto_modbus', kind: 'fixed-header', name: 'Modbus RTU (Legacy)', byteOrder: 'LE', crcRange: 'no_header',
+              crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE',
+              fields: [
+                { id: 'm1', name: 'addr',   type: 'addr', size: 1, byteOrder: null, default: '0x01' },
+                { id: 'm2', name: 'func',   type: 'cmd',  size: 1, byteOrder: null, default: '0x03' },
+                { id: 'm3', name: 'reg_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+                { id: 'm4', name: 'reg_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+                { id: 'm5', name: 'qty_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+                { id: 'm6', name: 'qty_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+                { id: 'm7', name: 'crc',    type: 'crc',  size: 2, byteOrder: 'LE', default: 'auto' }
+              ]
+            }
+          ];
+        };
+        NS.PROTOCOLS = NS._defaultProtocols();
 
         // v4.9.1: dataSize 自动算 - type → 字节数映射 (NS.computeDataSize 用)
         NS._FIELD_BYTE_SIZE = { u8: 1, i8: 1, u16: 2, i16: 2, u32: 4, i32: 4, float: 4, double: 8 };
@@ -9479,17 +9495,20 @@
         // v4.4.3: 加 0x10 / 0x11 TX Set 命令 (v3.6 留的 TODO, 现在补齐数据模型)
         // cadence: 0 表示不主动 query, 由用户触发 (trigger 按钮 → buildFrame 0x10 → 串口发)
         // expectResponse 0x90 / 0x91 是设备响应 cmd (mock 模式设备不响应, 但 pair 卡 act 用现有 pack_v_avg * 15 模拟)
-        NS.COMMANDS = [
-          { id: 0x01, name: 'Read Voltage', direction: 'rx', frameType: 'query',   cadence: 200,  protocol: 'proto_bms', dataFields: ['cell_1_v', 'cell_2_v', 'cell_3_v', 'cell_4_v', 'pack_v_avg'], dataSize: 10, expectResponse: 0x80 },
-          { id: 0x02, name: 'Read Current', direction: 'rx', frameType: 'query',   cadence: 500,  protocol: 'proto_bms', dataFields: ['pack_i'], dataSize: 2, expectResponse: 0x80 },
-          { id: 0x03, name: 'Read Temp',    direction: 'rx', frameType: 'query',   cadence: 1000, protocol: 'proto_bms', dataFields: ['temperature'], dataSize: 2, expectResponse: 0x80 },
-          { id: 0x04, name: 'Read SOC',     direction: 'rx', frameType: 'query',   cadence: 2000, protocol: 'proto_bms', dataFields: ['soc'], dataSize: 2, expectResponse: 0x80 },
-          { id: 0x10, name: 'Control Charge', direction: 'tx', frameType: 'control', cadence: 0, protocol: 'proto_bms', dataFields: ['charge_v_set', 'charge_i_set'], dataSize: 4, expectResponse: 0x90 },
-          { id: 0x11, name: 'Control Disch',  direction: 'tx', frameType: 'control', cadence: 0, protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2, expectResponse: 0x91 },
-          // v4.9.2: ACK 命令定义 (方向 rx, frameType response, cadence 0 不主动 query)
-          { id: 0x90, name: 'Charge Ack', direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['charge_v_set', 'charge_i_set'], dataSize: 4 },
-          { id: 0x91, name: 'Disch Ack',  direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2 }
-        ];
+        NS._defaultCommands = function () {
+          return [
+            { id: 0x01, name: 'Read Voltage', direction: 'rx', frameType: 'query',   cadence: 200,  protocol: 'proto_bms', dataFields: ['cell_1_v', 'cell_2_v', 'cell_3_v', 'cell_4_v', 'pack_v_avg'], dataSize: 10, expectResponse: 0x80 },
+            { id: 0x02, name: 'Read Current', direction: 'rx', frameType: 'query',   cadence: 500,  protocol: 'proto_bms', dataFields: ['pack_i'], dataSize: 2, expectResponse: 0x80 },
+            { id: 0x03, name: 'Read Temp',    direction: 'rx', frameType: 'query',   cadence: 1000, protocol: 'proto_bms', dataFields: ['temperature'], dataSize: 2, expectResponse: 0x80 },
+            { id: 0x04, name: 'Read SOC',     direction: 'rx', frameType: 'query',   cadence: 2000, protocol: 'proto_bms', dataFields: ['soc'], dataSize: 2, expectResponse: 0x80 },
+            { id: 0x10, name: 'Control Charge', direction: 'tx', frameType: 'control', cadence: 0, protocol: 'proto_bms', dataFields: ['charge_v_set', 'charge_i_set'], dataSize: 4, expectResponse: 0x90 },
+            { id: 0x11, name: 'Control Disch',  direction: 'tx', frameType: 'control', cadence: 0, protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2, expectResponse: 0x91 },
+            // v4.9.2: ACK 命令定义 (方向 rx, frameType response, cadence 0 不主动 query)
+            { id: 0x90, name: 'Charge Ack', direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['charge_v_set', 'charge_i_set'], dataSize: 4 },
+            { id: 0x91, name: 'Disch Ack',  direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2 }
+          ];
+        };
+        NS.COMMANDS = NS._defaultCommands();
 
         // v4.4.3: c9 pair 卡 (充电设定 vs 实际) + c10 trend 卡 (充电设定值)
         // 10 个完整卡片: 8 个 RX trend (c1-c8) + 1 个 TX pair (c9) + 1 个 TX trend (c10)
@@ -11634,6 +11653,19 @@
           const el = document.getElementById('dh-cmd-list');
           if (!el) return;
           el.innerHTML = '';
+          // v4.9.9c: 列标题行 (方向/命令ID/名称/协议/数据字段/data 长度/操作)
+          const header = document.createElement('div');
+          header.className = 'cmd-list-header';
+          header.innerHTML = `
+            <span class="dir-badge">方向</span>
+            <span class="cmd-id">命令ID</span>
+            <span class="cmd-name">名称</span>
+            <span class="cmd-proto">协议</span>
+            <span class="cmd-fields">数据字段</span>
+            <span class="cmd-data">data 长度</span>
+            <span class="del-btn"></span>
+          `;
+          el.appendChild(header);
           NS.COMMANDS.forEach((cmd) => {
             const row = document.createElement('div');
             row.className = 'cmd-row';
@@ -11659,7 +11691,14 @@
         NS.populateCmdForm = function () {
           const protoSel = document.getElementById('dh-cmd-form-proto');
           if (protoSel) {
-            protoSel.innerHTML = NS.PROTOCOLS.map((p) => `<option value="${p.id}">${NS.escapeHtml(p.name)}</option>`).join('');
+            // v4.9.9c: 兜底 - 如果 PROTOCOLS 为空 (用户数据被清/导入坏), 恢复默认
+            if (!Array.isArray(NS.PROTOCOLS) || NS.PROTOCOLS.length === 0) {
+              NS.PROTOCOLS = NS._defaultProtocols();
+              NS.activeProtoId = NS.PROTOCOLS[0].id;
+              NS.toast('协议列表为空, 已恢复默认协议 (proto_bms + proto_modbus)', 'warn');
+            }
+            protoSel.innerHTML = '<option value="">— 请选择协议 —</option>' +
+              NS.PROTOCOLS.map((p) => `<option value="${p.id}">${NS.escapeHtml(p.name)}</option>`).join('');
           }
           NS.updateCmdFormDataSize();
         };
@@ -11715,7 +11754,13 @@
         NS.populateCardFormCmds = function () {
           const cmdSel = document.getElementById('dh-card-form-cmd');
           if (cmdSel) {
-            cmdSel.innerHTML = NS.COMMANDS.map((c) => `<option value="${c.id}">0x${c.id.toString(16).padStart(2, '0').toUpperCase()} ${NS.escapeHtml(c.name)}</option>`).join('');
+            // v4.9.9c: 兜底 - 如果 COMMANDS 为空, 恢复默认
+            if (!Array.isArray(NS.COMMANDS) || NS.COMMANDS.length === 0) {
+              NS.COMMANDS = NS._defaultCommands();
+              NS.toast('命令列表为空, 已恢复默认 8 条命令', 'warn');
+            }
+            cmdSel.innerHTML = '<option value="">— 请选择命令 —</option>' +
+              NS.COMMANDS.map((c) => `<option value="${c.id}">0x${c.id.toString(16).padStart(2, '0').toUpperCase()} ${NS.escapeHtml(c.name)}</option>`).join('');
             cmdSel.onchange = () => NS.populateCardFormFields();
           }
           NS.populateCardFormFields();
@@ -11725,7 +11770,9 @@
           const fieldSel = document.getElementById('dh-card-form-field');
           if (!cmdSel || !fieldSel) return;
           const cmd = NS.COMMANDS.find((c) => c.id === parseInt(cmdSel.value));
-          fieldSel.innerHTML = cmd ? (cmd.dataFields || []).map((f) => `<option value="${f}">${f}</option>`).join('') : '';
+          // v4.9.9c: 加 placeholder, 没选 cmd 时显示提示, 不让 select 完全空
+          fieldSel.innerHTML = '<option value="">— 请选择字段 —</option>' +
+            (cmd ? (cmd.dataFields || []).map((f) => `<option value="${f}">${f}</option>`).join('') : '');
         };
 
         NS.openCardEdit = function (id) {
