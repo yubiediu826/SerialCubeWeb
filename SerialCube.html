@@ -5745,13 +5745,47 @@
       gap: 12px;
       align-content: flex-start;
     }
+    /* v4.9.14: 仪表盘响应式列数 — 1920+ 8 列 / 1440+ 6 列 / 默认 4 列
+       配合 .card-default 宽度 (280/240/200) + sparkline 80→60 + 数字 32→26 同步缩.
+       解决"1920 大屏只显示 4 列 + 大量空白"问题, 同时让 8 列下最后一张不再被拉宽. */
+    @media (min-width: 1440px) {
+      .dashboard-host     .card-grid-area {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+      }
+    }
+    @media (min-width: 1920px) {
+      .dashboard-host     .card-grid-area {
+        grid-template-columns: repeat(8, 1fr);
+        gap: 8px;
+      }
+    }
+    /* v4.9.14: 列表布局 (.layout-list) — 紧凑横向小卡, 跟默认卡片布局互斥
+       用 class 不用 inline style, 这样 6/8 列 media query 能覆盖列宽.
+       4 列: 150px min | 6 列: 120px | 8 列: 100px */
+    .dashboard-host     .card-grid-area.layout-list {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 8px;
+      align-items: stretch;
+    }
+    @media (min-width: 1440px) {
+      .dashboard-host     .card-grid-area.layout-list {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      }
+    }
+    @media (min-width: 1920px) {
+      .dashboard-host     .card-grid-area.layout-list {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      }
+    }
 .dashboard-host     .card-add-slot {
       /* v4.4.2.1 修复: 跟 .card-default 视觉完全对齐.
          .card-default content-box 280x200 + padding 20 + border 2 = 实际 306x222.
          add 卡 用 box-sizing: border-box + width 306 height 222, 总 306x222 = cards 实际尺寸, 等高等宽.
-         1px dashed + 同样 padding, 视觉上 add 卡 就是 "空卡片, 内部只有 + 和提示词", 不再"鼓出来". */
+         1px dashed + 同样 padding, 视觉上 add 卡 就是 "空卡片, 内部只有 + 和提示词", 不再"鼓出来".
+         v4.9.14: width 改 max-width 跟 .card-default 280 同步, 6/8 列下 media query 跟卡片一起缩 */
       box-sizing: border-box;
-      width: 306px; height: 222px;  /* v4.9.11e: 恢复 222, 跟 card 280x200 对齐 */
+      width: 100%; max-width: 280px; height: 218px;
       padding: 10px 12px;
       border: 1px dashed var(--border);
       border-radius: var(--radius);
@@ -5760,6 +5794,13 @@
       color: var(--text-soft); font-size: 32px; font-weight: 200;
       cursor: pointer;
       transition: all 0.15s ease;
+    }
+    /* v4.9.14: 6/8 列下 add 卡同步缩 — 跟 .card-default 一致 */
+    @media (min-width: 1440px) {
+      .dashboard-host     .card-add-slot { max-width: 240px; height: 198px; padding: 8px 10px; font-size: 26px; }
+    }
+    @media (min-width: 1920px) {
+      .dashboard-host     .card-add-slot { max-width: 200px; height: 178px; padding: 6px 8px; font-size: 22px; }
     }
 .dashboard-host     .card-add-slot:hover { border-color: var(--accent); color: var(--accent); }
 .dashboard-host     .card-add-slot .hint { font-size: 12px; font-weight: 500; margin-top: 8px; }
@@ -5808,10 +5849,17 @@
       background: var(--border);
       margin: 0 6px;
     }
+    /* v4.9.14: 6/8 列下 group sep 高度联动 — 218→198→178 跟新 card 高度对齐 */
+    @media (min-width: 1440px) {
+      .dashboard-host     .card-group-sep { min-height: 198px; }
+    }
+    @media (min-width: 1920px) {
+      .dashboard-host     .card-group-sep { min-height: 178px; }
+    }
 
 .dashboard-host     .card-default {
       width: 280px; height: 218px;  /* v4.9.12: 200→218 容纳新 trend row 80 (label 12 + canvas 68) */
-      min-width: 280px; max-width: 280px;  /* v4.9.12: 强制固定 280 宽, 避免 grid 1fr 把 trend card 撑大到 420+ 导致 pair/trend 不一致 */
+      min-width: 0; max-width: 280px;  /* v4.9.12: min-width:0 + max-width:280px 强制固定 280 宽, 避免 grid item 默认 min-width:auto 把 card 撑大到 416+ (trend card value cell 跟 .card-default 同步缩到 280) */
       padding: 10px 12px;
       background: var(--bg-panel);
       border: 1px solid var(--border);
@@ -5829,6 +5877,28 @@
       transition: border-color 0.18s ease, box-shadow 0.18s ease;
       overflow: hidden;
       flex-shrink: 0;
+    }
+    /* v4.9.14: 6 列响应式 (1440+) — 卡宽 240, 高 198, sparkline 60, 数字 28
+       解决"1440 宽仍 4 列 + 大量空白"问题, 卡片缩 14% 容纳更多 cell. */
+    @media (min-width: 1440px) {
+      .dashboard-host     .card-default {
+        max-width: 240px; height: 198px;
+        padding: 8px 10px;
+        grid-template-rows: 22px 50px 60px 22px;
+        gap: 3px;
+      }
+      .dashboard-host     .card-default.pair { grid-template-rows: 22px 50px 60px 22px; }
+    }
+    /* v4.9.14: 8 列响应式 (1920+) — 卡宽 200, 高 178, sparkline 50, 数字 24
+       1920 大屏下 4 cell 电压 + 1 pack + 1 SOC + 1 电流 + 1 温度 + pair + trend 一次性可见. */
+    @media (min-width: 1920px) {
+      .dashboard-host     .card-default {
+        max-width: 200px; height: 178px;
+        padding: 6px 8px;
+        grid-template-rows: 20px 46px 50px 20px;
+        gap: 2px;
+      }
+      .dashboard-host     .card-default.pair { grid-template-rows: 20px 46px 50px 20px; }
     }
 .dashboard-host     .card-default:hover { box-shadow: var(--shadow-soft); }
 .dashboard-host     .card-default.alert-warning { border-color: var(--warning); }
@@ -5873,14 +5943,6 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-.dashboard-host     .rx-badge {
-      position: absolute; top: 6px; right: 6px;
-      font-family: var(--font-mono); font-size: 8px; font-weight: 700;
-      padding: 1px 4px;
-      background: var(--signal); color: white;
-      border-radius: 3px;
-      letter-spacing: 0.04em;
-    }
 .dashboard-host     .card-value {
       grid-area: value;
       width: 100%;  /* v4.9.11g: 跟 v4.9.12 min/max-width 280 配套, 强制 fill cell */
@@ -5890,8 +5952,21 @@
       color: var(--text);
       transition: color 0.4s ease;
     }
+    /* v4.9.14: 6/8 列下数字缩 — 32→28→24 配合卡片缩 */
+    @media (min-width: 1440px) {
+      .dashboard-host     .card-value { font-size: 28px; }
+    }
+    @media (min-width: 1920px) {
+      .dashboard-host     .card-value { font-size: 24px; }
+    }
 .dashboard-host     .card-value.flash { color: var(--accent); }
 .dashboard-host     .card-value .unit { font-size: 13px; color: var(--text-soft); margin-left: 4px; font-weight: 600; }  /* v4.4.1: 12→13 */
+    @media (min-width: 1440px) {
+      .dashboard-host     .card-value .unit { font-size: 11px; }
+    }
+    @media (min-width: 1920px) {
+      .dashboard-host     .card-value .unit { font-size: 10px; }
+    }
 .dashboard-host     .card-value.pair {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -5901,6 +5976,12 @@
 .dashboard-host     .pair-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .dashboard-host     .pair-cell .label { font-size: 8px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; }
 .dashboard-host     .pair-cell .val { font-family: var(--font-mono); font-size: 20px; font-weight: 800; }  /* v4.9.11: 14→20 跟 trend 大卡 22px 数字看齐 */
+    @media (min-width: 1440px) {
+      .dashboard-host     .pair-cell .val { font-size: 17px; }
+    }
+    @media (min-width: 1920px) {
+      .dashboard-host     .pair-cell .val { font-size: 14px; }
+    }
 .dashboard-host     .pair-cell.setpoint .val { color: var(--text-soft); font-weight: 700; }
 .dashboard-host     .pair-cell.actual .val { color: var(--text); font-weight: 800; }
 .dashboard-host     .pair-cell.delta .val { font-size: 11px; padding: 1px 5px; border-radius: 3px; }
@@ -5918,8 +5999,14 @@
       border-radius: 6px;
       overflow: hidden;
     }
+    /* v4.9.14: 6/8 列下 sparkline 容器缩 — 80→60→50 配合卡片缩, canvas 自动 fill */
+    @media (min-width: 1440px) {
+      .dashboard-host     .card-trend { height: 60px; }
+    }
+    @media (min-width: 1920px) {
+      .dashboard-host     .card-trend { height: 50px; }
+    }
 .dashboard-host     .card-trend canvas { width: 100%; height: 100%; display: block; }  /* v4.9.12: canvas 100% × 100% 占满容器, 无 label 干扰 */
-.dashboard-host     .card-trend-label { display: none; }  /* v4.9.12: 移除 .card-trend-label DOM 渲染, 简化 UI 跟 pair card 完全一致 (无 sparkline 内的元信息文本) */
 .dashboard-host     .card-footer {
       grid-area: footer;
       display: flex; align-items: center; justify-content: space-between;
@@ -9626,10 +9713,6 @@
           return head;
         };
 
-        NS._buildTrendCanvas = function (card) {
-          return '<div class="card-trend" onclick="window.__serialWebDashboard.__openDetail(\'' + card.id + '\')"><canvas id="dh-trend-' + card.id + '"></canvas><span class="card-trend-label">' + (card.cmd ? card.cmd.toString(16).padStart(2, '0').toUpperCase() : '00') + ' ' + (card.dir || 'rx') + '</span></div>';
-        };
-
         NS.renderCard = function (c) {
           const card = document.createElement('div');
           if (c.type === 'pair') {
@@ -9675,19 +9758,20 @@
               + '<div class="pair-cell actual"><div class="label">ACT</div><div class="val">' + act.toFixed(1) + '</div></div>'
               + '<div class="pair-cell delta"><div class="label">Δ</div><div class="val ' + dCls + '">' + (delta > 0 ? '+' : '') + delta.toFixed(1) + '</div></div>'
               + '</div>'
-              + '<div class="card-trend" data-action="detail"><canvas id="dh-trend-' + c.id + '"></canvas><span class="card-trend-label">↔ pair</span></div>'
+              + '<div class="card-trend" data-action="detail"><canvas id="dh-trend-' + c.id + '"></canvas></div>'
               + '<div class="card-footer">'
               + '<span class="range">容差 ±0.5' + NS.escapeHtml(c.unit || '') + '</span>'
               + '<span class="status-text ' + pairState + '">' + (pairState === 'ok' ? '✓ 在范围内' : '⚠ 偏离') + '</span>'
               + '</div>';
           } else {
+            // v4.9.13: trend 卡结构对齐 pair 卡 (280x218, grid 24/56/80/24, 大数值 + 图表)
+            // 移除冗余: rx-badge (状态环已表达) / chart 内 cmd/dir 标签 (CSS display:none, 清理) / footer range 文字 (图表已可视化)
             const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
             const range = c.range || [0, 100];
             const alert = NS.checkAlert(v, range);
             const ring = c.fromOtherCmd ? 'rx' : (alert || 'normal');
             const stateLabel = c.fromOtherCmd ? 'RX' : (alert === 'danger' ? '⚠ 越限' : (alert === 'warning' ? '⚠ 警告' : '✓ 正常'));
             const stateClass = c.fromOtherCmd ? 'rx' : (alert || 'ok');
-            const cmdHex = c.cmd ? c.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
             // v4.9.5: 触发按钮 PENDING 状态 (同 cmd 互斥, 锁住 + 旋转动画; 与 c.fromOtherCmd 复合)
             const isPending = NS.txPendingCmds && NS.txPendingCmds.has(c.cmd);
             const lockForPending = !c.fromOtherCmd && isPending;
@@ -9700,16 +9784,15 @@
               + '<span class="card-unit">' + NS.escapeHtml(c.unit || '') + '</span>'
               + '</div>'
               + '<div class="card-actions">'
+              + '<button class="card-action" title="详情" data-action="detail">⇄</button>'
               + '<button class="card-action' + (c.fromOtherCmd ? ' disabled' : '') + (lockForPending ? ' is-loading disabled' : '') + '"'
               + (c.fromOtherCmd ? ' disabled title="RX-only, 不可写入"' : (lockForPending ? ' disabled title="等待响应中..."' : ' title="触发" data-action="trigger"'))
               + '>' + (c.fromOtherCmd ? '🔒' : '↗') + '</button>'
               + '<button class="card-action edit-btn" title="编辑" data-action="edit">✎</button>'
               + '</div></div>'
-              + (c.fromOtherCmd ? '<span class="rx-badge">RX</span>' : '')
               + '<div class="card-value' + flashClass + '" data-action="detail">' + v.toFixed(c.precision || 2) + '<span class="unit">' + NS.escapeHtml(c.unit || '') + '</span></div>'
-              + '<div class="card-trend" data-action="detail"><canvas id="dh-trend-' + c.id + '"></canvas><span class="card-trend-label">' + cmdHex + ' ' + (c.dir || 'rx') + '</span></div>'
+              + '<div class="card-trend" data-action="detail"><canvas id="dh-trend-' + c.id + '"></canvas></div>'
               + '<div class="card-footer">'
-              + '<span class="range">' + (c.range ? '范围 ' + c.range[0] + ' - ' + c.range[1] + NS.escapeHtml(c.unit || '') : '') + '</span>'
               + '<span class="status-text ' + stateClass + '">' + stateLabel + '</span>'
               + '</div>';
             setTimeout(() => { const v2 = card.querySelector('.card-value'); if (v2) v2.classList.remove('flash'); }, 400);
@@ -9837,10 +9920,12 @@
             });
             const sortedKeys = Array.from(groups.keys()).sort((a, b) => a - b);
             if (NS.cardLayout === 'list') {
-              el.style.display = 'grid';
-              el.style.gridTemplateColumns = 'repeat(auto-fill, minmax(150px, 1fr))';
-              el.style.gap = '8px';
-              el.style.alignItems = 'stretch';
+              el.classList.add('layout-list');
+              // v4.9.14: 列表布局用 .layout-list class 不用 inline style, 让 6/8 列 media query 能覆盖列宽
+              el.style.display = '';
+              el.style.gridTemplateColumns = '';
+              el.style.gap = '';
+              el.style.alignItems = '';
               sortedKeys.forEach((k) => {
                 const cmd = NS.COMMANDS.find((c) => c.id === k);
                 const cmdHex = k.toString(16).padStart(2, '0').toUpperCase();
@@ -9859,10 +9944,12 @@
               // v4.4 修复: 用 grid 布局 (auto-fill minmax 280px), 不再用 flex-wrap
               // 因为 280px 固定卡片在 flex-wrap 容器中, 子项 min-width:auto 不可压缩,
               // 5 个 cards 横向排, 触发横向滚动
-              el.style.display = 'grid';
-              el.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
-              el.style.gap = '12px';
-              el.style.alignItems = 'stretch';
+              // v4.9.14: card 布局用 CSS class 不用 inline style, 让 media query 接管 6/8 列
+              el.classList.remove('layout-list');
+              el.style.display = '';
+              el.style.gridTemplateColumns = '';
+              el.style.gap = '';
+              el.style.alignItems = '';
               sortedKeys.forEach((k, idx) => {
                 const cmd = NS.COMMANDS.find((c) => c.id === k);
                 const cmdHex = k.toString(16).padStart(2, '0').toUpperCase();
@@ -9879,18 +9966,22 @@
           }
           // 单独命令
           if (NS.cardLayout === 'list') {
-            el.style.display = 'grid';
-            el.style.gridTemplateColumns = 'repeat(auto-fill, minmax(150px, 1fr))';
-            el.style.gap = '8px';
-            el.style.alignItems = 'stretch';
+            // v4.9.14: 列表布局用 .layout-list class 不用 inline style, 让 6/8 列 media query 接管
+            el.classList.add('layout-list');
+            el.style.display = '';
+            el.style.gridTemplateColumns = '';
+            el.style.gap = '';
+            el.style.alignItems = '';
             filtered.forEach((c) => el.appendChild(NS.renderListCard(c)));
             el.appendChild(NS._makeAddSlot('list'));
           } else {
             // v4.4 修复: 单独命令 (按 cmd 过滤后) 也用 grid
-            el.style.display = 'grid';
-            el.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
-            el.style.gap = '12px';
-            el.style.alignItems = 'stretch';
+            // v4.9.14: card 布局用 CSS class 不用 inline style, 让 media query 接管 6/8 列
+            el.classList.remove('layout-list');
+            el.style.display = '';
+            el.style.gridTemplateColumns = '';
+            el.style.gap = '';
+            el.style.alignItems = '';
             filtered.forEach((c) => el.appendChild(NS.renderCard(c)));
             el.appendChild(NS._makeAddSlot('card'));
           }
