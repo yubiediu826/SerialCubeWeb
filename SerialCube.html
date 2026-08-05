@@ -6168,7 +6168,7 @@
       top: 5vh; left: 50%; transform: translateX(-50%);
       width: min(900px, calc(100vw - 64px));
       max-height: 90vh;
-      background: var(--bg-elevated);
+      background: #ffffff;  /* v5.1.5: 不透明, 避免后面 dashboard 卡片内容透过 */
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow-ambient);
@@ -6196,7 +6196,7 @@
   display: flex; align-items: center; gap: 4px;
   padding: 0 16px; height: 36px; flex-shrink: 0;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-subtle);
+  background: #ffffff;
 }
 .dashboard-host     .detail-page-tab {
   height: 24px; padding: 0 12px;
@@ -6223,20 +6223,37 @@
 .dashboard-host     .detail-zoom-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 .dashboard-host     .detail-zoom-btn .icon-svg { width: 13px; height: 13px; }
 .dashboard-host     .detail-zoom-info { font-family: var(--font-mono); font-size: 10px; color: var(--text-mute); margin: 0 6px; min-width: 56px; text-align: center; white-space: nowrap; }
+/* v5.1.5: 图表类型 chip 风格 (左 icon + 文字 + 右箭头, 浅背景区分已选)
+   替代 select 默认外观, 整体像 button chip */
 .dashboard-host     .detail-chart-type {
-  padding: 2px 16px 2px 6px; font-size: 11px; font-weight: 600;
-  min-width: 0; width: 60px; flex-shrink: 0;
+  padding: 3px 22px 3px 24px; font-size: 11px; font-weight: 600;
+  height: 22px; min-width: 0; width: auto; flex-shrink: 0;
   appearance: none; -webkit-appearance: none; -moz-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M2 4l3 3 3-3' stroke='%2367676c' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-  background-repeat: no-repeat; background-position: right 5px center;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  /* 2 个背景: 左边 icon + 右边箭头 */
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><polyline points='1.5 9 4 6 6.5 8 9 4 10.5 5.5' stroke='%235672cd' stroke-width='1.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M2 4l3 3 3-3' stroke='%2367676c' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat, no-repeat;
+  background-position: left 6px center, right 6px center;
+  background-size: 12px 12px, 10px 10px;
+  /* option 文字不显示, 选中后 select 显示值 (折叠状态显示当前 option) */
+  text-overflow: ellipsis;
 }
+.dashboard-host     .detail-chart-type:hover { background-color: var(--accent-soft); border-color: var(--accent); }
+.dashboard-host     .detail-chart-type:focus { outline: none; border-color: var(--accent); }
 
 /* v5.1.0: 时间范围 (全局 — 图表/状态行/日志共用) */
 .dashboard-host     .detail-timerange {
   display: flex; align-items: center; gap: 10px;
   padding: 0 16px; height: 36px; flex-shrink: 0;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-panel);
+  background: #ffffff;
 }
 .dashboard-host     .detail-timerange-label { font-size: 11px; font-weight: 700; color: var(--text-soft); letter-spacing: 0.04em; margin-right: 4px; flex-shrink: 0; }
 .dashboard-host     .detail-timerange-chips { display: inline-flex; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-subtle); overflow: hidden; margin-right: 12px; flex-shrink: 0; }
@@ -6268,7 +6285,7 @@
 .dashboard-host     .modal-body.detail-body .detail-page-logs { display: none; }
 
 /* v5.1.3: 图表区 (含 X/Y 轴标签) — padding-bottom 32 给 X 轴 tick + zoom-hint 留空间, 避免重叠 */
-.dashboard-host     .detail-body .chart-area { position: relative; flex: 1; min-height: 0; width: 100%; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px 32px 50px; }
+.dashboard-host     .detail-body .chart-area { position: relative; flex: 1; min-height: 0; width: 100%; background: #ffffff; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px 32px 50px; }
 .dashboard-host     .detail-body canvas.detail-canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
 .dashboard-host     .detail-body .chart-area .axis-label { position: absolute; font-size: 9px; color: var(--text-mute); font-family: var(--font-mono); pointer-events: none; }
 .dashboard-host     .detail-body .chart-area .axis-title { position: absolute; font-size: 9px; color: var(--text-soft); font-weight: 600; font-family: inherit; pointer-events: none; }
@@ -6321,7 +6338,7 @@
 
 /* v5.1.0: 状态行 (6 列: 当前/最小/最大/平均/σ/样本, 数字左对齐跟 logs-val 一致) */
 .dashboard-host     .detail-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; flex-shrink: 0; }
-.dashboard-host     .detail-stats .stat-cell { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; padding: 5px 8px; }
+.dashboard-host     .detail-stats .stat-cell { background: #ffffff; border: 1px solid var(--border); border-radius: 4px; padding: 5px 8px; }
 .dashboard-host     .detail-stats .stat-label { font-size: 10px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; margin-bottom: 1px; }
 .dashboard-host     .detail-stats .stat-value { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.2; text-align: left; }
 .dashboard-host     .detail-stats .stat-value .unit { font-size: 10px; color: var(--text-soft); font-weight: 600; margin-left: 2px; }
@@ -6330,7 +6347,7 @@
 
 /* v5.1.0: pair 卡 (充电电压/放电电压) 顶部 3 列值 */
 .dashboard-host     .detail-pair-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; flex-shrink: 0; }
-.dashboard-host     .detail-pair-cell { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; text-align: center; }
+.dashboard-host     .detail-pair-cell { background: #ffffff; border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; text-align: center; }
 .dashboard-host     .detail-pair-cell .plabel { font-size: 10px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; margin-bottom: 2px; }
 .dashboard-host     .detail-pair-cell .pvalue { font-family: var(--font-mono); font-size: 22px; font-weight: 800; color: var(--text); }
 .dashboard-host     .detail-pair-cell.setpoint .pvalue { color: var(--text-soft); }
@@ -6341,8 +6358,8 @@
 .dashboard-host     .detail-pair-cell .punit { font-size: 11px; color: var(--text-soft); margin-left: 2px; font-weight: 600; }
 
 /* v5.1.0: 日志表 (7 列, 数据组浅蓝背景, 数值左对齐) */
-.dashboard-host     .detail-logs-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-.dashboard-host     .detail-logs-header { display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 32px; flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--bg-subtle); }
+.dashboard-host     .detail-logs-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; background: #ffffff; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.dashboard-host     .detail-logs-header { display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 32px; flex-shrink: 0; border-bottom: 1px solid var(--border); background: #ffffff; }
 .dashboard-host     .detail-logs-title { font-size: 11px; font-weight: 700; color: var(--text-soft); letter-spacing: 0.04em; }
 .dashboard-host     .detail-logs-spacer { flex: 1; }
 .dashboard-host     .detail-logs-count { font-family: var(--font-mono); font-size: 10px; color: var(--text-mute); }
@@ -10836,9 +10853,11 @@
             yHtml += '<div class="tick" style="top:' + (i * 25) + '%;">' + v.toFixed(prec) + '</div>';
           }
           yEl.innerHTML = yHtml;
-          // X 轴 6 个时间刻度 (flex distribute 自然贴左/中/右, 避免第一个 tick 跟 Y 轴容器重叠)
+          // v5.1.5: X 轴 5 个时间刻度 (从 6 个改 5 个, 跳过第一个避免跟 Y 轴 "2.800" 重叠)
+          //   i=0 不渲染 (跟 Y 轴最低 tick 视觉重叠)
+          //   flex distribute: 第 1 个 tick 贴左 50px (chart-area 内), 跟 Y 容器 46 错开 4px
           let xHtml = '';
-          for (let i = 0; i < 6; i++) {
+          for (let i = 1; i <= 5; i++) {
             const idx = Math.min(viewData.length - 1, Math.round((viewData.length - 1) * i / 5));
             const p = viewData[idx];
             if (!p || !p.t) { xHtml += '<div class="tick">—</div>'; continue; }
