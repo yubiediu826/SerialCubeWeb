@@ -6222,7 +6222,7 @@
 }
 .dashboard-host     .detail-zoom-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 .dashboard-host     .detail-zoom-btn .icon-svg { width: 13px; height: 13px; }
-.dashboard-host     .detail-zoom-info { font-family: var(--font-mono); font-size: 10px; color: var(--text-mute); margin: 0 4px; min-width: 48px; text-align: center; }
+.dashboard-host     .detail-zoom-info { font-family: var(--font-mono); font-size: 10px; color: var(--text-mute); margin: 0 6px; min-width: 56px; text-align: center; white-space: nowrap; }
 .dashboard-host     .detail-chart-type {
   padding: 2px 16px 2px 6px; font-size: 11px; font-weight: 600;
   min-width: 0; width: 60px; flex-shrink: 0;
@@ -6272,15 +6272,15 @@
 .dashboard-host     .detail-body canvas.detail-canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
 .dashboard-host     .detail-body .chart-area .axis-label { position: absolute; font-size: 9px; color: var(--text-mute); font-family: var(--font-mono); pointer-events: none; }
 .dashboard-host     .detail-body .chart-area .axis-title { position: absolute; font-size: 9px; color: var(--text-soft); font-weight: 600; font-family: inherit; pointer-events: none; }
-/* v5.1.3: Y/X 轴刻度数字 (HTML 绝对定位, bottom 32 跟 X 轴留 12px 间隔) */
+/* v5.1.4: Y/X 轴刻度 (Y 绝对定位 top 0/25/50/75/100%; X flex distribute, 避免 0% 跟 Y 重叠) */
 .dashboard-host     .detail-body .chart-area .axis-ticks { position: absolute; pointer-events: none; }
 .dashboard-host     .detail-body .chart-area .axis-ticks-y { left: 4px; top: 8px; bottom: 32px; width: 42px; }
-.dashboard-host     .detail-body .chart-area .axis-ticks-x { left: 50px; right: 12px; bottom: 8px; height: 16px; }
+.dashboard-host     .detail-body .chart-area .axis-ticks-x { left: 50px; right: 12px; bottom: 8px; height: 16px; display: flex; justify-content: space-between; align-items: center; }
 .dashboard-host     .detail-body .chart-area .axis-ticks .tick {
-  position: absolute; font-size: 9px; color: var(--text-mute); font-family: var(--font-mono); line-height: 12px; white-space: nowrap;
+  font-size: 9px; color: var(--text-mute); font-family: var(--font-mono); line-height: 12px; white-space: nowrap;
 }
-.dashboard-host     .detail-body .chart-area .axis-ticks-y .tick { right: 0; transform: translateY(-50%); text-align: right; }
-.dashboard-host     .detail-body .chart-area .axis-ticks-x .tick { left: 0; transform: translateX(-50%); text-align: center; }
+.dashboard-host     .detail-body .chart-area .axis-ticks-y .tick { position: absolute; right: 0; transform: translateY(-50%); text-align: right; }
+.dashboard-host     .detail-body .chart-area .axis-ticks-x .tick { /* flex distribute 自然贴左/中/右 */ }
 
 /* v5.1.0: hover tooltip + 缩放 toolbar + 选区遮罩 + 缩放提示 (沿用 v4.7) */
 .dashboard-host     .detail-body .chart-area .detail-tooltip {
@@ -7707,7 +7707,8 @@
             <span class="detail-chart-tools" data-show-on="chart">
               <button class="detail-zoom-btn" data-zoom="out" title="缩小 (滚轮向下)"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M3 8 H13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg></button>
               <button class="detail-zoom-btn" data-zoom="in" title="放大 (滚轮向上)"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M3 8 H13 M8 3 V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg></button>
-              <button class="detail-zoom-btn" data-zoom="reset" title="复位 (双击图表)"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M3.5 8 A4.5 4.5 0 1 0 5 4.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><polyline points="2.5,2 5,4.5 2.5,6" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <!-- v5.1.4: 复位按钮 (lucide rotate-ccw 风格: 3/4 圆弧 + L 形箭头, 清晰) -->
+              <button class="detail-zoom-btn" data-zoom="reset" title="复位 (双击图表)"><svg viewBox="0 0 24 24" class="icon-svg" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 7 3 13 9 13"/><path d="M5.5 17a10 10 0 1 0 2.4-10.4"/></svg></button>
               <span class="detail-zoom-info" id="dh-detail-zoom-info">50 / 120</span>
               <select class="form-select detail-chart-type" id="dh-detail-chart-type" title="图表类型">
                 <option value="line">折线</option>
@@ -10412,6 +10413,8 @@
           const id = NS._detailCardId;
           const card = NS.CARDS.find((c) => c.id === id);
           if (!card) return;
+          // v5.1.4: 取消上一帧 rAF, 防重入 (连续 wheel 缩放 + reset 时不打架)
+          if (NS._renderRafId) cancelAnimationFrame(NS._renderRafId);
           const body = document.getElementById('dh-detail-body');
           const chartType = document.getElementById('dh-detail-chart-type').value;
           // v5.1.2: 拆成两页 (chart / logs), 通过 NS._detailPage 切换
@@ -10477,7 +10480,8 @@
             data = NS.trendData[cmdHex + '.' + card.field] || [];
           }
           // 渲染两页 (chart 跟 logs 都先渲染, 切页不需要重画, 性能 + 一致性)
-          requestAnimationFrame(() => {
+          NS._renderRafId = requestAnimationFrame(() => {
+            NS._renderRafId = null;
             if (card.type === 'pair') {
               const all = [...setData, ...actData];
               NS._renderDetailPairChart(card, chartType, setData, actData, all);
@@ -10501,7 +10505,8 @@
           const lo = NS._detailZoom ? NS._detailZoom.xMin : 0;
           const hi = NS._detailZoom ? NS._detailZoom.xMax : (totalN - 1);
           const visible = Math.max(0, hi - lo + 1);
-          info.textContent = '显示 ' + visible + ' / ' + totalN + ' pts';
+          // v5.1.4: 简化文本 (60/60 不带"显示/pts", 省空间避免换行)
+          info.textContent = visible + ' / ' + totalN;
         };
 
         // v5.1.0: 时间范围信息
@@ -10824,22 +10829,22 @@
           const xEl = document.getElementById('dh-axis-ticks-x');
           if (!yEl || !xEl) return;
           const prec = overridePrec != null ? overridePrec : (card.precision || 2);
-          // Y 轴 5 个刻度 (top: 0% maxV → 100% minV)
+          // Y 轴 5 个刻度 (top: 0% maxV → 100% minV, 绝对定位)
           let yHtml = '';
           for (let i = 0; i < 5; i++) {
             const v = maxV - (range * i / 4);
             yHtml += '<div class="tick" style="top:' + (i * 25) + '%;">' + v.toFixed(prec) + '</div>';
           }
           yEl.innerHTML = yHtml;
-          // X 轴 6 个时间刻度 (left: 0% → 100%)
+          // X 轴 6 个时间刻度 (flex distribute 自然贴左/中/右, 避免第一个 tick 跟 Y 轴容器重叠)
           let xHtml = '';
           for (let i = 0; i < 6; i++) {
             const idx = Math.min(viewData.length - 1, Math.round((viewData.length - 1) * i / 5));
             const p = viewData[idx];
-            if (!p || !p.t) { xHtml += '<div class="tick" style="left:' + (i * 20) + '%;">—</div>'; continue; }
+            if (!p || !p.t) { xHtml += '<div class="tick">—</div>'; continue; }
             const t = new Date(p.t);
             const tStr = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') + ':' + String(t.getSeconds()).padStart(2, '0');
-            xHtml += '<div class="tick" style="left:' + (i * 20) + '%;">' + tStr + '</div>';
+            xHtml += '<div class="tick">' + tStr + '</div>';
           }
           xEl.innerHTML = xHtml;
         };
