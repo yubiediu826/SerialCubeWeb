@@ -5858,173 +5858,214 @@
     }
 
 .dashboard-host     .card-default {
-      width: 280px; height: 218px;  /* v4.9.12: 200→218 容纳新 trend row 80 (label 12 + canvas 68) */
-      min-width: 0; max-width: 280px;  /* v4.9.12: min-width:0 + max-width:280px 强制固定 280 宽, 避免 grid item 默认 min-width:auto 把 card 撑大到 416+ (trend card value cell 跟 .card-default 同步缩到 280) */
-      padding: 10px 12px;
-      background: #ffffff;  /* v4.9.18: 强制白底, 跟 dashboard 浅灰背景对比 */
-      border: 1px solid #d0d0d0;  /* v4.9.20: 透明色全试过看不见, 用不透明浅灰 */
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);  /* v4.9.20: 阴影加强, 模拟 card 浮起 */
-      border-radius: var(--radius);
-      display: grid;
-      grid-template-rows: 24px 56px 80px 24px;  /* v4.9.12: trend row 60→80 容纳 flex column 布局 (label 12 + canvas 68) */
-      grid-template-areas:
-        "header"
-        "value"
-        "trend"
-        "footer";
-      gap: 4px;
+      width: 280px; height: 218px;  /* v5.0.0 widget: 280x218, 内含 statusbar(3) + header(22) + value(50) + trend(80) + footer(20) */
+      min-width: 0; max-width: 280px;
+      background: #ffffff;
+      border: 1px solid #d0d0d0;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+      display: flex; flex-direction: column;
       cursor: pointer;
       position: relative;
-      transition: border-color 0.18s ease, box-shadow 0.18s ease;
       overflow: hidden;
       flex-shrink: 0;
+      transition: box-shadow 0.18s ease;
     }
-    /* v4.9.14: 6 列响应式 (1440+) — 卡宽 240, 高 198, sparkline 60, 数字 28
-       解决"1440 宽仍 4 列 + 大量空白"问题, 卡片缩 14% 容纳更多 cell. */
-    @media (min-width: 1440px) {
-      .dashboard-host     .card-default {
-        max-width: 240px; height: 198px;
-        padding: 8px 10px;
-        grid-template-rows: 22px 50px 60px 22px;
-        gap: 3px;
-      }
-      .dashboard-host     .card-default.pair { grid-template-rows: 22px 50px 60px 22px; }
+    .dashboard-host     .card-default:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10); }
+    /* v5.0.0 widget: 顶部 3px 状态色条 — 卡片整体状态一目了然 */
+    .dashboard-host     .card-default .card-statusbar {
+      height: 3px; width: 100%; flex-shrink: 0;
+      background: #52c41a;  /* default success */
     }
-    /* v4.9.14: 8 列响应式 (1920+) — 卡宽 200, 高 178, sparkline 50, 数字 24
-       1920 大屏下 4 cell 电压 + 1 pack + 1 SOC + 1 电流 + 1 温度 + pair + trend 一次性可见. */
-    @media (min-width: 1920px) {
-      .dashboard-host     .card-default {
-        max-width: 200px; height: 178px;
-        padding: 6px 8px;
-        grid-template-rows: 20px 46px 50px 20px;
-        gap: 2px;
-      }
-      .dashboard-host     .card-default.pair { grid-template-rows: 20px 46px 50px 20px; }
+    .dashboard-host     .card-default.alert-warning .card-statusbar { background: #d97706; }
+    .dashboard-host     .card-default.alert-danger .card-statusbar { background: #e0575e; }
+    .dashboard-host     .card-default.rx .card-statusbar { background: #3a5ccc; }  /* RX-only (from other cmd) */
+    .dashboard-host     .card-default.pair.ok .card-statusbar { background: #52c41a; }
+    .dashboard-host     .card-default.pair.warn .card-statusbar { background: #d97706; }
+    .dashboard-host     .card-default.pair.bad .card-statusbar { background: #e0575e; }
+    /* v5.0.0 widget: 卡片内 body 容器 (含 header + value + trend + footer) */
+    .dashboard-host     .card-default .card-body {
+      flex: 1; min-height: 0; overflow: hidden;
+      display: flex; flex-direction: column;
+      padding: 4px 10px 6px;
+      gap: 2px;
     }
-.dashboard-host     .card-default:hover { box-shadow: var(--shadow-soft); }
-.dashboard-host     .card-default.alert-warning { border-color: var(--warning); }
-.dashboard-host     .card-default.alert-danger { border-color: var(--danger); }
-.dashboard-host     .card-default.pair { grid-template-rows: 24px 56px 80px 24px; }  /* v4.9.12: trend row 60→80 跟 trend card 一致 */
-
-.dashboard-host     .card-header {
-      grid-area: header;
+    /* v5.0.0 widget: header 标题行 (高度 22) */
+    .dashboard-host     .card-default .card-header {
+      height: 22px; flex-shrink: 0;
       display: flex; align-items: center; justify-content: space-between;
       gap: 6px;
     }
-.dashboard-host     .card-title-group { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
-.dashboard-host     .status-ring {
-      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-      background: var(--success);
+    .dashboard-host     .card-default .card-title {
+      font-size: 11px; font-weight: 600; color: #3c3c43;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      flex: 1; min-width: 0;
+      letter-spacing: 0.01em;
     }
-.dashboard-host     .status-ring.warn { background: var(--warning); }
-.dashboard-host     .status-ring.danger { background: var(--danger); }
-.dashboard-host     .status-ring.offline { background: var(--text-soft); }
-.dashboard-host     .status-ring.rx { background: var(--signal); }
-.dashboard-host     .card-title { font-size: 11px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dashboard-host     .card-unit { font-size: 9px; color: var(--text-soft); font-weight: 600; }
-.dashboard-host     .card-actions { display: flex; gap: 1px; }
-.dashboard-host     .card-action {
-      width: 20px; height: 20px;
-      background: transparent; border: none; border-radius: 5px;
+    /* v5.0.0 widget: 标题旁的状态 badge (色块 + 缩写) */
+    .dashboard-host     .card-default .card-status-badge {
+      display: inline-flex; align-items: center;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 1px 5px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      font-family: var(--font-ui);
+    }
+    .dashboard-host     .card-default .card-status-badge.ok { background: rgba(34, 197, 94, 0.14); color: #22c55e; }
+    .dashboard-host     .card-default .card-status-badge.warn { background: rgba(217, 119, 6, 0.14); color: #d97706; }
+    .dashboard-host     .card-default .card-status-badge.danger { background: rgba(224, 87, 94, 0.14); color: #e0575e; }
+    .dashboard-host     .card-default .card-status-badge.rx { background: rgba(58, 92, 204, 0.14); color: #3a5ccc; }
+    /* v5.0.0 widget: value 区 (高度 50) — 大数字 + 范围指示条 */
+    .dashboard-host     .card-default .card-value {
+      height: 50px; flex-shrink: 0;
+      position: relative;
+      display: flex; align-items: baseline;
+      gap: 4px;
+      padding-top: 2px;
+    }
+    .dashboard-host     .card-default .card-value .num {
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-size: 32px; font-weight: 800; line-height: 1;
+      color: #3c3c43;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+    .dashboard-host     .card-default .card-value .num.warning { color: #d97706; }
+    .dashboard-host     .card-default .card-value .num.danger { color: #e0575e; }
+    .dashboard-host     .card-default .card-value .unit {
+      font-size: 12px; color: #67676c; font-weight: 600;
+      font-family: var(--font-ui);
+    }
+    .dashboard-host     .card-default .card-value.flash .num { color: #5672cd; transition: color 0.4s; }
+    /* v5.0.0 widget: 范围指示条 (range bar) — 横条 + 当前位置 marker + 阈值 tick */
+    .dashboard-host     .card-default .range-bar {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      height: 4px;
+      background: rgba(0, 0, 0, 0.06);
+      border-radius: 2px;
+    }
+    .dashboard-host     .card-default .range-bar .marker {
+      position: absolute; top: -2px; width: 2px; height: 8px;
+      background: #5672cd; border-radius: 1px;
+      transform: translateX(-1px);
+    }
+    .dashboard-host     .card-default .range-bar .marker.warning { background: #d97706; }
+    .dashboard-host     .card-default .range-bar .marker.danger { background: #e0575e; }
+    .dashboard-host     .card-default .range-bar .threshold {
+      position: absolute; top: 0; width: 1px; height: 4px;
+      background: rgba(217, 119, 6, 0.5);
+    }
+    /* v5.0.0 widget: pair 卡 3 列值 */
+    .dashboard-host     .card-default.pair .card-value {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 4px;
+      align-items: stretch; padding-top: 0;
+    }
+    .dashboard-host     .card-default.pair .pair-cell {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1px;
+    }
+    .dashboard-host     .card-default.pair .pair-cell .label {
+      font-size: 8px; color: #67676c; font-weight: 700; letter-spacing: 0.05em;
+      font-family: var(--font-ui); text-transform: uppercase;
+    }
+    .dashboard-host     .card-default.pair .pair-cell .val {
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-size: 18px; font-weight: 800; line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .dashboard-host     .card-default.pair .pair-cell.setpoint .val { color: #67676c; font-weight: 700; }
+    .dashboard-host     .card-default.pair .pair-cell.actual .val { color: #3c3c43; font-weight: 800; }
+    .dashboard-host     .card-default.pair .pair-cell.delta .val { font-size: 11px; padding: 1px 5px; border-radius: 3px; }
+    .dashboard-host     .card-default.pair .pair-cell.delta .val.ok { background: rgba(34, 197, 94, 0.14); color: #22c55e; }
+    .dashboard-host     .card-default.pair .pair-cell.delta .val.warn { background: rgba(217, 119, 6, 0.14); color: #d97706; }
+    .dashboard-host     .card-default.pair .pair-cell.delta .val.bad { background: rgba(224, 87, 94, 0.14); color: #e0575e; }
+    /* v5.0.0 widget: sparkline 区 (flex 1, 自动填满中部) */
+    .dashboard-host     .card-default .card-trend {
+      flex: 1; min-height: 0;
+      position: relative;
+      margin: 2px 0;
+    }
+    .dashboard-host     .card-default .card-trend canvas {
+      width: 100%; height: 100%; display: block;
+    }
+    /* v5.0.0 widget: footer (高度 20) — 状态 + 范围 */
+    .dashboard-host     .card-default .card-footer {
+      height: 20px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 9px; color: #67676c;
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      letter-spacing: 0.02em;
+    }
+    .dashboard-host     .card-default .card-footer .footer-range { color: #98989f; }
+    .dashboard-host     .card-default .card-footer .footer-status {
+      font-weight: 700; display: inline-flex; align-items: center; gap: 3px;
+    }
+    .dashboard-host     .card-default .card-footer .footer-status::before {
+      content: ''; width: 5px; height: 5px; border-radius: 50%;
+      background: currentColor; flex-shrink: 0;
+    }
+    .dashboard-host     .card-default .card-footer .footer-status.ok { color: #22c55e; }
+    .dashboard-host     .card-default .card-footer .footer-status.warn { color: #d97706; }
+    .dashboard-host     .card-default .card-footer .footer-status.danger { color: #e0575e; }
+    .dashboard-host     .card-default .card-footer .footer-status.rx { color: #3a5ccc; }
+    /* v5.0.0 widget: action 按钮 — hover 才显示 (右上角浮动), 不占 header 空间 */
+    .dashboard-host     .card-default .card-actions {
+      position: absolute; top: 6px; right: 4px;
+      display: flex; gap: 1px;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 2;
+    }
+    .dashboard-host     .card-default:hover .card-actions { opacity: 1; }
+    .dashboard-host     .card-default .card-action {
+      width: 18px; height: 18px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 4px;
       cursor: pointer;
       display: inline-flex; align-items: center; justify-content: center;
-      color: var(--text-soft); font-size: 10px;
-      transition: all 0.15s ease;
+      color: #67676c; font-size: 10px;
+      padding: 0; line-height: 1;
     }
-.dashboard-host     .card-action:hover { background: var(--accent-soft); color: var(--accent); }
-.dashboard-host     .card-action.disabled, .card-action:disabled {
-      opacity: 0.35; cursor: not-allowed; pointer-events: none;
-    }
-/* v4.9.5: 触发按钮 PENDING 状态 - 旋转动画 + 半透 (同 cmd 互斥锁) */
-.dashboard-host     .card-action.is-loading {
-  animation: card-action-spin 0.8s linear infinite;
-  opacity: 0.5; cursor: wait;
-}
-@keyframes card-action-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-.dashboard-host     .card-value {
-      grid-area: value;
-      width: 100%;  /* v4.9.11g: 跟 v4.9.12 min/max-width 280 配套, 强制 fill cell */
-      display: flex; align-items: center; justify-content: center;
-      font-family: var(--font-mono);
-      font-size: 32px; font-weight: 800; line-height: 1;  /* v4.4.1: 26→32 数值更突出 */
-      color: var(--text);
-      transition: color 0.4s ease;
-    }
-    /* v4.9.14: 6/8 列下数字缩 — 32→28→24 配合卡片缩 */
-    @media (min-width: 1440px) {
-      .dashboard-host     .card-value { font-size: 28px; }
-    }
-    @media (min-width: 1920px) {
-      .dashboard-host     .card-value { font-size: 24px; }
-    }
-.dashboard-host     .card-value.flash { color: var(--accent); }
-.dashboard-host     .card-value .unit { font-size: 13px; color: var(--text-soft); margin-left: 4px; font-weight: 600; }  /* v4.4.1: 12→13 */
-    @media (min-width: 1440px) {
-      .dashboard-host     .card-value .unit { font-size: 11px; }
-    }
-    @media (min-width: 1920px) {
-      .dashboard-host     .card-value .unit { font-size: 10px; }
-    }
-.dashboard-host     .card-value.pair {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 4px;
-      font-size: 12px;
-    }
-.dashboard-host     .pair-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.dashboard-host     .pair-cell .label { font-size: 8px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; }
-.dashboard-host     .pair-cell .val { font-family: var(--font-mono); font-size: 20px; font-weight: 800; }  /* v4.9.11: 14→20 跟 trend 大卡 22px 数字看齐 */
-    @media (min-width: 1440px) {
-      .dashboard-host     .pair-cell .val { font-size: 17px; }
-    }
-    @media (min-width: 1920px) {
-      .dashboard-host     .pair-cell .val { font-size: 14px; }
-    }
-.dashboard-host     .pair-cell.setpoint .val { color: var(--text-soft); font-weight: 700; }
-.dashboard-host     .pair-cell.actual .val { color: var(--text); font-weight: 800; }
-.dashboard-host     .pair-cell.delta .val { font-size: 11px; padding: 1px 5px; border-radius: 3px; }
-.dashboard-host     .pair-cell.delta .val.ok { background: rgba(34, 197, 94, 0.14); color: var(--success); }
-.dashboard-host     .pair-cell.delta .val.warn { background: rgba(217, 119, 6, 0.14); color: var(--warning); }
-.dashboard-host     .pair-cell.delta .val.bad { background: rgba(224, 87, 94, 0.14); color: var(--danger); }
-.dashboard-host     .card-trend {
-      grid-area: trend;
-      width: calc(100% - 8px);
-      height: 80px;  /* v4.9.12: 80px sparkline 容器, 纯净无 label 文字遮挡 */
-      margin: 0 4px;
-      box-sizing: border-box;  /* v4.9.12: border-box 让 height 80 包含 border, canvas 100% 不会撑大 */
-      background: var(--bg-terminal);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-    /* v4.9.14: 6/8 列下 sparkline 容器缩 — 80→60→50 配合卡片缩, canvas 自动 fill */
-    @media (min-width: 1440px) {
-      .dashboard-host     .card-trend { height: 60px; }
-    }
-    @media (min-width: 1920px) {
-      .dashboard-host     .card-trend { height: 50px; }
-    }
-.dashboard-host     .card-trend canvas { width: 100%; height: 100%; display: block; }  /* v4.9.12: canvas 100% × 100% 占满容器, 无 label 干扰 */
-.dashboard-host     .card-footer {
-      grid-area: footer;
-      display: flex; align-items: center; justify-content: space-between;
-      font-size: 9px;
-      color: var(--text-soft);
-    }
-.dashboard-host     .card-footer .range { font-family: var(--font-mono); }
-.dashboard-host     .card-footer .status-text { font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
-.dashboard-host     .card-footer .status-text.ok { color: var(--success); }
-.dashboard-host     .card-footer .status-text.warn { color: var(--warning); }
-.dashboard-host     .card-footer .status-text.bad { color: var(--danger); }
-.dashboard-host     .card-footer .status-text.rx { color: var(--signal); }
+    .dashboard-host     .card-default .card-action:hover { background: #5672cd; color: #fff; border-color: #5672cd; }
+    .dashboard-host     .card-default .card-action.disabled { opacity: 0.4; cursor: not-allowed; }
+    .dashboard-host     .card-default .card-action.is-loading { animation: card-action-spin 0.8s linear infinite; }
+    @keyframes card-action-spin { to { transform: rotate(360deg); } }
 
-    body.edit-mode .card-default { outline: 1px dashed var(--accent); outline-offset: -2px; }
-    body.edit-mode .card-action { pointer-events: auto; }
-    body.edit-mode .card-action.delete-btn { color: var(--danger); }
-    body.edit-mode .card-action.delete-btn:hover { background: rgba(224, 87, 94, 0.14); color: var(--danger); }
+    /* v5.0.0 widget: 响应式 — 4/6/8 列下卡片缩 */
+    @media (min-width: 1440px) {
+      .dashboard-host     .card-default { width: 240px; height: 198px; }
+      .dashboard-host     .card-default .card-value { height: 46px; }
+      .dashboard-host     .card-default .card-value .num { font-size: 28px; }
+      .dashboard-host     .card-default .card-value .unit { font-size: 11px; }
+      .dashboard-host     .card-default.pair .pair-cell .val { font-size: 16px; }
+      .dashboard-host     .card-default .card-header { height: 20px; }
+      .dashboard-host     .card-default .card-footer { height: 18px; font-size: 8px; }
+    }
+    @media (min-width: 1920px) {
+      .dashboard-host     .card-default { width: 200px; height: 178px; }
+      .dashboard-host     .card-default .card-value { height: 42px; }
+      .dashboard-host     .card-default .card-value .num { font-size: 24px; }
+      .dashboard-host     .card-default .card-value .unit { font-size: 10px; }
+      .dashboard-host     .card-default.pair .pair-cell .val { font-size: 14px; }
+      .dashboard-host     .card-default .card-header { height: 18px; }
+      .dashboard-host     .card-default .card-footer { height: 16px; font-size: 8px; }
+    }
+
+    body.edit-mode .card-default { outline: 1px dashed #5672cd; outline-offset: -2px; }
+    body.edit-mode .card-default .card-actions { opacity: 1; }
+    .dashboard-host     .card-default .card-delete-btn {
+      position: absolute; top: 4px; left: 4px;
+      width: 16px; height: 16px;
+      background: #e0575e; color: #fff;
+      border: 1px solid #fff;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 10px; line-height: 1;
+      padding: 0; z-index: 3;
+    }
 
     /* 小卡片 (列表视图) */
 .dashboard-host     .list-card {
@@ -9716,12 +9757,11 @@
 
         NS.renderCard = function (c) {
           const card = document.createElement('div');
+          // v5.0.0 widget: 所有卡先加 card-default 基类, 后面再叠 alert/rx
+          card.className = 'card-default';
           if (c.type === 'pair') {
-            card.className = 'card-default pair';
-            // v4.4.3: pair 卡 SET/ACT 派生, 用 c.pairId 决定 set/act 字段
-            // pairId 'charge_v' → set = charge_v_set (0x10 TX), act = pack_v_avg * 15 (0x01 RX 派生 4 cell 串联)
-            // 后续扩展: pairId 'charge_i' → set = charge_i_set, act = pack_i (等等)
-            // v4.9.6: 加 'discharge_v' 分支, c11 跟 c9 共用 pack_v_avg*15 公式
+            card.classList.add('pair');
+            // v4.4.3: pair 卡 SET/ACT 派生
             let set = 0, act = 0;
             if (c.pairId === 'charge_v') {
               set = NS.currentVals.charge_v_set != null ? NS.currentVals.charge_v_set : 0;
@@ -9730,30 +9770,21 @@
               set = NS.currentVals.discharge_v_set != null ? NS.currentVals.discharge_v_set : 0;
               act = (NS.currentVals.pack_v_avg != null ? NS.currentVals.pack_v_avg : 0) * 15;
             } else {
-              // fallback: 任意 pairId, 用通用 lookup
               set = NS.currentVals[c.pairId + '_set'] != null ? NS.currentVals[c.pairId + '_set'] : 0;
               act = NS.currentVals[c.pairId + '_act'] != null ? NS.currentVals[c.pairId + '_act'] : 0;
             }
             const delta = act - set;
             const dCls = Math.abs(delta) < 0.5 ? 'ok' : (Math.abs(delta) < 1.0 ? 'warn' : 'bad');
-            const pairState = dCls;
-            // v4.9.5: pair 触发按钮 PENDING 状态 (同 cmd 互斥, 锁住 + 旋转动画)
+            card.classList.add(dCls);
             const isPending = NS.txPendingCmds && NS.txPendingCmds.has(c.cmd);
             const cmdHex = c.cmd.toString(16).padStart(2, '0').toUpperCase();
-            card.classList.add('alert-' + pairState);
-            card.innerHTML = '<div class="card-header">'
-              + '<div class="card-title-group">'
-              + '<span class="status-ring ' + pairState + '"></span>'
+            const footerStatusText = dCls === 'ok' ? 'OK' : 'ALARM';
+            card.innerHTML =
+              '<div class="card-statusbar"></div>'
+              + '<div class="card-body">'
+              + '<div class="card-header">'
               + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
-              + '<span class="card-unit">' + NS.escapeHtml(c.unit || '') + '</span>'
               + '</div>'
-              + '<div class="card-actions">'
-              + '<button class="card-action" title="Pair 详情" data-action="detail">⇄</button>'
-              + '<button class="card-action' + (isPending ? ' is-loading disabled' : '') + '"'
-              + (isPending ? ' disabled title="等待响应中..."' : ' title="触发 ' + cmdHex + '" data-action="trigger"')
-              + '>↗</button>'
-              + '<button class="card-action edit-btn" title="编辑" data-action="edit">✎</button>'
-              + '</div></div>'
               + '<div class="card-value pair" data-action="detail">'
               + '<div class="pair-cell setpoint"><div class="label">SET</div><div class="val">' + set.toFixed(1) + '</div></div>'
               + '<div class="pair-cell actual"><div class="label">ACT</div><div class="val">' + act.toFixed(1) + '</div></div>'
@@ -9761,44 +9792,68 @@
               + '</div>'
               + '<div class="card-trend" data-action="detail"><canvas id="dh-trend-' + c.id + '"></canvas></div>'
               + '<div class="card-footer">'
-              + '<span class="range">容差 ±0.5' + NS.escapeHtml(c.unit || '') + '</span>'
-              + '<span class="status-text ' + pairState + '">' + (pairState === 'ok' ? '✓ 在范围内' : '⚠ 偏离') + '</span>'
+              + '<span class="footer-range">容差 ±0.5' + NS.escapeHtml(c.unit || '') + '</span>'
+              + '<span class="footer-status ' + dCls + '">' + footerStatusText + '</span>'
+              + '</div>'
+              + '</div>'
+              + '<div class="card-actions">'
+              + '<button class="card-action" title="详情" data-action="detail">⇄</button>'
+              + '<button class="card-action' + (isPending ? ' is-loading disabled' : '') + '"'
+              + (isPending ? ' disabled title="等待响应中..."' : ' title="触发 ' + cmdHex + '" data-action="trigger"')
+              + '>↗</button>'
+              + '<button class="card-action" title="编辑" data-action="edit">✎</button>'
               + '</div>';
           } else {
-            // v4.9.13: trend 卡结构对齐 pair 卡 (280x218, grid 24/56/80/24, 大数值 + 图表)
-            // 移除冗余: rx-badge (状态环已表达) / chart 内 cmd/dir 标签 (CSS display:none, 清理) / footer range 文字 (图表已可视化)
+            // v5.0.0 widget: trend 卡
             const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
             const range = c.range || [0, 100];
             const alert = NS.checkAlert(v, range);
-            const ring = c.fromOtherCmd ? 'rx' : (alert || 'normal');
-            const stateLabel = c.fromOtherCmd ? 'RX' : (alert === 'danger' ? '⚠ 越限' : (alert === 'warning' ? '⚠ 警告' : '✓ 正常'));
-            const stateClass = c.fromOtherCmd ? 'rx' : (alert || 'ok');
-            // v4.9.5: 触发按钮 PENDING 状态 (同 cmd 互斥, 锁住 + 旋转动画; 与 c.fromOtherCmd 复合)
+            const statusCls = c.fromOtherCmd ? 'rx' : (alert || 'ok');
+            if (alert) card.classList.add('alert-' + alert);
+            if (c.fromOtherCmd) card.classList.add('rx');
             const isPending = NS.txPendingCmds && NS.txPendingCmds.has(c.cmd);
             const lockForPending = !c.fromOtherCmd && isPending;
-            if (alert) card.classList.add('alert-' + alert);
             const flashClass = (NS.lastValues[c.field] !== undefined && Math.abs(v - NS.lastValues[c.field]) > 0.001) ? ' flash' : '';
-            card.innerHTML = '<div class="card-header">'
-              + '<div class="card-title-group">'
-              + '<span class="status-ring ' + ring + '"></span>'
+            // 范围指示条 marker
+            let barPct = 50;
+            let barCls = '';
+            if (range && range[1] > range[0]) {
+              barPct = ((v - range[0]) / (range[1] - range[0])) * 100;
+              if (barPct < 0) { barPct = 0; barCls = 'danger'; }
+              else if (barPct > 100) { barPct = 100; barCls = 'danger'; }
+              else if (alert === 'warning') barCls = 'warning';
+              else if (alert === 'danger') barCls = 'danger';
+            }
+            const rangeText = range ? range[0] + '–' + range[1] + (c.unit || '') : '—';
+            const footerStatusText = c.fromOtherCmd ? 'RX-ONLY' : (alert === 'danger' ? 'ALARM' : (alert === 'warning' ? 'WARN' : 'OK'));
+            const numCls = alert === 'danger' ? ' danger' : (alert === 'warning' ? ' warning' : '');
+            card.innerHTML =
+              '<div class="card-statusbar"></div>'
+              + '<div class="card-body">'
+              + '<div class="card-header">'
               + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
-              + '<span class="card-unit">' + NS.escapeHtml(c.unit || '') + '</span>'
+              + '</div>'
+              + '<div class="card-value' + flashClass + '" data-action="detail">'
+              + '<span class="num' + numCls + '">' + v.toFixed(c.precision || 2) + '</span>'
+              + '<span class="unit">' + NS.escapeHtml(c.unit || '') + '</span>'
+              + '<div class="range-bar"><div class="marker ' + barCls + '" style="left: ' + barPct + '%"></div></div>'
+              + '</div>'
+              + '<div class="card-trend" data-action="detail"><canvas id="dh-trend-' + c.id + '"></canvas></div>'
+              + '<div class="card-footer">'
+              + '<span class="footer-range">' + rangeText + '</span>'
+              + '<span class="footer-status ' + statusCls + '">' + footerStatusText + '</span>'
+              + '</div>'
               + '</div>'
               + '<div class="card-actions">'
               + '<button class="card-action" title="详情" data-action="detail">⇄</button>'
               + '<button class="card-action' + (c.fromOtherCmd ? ' disabled' : '') + (lockForPending ? ' is-loading disabled' : '') + '"'
               + (c.fromOtherCmd ? ' disabled title="RX-only, 不可写入"' : (lockForPending ? ' disabled title="等待响应中..."' : ' title="触发" data-action="trigger"'))
               + '>' + (c.fromOtherCmd ? '🔒' : '↗') + '</button>'
-              + '<button class="card-action edit-btn" title="编辑" data-action="edit">✎</button>'
-              + '</div></div>'
-              + '<div class="card-value' + flashClass + '" data-action="detail">' + v.toFixed(c.precision || 2) + '<span class="unit">' + NS.escapeHtml(c.unit || '') + '</span></div>'
-              + '<div class="card-trend" data-action="detail"><canvas id="dh-trend-' + c.id + '"></canvas></div>'
-              + '<div class="card-footer">'
-              + '<span class="status-text ' + stateClass + '">' + stateLabel + '</span>'
+              + '<button class="card-action" title="编辑" data-action="edit">✎</button>'
               + '</div>';
             setTimeout(() => { const v2 = card.querySelector('.card-value'); if (v2) v2.classList.remove('flash'); }, 400);
           }
-          // edit 模式加 × 按钮
+          // edit 模式加 × 按钮 (悬浮左上角)
           if (NS.editMode && c.type !== 'pair') {
             const del = document.createElement('button');
             del.className = 'card-delete-btn';
