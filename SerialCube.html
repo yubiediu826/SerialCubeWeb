@@ -5863,6 +5863,7 @@
       padding: 10px 12px;
       background: var(--bg-panel);
       border: 1px solid var(--border-strong);  /* v4.9.15: 16%→32% 透明度, 之前太淡看不见 */
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);  /* v4.9.16: 加 1px 阴影提升 card 边界感, 不依赖 border 颜色 */
       border-radius: var(--radius);
       display: grid;
       grid-template-rows: 24px 56px 80px 24px;  /* v4.9.12: trend row 60→80 容纳 flex column 布局 (label 12 + canvas 68) */
