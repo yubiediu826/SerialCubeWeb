@@ -6180,23 +6180,79 @@
 .dashboard-host     .modal.open { display: flex; }
 .dashboard-host     .modal.wide { width: min(1100px, calc(100vw - 32px)); }
 .dashboard-host     .modal.xtra-wide { width: min(1400px, calc(100vw - 32px)); }
-/* v4.4b: 卡片详情 modal 样式 (header + subtabs + body 三段) */
-.dashboard-host     .modal-header.detail-header { gap: 10px; flex-wrap: wrap; }
+/* v5.1.0: 卡片详情 modal — 固定 900x720 + 单页布局 (header / toolbar / timerange / body) */
+.dashboard-host     .modal.detail-modal {
+  width: 900px; height: 720px;
+  max-width: calc(100vw - 32px); max-height: calc(100vh - 32px);
+}
+.dashboard-host     .modal-header.detail-header { gap: 10px; flex-wrap: wrap; height: 48px; flex-shrink: 0; }
 .dashboard-host     .detail-cmd-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; font-family: var(--font-mono); background: var(--signal-soft); color: var(--signal); letter-spacing: 0.04em; }
 .dashboard-host     .detail-cmd-badge.tx { background: var(--accent-soft); color: var(--accent-strong); }
 .dashboard-host     .detail-range { font-size: 11px; color: var(--text-soft); }
 .dashboard-host     .detail-status { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 3px; background: var(--success-soft, rgba(34, 197, 94, 0.14)); color: var(--success); }
-.dashboard-host     .detail-subtabs { display: flex; align-items: center; gap: 4px; padding: 8px 20px 0; border-bottom: 1px solid var(--border); }
-.dashboard-host     .detail-subtabs .spacer { flex: 1; }
-.dashboard-host     .detail-subtabs .chart-type-label { font-size: 11px; color: var(--text-soft); font-weight: 600; margin-right: 4px; white-space: nowrap; }
-.dashboard-host     .detail-subtab { background: none; border: none; padding: 8px 14px; font-size: 12px; font-weight: 600; color: var(--text-soft); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; font-family: inherit; white-space: nowrap; }
-.dashboard-host     .detail-subtab:hover { color: var(--text); }
-.dashboard-host     .detail-subtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* v5.1.0: 工具栏 (缩放按钮 + 图表类型) */
+.dashboard-host     .detail-toolbar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 16px; height: 44px; flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+.dashboard-host     .detail-zoom-btn {
+  width: 28px; height: 26px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px;
+  font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+  color: var(--text-soft); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
+}
+.dashboard-host     .detail-zoom-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.dashboard-host     .detail-zoom-btn[data-zoom="reset"] { font-size: 14px; }
+.dashboard-host     .detail-zoom-info { font-family: var(--font-mono); font-size: 11px; color: var(--text-soft); margin-left: 4px; }
+.dashboard-host     .detail-toolbar-spacer { flex: 1; }
+.dashboard-host     .detail-chart-type-label { font-size: 11px; color: var(--text-soft); font-weight: 600; margin-right: 4px; white-space: nowrap; }
 .dashboard-host     .detail-chart-type { padding: 4px 8px; font-size: 11px; min-width: 0; max-width: 160px; }
-.dashboard-host     .modal-body.detail-body { flex: 1; min-height: 0; overflow: auto; padding: 16px 20px; }
-.dashboard-host     .detail-body .chart-area { position: relative; width: 100%; height: 320px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px; margin-bottom: 12px; }
+
+/* v5.1.0: 时间范围 (全局 — 图表/状态行/日志共用) */
+.dashboard-host     .detail-timerange {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 16px; height: 40px; flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+.dashboard-host     .detail-timerange-label { font-size: 11px; font-weight: 700; color: var(--text-soft); letter-spacing: 0.04em; }
+.dashboard-host     .detail-timerange-chips { display: inline-flex; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-subtle); overflow: hidden; }
+.dashboard-host     .detail-timerange-chip {
+  padding: 4px 10px; font-size: 11px; font-weight: 600;
+  color: var(--text-soft); cursor: pointer;
+  background: transparent; border: none; border-right: 1px solid var(--border);
+  font-family: inherit; transition: all 0.12s;
+}
+.dashboard-host     .detail-timerange-chip:last-child { border-right: none; }
+.dashboard-host     .detail-timerange-chip:hover { background: var(--bg-panel); color: var(--text); }
+.dashboard-host     .detail-timerange-chip.active { background: var(--accent); color: #fff; }
+.dashboard-host     .detail-timerange-info { font-family: var(--font-mono); font-size: 10px; color: var(--text-mute); }
+.dashboard-host     .detail-timerange-spacer { flex: 1; }
+.dashboard-host     .detail-timerange-refresh {
+  width: 22px; height: 22px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;
+  color: var(--text-soft); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-family: var(--font-mono);
+}
+.dashboard-host     .detail-timerange-refresh:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.dashboard-host     .detail-timerange-refresh.active { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+
+/* v5.1.0: 主体 (flex column 装图表 + 状态行 + 日志) */
+.dashboard-host     .modal-body.detail-body { flex: 1; min-height: 0; overflow: hidden; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+/* v5.1.0: 图表区 (含 X/Y 轴标签) */
+.dashboard-host     .detail-body .chart-area { position: relative; flex-shrink: 0; width: 100%; height: 260px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px 24px 50px; }
 .dashboard-host     .detail-body canvas.detail-canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
-/* v4.7: hover tooltip + 缩放 toolbar + 选区遮罩 + 缩放提示 */
+.dashboard-host     .detail-body .chart-area .axis-label { position: absolute; font-size: 9px; color: var(--text-mute); font-family: var(--font-mono); pointer-events: none; }
+.dashboard-host     .detail-body .chart-area .axis-title { position: absolute; font-size: 9px; color: var(--text-soft); font-weight: 600; font-family: inherit; pointer-events: none; }
+
+/* v5.1.0: hover tooltip + 缩放 toolbar + 选区遮罩 + 缩放提示 (沿用 v4.7) */
 .dashboard-host     .detail-body .chart-area .detail-tooltip {
   position: absolute; pointer-events: none;
   background: var(--bg-elevated); border: 1px solid var(--border);
@@ -6214,54 +6270,89 @@
 .dashboard-host     .detail-body .chart-area .detail-tooltip .tt-pair-set { color: #67676c; font-weight: 700; }
 .dashboard-host     .detail-body .chart-area .detail-tooltip .tt-pair-act { color: #5672cd; font-weight: 700; }
 .dashboard-host     .detail-body .chart-area .detail-marker {
-  position: absolute; top: 8px; bottom: 8px; width: 1px;
+  position: absolute; top: 8px; bottom: 24px; width: 1px;
   background: var(--text-soft); opacity: 0.4;
   pointer-events: none; display: none; z-index: 4;
 }
-.dashboard-host     .detail-body .chart-area .detail-zoom-toolbar {
-  position: absolute; top: 12px; right: 12px; z-index: 6;
-  display: flex; gap: 4px; align-items: center;
-}
-.dashboard-host     .detail-body .chart-area .detail-zoom-toolbar button {
-  background: var(--bg-elevated); border: 1px solid var(--border);
-  border-radius: 4px; padding: 3px 8px;
-  font-size: 10px; font-weight: 600;
-  color: var(--text); cursor: pointer; font-family: inherit;
-}
-.dashboard-host     .detail-body .chart-area .detail-zoom-toolbar button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
-.dashboard-host     .detail-body .chart-area .detail-zoom-toolbar .zoom-info { font-size: 10px; color: var(--text-soft); margin-right: 4px; font-family: var(--font-mono); }
+.dashboard-host     .detail-body .chart-area .detail-zoom-toolbar { display: none; /* v5.1.0: 缩放按钮已搬到顶部 toolbar */ }
 .dashboard-host     .detail-body .chart-area .detail-zoom-hint {
-  position: absolute; bottom: 12px; right: 12px;
+  position: absolute; bottom: 4px; right: 12px;
   font-size: 9px; color: var(--text-soft);
   pointer-events: none; opacity: 0.6;
   font-family: var(--font-mono);
 }
 .dashboard-host     .detail-body .chart-area .detail-zoom-selection {
-  position: absolute; top: 8px; bottom: 8px;
+  position: absolute; top: 8px; bottom: 24px;
   background: rgba(86, 114, 205, 0.12);
   border-left: 1px solid var(--accent);
   border-right: 1px solid var(--accent);
   pointer-events: none; display: none; z-index: 3;
 }
-.dashboard-host     .detail-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
-.dashboard-host     .detail-stats .stat-cell { background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-small); padding: 10px 12px; }
-.dashboard-host     .detail-stats .stat-label { font-size: 10px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; margin-bottom: 4px; }
-.dashboard-host     .detail-stats .stat-value { font-family: var(--font-mono); font-size: 18px; font-weight: 800; color: var(--text); }
-.dashboard-host     .detail-stats .stat-value .unit { font-size: 11px; color: var(--text-soft); margin-left: 3px; font-weight: 600; }
-.dashboard-host     .detail-pair-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-.dashboard-host     .detail-pair-cell { background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; text-align: center; }
-.dashboard-host     .detail-pair-cell .plabel { font-size: 10px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; margin-bottom: 4px; }
-.dashboard-host     .detail-pair-cell .pvalue { font-family: var(--font-mono); font-size: 26px; font-weight: 800; color: var(--text); }
+
+/* v5.1.0: 状态行 (6 列: 当前/最小/最大/平均/σ/样本, 数字左对齐跟 logs-val 一致) */
+.dashboard-host     .detail-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; flex-shrink: 0; }
+.dashboard-host     .detail-stats .stat-cell { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; padding: 6px 6px; }
+.dashboard-host     .detail-stats .stat-label { font-size: 10px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; margin-bottom: 2px; }
+.dashboard-host     .detail-stats .stat-value { font-family: var(--font-mono); font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.2; text-align: left; }
+.dashboard-host     .detail-stats .stat-value .unit { font-size: 10px; color: var(--text-soft); font-weight: 600; margin-left: 2px; }
+.dashboard-host     .detail-stats .stat-value.danger { color: var(--danger); }
+.dashboard-host     .detail-stats .stat-value.warning { color: var(--warning); }
+
+/* v5.1.0: pair 卡 (充电电压/放电电压) 顶部 3 列值 */
+.dashboard-host     .detail-pair-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; flex-shrink: 0; }
+.dashboard-host     .detail-pair-cell { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; text-align: center; }
+.dashboard-host     .detail-pair-cell .plabel { font-size: 10px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; margin-bottom: 2px; }
+.dashboard-host     .detail-pair-cell .pvalue { font-family: var(--font-mono); font-size: 22px; font-weight: 800; color: var(--text); }
 .dashboard-host     .detail-pair-cell.setpoint .pvalue { color: var(--text-soft); }
 .dashboard-host     .detail-pair-cell.actual .pvalue { color: var(--accent); }
 .dashboard-host     .detail-pair-cell.delta .pvalue.ok { color: var(--success); }
 .dashboard-host     .detail-pair-cell.delta .pvalue.warn { color: var(--warning); }
 .dashboard-host     .detail-pair-cell.delta .pvalue.bad { color: var(--danger); }
-.dashboard-host     .detail-pair-cell .punit { font-size: 12px; color: var(--text-soft); margin-left: 3px; }
-.dashboard-host     .detail-raw-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; }
-.dashboard-host     .detail-raw-table th { background: var(--bg-panel); color: var(--text-soft); font-weight: 700; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
-.dashboard-host     .detail-raw-table td { padding: 4px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
-.dashboard-host     .detail-raw-table tr:hover td { background: var(--bg-panel); }
+.dashboard-host     .detail-pair-cell .punit { font-size: 11px; color: var(--text-soft); margin-left: 2px; font-weight: 600; }
+
+/* v5.1.0: 日志表 (7 列, 数据组浅蓝背景, 数值左对齐) */
+.dashboard-host     .detail-logs-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.dashboard-host     .detail-logs-header { display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 32px; flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--bg-subtle); }
+.dashboard-host     .detail-logs-title { font-size: 11px; font-weight: 700; color: var(--text-soft); letter-spacing: 0.04em; }
+.dashboard-host     .detail-logs-spacer { flex: 1; }
+.dashboard-host     .detail-logs-count { font-family: var(--font-mono); font-size: 10px; color: var(--text-mute); }
+.dashboard-host     .detail-logs-jump-btn {
+  height: 22px; padding: 0 8px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;
+  font-size: 10px; font-weight: 600; color: var(--text-soft);
+  cursor: pointer; display: inline-flex; align-items: center; gap: 3px;
+  font-family: inherit;
+}
+.dashboard-host     .detail-logs-jump-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.dashboard-host     .detail-logs-jump-btn.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.dashboard-host     .detail-logs-table { flex: 1; min-height: 0; overflow-y: auto; }
+.dashboard-host     .detail-logs-table table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; table-layout: fixed; }
+.dashboard-host     .detail-logs-table th {
+  position: sticky; top: 0; background: var(--bg-subtle);
+  color: var(--text-soft); font-weight: 700;
+  padding: 5px 6px; text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px; letter-spacing: 0.04em;
+  font-family: inherit; text-transform: uppercase;
+}
+.dashboard-host     .detail-logs-table td {
+  padding: 4px 6px; border-bottom: 1px solid var(--border);
+  color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dashboard-host     .detail-logs-table tr:last-child td { border-bottom: none; }
+.dashboard-host     .detail-logs-table tr:hover td { background: var(--bg-subtle); }
+.dashboard-host     .detail-logs-table td.col-data,
+.dashboard-host     .detail-logs-table th.col-data { background-color: rgba(86, 114, 205, 0.04); }
+.dashboard-host     .detail-logs-table tr:hover td.col-data { background-color: rgba(86, 114, 205, 0.08); }
+.dashboard-host     .detail-logs-table .logs-num { color: var(--text-mute); text-align: right; }
+.dashboard-host     .detail-logs-table .logs-time { color: var(--text-soft); }
+.dashboard-host     .detail-logs-table .logs-cmd { color: var(--accent); font-weight: 700; }
+.dashboard-host     .detail-logs-table .logs-field { color: var(--text); }
+.dashboard-host     .detail-logs-table .logs-val { color: var(--text); font-weight: 600; text-align: left; }
+.dashboard-host     .detail-logs-table .logs-unit { color: var(--text-mute); }
+.dashboard-host     .detail-logs-table .logs-val.danger { color: var(--danger); }
+.dashboard-host     .detail-logs-table .logs-val.warning { color: var(--warning); }
+.dashboard-host     .detail-logs-table .logs-status { text-align: center; font-size: 11px; }
 .dashboard-host     .modal-header {
       display: flex; align-items: center; gap: 12px;
       padding: 14px 20px;
@@ -7540,9 +7631,9 @@
           </div>
         </div>
 
-        <!-- v4.4b: 卡片详情 modal (4 sub-tab + 5 种图表, 点击卡片 trend/value 区域弹出) -->
+        <!-- v5.1.0: 卡片详情 modal (单页布局 + 全局时间范围 + 缩放按钮 + 最近 20 条日志) -->
         <div class="modal-backdrop" id="dh-detail-backdrop"></div>
-        <div class="modal xtra-wide" id="dh-detail-modal">
+        <div class="modal detail-modal" id="dh-detail-modal">
           <div class="modal-header detail-header">
             <button class="close-btn" data-close="dh-detail">×</button>
             <span class="modal-title" id="dh-detail-title">详情</span>
@@ -7550,21 +7641,35 @@
             <span class="detail-range" id="dh-detail-range"></span>
             <span class="detail-status" id="dh-detail-status"></span>
           </div>
-          <div class="detail-subtabs">
-            <button class="detail-subtab active" data-subtab="realtime">实时</button>
-            <button class="detail-subtab" data-subtab="stats">统计</button>
-            <button class="detail-subtab" data-subtab="waveform">波形</button>
-            <button class="detail-subtab" data-subtab="raw">原始</button>
-            <span class="spacer"></span>
-            <span class="chart-type-label">图表</span>
+          <!-- v5.1.0: 工具栏 (缩放 + 图表类型) -->
+          <div class="detail-toolbar">
+            <button class="detail-zoom-btn" data-zoom="out" title="缩小 (滚轮向下)">−</button>
+            <button class="detail-zoom-btn" data-zoom="in" title="放大 (滚轮向上)">+</button>
+            <button class="detail-zoom-btn" data-zoom="reset" title="复位 (双击图表)">↺</button>
+            <span class="detail-zoom-info" id="dh-detail-zoom-info">显示 50 / 120 pts</span>
+            <span class="detail-toolbar-spacer"></span>
+            <span class="detail-chart-type-label">图表</span>
             <select class="form-select detail-chart-type" id="dh-detail-chart-type">
               <option value="line">折线 (line)</option>
               <option value="bar">柱状 (bar)</option>
               <option value="area">面积 (area)</option>
               <option value="scatter">散点 (scatter)</option>
-              <option value="histogram">直方图 (histogram)</option>
             </select>
           </div>
+          <!-- v5.1.0: 时间范围 (全局 — 图表 / 状态行 / 日志共用) -->
+          <div class="detail-timerange">
+            <span class="detail-timerange-label">时间范围</span>
+            <div class="detail-timerange-chips">
+              <button class="detail-timerange-chip active" data-range="realtime">实时</button>
+              <button class="detail-timerange-chip" data-range="1h">1h</button>
+              <button class="detail-timerange-chip" data-range="6h">6h</button>
+              <button class="detail-timerange-chip" data-range="24h">24h</button>
+            </div>
+            <span class="detail-timerange-info" id="dh-detail-timerange-info">11:42:18 · 最近 30 分钟</span>
+            <span class="detail-timerange-spacer"></span>
+            <button class="detail-timerange-refresh active" id="dh-detail-auto-refresh" title="实时自动刷新">↻</button>
+          </div>
+          <!-- v5.1.0: 主体 (图表 + 状态行 + 日志) -->
           <div class="modal-body detail-body" id="dh-detail-body"></div>
         </div>
 
@@ -9632,9 +9737,14 @@
         NS._v42KpiCardIds = ['c1', 'c2', 'c3', 'c4'];  // v4.2 演示的 4 个 KPI
 
         // === 数据池 (currentVals: 实时值, trendData: 历史, lastValues: 上一次) ===
+        // v5.1.0: rxHistory 详情页日志 ring buffer (跨 tick 累计, 详情 modal 打开时取)
+        //   key = 'cmdHex.field' (e.g. '01.cell_1_v'); value = [{ t, v, cmd, field, unit, alert }]
+        //   上限 1440 条 (~24h @ 1/min, 实际 tick 800ms → 18h 满)
         NS.currentVals = {};
         NS.trendData = {};
         NS.lastValues = {};
+        NS.rxHistory = {};
+        NS._rxHistoryMax = 1440;
 
         // === 数据生成 ===
         // v4.4.3: set 字段 (charge_v_set / charge_i_set / discharge_v_set) 是用户输入值, 不抖, 保持原值
@@ -9678,7 +9788,16 @@
           }
         };
 
+        // v5.1.0: 详情 modal 日志用, 跨 tick 累计 (上限 1440 ~24h @ 800ms tick)
+        //   alert 字段不在这里算, 让 _getCardLogs 用 card.range 算 (避免重复)
+        NS._pushRxHistory = function (key, v, t) {
+          if (!NS.rxHistory[key]) NS.rxHistory[key] = [];
+          NS.rxHistory[key].push({ t: t, v: v, cmd: parseInt(key.slice(0, 2), 16), field: key.slice(3) });
+          if (NS.rxHistory[key].length > NS._rxHistoryMax) NS.rxHistory[key].shift();
+        };
+
         NS.tickData = function () {
+          const now = Date.now();
           NS.COMMANDS.forEach((cmd) => {
             cmd.dataFields.forEach((field) => {
               if (field === 'pack_v_avg') return;  // pack_v_avg 由 cell 派生, 单独处理
@@ -9692,8 +9811,10 @@
                 NS.currentVals[field] = newVal;
               }
               const key = `${cmd.id.toString(16).padStart(2, '0').toUpperCase()}.${field}`;
-              NS.trendData[key].push({ t: Date.now(), v: NS.currentVals[field] });
+              NS.trendData[key].push({ t: now, v: NS.currentVals[field] });
               if (NS.trendData[key].length > 60) NS.trendData[key].shift();
+              // v5.1.0: 同步写 rxHistory (详情 modal 日志用)
+              NS._pushRxHistory(key, NS.currentVals[field], now);
             });
           });
           // pack_v_avg = 4 cell 平均, 同步写入 01.pack_v_avg trend
@@ -10182,6 +10303,8 @@
           NS._detailCardId = id;
           // v4.7: 重置 zoom (新卡片)
           NS._detailZoom = null;
+          // v5.1.0: 重置时间范围为实时
+          NS._detailRange = 'realtime';
           document.getElementById('dh-detail-title').textContent = card.title;
           const cmdHex = card.cmd ? card.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
           const cmdEl = document.getElementById('dh-detail-cmd');
@@ -10191,19 +10314,18 @@
             ? '范围 ' + card.range[0] + ' - ' + card.range[1] + (card.unit || '')
             : (card.type === 'pair' ? 'SET vs ACT' : '');
           document.getElementById('dh-detail-status').textContent = card.fromOtherCmd ? 'RX-only' : '正常';
-          // 切到 realtime sub-tab
-          document.querySelectorAll('.detail-subtab').forEach((b) => b.classList.toggle('active', b.dataset.subtab === 'realtime'));
+          // v5.1.0: 重置 time-range chip 状态
+          document.querySelectorAll('.detail-timerange-chip').forEach((b) => b.classList.toggle('active', b.dataset.range === 'realtime'));
           // v4.4b 修: 改 selectedIndex 触发 select 显示刷新 (value 赋值在某些浏览器不刷新)
           const chartSel0 = document.getElementById('dh-detail-chart-type');
           if (chartSel0) {
-            // v4.7: 先清空所有 options + 重建, 强制 select 显示 "折线 (line)"
-            // (v4.4b 的 selectedIndex=0 在多次切卡后, select 偶尔显示上一次选项文字)
             chartSel0.value = 'line';
             const opt0 = chartSel0.options[0];
             if (opt0) { opt0.selected = true; chartSel0.selectedIndex = 0; }
           }
           document.getElementById('dh-detail-backdrop').classList.add('open');
           document.getElementById('dh-detail-modal').classList.add('open');
+          NS._updateDetailTimerangeInfo();
           NS._renderDetailBody();
         };
         NS._closeDetail = function () {
@@ -10216,24 +10338,11 @@
           const card = NS.CARDS.find((c) => c.id === id);
           if (!card) return;
           const body = document.getElementById('dh-detail-body');
-          const activeTab = document.querySelector('.detail-subtab.active')?.dataset.subtab || 'realtime';
           const chartType = document.getElementById('dh-detail-chart-type').value;
-          // v4.7: chart-area 装饰 (tooltip + marker + zoom-toolbar + zoom-hint + zoom-selection)
-          // 抽成函数, 后面 _renderDetailSingleChart / _renderDetailPairChart 复用
-          NS._decorateChartArea = function () {
-            const ca = body.querySelector('.chart-area');
-            if (!ca) return null;
-            if (!ca.querySelector('.detail-tooltip')) {
-              const tip = document.createElement('div'); tip.className = 'detail-tooltip'; ca.appendChild(tip);
-              const mk = document.createElement('div'); mk.className = 'detail-marker'; ca.appendChild(mk);
-              const sel = document.createElement('div'); sel.className = 'detail-zoom-selection'; ca.appendChild(sel);
-              const tb = document.createElement('div'); tb.className = 'detail-zoom-toolbar'; ca.appendChild(tb);
-              const hi = document.createElement('div'); hi.className = 'detail-zoom-hint'; hi.textContent = '拖动选区缩放 · 双击复位'; ca.appendChild(hi);
-            }
-            return ca;
-          };
+          // v5.1.0: 状态行 + 图表 + 日志 三段单页布局 (无 sub-tab)
+          // pair 卡 顶部多一段 SET/ACT/Δ 3 列
+          let pairGridHtml = '';
           if (card.type === 'pair') {
-            // pair 卡: 复用 c9 charge_v 派生, 留 fallback
             let set = 0, act = 0;
             if (card.pairId === 'charge_v') {
               set = NS.currentVals.charge_v_set || 0;
@@ -10244,57 +10353,211 @@
             }
             const delta = act - set;
             const dCls = Math.abs(delta) < 0.5 ? 'ok' : (Math.abs(delta) < 1.0 ? 'warn' : 'bad');
-            const setData = NS.trendData['10.charge_v_set'] || [];
-            const actData = NS.trendData['09.charge_v_pair_act'] || [];
-            const all = [...setData, ...actData];
-            if (activeTab === 'realtime' || activeTab === 'waveform') {
-              body.innerHTML = '<div class="detail-pair-grid">'
-                + '<div class="detail-pair-cell setpoint"><div class="plabel">SET</div><div class="pvalue">' + set.toFixed(1) + '<span class="punit">' + (card.unit || 'V') + '</span></div></div>'
-                + '<div class="detail-pair-cell actual"><div class="plabel">ACT</div><div class="pvalue">' + act.toFixed(1) + '<span class="punit">' + (card.unit || 'V') + '</span></div></div>'
-                + '<div class="detail-pair-cell delta"><div class="plabel">Δ</div><div class="pvalue ' + dCls + '">' + (delta > 0 ? '+' : '') + delta.toFixed(1) + '<span class="punit">' + (card.unit || 'V') + '</span></div></div>'
-                + '</div>'
-                + '<div class="chart-area"><canvas class="detail-canvas" id="dh-detail-canvas"></canvas></div>';
-              NS._decorateChartArea();
-              requestAnimationFrame(() => NS._renderDetailPairChart(card, chartType, setData, actData, all));
-            } else if (activeTab === 'stats') {
-              const setStats = NS._calcStats(setData.map((p) => p.v));
-              const actStats = NS._calcStats(actData.map((p) => p.v));
-              body.innerHTML = '<h3 style="font-size: 11px; color: var(--text-soft); margin: 0 0 6px; font-weight: 700; letter-spacing: 0.04em;">SET 统计</h3>'
-                + NS._renderStatsRow(setStats, card.unit)
-                + '<h3 style="font-size: 11px; color: var(--text-soft); margin: 16px 0 6px; font-weight: 700; letter-spacing: 0.04em;">ACT 统计</h3>'
-                + NS._renderStatsRow(actStats, card.unit)
-                + '<div class="chart-area" style="margin-top: 12px;"><canvas class="detail-canvas" id="dh-detail-canvas"></canvas></div>';
-              NS._decorateChartArea();
-              requestAnimationFrame(() => NS._renderDetailSingleChart(actData, 'histogram', card));
-            } else if (activeTab === 'raw') {
-              const maxLen = Math.max(setData.length, actData.length);
-              const rows = [];
-              for (let i = 0; i < maxLen; i++) {
-                const s = setData[i], a = actData[i];
-                const tStr = s ? new Date(s.t).toLocaleTimeString('zh-CN', { hour12: false }) : (a ? new Date(a.t).toLocaleTimeString('zh-CN', { hour12: false }) : '—');
-                rows.push('<tr><td>' + (i + 1) + '</td><td>' + tStr + '</td><td>' + (s ? s.v.toFixed(2) : '—') + '</td><td>' + (a ? a.v.toFixed(2) : '—') + '</td><td>' + (a && s ? ((a.v - s.v > 0 ? '+' : '') + (a.v - s.v).toFixed(2)) : '—') + '</td></tr>');
-              }
-              body.innerHTML = '<table class="detail-raw-table"><thead><tr><th>#</th><th>时间</th><th>SET (' + (card.unit || 'V') + ')</th><th>ACT (' + (card.unit || 'V') + ')</th><th>Δ (' + (card.unit || 'V') + ')</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
-            }
+            pairGridHtml = '<div class="detail-pair-grid">'
+              + '<div class="detail-pair-cell setpoint"><div class="plabel">SET</div><div class="pvalue">' + set.toFixed(1) + '<span class="punit">' + (card.unit || 'V') + '</span></div></div>'
+              + '<div class="detail-pair-cell actual"><div class="plabel">ACT</div><div class="pvalue">' + act.toFixed(1) + '<span class="punit">' + (card.unit || 'V') + '</span></div></div>'
+              + '<div class="detail-pair-cell delta"><div class="plabel">Δ</div><div class="pvalue ' + dCls + '">' + (delta > 0 ? '+' : '') + delta.toFixed(1) + '<span class="punit">' + (card.unit || 'V') + '</span></div></div>'
+              + '</div>';
+          }
+          body.innerHTML = pairGridHtml
+            + '<div class="chart-area">'
+            + '<canvas class="detail-canvas" id="dh-detail-canvas"></canvas>'
+            + '<div class="axis-title axis-y-title">' + (card.unit || '') + '</div>'
+            + '<div class="axis-title axis-x-title">时间</div>'
+            + '</div>'
+            + '<div class="detail-stats" id="dh-detail-stats"></div>'
+            + '<div class="detail-logs-panel">'
+            + '<div class="detail-logs-header">'
+            + '<span class="detail-logs-title">数据日志</span>'
+            + '<span class="detail-logs-spacer"></span>'
+            + '<span class="detail-logs-count" id="dh-detail-logs-count">0 条</span>'
+            + '<button class="detail-logs-jump-btn active" id="dh-detail-logs-jump" title="新数据自动滚到底部">⤵ 跟随</button>'
+            + '</div>'
+            + '<div class="detail-logs-table" id="dh-detail-logs-table"></div>'
+            + '</div>';
+          // chart-area 装饰 (tooltip + marker + zoom-hint + zoom-selection)
+          const ca = body.querySelector('.chart-area');
+          if (ca && !ca.querySelector('.detail-tooltip')) {
+            const tip = document.createElement('div'); tip.className = 'detail-tooltip'; ca.appendChild(tip);
+            const mk = document.createElement('div'); mk.className = 'detail-marker'; ca.appendChild(mk);
+            const sel = document.createElement('div'); sel.className = 'detail-zoom-selection'; ca.appendChild(sel);
+            const hi = document.createElement('div'); hi.className = 'detail-zoom-hint'; hi.textContent = '滚轮缩放 · 拖动选区 · 双击复位'; ca.appendChild(hi);
+          }
+          // v5.1.0: 拉数据 + 画图表 + 状态行 + 日志
+          let data = [], setData = [], actData = [];
+          if (card.type === 'pair') {
+            setData = NS.trendData['10.charge_v_set'] || [];
+            actData = NS.trendData['09.charge_v_pair_act'] || [];
+            data = actData;
           } else {
             const cmdHex = card.cmd ? card.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
-            const data = NS.trendData[cmdHex + '.' + card.field] || [];
-            if (activeTab === 'realtime' || activeTab === 'waveform') {
-              body.innerHTML = '<div class="chart-area"><canvas class="detail-canvas" id="dh-detail-canvas"></canvas></div>'
-                + '<div class="detail-stats" id="dh-detail-stats"></div>';
-              NS._decorateChartArea();
-              requestAnimationFrame(() => { NS._renderDetailSingleChart(data, chartType, card); NS._renderDetailStats(card, data); });
-            } else if (activeTab === 'stats') {
-              const stats = NS._calcStats(data.map((p) => p.v));
-              body.innerHTML = NS._renderStatsRow(stats, card.unit)
-                + '<div class="chart-area" style="margin-top: 12px;"><canvas class="detail-canvas" id="dh-detail-canvas"></canvas></div>';
-              NS._decorateChartArea();
-              requestAnimationFrame(() => NS._renderDetailSingleChart(data, 'histogram', card));
-            } else if (activeTab === 'raw') {
-              const rows = data.map((p, i) => '<tr><td>' + (i + 1) + '</td><td>' + new Date(p.t).toLocaleTimeString('zh-CN', { hour12: false }) + '</td><td>' + p.v.toFixed(card.precision || 2) + '</td></tr>');
-              body.innerHTML = '<table class="detail-raw-table"><thead><tr><th>#</th><th>时间</th><th>' + (card.field || '值') + ' (' + (card.unit || '') + ')</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
-            }
+            data = NS.trendData[cmdHex + '.' + card.field] || [];
           }
+          requestAnimationFrame(() => {
+            if (card.type === 'pair') {
+              const all = [...setData, ...actData];
+              NS._renderDetailPairChart(card, chartType, setData, actData, all);
+              NS._renderDetailStats(card, data);
+            } else {
+              NS._renderDetailSingleChart(data, chartType, card);
+              NS._renderDetailStats(card, data);
+            }
+            NS._renderDetailLogs(card);
+            NS._updateDetailZoomInfo(card, data);
+          });
+        };
+
+        // v5.1.0: 缩放信息 (顶部 toolbar 显示 "显示 X / Y pts")
+        NS._updateDetailZoomInfo = function (card, data) {
+          const info = document.getElementById('dh-detail-zoom-info');
+          if (!info) return;
+          const totalN = (data || []).length;
+          const lo = NS._detailZoom ? NS._detailZoom.xMin : 0;
+          const hi = NS._detailZoom ? NS._detailZoom.xMax : (totalN - 1);
+          const visible = Math.max(0, hi - lo + 1);
+          info.textContent = '显示 ' + visible + ' / ' + totalN + ' pts';
+        };
+
+        // v5.1.0: 时间范围信息
+        NS._updateDetailTimerangeInfo = function () {
+          const el = document.getElementById('dh-detail-timerange-info');
+          if (!el) return;
+          const range = NS._detailRange || 'realtime';
+          const now = new Date();
+          const hh = String(now.getHours()).padStart(2, '0');
+          const mm = String(now.getMinutes()).padStart(2, '0');
+          const ss = String(now.getSeconds()).padStart(2, '0');
+          const rangeText = range === 'realtime' ? '最近 30 分钟' : '最近 ' + range;
+          el.textContent = hh + ':' + mm + ':' + ss + ' · ' + rangeText;
+        };
+
+        // v5.1.0: 缩放控制 (+ / - / 复位)
+        NS._detailZoomBy = function (factor, card, data) {
+          const totalN = (data || []).length;
+          if (totalN < 2) return;
+          let lo = NS._detailZoom ? NS._detailZoom.xMin : 0;
+          let hi = NS._detailZoom ? NS._detailZoom.xMax : (totalN - 1);
+          const mid = (lo + hi) / 2;
+          const halfSpan = ((hi - lo) / 2) * factor;
+          let newLo = Math.max(0, Math.floor(mid - halfSpan));
+          let newHi = Math.min(totalN - 1, Math.ceil(mid + halfSpan));
+          if (newHi - newLo < 1) {
+            newHi = Math.min(totalN - 1, newLo + 1);
+          }
+          if (newLo === 0 && newHi === totalN - 1) {
+            NS._detailZoom = null;
+          } else {
+            NS._detailZoom = { xMin: newLo, xMax: newHi };
+          }
+          NS._renderDetailBody();
+        };
+        NS._resetDetailZoom = function () {
+          NS._detailZoom = null;
+          NS._renderDetailBody();
+        };
+
+        // v5.1.0: 状态行 (6 列: 当前/最小/最大/平均/σ/样本)
+        NS._renderDetailStats = function (card, data) {
+          const el = document.getElementById('dh-detail-stats');
+          if (!el) return;
+          const filtered = NS._filterDataByZoom(data);
+          if (!filtered || filtered.length === 0) {
+            el.innerHTML = '<div class="stat-cell"><div class="stat-label">当前</div><div class="stat-value">—</div></div>'
+              + '<div class="stat-cell"><div class="stat-label">最小</div><div class="stat-value">—</div></div>'
+              + '<div class="stat-cell"><div class="stat-label">最大</div><div class="stat-value">—</div></div>'
+              + '<div class="stat-cell"><div class="stat-label">平均</div><div class="stat-value">—</div></div>'
+              + '<div class="stat-cell"><div class="stat-label">σ 标准差</div><div class="stat-value">—</div></div>'
+              + '<div class="stat-cell"><div class="stat-label">样本</div><div class="stat-value">0</div></div>';
+            return;
+          }
+          const v = filtered[filtered.length - 1].v;
+          const vals = filtered.map((p) => p.v);
+          const sorted = [...vals].sort((a, b) => a - b);
+          const min = sorted[0];
+          const max = sorted[sorted.length - 1];
+          const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+          const variance = vals.reduce((a, b) => a + (b - avg) * (b - avg), 0) / vals.length;
+          const sd = Math.sqrt(variance);
+          const range = card.range || [min, max];
+          const curCls = (v < range[0] || v > range[1]) ? 'danger' : (card.range && (v < range[0] * 1.05 || v > range[1] * 0.95) ? 'warning' : '');
+          const maxCls = (max > range[1]) ? 'danger' : '';
+          const prec = card.precision || 2;
+          el.innerHTML = '<div class="stat-cell"><div class="stat-label">当前</div><div class="stat-value ' + curCls + '">' + v.toFixed(prec) + '<span class="unit">' + (card.unit || '') + '</span></div></div>'
+            + '<div class="stat-cell"><div class="stat-label">最小</div><div class="stat-value">' + min.toFixed(prec) + '<span class="unit">' + (card.unit || '') + '</span></div></div>'
+            + '<div class="stat-cell"><div class="stat-label">最大</div><div class="stat-value ' + maxCls + '">' + max.toFixed(prec) + '<span class="unit">' + (card.unit || '') + '</span></div></div>'
+            + '<div class="stat-cell"><div class="stat-label">平均</div><div class="stat-value">' + avg.toFixed(prec) + '<span class="unit">' + (card.unit || '') + '</span></div></div>'
+            + '<div class="stat-cell"><div class="stat-label">σ 标准差</div><div class="stat-value">' + sd.toFixed(prec + 1) + '</div></div>'
+            + '<div class="stat-cell"><div class="stat-label">样本</div><div class="stat-value">' + vals.length + '</div></div>';
+        };
+
+        // v5.1.0: 按 zoom 过滤数据 (用于状态行/日志)
+        NS._filterDataByZoom = function (data) {
+          if (!data) return [];
+          if (!NS._detailZoom) return data;
+          return data.filter((_, i) => i >= NS._detailZoom.xMin && i <= NS._detailZoom.xMax);
+        };
+
+        // v5.1.0: 日志表 (7 列, 数据组浅蓝背景, 数值左对齐)
+        NS._renderDetailLogs = function (card) {
+          const el = document.getElementById('dh-detail-logs-table');
+          const countEl = document.getElementById('dh-detail-logs-count');
+          if (!el) return;
+          // v5.1.0: 从 NS.rxHistory 拉数据 (mock 用 NS.detailLogs)
+          const logs = NS._getCardLogs(card);
+          if (!logs || logs.length === 0) {
+            el.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-mute); font-size: 11px;">暂无数据日志</div>';
+            if (countEl) countEl.textContent = '0 条';
+            return;
+          }
+          if (countEl) countEl.textContent = logs.length + ' 条';
+          // 倒序 (最新在上)
+          const sorted = [...logs].reverse();
+          const rows = sorted.map((log, i) => {
+            const num = logs.length - i;
+            const t = new Date(log.t);
+            const tStr = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') + ':' + String(t.getSeconds()).padStart(2, '0') + '.' + String(t.getMilliseconds()).padStart(3, '0');
+            const prec = card.precision || 2;
+            const valStr = log.v.toFixed(prec);
+            const valCls = log.alert === 'danger' ? 'danger' : (log.alert === 'warning' ? 'warning' : '');
+            const statusText = log.alert === 'danger' ? '⚠ ALARM' : (log.alert === 'warning' ? '⚡ WARN' : '✓ OK');
+            const statusColor = log.alert === 'danger' ? '#e0575e' : (log.alert === 'warning' ? '#d97706' : '#22c55e');
+            return '<tr>'
+              + '<td class="logs-num">' + num + '</td>'
+              + '<td class="logs-time">' + tStr + '</td>'
+              + '<td class="logs-cmd">0x' + (log.cmd || card.cmd || 0).toString(16).padStart(2, '0').toUpperCase() + '</td>'
+              + '<td class="logs-field col-data">' + (log.field || card.field || '—') + '</td>'
+              + '<td class="logs-val col-data ' + valCls + '">' + valStr + '</td>'
+              + '<td class="logs-unit col-data">' + (log.unit || card.unit || '') + '</td>'
+              + '<td class="logs-status" style="color: ' + statusColor + ';">' + statusText + '</td>'
+              + '</tr>';
+          });
+          el.innerHTML = '<table>'
+            + '<colgroup>'
+            + '<col style="width: 36px;"><col style="width: 96px;"><col style="width: 54px;">'
+            + '<col style="width: 84px;"><col style="width: 64px;"><col style="width: 36px;"><col style="width: 80px;">'
+            + '</colgroup>'
+            + '<thead><tr><th>#</th><th>时间</th><th>命令</th><th class="col-data">字段</th><th class="col-data">数值</th><th class="col-data">单位</th><th>状态</th></tr></thead>'
+            + '<tbody>' + rows.join('') + '</tbody></table>';
+        };
+
+        // v5.1.0: 获取卡的日志 (从 NS.rxHistory 拉, 找不到就用 mock 数据)
+        NS._getCardLogs = function (card) {
+          // 优先用 NS.rxHistory (key: cmdHex.field)
+          const cmdHex = card.cmd ? card.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
+          const key = cmdHex + '.' + (card.field || '');
+          if (NS.rxHistory && NS.rxHistory[key] && NS.rxHistory[key].length > 0) {
+            return NS.rxHistory[key];
+          }
+          // fallback: 用 NS.trendData 转换成 logs
+          const data = NS.trendData[key] || [];
+          return data.map((p) => ({
+            t: p.t,
+            v: p.v,
+            cmd: card.cmd,
+            field: card.field,
+            unit: card.unit,
+            alert: NS.checkAlert(p.v, card.range)
+          }));
         };
         NS._calcStats = function (arr) {
           if (!arr || arr.length === 0) return null;
@@ -10463,12 +10726,6 @@
           const xStep2 = xStep(viewSet.length ? viewSet : viewAct);
           NS._bindDetailChartInteractions(card, all, viewSet, xStep2, h, minV, range, 'pair', { setData: viewSet, actData: viewAct });
         };
-        NS._renderDetailStats = function (card, data) {
-          const el = document.getElementById('dh-detail-stats');
-          if (!el) return;
-          if (!data || data.length === 0) { el.innerHTML = ''; return; }
-          el.innerHTML = NS._renderStatsRow(NS._calcStats(data.map((p) => p.v)), card.unit);
-        };
 
         // === v4.7: 详情图表 hover tooltip + 缩放 交互 ===
         // 状态: NS._detailZoom = { xMin, xMax } | null
@@ -10486,8 +10743,8 @@
           const tip = area.querySelector('.detail-tooltip');
           const marker = area.querySelector('.detail-marker');
           const sel = area.querySelector('.detail-zoom-selection');
-          const tb = area.querySelector('.detail-zoom-toolbar');
-          if (!tip || !marker || !sel || !tb) return;
+          // v5.1.0: 缩放按钮已搬到顶部 .detail-toolbar, 不再用图内 .detail-zoom-toolbar
+          if (!tip || !marker || !sel) return;
           // zoomed data 在 fullData 的索引范围
           const baseIdx = NS._detailZoom ? NS._detailZoom.xMin : 0;
           // === mouse handlers ===
@@ -10599,26 +10856,10 @@
               NS._renderDetailBody();
             }
           };
-          // === zoom toolbar (reset button + zoom info) ===
-          NS._updateDetailZoomToolbar(card, fullData);
+          // === v5.1.0: 缩放信息在顶部 toolbar (NS._updateDetailZoomInfo), 不再用图内 toolbar ===
         };
-        NS._updateDetailZoomToolbar = function (card, fullData) {
-          const cv = document.getElementById('dh-detail-canvas');
-          if (!cv) return;
-          const area = cv.closest('.chart-area');
-          if (!area) return;
-          const tb = area.querySelector('.detail-zoom-toolbar');
-          if (!tb) return;
-          const totalN = (fullData || []).length;
-          const hasZoom = !!NS._detailZoom;
-          const lo = NS._detailZoom ? NS._detailZoom.xMin : 0;
-          const hi = NS._detailZoom ? NS._detailZoom.xMax : (totalN - 1);
-          const visible = Math.max(0, hi - lo + 1);
-          tb.innerHTML = (hasZoom ? '<span class="zoom-info">显示 ' + visible + ' / ' + totalN + '</span>' : '')
-            + '<button class="zoom-reset" data-act="reset" style="' + (hasZoom ? '' : 'display:none;') + '">↺ 复位</button>';
-          const btn = tb.querySelector('[data-act="reset"]');
-          if (btn) btn.onclick = (e) => { e.stopPropagation(); NS._detailZoom = null; NS._renderDetailBody(); };
-        };
+        // v5.1.0: 旧的图内 zoom toolbar 已废弃 (缩放按钮搬到顶部 .detail-toolbar, 由 NS._updateDetailZoomInfo 写 #dh-detail-zoom-info)
+        NS._updateDetailZoomToolbar = function () { /* no-op, v5.1.0 stub */ };
 
         NS.renderKpiCards = function () {
           // v4.4: 替换为完整命令面板 + 卡片网格 (兼容 v4.2 调用点)
@@ -11156,13 +11397,16 @@
           // 3. 解析 (ackCmd.dataFields 决定切几个字段)
           const parsed = NS._parseAckFields(ackCmd, bytes, cmd.protocol);
           // 4. 写 currentVals + push trendData (按 trigger cmd.dataFields 写)
+          const ackT = Date.now();
           cmd.dataFields.forEach((field) => {
             if (parsed[field] != null) {
               NS.currentVals[field] = parsed[field];
               const key = cmd.id.toString(16).padStart(2, '0').toUpperCase() + '.' + field;
               NS.trendData[key] = NS.trendData[key] || [];
-              NS.trendData[key].push({ t: Date.now(), v: parsed[field] });
+              NS.trendData[key].push({ t: ackT, v: parsed[field] });
               if (NS.trendData[key].length > 60) NS.trendData[key].shift();
+              // v5.1.0: 同步写 rxHistory (详情 modal 日志用)
+              NS._pushRxHistory(key, parsed[field], ackT);
             }
           });
           // 5. resolve waiter + 清理
@@ -11986,16 +12230,64 @@
             const bd = document.getElementById(name + '-backdrop');
             if (bd) bd.addEventListener('click', () => NS.closeModal(name));
           });
-          // v4.4b: 详情 modal sub-tab 切换 + chart type 切换
-          document.querySelectorAll('.detail-subtab').forEach((btn) => {
+          // v5.1.0: 详情 modal — time-range chip + zoom 按钮 + chart type 切换 (替换原 sub-tab)
+          document.querySelectorAll('.detail-timerange-chip').forEach((btn) => {
             btn.addEventListener('click', () => {
               if (!NS._detailCardId) return;
-              document.querySelectorAll('.detail-subtab').forEach((b) => b.classList.toggle('active', b === btn));
+              document.querySelectorAll('.detail-timerange-chip').forEach((b) => b.classList.toggle('active', b === btn));
+              NS._detailRange = btn.dataset.range || 'realtime';
+              NS._updateDetailTimerangeInfo();
+              // range 切换会清掉 zoom (新数据范围, 旧 zoom index 无效)
+              NS._detailZoom = null;
               NS._renderDetailBody();
             });
           });
+          document.querySelectorAll('.detail-zoom-btn').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+              e.preventDefault();
+              if (!NS._detailCardId) return;
+              const act = btn.dataset.zoom;
+              const id = NS._detailCardId;
+              const card = NS.CARDS.find((c) => c.id === id);
+              if (!card) return;
+              let data = [];
+              if (card.type === 'pair') {
+                data = NS.trendData['09.charge_v_pair_act'] || [];
+              } else {
+                const cmdHex = card.cmd ? card.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
+                data = NS.trendData[cmdHex + '.' + card.field] || [];
+              }
+              if (act === 'in') NS._detailZoomBy(0.5, card, data);
+              else if (act === 'out') NS._detailZoomBy(2.0, card, data);
+              else if (act === 'reset') NS._resetDetailZoom();
+            });
+          });
+          // chart type: 4 种 (line/bar/area/scatter, 直方图被日志表替代)
           const chartSel = document.getElementById('dh-detail-chart-type');
-          if (chartSel) chartSel.addEventListener('change', () => { if (NS._detailCardId) NS._renderDetailBody(); });
+          if (chartSel) {
+            chartSel.addEventListener('change', () => { if (NS._detailCardId) NS._renderDetailBody(); });
+          }
+          // v5.1.0: 跟随按钮 (新数据自动滚到底部)
+          const jumpBtn = document.getElementById('dh-detail-logs-jump');
+          if (jumpBtn) {
+            jumpBtn.addEventListener('click', () => {
+              jumpBtn.classList.toggle('active');
+              const active = jumpBtn.classList.contains('active');
+              const tableEl = document.getElementById('dh-detail-logs-table');
+              if (active && tableEl) {
+                // 立即滚到底部
+                const lastTr = tableEl.querySelector('tbody tr:last-child');
+                if (lastTr) lastTr.scrollIntoView({ block: 'end' });
+              }
+            });
+          }
+          // v5.1.0: auto-refresh 切换
+          const refreshBtn = document.getElementById('dh-detail-auto-refresh');
+          if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+              refreshBtn.classList.toggle('active');
+            });
+          }
           // 协议编辑器: 应用 / 重置 / 导入 / 导出
           bind('dh-proto-apply', () => { NS.toast('协议已应用', 'success'); NS.closeModal('dh-proto'); });
           bind('dh-proto-reset', () => {
