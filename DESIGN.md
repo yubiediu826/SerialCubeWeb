@@ -9,10 +9,11 @@ colors:
   warning: "#d97706"
   danger: "#e0575e"
   bg: "#ffffff"
-  bg-elevated: "rgba(255, 255, 255, 0.92)"
-  bg-panel: "rgba(255, 255, 255, 0.84)"
-  bg-panel-strong: "rgba(255, 255, 255, 0.94)"
-  bg-terminal: "#f6f6f7"
+  bg-elevated: "#ffffff"           # v5.1.6: 实色, modal/浮层背景不透明
+  bg-panel: "#ffffff"              # v5.1.6: 实色, panel/card 背景不透明
+  bg-panel-strong: "#ffffff"       # v5.1.6: 实色
+  bg-subtle: "#f6f6f7"             # v5.1.6: 浅灰实色, chip/header 区分用
+  bg-terminal: "#161618"           # 深色系数据区背景, 接近 #f6f6f7 (light) 的镜像
   text: "#3c3c43"
   text-soft: "#67676c"
   border: "rgba(60, 60, 67, 0.16)"
@@ -166,9 +167,9 @@ neutral, with a small set of reserved semantic colors. There is no
 
 - **Paper White** (`#ffffff` / `#1b1b1f`): the surface. Light theme is
   true white; dark theme is near-black, not pure black.
-- **Panel Frost** (`rgba(255,255,255,0.84..0.94)` / `rgba(32,33,39,0.86..0.96)`):
-  layered panels (floating menus, version modal). The 8-16% alpha range
-  gives a subtle frosted-glass feel without `backdrop-filter` cost.
+- **Panel Frost** (`#ffffff` light / `#202127` dark): layered panels
+  (floating menus, version modal). 实色 (v5.1.6 改) — 不再使用
+  alpha 半透明,避免浮层透出后面 dashboard 数据。
 - **Terminal Ash** (`#f6f6f7` / `#161618`): reserved for the serial
   monitor pane and binary/timeline data views. One shade off the page bg
   to delineate the data zone.

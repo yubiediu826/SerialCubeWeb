@@ -50,7 +50,7 @@ data tables, not multi-step product UI* — SerialCube 是 **Operate 模式**工
 
 ## 5. 项目速查
 
-- 主代码: `SerialCube.html` (15841 行, 580.5 KB)
+- 主代码: `SerialCube.html` (20784 行, 882.1 KB, v5.1.6)
 - 架构分析: `docs/architecture.md`
 - 在线版本: https://yubiediu826.github.io/SerialCubeWeb/
 - 仓库: https://github.com/yubiediu826/SerialCubeWeb

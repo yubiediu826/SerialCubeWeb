@@ -1,7 +1,5 @@
 # Product
 
-<!-- impeccable:product-schema 1 -->
-
 ## Platform
 
 web
@@ -46,30 +44,35 @@ web
 
 ## Capabilities and Constraints
 
-### 已实现 (v1.5)
+### 已实现 (v5.1.6)
 
 - Web Serial API 单连接(读/写/重连/失焦释放)
 - 串口参数: 波特率/数据位/停止位/校验/流控/RTS/DTR/Break
 - 接收监视: 文本/HEX 模式、时间戳、实时事件
 - 发送: 手动/定时/触发/预设,ASCII/HEX,换行符
 - 解析器: token 模板 + 字段映射 + 实时结果展示
-- 图表: 时域图/频域图/柱状图(Canvas 2D 自绘)
+- **仪表盘 widget** (v5.0+): 大数字 + 范围指示条 + sparkline + 状态角标,
+  Datadog/Grafana 风格;响应式 4/6/8 列 (220×198 / 200×188 / 180×178)
+- **详情弹窗** (v5.1+): 图表(折线/柱状/面积/散点, 滚轮缩放 + [−][+][↺]
+  工具栏)+ 7 列日志表(#/时间/命令/字段/数值/单位/状态), 全局时间范围
+  (实时/1h/6h/24h) 联动图表/状态/日志, 2 tab 切换
 - 时间线: 实时录制/冻结/回放,导入导出 .timeline/.csv/.txt
 - 配置: JSON 复制粘贴(SerialWebUserConfig v1)
 - 持久化: localStorage(主题/布局/最近设置)
-- 主题: light/dark,跟随系统
-- 响应式: compact-single / layout-expanded / sidebar-collapsed
+- 主题: light/dark, 跟随系统 (v5.1.6 改实色背景, 浮层不再透出 dashboard)
+- 响应式: 三档断点(≥1180 / 1080-1179 / ≤720)
+- 图标系统: 全部 SVG (× − + ↺ ↻ ✓ 等), stroke 跟父元素颜色, 无字符图标
 
 ### 近期路线(用户确认)
 
-1. **多串口并发** — 同一会话同时连接多路串口,多设备协同调试
-2. **现有功能打磨** — 解析器 / 时间线 / 图表 / 预设发送,先把做过的做好
+1. **多串口并发** — 同一会话同时连接多路串口, 多设备协同调试
+2. **现有功能打磨** — 解析器 / 时间线 / 图表 / 预设发送, 先把做过的做好
 3. **Modbus RTU/TCP 协议 SDK** — 把 TLV 模板解析器扩展为支持 Modbus
    工业协议的标准 profile 库
 
 ### 技术约束(不可绕过)
 
-- **单文件 HTML** (`SerialCube.html`): 单可分发单元,不引入 build 步骤 / npm /
+- **单文件 HTML** (`SerialCube.html`): 单可分发单元, 不引入 build 步骤 / npm /
   构建工具。任何多文件化必须用户明确同意。
 - **浏览器要求**: Chromium 系(Edge / Chrome / Brave)。Web Serial API 需
   HTTPS 或 `localhost` / `file:`。Firefox / Safari 不在路线内。
@@ -79,45 +82,46 @@ web
   - `.timeline` 二进制 magic: `WSLBIN1` (`0x57 0x53 0x4C 0x42 0x49 0x4E 0x31 0x00`)
   - 浏览量 API 路径: `/api/serialweb_page-view`
   - JS 内部命名: `__serialWeb*` / `clearSerialWebStoredUserData` 等
-- **中英双语**: 每个 UI 标签同步维护中英两个版本,用户可切换或跟系统语言
+- **中英双语**: 每个 UI 标签同步维护中英两个版本, 用户可切换或跟系统语言
 
 ## Brand Commitments
 
-- **名称**: SerialCube(2026-08-03 从 SerialWeb 改名,见 git history)
-- **调性**: 工程师实用主义(Operate 模式),不追求营销美学或华丽动效
+- **名称**: SerialCube(2026-08-03 从 SerialWeb 改名, 见 git history)
+- **调性**: 工程师实用主义(Operate 模式), 不追求营销美学或华丽动效
 - **GitHub**: https://github.com/yubiediu826/SerialCubeWeb
 - **GitHub Pages**: https://yubiediu826.github.io/SerialCubeWeb/
-- **版本号**: 公开迭代(v1.5,CHANGELOG 内嵌 About 弹窗)
-- **支持渠道**: GitHub Issues(主),不公开宣传
+- **版本号**: 公开迭代(v5.1.6, About 弹窗内嵌 CHANGELOG)
+- **支持渠道**: GitHub Issues(主), 不公开宣传
 
 ## Evidence on Hand
 
 - `docs/architecture.md` — 完整架构分析(模块 / 状态 / 数据契约 / 工作流)
-- `.claude/skills/` — 项目级开发 skill 集合(superpowers / taste / impeccable)
-- `AGENTS.md` — 强制 agent skill 链 + 兼容性约束
-- `SerialCube.html` — 15841 行 / 580.5 KB 单文件实现
-- About 弹窗 — v1.5 完整 CHANGELOG
-- 测试方式: 手动 smoke test(串口真机),暂无自动化测试基础设施
+- `.claude/skills/` — 项目级开发 skill 集合 (4 个保留: brainstorming /
+  design-taste-frontend / imagegen-frontend-web / high-end-visual-design)
+- `AGENTS.md` — AI agent 开发规范 + 兼容性约束
+- `SerialCube.html` — 20784 行 / 882.1 KB 单文件实现 (v5.1.6)
+- About 弹窗 — v5.1.6 完整 CHANGELOG
+- 测试方式: 手动 smoke test(串口真机 + 浏览器截图自检), 暂无自动化测试基础设施
 
 ## Product Principles
 
-1. **单文件可分发优先** — 无 build / 无 npm / 无网络依赖,任何成员 clone 即跑
+1. **单文件可分发优先** — 无 build / 无 npm / 无网络依赖, 任何成员 clone 即跑
 2. **数据兼容性优先** — 改动不要破坏已落盘的 localStorage / .timeline / user config
-3. **Operate 模式优先** — 工程师快速完成任务,UX 不炫技,删除冗余 tooltip/装饰
-4. **协议可扩展** — TLV 模板 → Modbus SDK 是已确认的演化路径,解析器设计需可扩展
-5. **代码 > 文档** — M5 起明确的偏好,先写可工作的代码,再补文档
+3. **Operate 模式优先** — 工程师快速完成任务, UX 不炫技, 删除冗余 tooltip/装饰
+4. **协议可扩展** — TLV 模板 → Modbus SDK 是已确认的演化路径, 解析器设计需可扩展
+5. **代码 > 文档** — M5 起明确的偏好, 先写可工作的代码, 再补文档
 
 ## Accessibility & Inclusion
 
-- 团队内部 3-10 人,无强 a11y 法规要求
+- 团队内部 3-10 人, 无强 a11y 法规要求
 - 默认遵循浏览器原生语义化控件(标准 `button` / `input` / `aria-*`)
 - 中英双语 → 提升非中文工程师可访问性
-- 视觉: 浅/深色双主题,contrast 满足 WCAG AA(可后续用 impeccable:audit 校验)
-- 键盘: 大部分操作有快捷键,继续扩展
-- 屏幕阅读器: 当前未做 ARIA 完整审计,后续视需求补
+- 视觉: 浅/深色双主题, contrast 满足 WCAG AA
+- 键盘: 大部分操作有快捷键, 继续扩展
+- 屏幕阅读器: 当前未做 ARIA 完整审计, 后续视需求补
 
 ## Open Questions (未决)
 
 - 是否引入测试基础设施(Playwright? vitest? 串口 mock?)— 待用户拍板
-- live 模式(impeccable live): 是否启用浏览器内迭代设计?待评估
-- 多串口并发的 UI 形态: tab 切换 / 多窗口 / 拼面板?需 `impeccable:shape` 规划
+- 多串口并发的 UI 形态: tab 切换 / 多窗口 / 拼面板?待规划
+- About 弹窗 CHANGELOG 是否需要按 semver 自动从 git log 生成

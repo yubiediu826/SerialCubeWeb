@@ -1,7 +1,7 @@
 # SerialCube 架构分析
 
-> 适用版本: v1.5 · 2026-08-03  
-> 文件: `SerialCube.html` (单文件, 15841 行 / 580.5 KB)
+> 适用版本: v5.1.6 · 2026-08-05
+> 文件: `SerialCube.html` (单文件, 20784 行 / 882.1 KB)
 
 ## 1. 项目定位
 
@@ -70,7 +70,8 @@
 | 接收监视器 | 文本/HEX 显示,时间戳,实时事件                  | `monitor-panel`       |
 | 发送       | 手动/定时/条件/预设,ASCII/HEX,换行符          | `sendDraft`, 预设表  |
 | 解析器     | 自定义模板解析(token/字段/TLV 风格)            | `parser-panel`        |
-| 图表       | 时域图/频域图/柱状图,Canvas 自绘               | `charts-panel`        |
+| 仪表盘 widget | 大数字 + 范围条 + sparkline + 状态角标 (v5.0+), 响应式 4/6/8 列 | `.card-grid` `.card-default` |
+| 详情弹窗   | 图表(折线/柱状/面积/散点, 滚轮缩放) + 7 列日志表, 全局时间范围 (v5.1+) | `.detail-modal` `.chart-area` |
 | 时间线     | 实时录制/冻结/回放,二进制归档                  | `TIMELINE_BIN_MAGIC`  |
 | 模式切换   | 串口监视 ↔ 图形解析(顶栏 logo 区域)            | `logo-mode-switch`    |
 | 系统菜单   | 主题/布局/紧凑模式/配置导入导出/关于          | `system-menu`         |
@@ -128,39 +129,27 @@ SerialCube / yubiediu826 仓库。
 - **预渲染**: 内联 `<script>` 在 body 渲染前根据 localStorage + prefers-color-scheme
   设置初始 class,避免主题闪烁
 
-## 8. 后续开发工作流(结合 superpowers + taste + impeccable)
+## 8. 后续开发工作流 (轻量, 不强制 skill 链)
 
-每个会话先过 `using-superpowers`——按任务类型选 skill:
+SerialCube 项目小、单文件,不需要 superpowers / impeccable / TDD 等重型
+框架。任务前按类型选轻量 skill (4 个保留在 `.claude/skills/`):
 
-| 任务类型                     | 主 skill                          | 辅助                          |
-| ---------------------------- | --------------------------------- | ----------------------------- |
-| 新增功能/UI 模块             | `brainstorming` → `impeccable:shape` | `impeccable:craft-floor` 写代码前 |
-| UI 视觉精修                  | `impeccable:audit` → `polish`     | `design-taste-frontend` 作参考 |
-| UI 大改造                    | `impeccable:critique` → 选命令    | `design-taste-frontend` 三拨盘 |
-| bug 修复                     | `systematic-debugging`            | —                             |
-| 性能优化                     | `impeccable:optimize`             | —                             |
-| 跨设备适配                   | `impeccable:adapt`                | —                             |
-| 设计系统化(token/组件抽取)   | `impeccable:extract`              | —                             |
-| 首次跑新项目                 | `impeccable:init` → 写 PRODUCT.md | `design-taste-frontend` 定基线 |
+| 任务类型            | 主 skill                          | 备注                          |
+| ------------------- | --------------------------------- | ----------------------------- |
+| 新增功能/UI 模块    | `brainstorming` → 直接动手        | 单文件场景不写 spec 文档       |
+| UI 视觉精修 / 大改造 | `design-taste-frontend`           | 借鉴色彩/字体/状态机规则, 不照搬 landing 美学 |
+| 生成预览图 (PNG)    | `imagegen-frontend-web`           | image_synthesize 用           |
+| 营销页/landing 视觉 | `high-end-visual-design`          | 本项目主要是 Operate 工具, 用得少 |
+| bug 修复            | 直接定位 + 浏览器截图自检          | 用户偏好"看截图找问题不查 console" |
+| 性能/兼容性        | 直接定位                          | 改前确认在兼容性契约外          |
 
-**impeccable 命令速记**:
-- `shape [feature]` — 写代码前规划 UX/UI
-- `audit [target]` — 可访问性/性能/响应式
-- `critique [target]` — UX 启发式评审
-- `polish` / `bolder` / `quieter` / `distill` — 视觉微调方向
-- `harden` — 错误态/边界/空态/i18n
-- `animate` / `colorize` / `typeset` / `layout` / `delight` — 单独维度增强
-
-**impeccable 跑法**(每个会话开头):
-```bash
-node .claude/skills/impeccable/scripts/context.mjs --target SerialCube.html
-# 编辑 UI 前必读
-# reference/craft-floor.md
-```
-
-**taste skill 适用边界**: 文档明确"Not dashboards, not data tables, not
-multi-step product UI"——SerialCube 是 Operate 模式工具,taste 的部分规则(色
-彩/字体/状态)仍可借鉴,但其 landing/portfolio 范式**不适用**。
+**适用边界**:
+- `design-taste-frontend` 明确不适用于 dashboards / data tables / multi-step
+  product UI — SerialCube 是 Operate 模式工具, 借鉴其规则(色彩锁定、形状
+  一致、状态机), 不照搬其 landing 美学
+- 任何 UI 改动前必看 `DESIGN.md` 设计 token 守则
+  (Indigo Rarity / Mono Reservation / Stable Header / Flat-By-Default 等)
+- 详细 skill 边界见 `AGENTS.md` §1
 
 ## 9. 已知结构挑战
 
