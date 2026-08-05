@@ -5708,10 +5708,35 @@
       padding: 8px 14px;
       border-bottom: 1px solid var(--border);
       background: var(--bg);
-      overflow-x: auto;
-      white-space: nowrap;
       flex-shrink: 0;
+      position: relative;
+      min-width: 0;
     }
+    /* v6.5: 命令 tab 横向滚动改左右按钮 + wheel, 隐藏原生滚动条 */
+.dashboard-host     .command-panel-scroll {
+      flex: 1; min-width: 0;
+      display: flex; align-items: center; gap: 8px;
+      overflow-x: auto; overflow-y: hidden;
+      white-space: nowrap;
+      scroll-behavior: smooth;
+      -ms-overflow-style: none; scrollbar-width: none;
+    }
+.dashboard-host     .command-panel-scroll::-webkit-scrollbar { display: none; }
+.dashboard-host     .cmd-nav-btn {
+      flex-shrink: 0;
+      width: 24px; height: 24px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--bg-panel-strong);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.15s, opacity 0.15s, border-color 0.15s;
+    }
+.dashboard-host     .cmd-nav-btn:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.dashboard-host     .cmd-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.dashboard-host     .cmd-nav-btn svg { width: 12px; height: 12px; }
 .dashboard-host     .cmd-chip {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 4px 10px;
@@ -5741,31 +5766,25 @@
        改为让 grid-auto-rows auto (grid 容器自动算每行高度, group header 30px, card 200px) */
 .dashboard-host     .card-grid-area {
       flex: 1; min-height: 0; overflow-y: auto;
-      padding: 14px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));  /* v5.0.1: 220 基线, 1178 viewport 自动塞 5 张 */
-      gap: 10px;
+      padding: 14px 14px 60px;  /* v6.5: 底部 60px 留白, 滚到底 add 卡片跟容器底有明显间距 */
+      display: flex;
+      flex-wrap: wrap;
       align-content: flex-start;
+      gap: 10px;
     }
-    /* v4.9.14: 仪表盘响应式列数 — 1920+ 8 列 / 1440+ 6 列 / 默认 4 列
-       配合 .card-default 宽度 (280/240/200) + sparkline 80→60 + 数字 32→26 同步缩.
-       解决"1920 大屏只显示 4 列 + 大量空白"问题, 同时让 8 列下最后一张不再被拉宽. */
-    @media (min-width: 1440px) {
-      .dashboard-host     .card-grid-area {
-        grid-template-columns: repeat(6, 1fr);
-        gap: 10px;
-      }
+    /* v6.5: 卡片固定 220px 宽, 容器 flex 自动换行; 不再 grid 拉伸 — 解决
+       "1 card 拉满整行" + "5 card 时各占 1/8 宽" 两种宽度不一致问题 */
+    .dashboard-host     .card-grid-area > .card-default,
+    .dashboard-host     .card-grid-area > .card-add-slot {
+      width: 220px; max-width: 220px; flex-shrink: 0;
     }
-    @media (min-width: 1920px) {
-      .dashboard-host     .card-grid-area {
-        grid-template-columns: repeat(8, 1fr);
-        gap: 8px;
-      }
-    }
+    /* v6.5: group header 强制 100% 跨满整行, 不管 group 里有几个 card */
+    .dashboard-host     .card-group-head { flex: 0 0 100%; max-width: 100%; }
     /* v4.9.14: 列表布局 (.layout-list) — 紧凑横向小卡, 跟默认卡片布局互斥
        用 class 不用 inline style, 这样 6/8 列 media query 能覆盖列宽.
        4 列: 150px min | 6 列: 120px | 8 列: 100px */
     .dashboard-host     .card-grid-area.layout-list {
+      display: grid;
       grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
       gap: 8px;
       align-items: stretch;
@@ -5980,11 +5999,11 @@
     .dashboard-host     .card-default.pair .pair-cell.delta .val.ok { background: rgba(34, 197, 94, 0.14); color: #22c55e; }
     .dashboard-host     .card-default.pair .pair-cell.delta .val.warn { background: rgba(217, 119, 6, 0.14); color: #d97706; }
     .dashboard-host     .card-default.pair .pair-cell.delta .val.bad { background: rgba(224, 87, 94, 0.14); color: #e0575e; }
-    /* v5.0.0 widget: sparkline 区 (flex 1, 自动填满中部) */
+    /* v5.0.0 widget: sparkline 区 (flex 1, 自动填满中部) — v6.5: 右侧留 24px 给 icons, 防止数值变化时图标被 sparkline 视觉覆盖 */
     .dashboard-host     .card-default .card-trend {
       flex: 1; min-height: 0;
       position: relative;
-      margin: 2px 0;
+      margin: 2px 24px 2px 0;  /* 右侧 24px 让出给右上角 icons */
     }
     .dashboard-host     .card-default .card-trend canvas {
       width: 100%; height: 100%; display: block;
@@ -6009,26 +6028,33 @@
     .dashboard-host     .card-default .card-footer .footer-status.warn { color: #d97706; }
     .dashboard-host     .card-default .card-footer .footer-status.danger { color: #e0575e; }
     .dashboard-host     .card-default .card-footer .footer-status.rx { color: #3a5ccc; }
-    /* v5.0.0 widget: action 按钮 — hover 才显示 (右上角浮动), 不占 header 空间 */
+    /* v6.5: action 按钮 — 平时完全不显示, 仅编辑模式才显示 (编辑 + 删除)
+       transparent 透明 SVG, 无白底/边/阴影, 浮在 sparkline 之上 */
+    /* v6.5: .card-actions 容器 — 普通模式 HTML 层面不渲染 (NS.renderCard 根据 NS.editMode 决定);
+       编辑模式渲染 .card-actions + edit button, 后续 appendChild 加 delete button */
     .dashboard-host     .card-default .card-actions {
-      position: absolute; top: 6px; right: 4px;
-      display: flex; gap: 1px;
-      opacity: 0;
-      transition: opacity 0.15s;
-      z-index: 2;
+      position: absolute; top: 6px; right: 6px;
+      display: flex;  /* 容器本身始终 flex 显示, 由 HTML 决定是否渲染 */
+      gap: 4px;
+      z-index: 6;
     }
-    .dashboard-host     .card-default:hover .card-actions { opacity: 1; }
     .dashboard-host     .card-default .card-action {
-      width: 18px; height: 18px;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      border-radius: 4px;
+      width: 16px; height: 16px;
+      background: transparent;  /* v6.5: 不要底色, 用 stroke 颜色 + 微背景圆角提示 hover 区域 */
+      border: none; border-radius: 4px;
+      box-shadow: none;
       cursor: pointer;
       display: inline-flex; align-items: center; justify-content: center;
-      color: #67676c; font-size: 10px;
+      color: #4a5568;  /* v6.5: 加深 (之前 #67676c 太淡), transparent bg 下让 SVG 在白底卡片上清晰可见 */
+      font-size: 10px;
       padding: 0; line-height: 1;
+      transition: background 0.12s, color 0.12s;
     }
-    .dashboard-host     .card-default .card-action:hover { background: #5672cd; color: #fff; border-color: #5672cd; }
+    .dashboard-host     .card-default .card-action:hover { color: var(--accent); background: rgba(86, 114, 205, 0.1); }
+    .dashboard-host     .card-default .card-action svg { width: 14px; height: 14px; stroke-width: 1.6; }
+    .dashboard-host     .card-default .card-action:hover { color: var(--accent); }
+    /* v6.5: card-action SVG 图标 — 替代原来的 ⇄ ↗ ✎ 🔒 字符 (重复的旧规则已删) */
+    .dashboard-host     .card-default .card-delete-btn svg { width: 14px; height: 14px; stroke-width: 1.6; }
     .dashboard-host     .card-default .card-action.disabled { opacity: 0.4; cursor: not-allowed; }
     .dashboard-host     .card-default .card-action.is-loading { animation: card-action-spin 0.8s linear infinite; }
     @keyframes card-action-spin { to { transform: rotate(360deg); } }
@@ -6054,22 +6080,26 @@
     }
 
     body.edit-mode .card-default { outline: 1px dashed #5672cd; outline-offset: -2px; }
-    body.edit-mode .card-default .card-actions { opacity: 1; }
+    /* v6.5: card-delete-btn 现在插在 .card-actions 容器内, 跟 edit button 一起 flex 排版
+       不再 absolute 定位, 跟其他 .card-action 风格完全一致 */
     .dashboard-host     .card-default .card-delete-btn {
-      position: absolute; top: 4px; left: 4px;
       width: 16px; height: 16px;
-      background: #e0575e; color: #fff;
-      border: 1px solid #fff;
-      border-radius: 50%;
+      background: transparent;
+      color: #4a5568;
+      border: none; border-radius: 4px;
+      box-shadow: none;
       cursor: pointer;
-      font-size: 10px; line-height: 1;
-      padding: 0; z-index: 3;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 0;
+      transition: background 0.12s, color 0.12s;
     }
+    .dashboard-host     .card-default .card-delete-btn svg { width: 14px; height: 14px; stroke-width: 1.6; }
+    .dashboard-host     .card-default .card-delete-btn:hover { color: var(--danger); background: rgba(224, 87, 94, 0.1); }
 
     /* 小卡片 (列表视图) */
 .dashboard-host     .list-card {
       width: 100%;
-      min-height: 70px;
+      min-height: 90px;  /* v6.5: 拉高 70 → 90, 容纳 label + value + range 不溢出 */
       padding: 8px 10px;
       background: var(--bg-panel);
       border: 1px solid var(--border);
@@ -6097,35 +6127,27 @@
 .dashboard-host     .list-card .lc-label .lc-field { font-family: var(--font-mono); font-size: 10px; color: var(--text-soft); font-weight: 500; }
 .dashboard-host     .list-card .lc-value {
       font-family: var(--font-mono);
-      font-size: 22px; font-weight: 800;  /* v4.4.1: 18→22 列表卡数字更可读 */
+      font-size: 28px; font-weight: 800;  /* v6.5: 22→28 列表卡数值更大, 减少底部空白 */
       color: var(--text);
       line-height: 1.1;
     }
-.dashboard-host     .list-card .lc-value .unit { font-size: 12px; color: var(--text-soft); margin-left: 3px; font-weight: 600; }  /* v4.4.1: 11→12 */
+.dashboard-host     .list-card .lc-value .unit { font-size: 14px; color: var(--text-soft); margin-left: 3px; font-weight: 600; }  /* v6.5: 12→14 跟数值同步 */
 .dashboard-host     .list-card .lc-range {
       font-family: var(--font-mono);
-      font-size: 10px; color: var(--text-soft);
+      font-size: 11px; color: var(--text-soft);  /* v6.5: 10→11 稍大, 配合"范围"前缀更明显 */
     }
 .dashboard-host     .list-card .lc-actions { position: absolute; bottom: 6px; right: 6px; display: flex; gap: 1px; opacity: 0; transition: opacity 0.15s; }
 .dashboard-host     .list-card:hover .lc-actions { opacity: 1; }
+/* v6.5: 编辑模式 — 强制始终显示 (不依赖 hover) */
+body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
     /* v4.9.11: pair list-card SET/ACT 单行不 wrap (跟 trend card 同样 2 行, 高度一致)
        全部命令视图下 pair 跟 trend 在同一 grid row, 22px font 14 字 wrap 成 2 行让 pair 高 ~24px.
        150px 容器内 12px mono ~ 7.2px/char, "SET 56.0 / ACT 55.0" 18 字符 = ~130px 刚好 fit */
 .dashboard-host     .list-card.is-pair .lc-value { font-size: 12px; font-weight: 700; white-space: nowrap; line-height: 1.2; }
 .dashboard-host     .list-card.is-pair .lc-range { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    /* Alert Drawer */
-.dashboard-host     .alert-drawer {
-      position: fixed; right: 16px; bottom: 16px;
-      width: 320px; max-height: 50vh;
-      background: var(--bg-panel-strong);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-soft);
-      overflow: hidden;
-      display: flex; flex-direction: column;
-      z-index: 50;
-    }
+    /* Alert Drawer — v6.5: 告警改用 toast 浮层 (5s 消失) + 右上角"通知"按钮查看历史, 右下角抽屉完全移除 */
+.dashboard-host     .alert-drawer { display: none !important; }
 .dashboard-host     .alert-drawer-head {
       display: flex; align-items: center; justify-content: space-between;
       padding: 10px 14px;
@@ -6179,6 +6201,9 @@
       z-index: 101;
       overflow: hidden;
     }
+    /* v6.5: 重要弹窗(卡片详情/协议编辑器/卡片配置/告警配置等)始终居中显示 —
+       回到 .dashboard-host .modal 默认 top:5vh; left:50%; transform:translateX(-50%) 居中.
+       只有 toast 提示 (信息/警告, 5s 自动消失) 才跟随 body.toast-pos-XX 在右下/左下/右上/左上. */
 .dashboard-host     .modal.open { display: flex; }
 .dashboard-host     .modal.wide { width: min(1100px, calc(100vw - 32px)); }
 .dashboard-host     .modal.xtra-wide { width: min(1400px, calc(100vw - 32px)); }
@@ -6763,7 +6788,8 @@
       align-items: center; gap: 10px;
       max-width: 320px;
     }
-    body.edit-mode .edit-toast { display: inline-flex; }
+    body.edit-mode .edit-toast { display: none !important; }  /* v6.5: 旧紫色 edit-toast 移除, 改用 NS.toast info 弹窗 + 通知 popup */
+.dashboard-host     .edit-toast { display: none !important; }
 .dashboard-host     .edit-toast .close-edit { background: rgba(255,255,255,0.2); border: none; color: white; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px; }
     body.toast-pos-tr .edit-toast { top: 70px; right: 16px; }
     body.toast-pos-tl .edit-toast { top: 70px; left: 16px; right: auto; }
@@ -6782,6 +6808,79 @@
       display: none;
     }
 .dashboard-host     .system-menu.open { display: block; }
+    /* v6.5: 通知 popup (右上角弹窗列表, 最近 20 条) */
+.dashboard-host     .notif-popup {
+      position: fixed; top: 56px; right: 12px;
+      width: 320px; max-height: 480px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-ambient);
+      z-index: 95;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+.dashboard-host     .notif-popup.open { display: flex; }
+.dashboard-host     .notif-popup-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      color: var(--text-soft);
+      flex-shrink: 0;
+    }
+.dashboard-host     .notif-popup-head .head-actions { display: flex; gap: 6px; }
+.dashboard-host     .notif-popup-head .head-btn {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-soft); font-size: 10px; font-weight: 600;
+      padding: 3px 8px; border-radius: 4px; cursor: pointer;
+    }
+.dashboard-host     .notif-popup-head .head-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.dashboard-host     .notif-popup-list { flex: 1; overflow-y: auto; }
+.dashboard-host     .notif-popup-empty {
+      padding: 32px 16px; text-align: center; color: var(--text-soft); font-size: 12px;
+    }
+.dashboard-host     .notif-item {
+      display: grid; grid-template-columns: 1fr auto;
+      gap: 8px; padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px; align-items: start;
+    }
+.dashboard-host     .notif-item:last-child { border-bottom: none; }
+.dashboard-host     .notif-item .notif-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dashboard-host     .notif-item .notif-meta { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-soft); }
+.dashboard-host     .notif-item .notif-msg { color: var(--text); word-break: break-word; }
+.dashboard-host     .notif-item .notif-level {
+      font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+      padding: 1px 5px; border-radius: 3px; letter-spacing: 0.04em;
+    }
+.dashboard-host     .notif-item .notif-level.info { background: rgba(58, 92, 204, 0.14); color: #3a5ccc; }  /* v6.5: 具体 rgba 替代 var(--signal-soft) (可能是透明) */
+.dashboard-host     .notif-item .notif-level.success { background: rgba(34,197,94,0.14); color: var(--success); }
+.dashboard-host     .notif-item .notif-level.warn,
+.dashboard-host     .notif-item .notif-level.warning { background: rgba(217,119,6,0.14); color: var(--warning); }
+.dashboard-host     .notif-item .notif-level.danger { background: rgba(224,87,94,0.14); color: var(--danger); }
+.dashboard-host     .notif-item .notif-del {
+      width: 20px; height: 20px;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 4px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--text-soft); font-size: 12px; line-height: 1;
+      flex-shrink: 0;
+    }
+.dashboard-host     .notif-item .notif-del:hover { background: var(--danger); color: white; border-color: var(--danger); }
+    /* v6.5: toolbar 通知按钮 + 未读红点 */
+.dashboard-host     .toolbar-btn.notif-btn { position: relative; }
+.dashboard-host     .notif-btn .notif-badge {
+      position: absolute; top: -4px; right: -4px;
+      min-width: 16px; height: 16px; padding: 0 4px;
+      background: var(--danger); color: white;
+      border-radius: 8px; font-size: 9px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 1.5px solid var(--bg-panel-strong);
+      line-height: 1;
+    }
+.dashboard-host     .notif-btn .notif-badge.hidden { display: none; }
 .dashboard-host     .system-menu .menu-section {
       padding: 6px 8px;
       font-size: 10px; font-weight: 700; color: var(--text-soft);
@@ -6812,7 +6911,12 @@
     .dashboard-host     .system-menu .menu-row .menu-input:focus { border-color: var(--accent); }
 
     /* toast */
-.dashboard-host     .toast-layer { position: fixed; top: 70px; right: 16px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+.dashboard-host     .toast-layer { position: fixed; top: 70px; right: 16px; z-index: 200; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.dashboard-host     .toast-layer .toast { pointer-events: auto; }
+    /* v6.5: toast-layer 跟随 system-menu 弹窗位置 (右上/左上/右下/左下) */
+    body.toast-pos-tl .toast-layer { top: 70px; left: 16px; right: auto; }
+    body.toast-pos-br .toast-layer { top: auto; bottom: 16px; right: 16px; }
+    body.toast-pos-bl .toast-layer { top: auto; bottom: 16px; left: 16px; right: auto; }
 .dashboard-host     .toast {
       padding: 10px 14px;
       background: var(--bg-panel-strong);
@@ -6822,7 +6926,15 @@
       box-shadow: var(--shadow-soft);
       font-size: 12px; font-weight: 600;
       animation: toast-in 0.2s ease;
+      display: flex; align-items: center; gap: 8px;
+      min-width: 220px; max-width: 360px;
     }
+.dashboard-host     .toast .toast-icon { width: 16px; height: 16px; flex-shrink: 0; color: var(--accent); }
+.dashboard-host     .toast.success .toast-icon { color: var(--success); }
+.dashboard-host     .toast.warn .toast-icon { color: var(--warning); }
+.dashboard-host     .toast.danger .toast-icon { color: var(--danger); }
+.dashboard-host     .toast .toast-label { font-weight: 700; font-size: 11px; letter-spacing: 0.04em; flex-shrink: 0; opacity: 0.85; }
+.dashboard-host     .toast .toast-text { font-weight: 500; flex: 1; min-width: 0; word-break: break-word; }
 .dashboard-host     .toast.success { border-left-color: var(--success); }
 .dashboard-host     .toast.warn { border-left-color: var(--warning); }
 .dashboard-host     .toast.danger { border-left-color: var(--danger); }
@@ -7437,6 +7549,13 @@
                   </svg>
                   编辑模式
                 </button>
+                <button class="toolbar-btn notif-btn" id="dh-notif-btn" title="通知列表 (最近 20 条)">
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8 2c-3 0-5 2-5 5v3l-1.5 1.5h13L13 10V7c0-3-2-5-5-5z"></path>
+                    <path d="M6.5 13a1.5 1.5 0 003 0"></path>
+                  </svg>
+                  <span class="notif-badge hidden" id="dh-notif-badge">0</span>
+                </button>
               </div>
               <div class="command-panel" id="dh-command-panel">
                 <span class="cmd-chip-label">命令:</span>
@@ -7446,7 +7565,7 @@
           </div>
         </div>
         <div class="edit-toast" id="dh-edit-toast" style="display: none;">
-          <span>✎ 编辑模式: 可删除/添加/编辑卡片</span>
+          <span>编辑模式: 可删除/添加/编辑卡片</span>
           <button class="close-edit" id="dh-close-edit">退出</button>
         </div>
         <div class="system-menu" id="dh-system-menu">
@@ -7464,12 +7583,23 @@
             <input type="number" id="dh-menu-pair-trigger-timeout" min="1000" max="10000" step="500" value="3000" class="menu-input">
           </div>
         </div>
-        <div class="alert-drawer" id="dh-alert-drawer">
+        <div class="alert-drawer collapsed" id="dh-alert-drawer">
           <div class="alert-drawer-head">
             <span>告警 (0)</span>
-            <button class="icon-btn" id="dh-alert-toggle" style="width:24px; height:24px; font-size:11px;" title="折叠/展开"><svg viewBox="0 0 16 16" class="icon-svg" width="12" height="12"><path d="M3 8 H13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg></button>
+            <button class="icon-btn" id="dh-alert-toggle" style="width:24px; height:24px; font-size:11px;" title="展开/折叠"><svg viewBox="0 0 16 16" class="icon-svg" width="12" height="12"><path d="M3 8 H13 M8 3 V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg></button>
           </div>
           <div class="alert-list" id="dh-alert-list"></div>
+        </div>
+        <!-- v6.5: 右上角弹窗列表 (最近 20 条) — 浮层 5s 消失, 这里持久保留, 可逐条删除 -->
+        <div class="notif-popup" id="dh-notif-popup">
+          <div class="notif-popup-head">
+            <span id="dh-notif-head-label">通知 (0)</span>
+            <div class="head-actions">
+              <button class="head-btn" id="dh-notif-clear" title="清空全部">清空</button>
+              <button class="head-btn" id="dh-notif-close" title="关闭"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 4 L12 12 M12 4 L4 12"/></svg></button>
+            </div>
+          </div>
+          <div class="notif-popup-list" id="dh-notif-list"></div>
         </div>
         <div class="toast-layer" id="dh-toast-layer"></div>
 
@@ -7796,6 +7926,22 @@
         </div>
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
+          <div class="version-release">
+            <strong>v6.5 版本 · 26/8/5</strong>
+            <ul>
+              <li>仪表盘卡片改用 flex 布局，固定 220px 宽，1 card 居左不拉满，间距统一协调。</li>
+              <li>命令 tab 左右导航按钮合并到最右侧，支持鼠标滚轮水平滚动。</li>
+              <li>告警改用 toast 浮层（5s 自动消失）+ 右上角"通知"按钮查看最近 20 条历史，支持单条删除和清空。</li>
+              <li>toast 统一 SVG icon + 中文标签（信息/成功/警告/错误），色盲友好。</li>
+              <li>重要弹窗（卡片详情/协议编辑器/卡片配置）保持居中显示，不被系统菜单的弹窗位置影响。</li>
+              <li>卡片编辑模式 HTML 层面切换图标：普通模式右上角无任何 icon，编辑模式显示铅笔编辑 + 垃圾桶删除（透明 SVG 无底色）。</li>
+              <li>删除按钮图标改用通用垃圾桶 SVG，所有字符图标（ⓘ✓⚠✕/⇄↗✎🔒/×）全部换 SVG。</li>
+              <li>sparkline 移除 max 虚线和"max"文字标注，简化图表显示。</li>
+              <li>卡片底部范围文本加"范围"前缀（"2.8-4.2V" → "范围 2.8-4.2V"），含义更明确。</li>
+              <li>列表卡片数值字号放大（22→28px），删除内部 cmd·field 冗余文本。</li>
+              <li>系统菜单支持弹窗位置 4 方位（tr/tl/br/bl），仅影响 toast 提示位置。</li>
+            </ul>
+          </div>
           <div class="version-release">
             <strong>v1.5 版本 · 26/7/9</strong>
             <ul>
@@ -9915,21 +10061,75 @@
         NS.renderCommandPanel = function () {
           const el = document.getElementById('dh-command-panel');
           if (!el) return;
-          // 保留第一个 label ("命令:"), 替换后续 chip
-          el.innerHTML = '<span class="cmd-chip-label">命令:</span>';
+          // v6.5: 结构 = [label] [scroll wrapper (chips)] [◀ nav] [▶ nav] — 左右按钮都置右
+          el.innerHTML = '<span class="cmd-chip-label">命令:</span>'
+            + '<div class="command-panel-scroll" id="dh-cmd-scroll"></div>'
+            + '<button class="cmd-nav-btn" id="dh-cmd-nav-prev" title="向左滚动" aria-label="向左滚动">'
+            + '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 L5 8 L10 13"/></svg></button>'
+            + '<button class="cmd-nav-btn" id="dh-cmd-nav-next" title="向右滚动" aria-label="向右滚动">'
+            + '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3 L11 8 L6 13"/></svg></button>';
+          const scrollEl = el.querySelector('#dh-cmd-scroll');
+          const prevBtn = el.querySelector('#dh-cmd-nav-prev');
+          const nextBtn = el.querySelector('#dh-cmd-nav-next');
           const allChip = document.createElement('button');
           allChip.className = 'cmd-chip rx' + (NS.selectedCmd === 'all' ? ' selected' : '');
           allChip.innerHTML = '<span class="dir-badge">ALL</span><span>全部命令</span>';
           allChip.onclick = () => { NS.selectedCmd = 'all'; NS.renderCommandPanel(); NS.renderCardGrid(); };
-          el.appendChild(allChip);
+          scrollEl.appendChild(allChip);
           NS.COMMANDS.forEach((cmd) => {
             const chip = document.createElement('button');
             const idHex = cmd.id.toString(16).padStart(2, '0').toUpperCase();
             chip.className = 'cmd-chip ' + cmd.direction + (NS.selectedCmd === idHex ? ' selected' : '');
             chip.innerHTML = '<span class="dir-badge">' + cmd.direction.toUpperCase() + '</span><span class="cmd-id">' + idHex + '</span><span>' + NS.escapeHtml(cmd.name) + '</span>';
             chip.onclick = () => { NS.selectedCmd = idHex; NS.renderCommandPanel(); NS.renderCardGrid(); };
-            el.appendChild(chip);
+            scrollEl.appendChild(chip);
           });
+          // v6.5: 按钮 + wheel 横向滚动 (替代原生滚动条)
+          const STEP = 200;
+          const updateNavState = () => {
+            const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+            prevBtn.disabled = scrollEl.scrollLeft <= 0;
+            nextBtn.disabled = scrollEl.scrollLeft >= maxScroll - 1;
+          };
+          prevBtn.onclick = () => { scrollEl.scrollBy({ left: -STEP, behavior: 'smooth' }); };
+          nextBtn.onclick = () => { scrollEl.scrollBy({ left: STEP, behavior: 'smooth' }); };
+          scrollEl.addEventListener('wheel', (e) => {
+            // 横向 wheel (Shift+滚轮 / 触控板横向) 直接走默认; 纵向滚轮 → 横向滚动
+            if (e.deltaY !== 0 && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+              if (e.shiftKey || scrollEl.scrollWidth > scrollEl.clientWidth) {
+                e.preventDefault();
+                scrollEl.scrollLeft += e.deltaY;
+              }
+            } else if (e.deltaX !== 0) {
+              e.preventDefault();
+              scrollEl.scrollLeft += e.deltaX;
+            }
+          }, { passive: false });
+          scrollEl.addEventListener('scroll', updateNavState, { passive: true });
+          // 初始按钮状态 + 选中的 chip 滚到可视区
+          requestAnimationFrame(() => {
+            updateNavState();
+            const selected = scrollEl.querySelector('.cmd-chip.selected');
+            if (selected) {
+              const left = selected.offsetLeft - scrollEl.offsetLeft;
+              const right = left + selected.offsetWidth;
+              if (left < scrollEl.scrollLeft) scrollEl.scrollLeft = left - 8;
+              else if (right > scrollEl.scrollLeft + scrollEl.clientWidth) scrollEl.scrollLeft = right - scrollEl.clientWidth + 8;
+            }
+          });
+          // 窗口尺寸变化重算按钮状态
+          if (!NS._cmdNavResizeBound) {
+            NS._cmdNavResizeBound = true;
+            window.addEventListener('resize', () => {
+              const sc = document.getElementById('dh-cmd-scroll');
+              const p = document.getElementById('dh-cmd-nav-prev');
+              const n = document.getElementById('dh-cmd-nav-next');
+              if (!sc || !p || !n) return;
+              const max = sc.scrollWidth - sc.clientWidth;
+              p.disabled = sc.scrollLeft <= 0;
+              n.disabled = sc.scrollLeft >= max - 1;
+            });
+          }
         };
 
         NS.renderGroupHeader = function (cmdHex, cmdName, dir, count, layout) {
@@ -9982,13 +10182,10 @@
               + '<span class="footer-status ' + dCls + '">' + footerStatusText + '</span>'
               + '</div>'
               + '</div>'
-              + '<div class="card-actions">'
-              + '<button class="card-action" title="详情" data-action="detail">⇄</button>'
-              + '<button class="card-action' + (isPending ? ' is-loading disabled' : '') + '"'
-              + (isPending ? ' disabled title="等待响应中..."' : ' title="触发 ' + cmdHex + '" data-action="trigger"')
-              + '>↗</button>'
-              + '<button class="card-action" title="编辑" data-action="edit">✎</button>'
-              + '</div>';
+              // v6.5: HTML 层面根据 edit mode 切换 — 普通模式不渲染 .card-actions 容器, 编辑模式渲染 edit button
+              + (NS.editMode ? '<div class="card-actions">'
+                + '<button class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                + '</div>' : '');
           } else {
             // v5.0.0 widget: trend 卡
             const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
@@ -10010,7 +10207,7 @@
               else if (alert === 'warning') barCls = 'warning';
               else if (alert === 'danger') barCls = 'danger';
             }
-            const rangeText = range ? range[0] + '–' + range[1] + (c.unit || '') : '—';
+            const rangeText = range ? '范围 ' + range[0] + '–' + range[1] + (c.unit || '') : '—';  /* v6.5: 加"范围"前缀, 让 2.8-4.2V 含义明确 */
             const footerStatusText = c.fromOtherCmd ? 'RX-ONLY' : (alert === 'danger' ? 'ALARM' : (alert === 'warning' ? 'WARN' : 'OK'));
             const numCls = alert === 'danger' ? ' danger' : (alert === 'warning' ? ' warning' : '');
             card.innerHTML =
@@ -10030,23 +10227,24 @@
               + '<span class="footer-status ' + statusCls + '">' + footerStatusText + '</span>'
               + '</div>'
               + '</div>'
-              + '<div class="card-actions">'
-              + '<button class="card-action" title="详情" data-action="detail">⇄</button>'
-              + '<button class="card-action' + (c.fromOtherCmd ? ' disabled' : '') + (lockForPending ? ' is-loading disabled' : '') + '"'
-              + (c.fromOtherCmd ? ' disabled title="RX-only, 不可写入"' : (lockForPending ? ' disabled title="等待响应中..."' : ' title="触发" data-action="trigger"'))
-              + '>' + (c.fromOtherCmd ? '🔒' : '↗') + '</button>'
-              + '<button class="card-action" title="编辑" data-action="edit">✎</button>'
-              + '</div>';
+              // v6.5: HTML 层面根据 edit mode 切换 — 普通模式不渲染 .card-actions, 编辑模式只渲染 edit
+              + (NS.editMode ? '<div class="card-actions">'
+                + '<button class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                + '</div>' : '');
             setTimeout(() => { const v2 = card.querySelector('.card-value'); if (v2) v2.classList.remove('flash'); }, 400);
           }
-          // edit 模式加 × 按钮 (悬浮左上角)
+          // v6.5: edit 模式加删除按钮 — 直接插入 .card-actions 容器内, 跟编辑按钮统一 flex 排版
           if (NS.editMode && c.type !== 'pair') {
-            const del = document.createElement('button');
-            del.className = 'card-delete-btn';
-            del.textContent = '×';
-            del.title = '删除卡片';
-            del.onclick = (e) => { e.stopPropagation(); NS.CARDS = NS.CARDS.filter((x) => x.id !== c.id); NS.renderCardGrid(); NS.renderCardEditList(); NS.toast('已删除卡片 ' + c.id, 'success'); };
-            card.appendChild(del);
+            const actionsEl = card.querySelector('.card-actions');
+            if (actionsEl) {
+              const del = document.createElement('button');
+              del.className = 'card-delete-btn';
+              // 通用垃圾桶 SVG: 盖子 + 提手 + 桶身 + 桶内 2 竖线
+              del.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4 H13 M5 4 V3 H11 V4 M4 4 L5 13 H11 L12 4 M6.5 7 V11.5 M9.5 7 V11.5"/></svg>';
+              del.title = '删除卡片';
+              del.onclick = (e) => { e.stopPropagation(); NS.CARDS = NS.CARDS.filter((x) => x.id !== c.id); NS.renderCardGrid(); NS.renderCardEditList(); NS.toast('已删除卡片 ' + c.id, 'success'); };
+              actionsEl.appendChild(del);
+            }
           }
           // 绑定 card 内部 data-action 按钮
           card.querySelectorAll('[data-action]').forEach((btn) => {
@@ -10082,12 +10280,12 @@
             const dCls = Math.abs(delta) < 0.5 ? 'ok' : (Math.abs(delta) < 1.0 ? 'warn' : 'bad');
             if (Math.abs(delta) >= 0.5) card.classList.add(Math.abs(delta) >= 1 ? 'alert-danger' : 'alert-warning');
             card.innerHTML = '<span class="lc-status-ring ' + dCls + '"></span>'
-              + '<span class="lc-label">' + NS.escapeHtml(c.title) + ' <span class="lc-field">pair</span></span>'
+              + '<span class="lc-label">' + NS.escapeHtml(c.title) + '</span>'  /* v6.5: 移除 "pair" label, 列表里只显示卡片标题 */
               + '<span class="lc-value">SET ' + set.toFixed(1) + ' / ACT ' + act.toFixed(1) + '</span>'
               + '<span class="lc-range">Δ ' + (delta > 0 ? '+' : '') + delta.toFixed(1) + ' · ' + (c.range ? c.range[0] + '-' + c.range[1] + NS.escapeHtml(c.unit || '') : '—') + '</span>'
               + '<span class="lc-actions">'
-              + '<button class="card-action" title="触发 0x' + c.cmd.toString(16).padStart(2, '0').toUpperCase() + '" data-action="trigger">↗</button>'
-              + '<button class="card-action edit-btn" title="编辑" data-action="edit">✎</button>'
+              + '<button class="card-action" title="触发 0x' + c.cmd.toString(16).padStart(2, '0').toUpperCase() + '" data-action="trigger"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13 V3 M4 7 L8 3 L12 7"/></svg></button>'
+              + '<button class="card-action edit-btn" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
               + '</span>';
           } else {
             const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
@@ -10098,12 +10296,12 @@
             const cmdHex = c.cmd ? c.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
             const flashClass = (NS.lastValues[c.field] !== undefined && Math.abs(v - NS.lastValues[c.field]) > 0.001) ? ' flash' : '';
             card.innerHTML = '<span class="lc-status-ring ' + ring + '"></span>'
-              + '<span class="lc-label">' + NS.escapeHtml(c.title) + ' <span class="lc-field">' + cmdHex + '·' + c.field + '</span></span>'
+              + '<span class="lc-label">' + NS.escapeHtml(c.title) + '</span>'  /* v6.5: 移除 "01·cell_1_v" 这种 cmd·field 文本 */
               + '<span class="lc-value' + flashClass + '">' + v.toFixed(c.precision || 2) + '<span class="unit">' + NS.escapeHtml(c.unit || '') + '</span></span>'
-              + '<span class="lc-range">' + (c.range ? c.range[0] + '-' + c.range[1] + NS.escapeHtml(c.unit || '') : '—') + '</span>'
+              + '<span class="lc-range">范围 ' + (c.range ? c.range[0] + '-' + c.range[1] + NS.escapeHtml(c.unit || '') : '—') + '</span>'  /* v6.5: 加"范围"前缀 */
               + '<span class="lc-actions">'
-              + (NS.editMode ? '<button class="card-action del-btn" title="删除" data-action="del">×</button>' : '')
-              + '<button class="card-action edit-btn" title="编辑" data-action="edit">✎</button>'
+              + (NS.editMode ? '<button class="card-action del-btn" title="删除" data-action="del"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4 H13 M5 4 V3 H11 V4 M6 7 V12 M10 7 V12 M4 4 L5 13 H11 L12 4"/></svg></button>' : '')
+              + '<button class="card-action edit-btn" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
               + '</span>';
             setTimeout(() => { const v2 = card.querySelector('.lc-value'); if (v2) v2.classList.remove('flash'); }, 400);
           }
@@ -10121,14 +10319,7 @@
               }
             });
           });
-          if (NS.editMode && c.type !== 'pair') {
-            const del = document.createElement('button');
-            del.className = 'card-delete-btn';
-            del.textContent = '×';
-            del.title = '删除卡片';
-            del.onclick = (e) => { e.stopPropagation(); NS.CARDS = NS.CARDS.filter((x) => x.id !== c.id); NS.renderCardGrid(); NS.renderCardEditList(); NS.toast('已删除卡片 ' + c.id, 'success'); };
-            card.appendChild(del);
-          }
+          // v6.5: list card HTML 渲染已包含 del-btn (line 10285) + edit-btn, 不再 appendChild 重复添加
           return card;
         };
 
@@ -10200,13 +10391,8 @@
                 const grpHead = NS.renderGroupHeader(cmdHex, cmd ? cmd.name : ('0x' + cmdHex), dir, group.length, 'card');
                 grpHead.style.gridColumn = '1 / -1';
                 el.appendChild(grpHead);
-                // v4.9.15: 1 字段命令的卡跨满整行 (grid-column: 1 / -1), 消除"右边大片空白"
-                // 2/5 字段命令保持 grid auto-fill 自然排
-                group.forEach((c) => {
-                  const cardEl = NS.renderCard(c);
-                  if (group.length === 1) cardEl.style.gridColumn = '1 / -1';
-                  el.appendChild(cardEl);
-                });
+                // v6.5: 卡片固定 220px (CSS 统一), 不再 inline 拉满整行
+                group.forEach((c) => el.appendChild(NS.renderCard(c)));
               });
               el.appendChild(NS._makeAddSlot('card'));
             }
@@ -10230,6 +10416,7 @@
             el.style.gridTemplateColumns = '';
             el.style.gap = '';
             el.style.alignItems = '';
+            // v6.5: 卡片固定 220px, 容器 flex 自动换行, 不再 is-sparse 切换
             filtered.forEach((c) => el.appendChild(NS.renderCard(c)));
             el.appendChild(NS._makeAddSlot('card'));
           }
@@ -10253,6 +10440,20 @@
             + (a.level === 'recovered' ? '<span style="color: var(--success); font-size: 9px;">✓ OK</span>' : '<span class="alert-level ' + a.level + '">' + a.level.toUpperCase() + '</span>')
             + '<button class="ack-btn" title="确认">✓</button>'
             + '</div></div>').join('');
+          // v6.5: 告警条目除抽屉外, 同步推一条 toast 浮层 (5s 自动消失) + 写入通知历史
+          // 防止每次 renderAlerts 都重复弹 (renderAlerts 由 updateAll → setInterval 持续调用)
+          NS._alertLastKey = NS._alertLastKey || '';
+          const dangerOrWarn = items.find((a) => a.level === 'danger' || a.level === 'warning');
+          if (dangerOrWarn) {
+            const k = dangerOrWarn.level + '|' + dangerOrWarn.msg;
+            if (k !== NS._alertLastKey) {
+              NS._alertLastKey = k;
+              // CSS 类名是 .toast.warn, 同步用 'warn'
+              NS.toast(dangerOrWarn.msg, dangerOrWarn.level === 'warning' ? 'warn' : dangerOrWarn.level, 5000);
+            }
+          } else {
+            NS._alertLastKey = '';
+          }
         };
 
         // v4.4: updateAll 重写 - 重渲染卡片网格 + 画 sparkline + 告警
@@ -10306,14 +10507,7 @@
           const ly = h - ((last.v - minV) / range) * h;
           ctx.fillStyle = color;
           ctx.beginPath(); ctx.arc(lx, ly, 2.5, 0, Math.PI * 2); ctx.fill();
-          if (card.range) {
-            ctx.setLineDash([2, 3]);
-            ctx.strokeStyle = 'rgba(224, 87, 94, 0.35)';
-            ctx.lineWidth = 1;
-            const yHi = h - ((card.range[1] - minV) / range) * h;
-            ctx.beginPath(); ctx.moveTo(0, yHi); ctx.lineTo(w, yHi); ctx.stroke();
-            ctx.setLineDash([]);
-          }
+          // v6.5: 删掉 sparkline 上的 max 虚线 + "max" 文字 — 用户反馈"没必要且被曲线遮挡"
         };
 
         // v4.4 新增: pair 类型双线 sparkline (SET 虚线 + ACT 实线)
@@ -12341,14 +12535,65 @@
 
         // --- Toast 通知 ---
         // v4.9.5: 加 durationMs 3rd 参数 (默认 2500 向后兼容; 0 = 不自动消失, 等待中)
+        // v6.5: 同步写入通知历史 (右上角弹窗列表, 最近 20 条), 更新未读红点
+        NS._toastHistory = NS._toastHistory || [];  // [{ id, msg, level, time }]
+        NS._toastSeq = NS._toastSeq || 0;
+        NS._notifLastSeen = NS._notifLastSeen || 0;  // 用户最后一次查看 popup 的 timestamp
+        NS._updateNotifBadge = function () {
+          const badge = document.getElementById('dh-notif-badge');
+          if (!badge) return;
+          const unread = NS._toastHistory.filter((it) => it.id > NS._notifLastSeen && (it.level === 'warn' || it.level === 'danger' || it.level === 'info')).length;
+          if (unread > 0) { badge.textContent = unread > 99 ? '99+' : String(unread); badge.classList.remove('hidden'); }
+          else { badge.classList.add('hidden'); }
+        };
+        NS._renderNotifList = function () {
+          const listEl = document.getElementById('dh-notif-list');
+          const label = document.getElementById('dh-notif-head-label');
+          if (!listEl) return;
+          const items = NS._toastHistory;
+          if (label) label.textContent = '通知 (' + items.length + ')';
+          if (items.length === 0) {
+            listEl.innerHTML = '<div class="notif-popup-empty">暂无通知</div>';
+            return;
+          }
+          listEl.innerHTML = items.map((it) => '<div class="notif-item" data-notif-id="' + it.id + '">'
+            + '<div class="notif-main">'
+            + '<div class="notif-meta">'
+            // v6.5: 跟 NS.toast 传入的 level 一致 (info/success/warn/danger), label 用中文
+            + '<span class="notif-level ' + it.level + '">' + (it.level === 'danger' ? '错误' : it.level === 'warn' ? '警告' : it.level === 'success' ? '成功' : '信息') + '</span>'
+            + '<span>' + it.time + '</span>'
+            + '</div>'
+            + '<div class="notif-msg">' + NS.escapeHtml(it.msg) + '</div>'
+            + '</div>'
+            + '<button class="notif-del" data-del-notif="' + it.id + '" title="删除"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4 H13 M5 4 V3 H11 V4 M6 7 V12 M10 7 V12 M4 4 L5 13 H11 L12 4"/></svg></button>'
+            + '</div>').join('');
+        };
+        NS._deleteNotif = function (id) {
+          NS._toastHistory = NS._toastHistory.filter((it) => it.id !== id);
+          NS._renderNotifList();
+          NS._updateNotifBadge();
+        };
         NS.toast = function (msg, type, durationMs) {
           type = type || 'info';
           const layer = document.getElementById('dh-toast-layer');
           if (!layer) return;
+          // v6.5: SVG icon + 文本标签, 不光靠颜色区分 (色盲友好 + 风格统一)
+          const iconMap = {
+            info:    '<svg viewBox="0 0 16 16" class="toast-icon" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6.5"/><path d="M8 7 V11" stroke-linecap="round"/><circle cx="8" cy="5" r="0.6" fill="currentColor" stroke="none"/></svg>',
+            success: '<svg viewBox="0 0 16 16" class="toast-icon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5 L6.5 12 L13 4.5"/></svg>',
+            warn:    '<svg viewBox="0 0 16 16" class="toast-icon" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2 L14.5 13.5 H1.5 Z"/><path d="M8 6.5 V10"/><circle cx="8" cy="12" r="0.6" fill="currentColor" stroke="none"/></svg>',
+            danger:  '<svg viewBox="0 0 16 16" class="toast-icon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><path d="M5 5 L11 11 M11 5 L5 11"/></svg>'
+          };
+          const labelMap = { info: '信息', success: '成功', warn: '警告', danger: '错误' };
           const t = document.createElement('div');
           t.className = 'toast ' + type;
-          t.textContent = msg;
+          t.innerHTML = (iconMap[type] || iconMap.info) + '<span class="toast-label">' + (labelMap[type] || labelMap.info) + '</span><span class="toast-text">' + NS.escapeHtml(String(msg)) + '</span>';
           layer.appendChild(t);
+          // v6.5: 写入通知历史 (max 20, 超出从头部剔除)
+          NS._toastSeq += 1;
+          NS._toastHistory.push({ id: NS._toastSeq, msg: String(msg), level: type, time: NS.nowStr() });
+          if (NS._toastHistory.length > 20) NS._toastHistory.splice(0, NS._toastHistory.length - 20);
+          NS._updateNotifBadge();
           if (durationMs === 0) return; // 等待中, 不自动消失
           const ms = (durationMs == null) ? 2500 : durationMs;
           setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100%)'; t.style.transition = 'all 0.3s'; }, ms);
@@ -12360,7 +12605,10 @@
           const backdrop = document.getElementById(name + '-backdrop');
           const modal = document.getElementById(name + '-modal');
           if (backdrop) backdrop.classList.add('open');
-          if (modal) modal.classList.add('open');
+          if (modal) {
+            modal.classList.add('open');
+            // v6.5: 重要弹窗始终居中 (回到 .dashboard-host .modal 默认样式), 不再用 body.toast-pos-XX 强改
+          }
           if (name === 'dh-proto') NS.renderProtoEditor();
           if (name === 'dh-cmd-config') { NS.renderCmdList(); NS.populateCmdForm(); }
           if (name === 'dh-card-config') { NS.renderCardEditList(); NS.populateCardFormCmds(); }
@@ -12375,7 +12623,11 @@
           const backdrop = document.getElementById(name + '-backdrop');
           const modal = document.getElementById(name + '-modal');
           if (backdrop) backdrop.classList.remove('open');
-          if (modal) modal.classList.remove('open');
+          if (modal) {
+            modal.classList.remove('open');
+            // 关闭时清掉任何可能残留的 inline style, 回归默认居中
+            try { modal.style.cssText = ''; } catch (e) {}
+          }
         };
 
         // --- 挂载 modal toolbar 按钮 + 内部按钮 handlers ---
@@ -12658,8 +12910,64 @@
             const drawer = document.getElementById('dh-alert-drawer');
             if (!drawer) return;
             const collapsed = drawer.classList.toggle('collapsed');
-            alertToggle.textContent = collapsed ? '+' : '−';
+            // v6.5: svg 已固定 + (展开) / - (折叠) 双线, 切换时改 svg path
+            const svgPath = alertToggle.querySelector('path');
+            if (svgPath) svgPath.setAttribute('d', collapsed ? 'M3 8 H13 M8 3 V13' : 'M3 8 H13');
           };
+          // v6.5: alert-drawer 默认折叠 (HTML 已加 collapsed class) — 兜底, 万一 HTML 漏加
+          (function () {
+            const drawer = document.getElementById('dh-alert-drawer');
+            if (drawer && !drawer.classList.contains('collapsed')) drawer.classList.add('collapsed');
+          })();
+
+          // v6.5: 通知 popup — 点击右上角 🔔 按钮展开, ESC/空白处关闭, 单条删除 + 清空
+          (function () {
+            const btn = document.getElementById('dh-notif-btn');
+            const popup = document.getElementById('dh-notif-popup');
+            const listEl = document.getElementById('dh-notif-list');
+            const closeBtn = document.getElementById('dh-notif-close');
+            const clearBtn = document.getElementById('dh-notif-clear');
+            if (!btn || !popup) return;
+            btn.onclick = (e) => {
+              e.stopPropagation();
+              const willOpen = !popup.classList.contains('open');
+              popup.classList.toggle('open', willOpen);
+              if (willOpen) {
+                NS._renderNotifList();
+                // 标记当前为已读 (所有历史不再计未读)
+                NS._notifLastSeen = NS._toastSeq;
+                NS._updateNotifBadge();
+              }
+            };
+            closeBtn.onclick = (e) => { e.stopPropagation(); popup.classList.remove('open'); };
+            clearBtn.onclick = (e) => {
+              e.stopPropagation();
+              NS._toastHistory = [];
+              NS._renderNotifList();
+              NS._updateNotifBadge();
+            };
+            // 单条删除 (事件委托)
+            listEl.addEventListener('click', (e) => {
+              const delBtn = e.target.closest('[data-del-notif]');
+              if (!delBtn) return;
+              e.stopPropagation();
+              const id = Number(delBtn.getAttribute('data-del-notif'));
+              if (id) NS._deleteNotif(id);
+            });
+            // ESC 关闭
+            document.addEventListener('keydown', (e) => {
+              if (e.key === 'Escape' && popup.classList.contains('open')) popup.classList.remove('open');
+            });
+            // 点击 popup 外部关闭
+            document.addEventListener('click', (e) => {
+              if (!popup.classList.contains('open')) return;
+              if (popup.contains(e.target) || btn.contains(e.target)) return;
+              popup.classList.remove('open');
+            });
+            // 初始渲染一次
+            NS._renderNotifList();
+            NS._updateNotifBadge();
+          })();
 
           // Esc 关闭任何打开的 modal
           document.addEventListener('keydown', (e) => {
@@ -20777,6 +21085,33 @@
       attachEventListeners();
       trackSerialWebView();
       tryInitialSerialConnectPrompt();
+
+      // v6.5: system-menu 弹窗位置 (data-pos) — body class 切换, 默认 br.
+      // 仅切 class, 实际定位由 NS.openModal 内部强写 inline style 解决 (避开 CSS specificity 战)
+      (function () {
+        try {
+        const KEY = 'serialweb:popup-pos';
+        const saved = (() => { try { return localStorage.getItem(KEY) || 'br'; } catch (e) { return 'br'; } })();
+        const apply = (pos) => {
+          pos = pos || 'br';
+          try { document.body.dataset.popupPos = pos; } catch (e) {}
+          try {
+            const cleaned = (document.body.className || '').replace(/\btoast-pos-\S+/g, '').trim();
+            document.body.className = (cleaned + ' toast-pos-' + pos).trim();
+          } catch (e) {}
+          try {
+            document.querySelectorAll('#dh-system-menu [data-pos]').forEach((row) => {
+              row.classList.toggle('active', row.getAttribute('data-pos') === pos);
+            });
+          } catch (e) {}
+          try { localStorage.setItem(KEY, pos); } catch (e) {}
+        };
+        apply(saved);
+        document.querySelectorAll('#dh-system-menu [data-pos]').forEach((row) => {
+          row.addEventListener('click', () => { try { apply(row.getAttribute('data-pos')); } catch (e) {} });
+        });
+        } catch (e) { /* 弹窗位置初始化失败不影响主流程 */ }
+      })();
     })();
   </script>
 </body>

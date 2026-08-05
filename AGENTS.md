@@ -55,3 +55,10 @@ data tables, not multi-step product UI* — SerialCube 是 **Operate 模式**工
 - 在线版本: https://yubiediu826.github.io/SerialCubeWeb/
 - 仓库: https://github.com/yubiediu826/SerialCubeWeb
 - 浏览器要求: Chromium 系(需要 Web Serial API)
+
+## 6. 调试切换准则(2026-08-05)
+**任何方案 / 工具 / 思路 失败 2 次,必须立即切换,不再追加同类尝试。**
+- 单文件 HTML 项目 reload 一次 ≈ 烧 200+ token (DOM inspect + screenshot + console 抓取),不要在同一方案上反复 reload 验证。
+- 卡住时直接换思路(改 CSS 选择器 / 改 setProperty('important') / 加 wrapper / 改架构),不要在原方案微调 3 次以上。
+- 反例: 同一 modal 定位用 CSS !important → inline cssText → MutationObserver → setInterval 四种方案才切走 — 浪费 4x token,该次 2 次内切到 setProperty+important。
+- 跨项目版准则见 user memory `C:\Users\Administrator\.minimax\memory\user.md` 的"失败切换准则"节。
