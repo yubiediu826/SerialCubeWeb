@@ -1,609 +1,798 @@
-# v4.8c 协议编辑器 UI 重构 — 实施 Plan
+# v4.8c 协议编辑器 UI 重构 Implementation Plan
 
-**日期**: 2026-08-05
-**作者**: Mavis
-**对应 spec**: `docs/superpowers/specs/2026-08-05-v48-sub2-ui-redesign-design.md` (commit `8f27151`)
-**状态**: 待 review
-**范围**: v4.8c 实施 (1 commit, 18 tasks)
-**前置 commit**:
-- `8f27151 spec: v4.8 sub-2 D6 strict v2 + 默认 kind 7` (D6 v2 + D7)
-- `7ffc49f spec: v4.8 sub-2 协议编辑器 UI 重构设计文档` (D1-D6 v1)
-- `0f2ae6f spec: v4.8 sub-2 第一版`
-- `1db0e66 v6.5 仪表盘 UI 大改`
-- `3981f29 v4.8b kind 1-7 真实实现` (sub-1)
-- `1d2b1a2 plan: v4.8 sub-1 TLV 协议重构实现 plan` (参考格式)
-- `6743873 spec: v4.8 sub-1 TLV 协议重构设计文档`
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**后续 sub**:
-- sub-3: parseFrame (贴字节反解析) + 协议编辑器"贴字节"输入框
-- sub-4: cmd 字段映射重构 (dataSize 自动算) + pair trigger 真实发送
+**Goal:** 重构 SerialCube.html 协议编辑器 UI — 顶部加 Kind 下拉 (8 种协议模板),fields 列表动态化 (按 kind 渲染 + locked 灰显),字节预览按段着色,加 "+ 新建" 协议 modal (默认 kind 7 TLV)。单文件 1 阶段 commit,不动 buildFrame 内核 (sub-1 已稳定)。
+
+**Architecture:** 单文件 HTML,所有改动在 `D:\WorkSpace\SerialCubeWeb\SerialCube.html` (CRLF, 4 空格缩进)。数据层加 `NS._KIND_FIELD_TEMPLATES` (8 kind 默认 fields);UI 状态加 `NS._protoNewModal`;协议编辑器抽 `NS._renderProtoTabBar` + 加 kind 下拉 + fields 动态化 + 字节预览按段着色;CSS 加 .kind-select / .proto-field-row.locked / .byte-group.b-* / .proto-new-modal。现状 2 协议 (BMS/Modbus) 走 kind 0 (fixed-header) 兼容。
+
+**Tech Stack:** 纯 JavaScript (无框架) + CSS (CSS variables 主题) + HTML (innerHTML 渲染)。无构建步骤,无自动化测试,手动浏览器 smoke test 验证。
+
+## Global Constraints
+
+- **单文件**: `D:\WorkSpace\SerialCubeWeb\SerialCube.html`,不动其他文件
+- **CRLF 行尾 + 4 空格缩进** (跟现状一致,git 会自动转 LF → CRLF)
+- **NS 命名空间**: 所有新增函数/状态走 `NS.xxx` (在 IIFE 闭包内,外部用 `window.__serialWebDashboard.NS.xxx`)
+- **数据兼容性字段不可改** (AGENTS.md §2):
+  - `localStorage` keys: `serialweb:prefs`, `serialweb:version-modal-seen`, `wsl-*` 系列
+  - 配置 JSON type: `SerialWebUserConfig` (v1)
+  - `.timeline` 二进制 magic: `WSLBIN1` (`0x57 0x53 0x4C 0x42 0x49 0x4E 0x31 0x00`)
+  - API 路径: `/api/serialweb_page-view`
+  - JS 内部命名: `__serialWeb*`, `clearSerialWebStoredUserData`
+- **sub-1 已加的不能动**: `NS._KIND_TEMPLATES`, `NS._buildFrameXxx` (7 个), `NS.PROTOCOLS.kind` 字段, `NS.activeProtoId`, `NS.buildFrame`
+- **commit 策略**: 1 个 commit 整批 (`v4.8c ...`),不拆 a/b (spec §10.2 明确)。所有 task 实施期间代码在工作区累积,Task 18 一次性 commit + push
+- **失败切换准则** (AGENTS.md §6): 同一方案/工具/语法失败 2 次立即切换,不追加同类尝试。reload + inspect + screenshot ≈ 200+ token,不要在同一方案上反复 reload
+- **TDD 适配**: 本项目无自动化测试, "TDD" 步骤改为 "verify current state → make change → verify new state" via 浏览器 console (`__serialWebDashboard.NS.xxx`) + 浏览器 smoke test
+- **不在协议编辑器中改 buildFrame** — sub-1 内核已稳定,只改 UI 层
+- **不加新外部依赖** — 纯原生 JS/CSS
 
 ---
 
-## 1. 路线总览
+## File Structure (改动文件清单)
 
-### 1.1 跟 sub-1 plan 的区别
-
-| 项 | sub-1 (a/b 两阶段) | sub-2 (1 阶段) |
+| 文件 | 类型 | 职责 |
 |---|---|---|
-| 阶段数 | a (架构+kind 0) + b (kind 1-7) | 单阶段 c |
-| commit 数 | 2 | 1 |
-| 中间态 | v4.8a 后 dashboard 仍跑旧路径 | 无中间态,直接覆盖 |
-| 原因 | 防止 buildFrame 改一半坏掉 | UI 改造一气呵成,不会破坏 buildFrame 内部 |
+| `SerialCube.html` | Modify | 全部改动都在这 1 个文件: JS (新 NS 命名空间成员 + renderProtoEditor 重构) + CSS (新样式) + HTML (新 modal 容器,加到 modal-root 区域) |
 
-### 1.2 v4.8c 整体实施步骤
-
-1. **加数据层** (Task 1-2): `_KIND_FIELD_TEMPLATES` + 8 kind 默认 fields; `_applyKindTemplate` 工具函数
-2. **加 UI 状态** (Task 3-4): `_protoNewModal` 状态; `_renderProtoNewModal` 渲染函数
-3. **改协议编辑器** (Task 5-12):
-   - 抽 `_renderProtoTabBar` (Task 5)
-   - 加 kind 下拉 (Task 6-7)
-   - fields 动态化 + locked 灰显 + "+ 加字段" 规则 (Task 8-10)
-   - 字节预览按段着色 (Task 11)
-   - "+ 新建" 按钮触发 modal (Task 12)
-4. **加 CSS** (Task 13-16):
-   - kind 下拉样式
-   - fields locked 灰显 + "+ 加字段" 按钮样式
-   - 字节预览按段着色 (7 种颜色)
-   - "+ 新建" modal 样式
-5. **现状 2 协议兼容** (Task 17): BMS / Modbus 走 kind 0 渲染
-6. **smoke test + commit** (Task 18): 浏览器验证 + 1 commit + push
-
-### 1.3 任务清单 (18 tasks)
-
-| # | 任务 | 文件 | 类型 |
-|---|---|---|---|
-| 1 | 加 `NS._KIND_FIELD_TEMPLATES` (8 kind 默认 fields) | SerialCube.html | Modify |
-| 2 | 加 `NS._applyKindTemplate` 深拷贝函数 | SerialCube.html | Modify |
-| 3 | 加 `NS._protoNewModal` UI 状态 | SerialCube.html | Modify |
-| 4 | 加 `NS._renderProtoNewModal` 渲染函数 | SerialCube.html | Modify |
-| 5 | 抽 `NS._renderProtoTabBar` (从 renderProtoEditor 抽出) | SerialCube.html | Modify |
-| 6 | 加 kind 下拉 (8 种 + 描述) | SerialCube.html | Modify |
-| 7 | 切 kind 弹确认 modal (D3) | SerialCube.html | Modify |
-| 8 | fields 列表动态化 (按 kind 渲染 rows) | SerialCube.html | Modify |
-| 9 | locked 字段灰显 (D6 v2: 4 类 disabled 状态) | SerialCube.html + CSS | Modify |
-| 10 | "+ 加字段" 按钮 (D6 v2 激活规则) | SerialCube.html | Modify |
-| 11 | 字节预览按段着色 (7 种颜色) | SerialCube.html + CSS | Modify |
-| 12 | "+ 新建" 按钮触发 modal | SerialCube.html | Modify |
-| 13 | CSS: kind 下拉样式 | SerialCube.html | Modify |
-| 14 | CSS: fields locked 灰显 + "+ 加字段" 按钮样式 | SerialCube.html | Modify |
-| 15 | CSS: 字节预览按段着色 (7 色) | SerialCube.html | Modify |
-| 16 | CSS: "+ 新建" modal 样式 | SerialCube.html | Modify |
-| 17 | 现状 2 协议 (BMS / Modbus) 走 kind 0 兼容渲染 | SerialCube.html | Modify |
-| 18 | smoke test + v4.8c commit + push | - | Verify |
+子结构 (文件内):
+- **JS section** (按 line 顺序):
+  - `_KIND_FIELD_TEMPLATES` 数据 — 紧跟 `_KIND_TEMPLATES` (sub-1) 后
+  - `_applyKindTemplate` 工具函数 — 紧跟 `_KIND_FIELD_TEMPLATES` 后
+  - `_protoNewModal` 状态 — 紧跟 `activeProtoId` 附近
+  - `_renderProtoNewModal` + `_createProtoFromTemplate` — 紧跟 `openModal` 后
+  - `_renderProtoTabBar` (从 `renderProtoEditor` 抽出) — `renderProtoEditor` 内部
+  - `_onKindChange` (切 kind 弹确认) — `renderProtoEditor` 内部
+  - `renderProtoEditor` 改造 — 主函数,内部加 kind 下拉 + fields 动态化 + 字节预览按段着色
+- **CSS section** (按 line 顺序):
+  - `.kind-select` + `.kind-select:focus` — tab bar 下方
+  - `.proto-field-row.locked` + `.proto-field-row .f-add-btn` — fields 列表区
+  - `.byte-group` + `.b-header/.b-cmd/.b-type/.b-length/.b-data/.b-crc/.b-tail/.b-addr/.b-msgid/.b-tlv` — 字节预览
+  - `.proto-new-modal` + `.proto-new-kinds` + `.proto-new-preview` + `.proto-new-actions` — 新建 modal
+- **HTML section**:
+  - 新建 modal 容器 — 加到 `.modal-root` 区域 (跟其他 modal 容器并列)
 
 ---
 
-## 2. Task 详细说明
+## Task 1: 加 NS._KIND_FIELD_TEMPLATES (8 kind 默认 fields)
 
-### Task 1: 加 `NS._KIND_FIELD_TEMPLATES` (8 kind 默认 fields)
+**Files:**
+- Modify: `SerialCube.html` (新增 `NS._KIND_FIELD_TEMPLATES`)
 
-**Files**: `SerialCube.html` (Modify)
+**Interfaces:**
+- Consumes: `NS._KIND_TEMPLATES` (sub-1 已加,只读 — 8 kind 的元信息,含 name 描述)
+- Produces: `NS._KIND_FIELD_TEMPLATES` (新 — 8 kind 的默认 fields 数组,每元素含 name/size/type/default/locked?/bit7?/addrRole?/bitfield?/note?)
 
-**位置**: 紧跟 `NS._KIND_TEMPLATES` (sub-1 已加, line ~10430 附近) 后插入
+- [ ] **Step 1: 定位插入位置**
 
-**Interfaces**:
-- Consumes: `NS._KIND_TEMPLATES` (sub-1,只读)
-- Produces: `NS._KIND_FIELD_TEMPLATES` (新)
+打开 `SerialCube.html`,搜 `_KIND_TEMPLATES` (Ctrl+F),找到 sub-1 已加的 `NS._KIND_TEMPLATES = { ... }` 定义。记下最后一行行号 (例如 `12345`)。
 
-**Steps**:
-1. 在 SerialCube.html 搜 `NS._KIND_TEMPLATES = {` 找到 sub-1 定义
-2. 紧跟其后插入 `NS._KIND_FIELD_TEMPLATES` (spec §3.2 的 8 kind 完整定义)
-3. 每个 kind 字段含 `name/size/type/default/locked?/bit7?/addrRole?/bitfield?/note?` 元数据
-4. 字段值跟 spec §3.2 8 个数组完全一致 (CRLF 行尾, 4 空格缩进, 跟 sub-1 风格一致)
-5. 保存,不 commit
+- [ ] **Step 2: 写 8 kind 默认 fields 模板**
 
-**关键内容**:
+在 `NS._KIND_TEMPLATES` 定义结束行后**新起一行**,插入 (CRLF + 4 空格缩进):
+
 ```js
 NS._KIND_FIELD_TEMPLATES = {
-  'fixed-header': [
-    { name: 'header', size: 1, type: 'header', default: '0xAA' },
-    { name: 'cmd',    size: 1, type: 'cmd',    default: '0x00' },
-    { name: 'length', size: 1, type: 'length', default: 'auto', locked: true },
-    { name: 'data',   size: 0, type: 'data',   default: '0x00' },
-    { name: 'crc',    size: 2, type: 'crc',    default: 'auto', locked: true },
-    { name: 'tail',   size: 1, type: 'tail',   default: '0x55' }
-  ],
-  // ... 7 other kinds
+    'fixed-header': [
+        { name: 'header', size: 1, type: 'header', default: '0xAA' },
+        { name: 'cmd',    size: 1, type: 'cmd',    default: '0x00' },
+        { name: 'length', size: 1, type: 'length', default: 'auto', locked: true },
+        { name: 'data',   size: 0, type: 'data',   default: '0x00' },
+        { name: 'crc',    size: 2, type: 'crc',    default: 'auto', locked: true },
+        { name: 'tail',   size: 1, type: 'tail',   default: '0x55' }
+    ],
+    'raw': [
+        { name: 'header', size: 1, type: 'header', default: '0x5A' },
+        { name: 'cmd',    size: 1, type: 'cmd',    default: '0x00' },
+        { name: 'length', size: 1, type: 'length', default: 'auto', locked: true },
+        { name: 'data',   size: 0, type: 'data',   default: '0x00' },
+        { name: 'crc',    size: 2, type: 'crc',    default: 'auto', locked: true },
+        { name: 'tail',   size: 1, type: 'tail',   default: '0x55' }
+    ],
+    'cmd-split': [
+        { name: 'header', size: 1, type: 'header', default: '0xAA' },
+        { name: 'cmd',    size: 1, type: 'cmd',    default: '0x00', bit7: 'direction' },
+        { name: 'length', size: 1, type: 'length', default: 'auto', locked: true },
+        { name: 'data',   size: 0, type: 'data',   default: '0x00' },
+        { name: 'crc',    size: 2, type: 'crc',    default: 'auto', locked: true },
+        { name: 'tail',   size: 1, type: 'tail',   default: '0x55' }
+    ],
+    'addr-split': [
+        { name: 'header',  size: 1, type: 'header',  default: '0xAA' },
+        { name: 'srcAddr', size: 1, type: 'srcAddr', default: '0x00', addrRole: 'MB:hostId, CB:devId' },
+        { name: 'dstAddr', size: 1, type: 'dstAddr', default: '0x00', addrRole: 'MB:devId, CB:hostId' },
+        { name: 'cmd',     size: 1, type: 'cmd',     default: '0x00' },
+        { name: 'length',  size: 1, type: 'length',  default: 'auto', locked: true },
+        { name: 'data',    size: 0, type: 'data',    default: '0x00' },
+        { name: 'crc',     size: 2, type: 'crc',     default: 'auto', locked: true },
+        { name: 'tail',    size: 1, type: 'tail',    default: '0x55' }
+    ],
+    'ctrl-bit7': [
+        { name: 'header', size: 1, type: 'header', default: '0xAA' },
+        { name: 'ctrl',   size: 1, type: 'ctrl',   default: '0x10', bit7: 'direction' },
+        { name: 'cmd',    size: 1, type: 'cmd',    default: '0x00' },
+        { name: 'length', size: 1, type: 'length', default: 'auto', locked: true },
+        { name: 'data',   size: 0, type: 'data',   default: '0x00' },
+        { name: 'crc',    size: 2, type: 'crc',    default: 'auto', locked: true },
+        { name: 'tail',   size: 1, type: 'tail',   default: '0x55' }
+    ],
+    'type-high-bit': [
+        { name: 'header', size: 1, type: 'header', default: '0xAA' },
+        { name: 'type',   size: 1, type: 'type',   default: '0x20', bit7: 'direction' },
+        { name: 'cmd',    size: 1, type: 'cmd',    default: '0x00' },
+        { name: 'length', size: 1, type: 'length', default: 'auto', locked: true },
+        { name: 'data',   size: 0, type: 'data',   default: '0x00' },
+        { name: 'crc',    size: 2, type: 'crc',    default: 'auto', locked: true },
+        { name: 'tail',   size: 1, type: 'tail',   default: '0x55' }
+    ],
+    'msgid-mixed': [
+        { name: 'msgID',  size: 2, type: 'msgID',  default: '0x0000', bitfield: 'bit15=dir, bit14-8=func, bit7-0=addr' },
+        { name: 'length', size: 1, type: 'length', default: 'auto', locked: true },
+        { name: 'data',   size: 0, type: 'data',   default: '0x00' },
+        { name: 'crc',    size: 2, type: 'crc',    default: 'auto', locked: true },
+        { name: 'tail',   size: 1, type: 'tail',   default: '0x55' }
+    ],
+    'tlv': [
+        { name: 'header', size: 1, type: 'header', default: '0xAA', locked: true },
+        { name: 'tlv',    size: 0, type: 'data',   default: '—',      locked: true, note: '循环 TLV (cmd.tlvs)' },
+        { name: 'crc',    size: 2, type: 'crc',    default: 'auto' },
+        { name: 'tail',   size: 1, type: 'tail',   default: '0x55', locked: true }
+    ]
 };
 ```
 
-**Smoke test**: 不直接可见,Task 8 后才用到
+- [ ] **Step 3: 验证语法**
+
+打开 PowerShell,运行:
+
+```powershell
+node -e "const fs=require('fs');const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');const m=html.match(/NS\._KIND_FIELD_TEMPLATES\s*=\s*\{[\s\S]*?\n\};/);if(!m){console.log('FAIL: not found');process.exit(1)}console.log('OK, length:',m[0].length);console.log('kinds:',m[0].match(/'(fixed-header|raw|cmd-split|addr-split|ctrl-bit7|type-high-bit|msgid-mixed|tlv)'/g).length);"
+```
+
+Expected: `OK, length: <N>` + `kinds: 8` (8 个 kind 字符串都匹配到)。**不 commit,继续 Task 2**。
 
 ---
 
-### Task 2: 加 `NS._applyKindTemplate` 深拷贝函数
+## Task 2: 加 NS._applyKindTemplate 深拷贝函数
 
-**Files**: `SerialCube.html` (Modify)
+**Files:**
+- Modify: `SerialCube.html` (新增 `NS._applyKindTemplate`)
 
-**位置**: 紧跟 Task 1 插入
+**Interfaces:**
+- Consumes: `kind` (字符串) + `NS._KIND_FIELD_TEMPLATES` (Task 1)
+- Produces: 深拷贝的 fields 数组 (新对象数组, 不引用原数组;每元素是新对象)
 
-**Interfaces**:
-- Consumes: `kind` 字符串
-- Produces: 深拷贝的 fields 数组 (新对象数组, 不引用原数组)
+- [ ] **Step 1: 紧跟 Task 1 插入**
 
-**Steps**:
-1. 在 `NS._KIND_FIELD_TEMPLATES` 定义后插入
-2. 函数: 取 `_KIND_FIELD_TEMPLATES[kind]` → fallback `fixed-header` → JSON.parse(JSON.stringify(...)) 深拷贝
-3. 保存,不 commit
+在 `NS._KIND_FIELD_TEMPLATES` 定义结束 (`};` 行) 之后,新起一行,插入:
 
-**关键内容**:
 ```js
 NS._applyKindTemplate = function (kind) {
-  const tpl = NS._KIND_FIELD_TEMPLATES[kind] || NS._KIND_FIELD_TEMPLATES['fixed-header'];
-  return JSON.parse(JSON.stringify(tpl));
+    const tpl = NS._KIND_FIELD_TEMPLATES[kind] || NS._KIND_FIELD_TEMPLATES['fixed-header'];
+    return JSON.parse(JSON.stringify(tpl));
 };
 ```
 
-**Smoke test**: 浏览器 console 调 `__serialWebDashboard.NS._applyKindTemplate('tlv')` 返回 4 元素数组,每元素都是新对象 (`{}` 检查)
+- [ ] **Step 2: 验证函数可调用 + 深拷贝**
+
+打开 PowerShell,运行:
+
+```powershell
+node -e "
+const fs=require('fs');
+const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');
+const m=html.match(/NS\._applyKindTemplate\s*=\s*function[\s\S]*?\n\};/);
+if(!m){console.log('FAIL: function not found');process.exit(1)}
+console.log('function found, length:',m[0].length);
+console.log('uses JSON.parse(JSON.stringify):',m[0].includes('JSON.parse(JSON.stringify')?'YES':'NO');
+console.log('fallback to fixed-header:',m[0].includes(\"'fixed-header'\")?'YES':'NO');
+"
+```
+
+Expected: `function found, length: <N>` + `uses JSON.parse(JSON.stringify): YES` + `fallback to fixed-header: YES`。
+
+**不 commit,继续 Task 3**。
 
 ---
 
-### Task 3: 加 `NS._protoNewModal` UI 状态
+## Task 3: 加 NS._protoNewModal UI 状态
 
-**Files**: `SerialCube.html` (Modify)
+**Files:**
+- Modify: `SerialCube.html` (新增 `NS._protoNewModal`)
 
-**位置**: 紧跟 `NS._protoDraftKind` (spec §5.2, 若未实现则跳过) 附近
-
-**Interfaces**:
+**Interfaces:**
 - Consumes: 无
-- Produces: `NS._protoNewModal = { open, name, kind, source }` 状态
+- Produces: `NS._protoNewModal = { open, name, kind, source }` 状态对象
 
-**Steps**:
-1. 找 `NS._protoDraftKind` (spec §5.2, 可能未实现, 跳过)
-2. 直接在 `NS.activeProtoId` 附近加 `NS._protoNewModal` 初始状态
-3. kind 默认 `'tlv'` (D7)
-4. 保存,不 commit
+- [ ] **Step 1: 定位 `activeProtoId` 位置**
 
-**关键内容**:
+在 SerialCube.html 搜 `activeProtoId`,找到 `NS.activeProtoId = ...` (或 `var NS.activeProtoId`) 附近。
+
+- [ ] **Step 2: 在 `activeProtoId` 之后插入**
+
+紧跟 `NS.activeProtoId` 定义行 (无论 var/let/const),新起一行,插入:
+
 ```js
 NS._protoNewModal = {
-  open: false,
-  name: '',
-  kind: 'tlv',  // D7: 默认 kind 7
-  source: null  // null = 用 kind 默认模板;非 null = 复制现有 protocol id
+    open: false,
+    name: '',
+    kind: 'tlv',  // D7: 默认 kind 7 (TLV)
+    source: null  // null = 用 kind 默认模板;非 null = 复制现有 protocol id
 };
 ```
 
-**Smoke test**: 不直接可见
+- [ ] **Step 3: 验证状态对象存在 + 默认 kind=tlv**
+
+打开 PowerShell,运行:
+
+```powershell
+node -e "
+const fs=require('fs');
+const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');
+const m=html.match(/NS\._protoNewModal\s*=\s*\{[\s\S]*?source:\s*null\s*\};/);
+if(!m){console.log('FAIL: state not found');process.exit(1)}
+console.log('state found, length:',m[0].length);
+console.log('default kind=tlv:',m[0].includes(\"kind: 'tlv'\")?'YES':'NO');
+console.log('open=false:',m[0].includes('open: false')?'YES':'NO');
+"
+```
+
+Expected: `state found, length: <N>` + `default kind=tlv: YES` + `open=false: YES`。
+
+**不 commit,继续 Task 4**。
 
 ---
 
-### Task 4: 加 `NS._renderProtoNewModal` 渲染函数
+## Task 4: 加 NS._renderProtoNewModal 渲染函数
 
-**Files**: `SerialCube.html` (Modify)
+**Files:**
+- Modify: `SerialCube.html` (新增 `NS._renderProtoNewModal`)
 
-**位置**: 紧跟 `NS.openModal` 之后
-
-**Interfaces**:
-- Consumes: `NS._protoNewModal` 状态
+**Interfaces:**
+- Consumes: `NS._protoNewModal` (Task 3 状态) + `NS._KIND_TEMPLATES` (sub-1) + `NS._applyKindTemplate` (Task 2)
 - Produces: 弹窗 HTML 注入到 `.modal` 容器 (复用 `NS.openModal` 框架)
 
-**Steps**:
-1. 在 `NS.openModal` 定义附近 (line ~7487 协议编辑器 modal 入口) 加 `NS._renderProtoNewModal`
-2. 函数: 拼 HTML 字符串 (协议名输入 + kind 单选 8 种 + 默认 fields 预览) → `innerHTML` 到 modal
-3. 加 event listener: name input, kind radio change → 更新 `_protoNewModal` + 重渲染预览
-4. 加 "创建" 按钮: 调 `NS._createProtoFromTemplate` (Task 12 加)
-5. 加 "取消" 按钮: `NS.closeModal()`
-6. 保存,不 commit
+- [ ] **Step 1: 定位 `openModal` 定义**
 
-**HTML 模板** (跟 spec §2.6 一致):
-```html
-<div class="proto-new-modal">
-  <h3>新建协议</h3>
-  <div class="proto-new-row">
-    <label>协议名</label>
-    <input class="proto-new-name" placeholder="新协议 1" />
-  </div>
-  <div class="proto-new-row">
-    <label>Kind</label>
-    <div class="proto-new-kinds">
-      <!-- 8 radio, default tlv (D7) -->
-    </div>
-  </div>
-  <div class="proto-new-preview">
-    <!-- 默认 fields 预览 (实时更新) -->
-  </div>
-  <div class="proto-new-actions">
-    <button class="btn-cancel">取消</button>
-    <button class="btn-create">创建</button>
-  </div>
-</div>
+在 SerialCube.html 搜 `NS.openModal = function` 或 `openModal: function`,找到 modal 入口函数。
+
+- [ ] **Step 2: 在 `openModal` 之后插入**
+
+紧跟 `openModal` 函数结束行,新起一行,插入 (CRLF + 4 空格缩进):
+
+```js
+NS._renderProtoNewModal = function () {
+    const m = NS._protoNewModal;
+    const kinds = Object.keys(NS._KIND_TEMPLATES);
+    const kindOpts = kinds.map((k, idx) => {
+        const name = NS._KIND_TEMPLATES[k].name;
+        const checked = k === m.kind ? 'checked' : '';
+        return `<label class="proto-new-kind-opt">
+            <input type="radio" name="proto-new-kind" value="${k}" ${checked} />
+            <span>${idx} · ${name}</span>
+        </label>`;
+    }).join('');
+    const tplFields = NS._applyKindTemplate(m.kind);
+    const preview = tplFields.map(f => `${f.name}(${f.size || '?'}B, ${f.type}${f.locked ? ', locked' : ''})`).join(' | ');
+    const nameVal = m.name || '';
+    NS.openModal(`
+        <div class="proto-new-modal">
+            <h3>新建协议</h3>
+            <div class="proto-new-row">
+                <label>协议名</label>
+                <input class="proto-new-name" type="text" placeholder="新协议 1" value="${nameVal}" />
+            </div>
+            <div class="proto-new-row">
+                <label>Kind</label>
+                <div class="proto-new-kinds">${kindOpts}</div>
+            </div>
+            <div class="proto-new-row">
+                <label>默认 fields (kind ${m.kind}):</label>
+                <div class="proto-new-preview">${preview}</div>
+            </div>
+            <div class="proto-new-actions">
+                <button class="btn-cancel">取消</button>
+                <button class="btn-create">创建</button>
+            </div>
+        </div>
+    `);
+    // Event listeners
+    setTimeout(() => {
+        const nameInput = document.querySelector('.proto-new-name');
+        if (nameInput) {
+            nameInput.addEventListener('input', (e) => {
+                NS._protoNewModal.name = e.target.value;
+            });
+        }
+        document.querySelectorAll('input[name="proto-new-kind"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                NS._protoNewModal.kind = e.target.value;
+                NS._renderProtoNewModal();
+            });
+        });
+        const cancelBtn = document.querySelector('.proto-new-modal .btn-cancel');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                NS._protoNewModal.open = false;
+                NS.closeModal();
+            });
+        }
+        const createBtn = document.querySelector('.proto-new-modal .btn-create');
+        if (createBtn) {
+            createBtn.addEventListener('click', () => {
+                NS._createProtoFromTemplate();
+            });
+        }
+    }, 0);
+};
 ```
 
-**Smoke test**: 暂不验证,Task 12 一起测
+- [ ] **Step 3: 验证函数存在 + 8 个 kind radio**
+
+打开 PowerShell,运行:
+
+```powershell
+node -e "
+const fs=require('fs');
+const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');
+const m=html.match(/NS\._renderProtoNewModal\s*=\s*function[\s\S]*?^};/m);
+if(!m){console.log('FAIL: function not found');process.exit(1)}
+console.log('function found, length:',m[0].length);
+console.log('uses openModal:',m[0].includes('NS.openModal')?'YES':'NO');
+console.log('uses closeModal:',m[0].includes('NS.closeModal')?'YES':'NO');
+console.log('8 kind radios (kinds.map):',m[0].includes('kinds.map')?'YES':'NO');
+"
+```
+
+Expected: 全部 `YES`。
+
+**不 commit,继续 Task 5**。
 
 ---
 
-### Task 5: 抽 `NS._renderProtoTabBar` (从 renderProtoEditor 抽出)
+## Task 5: 抽 NS._renderProtoTabBar (从 renderProtoEditor 抽出)
 
-**Files**: `SerialCube.html` (Modify)
+**Files:**
+- Modify: `SerialCube.html` (新增 `NS._renderProtoTabBar`,修改 `NS.renderProtoEditor` 调用它)
 
-**位置**: `NS.renderProtoEditor` 内部 (line ~12055, spec §11 引用)
-
-**Interfaces**:
-- Consumes: `NS.PROTOCOLS` + `NS.activeProtoId`
+**Interfaces:**
+- Consumes: `NS.PROTOCOLS` + `NS.activeProtoId` (现状)
 - Produces: tab bar HTML (注入到 `.proto-tabs` 容器)
 
-**Steps**:
-1. 找到 `NS.renderProtoEditor` 函数体
-2. 抽出 tab bar 渲染逻辑到 `NS._renderProtoTabBar` (独立函数)
-3. `NS.renderProtoEditor` 调用 `NS._renderProtoTabBar` 替代原 inline 渲染
-4. 行为不变 (跟 v6.5 一致: 2 legacy tab + close × + "+ 新建" 占位)
-5. 保存,不 commit
+- [ ] **Step 1: 定位 `renderProtoEditor`**
 
-**Smoke test**: 浏览器打开协议编辑器,tab bar 仍正常显示 2 个 legacy tab,无视觉变化
+在 SerialCube.html 搜 `NS.renderProtoEditor = function`,找到主函数。
 
----
+- [ ] **Step 2: 抽出 tab bar 渲染逻辑**
 
-### Task 6: 加 kind 下拉 (8 种 + 描述)
+在 `renderProtoEditor` 函数体**最开头** (其他代码之前),插入:
 
-**Files**: `SerialCube.html` (Modify)
-
-**位置**: tab bar 下方, 验证按钮左边 (spec §2.3)
-
-**Interfaces**:
-- Consumes: `protocol.kind` + `NS._KIND_TEMPLATES` (sub-1 已有,含 name 描述)
-- Produces: `<select class="kind-select">` + 8 `<option>` 元素
-
-**Steps**:
-1. 在 `NS.renderProtoEditor` 内部, tab bar 渲染后插入 kind 下拉 HTML
-2. HTML: `<select class="kind-select">` 含 8 个 `<option>`, value=kind 字符串, text=`${idx} · ${name}`
-3. event listener: change → 调 `NS._onKindChange` (Task 7 加)
-4. 保存,不 commit
-
-**关键内容**:
 ```js
-const sel = document.createElement('select');
-sel.className = 'kind-select';
-NS._KIND_TEMPLATES_ORDER.forEach((kind, idx) => {
-  const opt = document.createElement('option');
-  opt.value = kind;
-  opt.text = `${idx} · ${NS._KIND_TEMPLATES[kind].name}`;
-  if (kind === protocol.kind) opt.selected = true;
-  sel.appendChild(opt);
-});
-sel.addEventListener('change', NS._onKindChange);
-```
-
-**注意**: `_KIND_TEMPLATES_ORDER` 不存在, 需用 Object.keys(...) 替代
-
-**Smoke test**: 浏览器打开协议编辑器,看到 kind 下拉,默认显示当前 protocol 的 kind (legacy 显示 "fixed-header")
-
----
-
-### Task 7: 切 kind 弹确认 modal (D3)
-
-**Files**: `SerialCube.html` (Modify)
-
-**位置**: `NS._onKindChange` 新函数
-
-**Interfaces**:
-- Consumes: 用户选的 kind + 当前 protocol
-- Produces: 确认 modal (复用 `NS.openModal`)
-
-**Steps**:
-1. 加 `NS._onKindChange = function(e) { ... }`
-2. 取 `e.target.value` (用户选的 kind)
-3. 弹确认 modal: "切到 kind X 会重置 fields, 确认?"
-4. 确认 → `protocol.kind = newKind` + `protocol.fields = NS._applyKindTemplate(newKind)` + `NS.renderProtoEditor()`
-5. 取消 → `e.target.value = oldKind` (kind 下拉回滚)
-6. 保存,不 commit
-
-**关键内容**:
-```js
-NS._onKindChange = function(e) {
-  const newKind = e.target.value;
-  const proto = NS.PROTOCOLS.find(p => p.id === NS.activeProtoId);
-  if (!proto || newKind === proto.kind) return;
-  const oldKind = proto.kind;
-  // 弹确认 modal
-  NS.openModal(`<div class="confirm-modal">
-    <h3>切换 Kind</h3>
-    <p>切到 kind "${newKind}" 会重置 fields, 确认?</p>
-    <button class="btn-cancel">取消</button>
-    <button class="btn-confirm">确认</button>
-  </div>`);
-  // 绑定按钮
-  document.querySelector('.btn-cancel').onclick = () => {
-    e.target.value = oldKind;  // 回滚
-    NS.closeModal();
-  };
-  document.querySelector('.btn-confirm').onclick = () => {
-    proto.kind = newKind;
-    proto.fields = NS._applyKindTemplate(newKind);
-    NS.renderProtoEditor();
-    NS.closeModal();
-  };
+NS._renderProtoTabBar = function (container) {
+    const tabs = NS.PROTOCOLS.map(p => {
+        const isActive = p.id === NS.activeProtoId;
+        const isLegacy = !p.isUser;
+        return `<div class="proto-tab ${isActive ? 'active' : ''}" data-proto-id="${p.id}">
+            ${p.name}${isLegacy ? ' <span class="proto-tab-badge legacy">Legacy</span>' : ' <span class="proto-tab-badge new">NEW</span>'}
+            <button class="proto-tab-close" data-proto-id="${p.id}">×</button>
+        </div>`;
+    }).join('');
+    container.innerHTML = tabs + `<div class="proto-tab proto-tab-add" id="proto-tab-add">+ 新建</div>`;
+    // Event listeners
+    container.querySelectorAll('.proto-tab').forEach(tab => {
+        if (tab.classList.contains('proto-tab-add')) {
+            tab.addEventListener('click', () => {
+                NS._protoNewModal = { open: true, name: '', kind: 'tlv', source: null };
+                NS._renderProtoNewModal();
+            });
+        } else {
+            tab.addEventListener('click', (e) => {
+                if (e.target.classList.contains('proto-tab-close')) return;
+                NS.activeProtoId = tab.dataset.protoId;
+                NS.renderProtoEditor();
+            });
+            const closeBtn = tab.querySelector('.proto-tab-close');
+            if (closeBtn && !closeBtn.disabled) {
+                closeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = closeBtn.dataset.protoId;
+                    const proto = NS.PROTOCOLS.find(p => p.id === id);
+                    if (proto && !proto.isUser) return;  // legacy 不能删
+                    if (proto && confirm(`删除协议 ${proto.name}?`)) {
+                        NS.PROTOCOLS = NS.PROTOCOLS.filter(p => p.id !== id);
+                        if (NS.activeProtoId === id) {
+                            NS.activeProtoId = NS.PROTOCOLS[0]?.id || null;
+                        }
+                        NS.renderProtoEditor();
+                    }
+                });
+            }
+        }
+    });
 };
 ```
 
-**Smoke test**: 浏览器打开协议编辑器,切 kind,弹确认 modal,确认后 fields 重置,取消后 kind 下拉回滚
+- [ ] **Step 3: 修改 `renderProtoEditor` 调用新函数**
 
----
+在原 `renderProtoEditor` 函数体中,找到 tab bar 渲染代码 (通常是 `protoTabsEl.innerHTML = ...` 或类似),**整段替换**为:
 
-### Task 8: fields 列表动态化 (按 kind 渲染 rows)
-
-**Files**: `SerialCube.html` (Modify)
-
-**位置**: `NS.renderProtoEditor` 内部, 替换原固定 fields 列表
-
-**Interfaces**:
-- Consumes: `protocol.fields` (数组)
-- Produces: 动态 rows (按 `protocol.fields` 渲染)
-
-**Steps**:
-1. 在 `NS.renderProtoEditor` 内部, 找到 fields 列表渲染代码
-2. 替换为循环 `protocol.fields.forEach((field, idx) => renderRow(field, idx))`
-3. 每行: # / name input / size input / type select / default input / 备注 / 删除按钮
-4. input event listener: 改 `protocol.fields[idx].xxx` + 重新渲染
-5. 保存,不 commit
-
-**关键内容** (row 模板):
 ```js
-protocol.fields.forEach((field, idx) => {
-  const tr = document.createElement('tr');
-  tr.className = 'proto-field-row';
-  if (field.locked) tr.classList.add('locked');
-  tr.innerHTML = `
-    <td>${idx + 1}</td>
-    <td><input class="f-name" value="${field.name}" /></td>
-    <td><input class="f-size" value="${field.size}" /></td>
-    <td><select class="f-type">${typeOptionsHtml(field.type)}</select></td>
-    <td><input class="f-default" value="${field.default}" /></td>
-    <td class="f-note">${field.note || ''}</td>
-    <td><button class="f-del">×</button></td>
-  `;
-  // ... event listener
-});
+NS._renderProtoTabBar(protoTabsEl);
 ```
 
-**Smoke test**: 浏览器打开协议编辑器,fields 列表跟现状一致 (6 行 BMS / Modbus),但结构是动态生成
+- [ ] **Step 4: 验证函数被调用**
+
+打开 PowerShell,运行:
+
+```powershell
+node -e "
+const fs=require('fs');
+const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');
+const defM=html.match(/NS\._renderProtoTabBar\s*=\s*function/);
+const callM=html.match(/NS\._renderProtoTabBar\s*\(\s*protoTabsEl\s*\)/);
+console.log('_renderProtoTabBar defined:',defM?'YES':'NO');
+console.log('_renderProtoTabBar called:',callM?'YES':'NO');
+"
+```
+
+Expected: 全部 `YES`。
+
+**不 commit,继续 Task 6**。
 
 ---
 
-### Task 9: locked 字段灰显 (D6 v2: 4 类 disabled 状态)
+## Task 6: 加 kind 下拉 (8 种 + 描述)
 
-**Files**: `SerialCube.html` (Modify) + CSS (Task 14)
+**Files:**
+- Modify: `SerialCube.html` (在 `renderProtoEditor` 内部, tab bar 渲染后插入)
 
-**位置**: Task 8 的 row 渲染 + CSS `.proto-field-row.locked`
+**Interfaces:**
+- Consumes: `protocol.kind` + `NS._KIND_TEMPLATES` (sub-1) + `NS._KIND_FIELD_TEMPLATES` (Task 1)
+- Produces: `<select class="kind-select">` 含 8 个 `<option>`
 
-**Interfaces**:
-- Consumes: `field.locked === true`
-- Produces: row 添加 `.locked` class, 所有 input/select/button disabled
+- [ ] **Step 1: 定位 tab bar 渲染代码**
 
-**Steps**:
-1. Task 8 的 row 渲染: 当 `field.locked` 为 true 时,加 `.locked` class
-2. 所有 input 加 `disabled` 属性
-3. select 加 `disabled` 属性
-4. 删除按钮加 `disabled` 属性
-5. CSS: `.proto-field-row.locked { opacity: 0.5; background: rgba(0,0,0,0.02); }` (Task 14)
-6. CSS: `.proto-field-row.locked input, .locked select, .locked button { cursor: not-allowed; }` (Task 14)
-7. 保存,不 commit
+在 `renderProtoEditor` 函数体内,找到 `NS._renderProtoTabBar(protoTabsEl);` 调用 (Task 5 改的)。
 
-**关键内容** (row 渲染中):
+- [ ] **Step 2: 紧跟其后插入 kind 下拉**
+
+在 `NS._renderProtoTabBar(protoTabsEl);` 之后,新起一行,插入:
+
 ```js
-if (field.locked) {
-  tr.classList.add('locked');
-  tr.querySelectorAll('input,select,button').forEach(el => el.disabled = true);
+const proto = NS.PROTOCOLS.find(p => p.id === NS.activeProtoId);
+if (proto) {
+    const kindSel = document.createElement('select');
+    kindSel.className = 'kind-select';
+    Object.keys(NS._KIND_TEMPLATES).forEach((kind, idx) => {
+        const opt = document.createElement('option');
+        opt.value = kind;
+        opt.text = `${idx} · ${NS._KIND_TEMPLATES[kind].name}`;
+        if (kind === proto.kind) opt.selected = true;
+        kindSel.appendChild(opt);
+    });
+    kindSel.addEventListener('change', NS._onKindChange);
+    protoEditorEl.insertBefore(kindSel, protoEditorEl.querySelector('.proto-fields-table'));
 }
 ```
 
-**Smoke test**: 浏览器打开 BMS / Modbus 协议,length / crc 行灰显 + input 不可编辑;切到 kind 7 (TLV),header / tlv / tail 行灰显,crc 行可编辑
+- [ ] **Step 3: 验证 kind-select 创建**
 
----
+打开 PowerShell,运行:
 
-### Task 10: "+ 加字段" 按钮 (D6 v2 激活规则)
-
-**Files**: `SerialCube.html` (Modify) + CSS (Task 14)
-
-**位置**: 每行 row 下方 + 表格底部
-
-**Interfaces**:
-- Consumes: `field.type` + `field.locked` + 下一行 field
-- Produces: 按钮 enabled / disabled 状态
-
-**Steps**:
-1. Task 8 的 row 渲染: 在每行后插入 "+ 加字段" 按钮
-2. 按钮 enabled 规则 (D6 v2):
-   - ✅ 当前行 `type === 'data'` **且** 下一行也是 `data` 或无下一行
-   - ❌ 其他情况全 disabled (locked / 非 data / data 后跟 locked)
-3. 点击 enabled 按钮: `protocol.fields.splice(idx + 1, 0, { name: '', size: 0, type: 'data', default: '0x00' })` + 重新渲染
-4. 表格底部加总 "+ 加字段" 按钮: 在尾部追加 (当最后一行是 data 或表格空)
-5. CSS: `.f-add-btn` 样式 + `.f-add-btn:disabled` 灰显 (Task 14)
-6. 保存,不 commit
-
-**关键内容** (按钮 enabled 逻辑):
-```js
-const nextField = protocol.fields[idx + 1];
-const canAdd = field.type === 'data' &&
-  (!nextField || nextField.type === 'data');
-btn.disabled = !canAdd;
+```powershell
+node -e "
+const fs=require('fs');
+const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');
+const m=html.match(/kindSel\.addEventListener\('change',\s*NS\._onKindChange\)/);
+console.log('kind-select with _onKindChange handler:',m?'YES':'NO');
+"
 ```
 
-**Smoke test**: 浏览器打开 BMS 协议 (fixed-header),data 行下方 "+ 加字段" 按钮 disabled (data 后面是 locked crc),所有按钮都灰显 — 符合 D6 v2 "CRC 前后不允许添加" 规则
+Expected: `YES`。
+
+**不 commit,继续 Task 7**。
 
 ---
 
-### Task 11: 字节预览按段着色 (7 种颜色)
+## Task 7: 切 kind 弹确认 modal (D3)
 
-**Files**: `SerialCube.html` (Modify) + CSS (Task 15)
+**Files:**
+- Modify: `SerialCube.html` (新增 `NS._onKindChange`)
 
-**位置**: fields 列表下方, 现有 byte preview 区域
+**Interfaces:**
+- Consumes: 用户选的 kind (e.target.value) + 当前 protocol (NS.activeProtoId)
+- Produces: 弹确认 modal + 切 kind 后 protocol.fields 重置
 
-**Interfaces**:
-- Consumes: `NS.buildFrame(protocol, cmd)` 字节数组 (sub-1)
-- Produces: 字节组按 type 着色
+- [ ] **Step 1: 定位 `_renderProtoTabBar` 定义**
 
-**Steps**:
-1. 找到 byte preview 渲染代码
-2. 改为按 `protocol.fields` 切分字节: 每个 field 一段 `<div class="byte-group b-${field.type}">`
-3. TLV kind: 循环 TLV 段,每段一个 `.byte-group.b-tlv`
-4. CSS: 7 种 `.b-header / .b-cmd / .b-type / .b-length / .b-data / .b-crc / .b-tail / .b-addr / .b-msgid` 背景色 (Task 15)
-5. 保存,不 commit
+在 SerialCube.html 搜 `NS._renderProtoTabBar = function` (Task 5 加的)。
 
-**关键内容** (字节切分):
+- [ ] **Step 2: 在其后插入 `_onKindChange`**
+
+紧跟 `_renderProtoTabBar` 函数结束 (`};` 行) 后,新起一行,插入:
+
 ```js
-const bytes = NS.buildFrame(protocol, NS.COMMANDS[0]);
-let offset = 0;
-protocol.fields.forEach(field => {
-  if (field.size === 0 && field.type === 'data') {
-    // data 字段变长,这里用占位 "XX XX" 显示
-    appendGroup('data', 'XX XX ...', field);
-  } else {
-    const segBytes = bytes.slice(offset, offset + field.size).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
-    appendGroup(field.type, segBytes, field);
-    offset += field.size;
-  }
-});
-```
-
-**Smoke test**: 浏览器打开 BMS 协议,字节预览按 header/cmd/length/data/crc/tail 段着色;切到 TLV kind,TLV 段循环着色
-
----
-
-### Task 12: "+ 新建" 按钮触发 modal
-
-**Files**: `SerialCube.html` (Modify)
-
-**位置**: tab bar "+ 新建" 按钮 (Task 5 抽出的 tab bar 内部)
-
-**Interfaces**:
-- Consumes: 用户点击 "+ 新建"
-- Produces: `NS._protoNewModal.open = true` + `NS._renderProtoNewModal` 渲染
-
-**Steps**:
-1. 在 `_renderProtoTabBar` 内部, "+ 新建" 按钮 click handler
-2. handler: `NS._protoNewModal = { open: true, name: '', kind: 'tlv', source: null }` + `NS._renderProtoNewModal()`
-3. 加 `NS._createProtoFromTemplate` 函数:
-   - 验证 name 非空 + 不重复
-   - `const fields = NS._applyKindTemplate(NS._protoNewModal.kind)`
-   - `const newId = 'proto_user_' + Date.now()`
-   - `NS.PROTOCOLS.push({ id: newId, kind, name, fields, ... })`
-   - `NS.activeProtoId = newId`
-   - `NS.closeModal()` + `NS.renderProtoEditor()`
-4. 保存,不 commit
-
-**关键内容**:
-```js
-NS._createProtoFromTemplate = function() {
-  const { name, kind, source } = NS._protoNewModal;
-  if (!name || name.trim() === '') {
-    NS.toast('协议名不能为空', 'warn');
-    return;
-  }
-  if (NS.PROTOCOLS.some(p => p.name === name)) {
-    NS.toast('协议名已存在', 'warn');
-    return;
-  }
-  const fields = source
-    ? JSON.parse(JSON.stringify(NS.PROTOCOLS.find(p => p.id === source).fields))
-    : NS._applyKindTemplate(kind);
-  const newId = 'proto_user_' + Date.now();
-  NS.PROTOCOLS.push({
-    id: newId,
-    kind,
-    name,
-    fields,
-    isUser: true,  // 标记用户新建
-    createdAt: Date.now()
-  });
-  NS.activeProtoId = newId;
-  NS._protoNewModal.open = false;
-  NS.closeModal();
-  NS.renderProtoEditor();
-  // 自动验证 (sub-1 行为)
-  setTimeout(() => NS._runProtoValidate(), 100);
+NS._onKindChange = function (e) {
+    const newKind = e.target.value;
+    const proto = NS.PROTOCOLS.find(p => p.id === NS.activeProtoId);
+    if (!proto || newKind === proto.kind) return;
+    const oldKind = proto.kind;
+    const oldSelVal = e.target.value;
+    NS.openModal(`
+        <div class="confirm-modal">
+            <h3>切换 Kind</h3>
+            <p>切到 kind "${newKind}" 会重置 fields, 确认?</p>
+            <div class="confirm-modal-actions">
+                <button class="btn-cancel">取消</button>
+                <button class="btn-confirm">确认</button>
+            </div>
+        </div>
+    `);
+    setTimeout(() => {
+        document.querySelector('.confirm-modal .btn-cancel').addEventListener('click', () => {
+            e.target.value = oldKind;  // kind 下拉回滚
+            NS.closeModal();
+        });
+        document.querySelector('.confirm-modal .btn-confirm').addEventListener('click', () => {
+            proto.kind = newKind;
+            proto.fields = NS._applyKindTemplate(newKind);
+            NS.renderProtoEditor();
+            NS.closeModal();
+        });
+    }, 0);
 };
 ```
 
-**Smoke test**: 浏览器打开协议编辑器,点 "+ 新建",弹模板选择 modal (默认 kind 7 TLV),输名字,创建,新 tab 出现,自动验证
+- [ ] **Step 3: 验证函数存在 + 回滚逻辑**
+
+打开 PowerShell,运行:
+
+```powershell
+node -e "
+const fs=require('fs');
+const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');
+const m=html.match(/NS\._onKindChange\s*=\s*function[\s\S]*?^};/m);
+if(!m){console.log('FAIL');process.exit(1)}
+console.log('function found, length:',m[0].length);
+console.log('cancel rolls back:',m[0].includes('e.target.value = oldKind')?'YES':'NO');
+console.log('confirm resets fields:',m[0].includes('NS._applyKindTemplate(newKind)')?'YES':'NO');
+"
+```
+
+Expected: 全部 `YES`。
+
+**不 commit,继续 Task 8**。
 
 ---
 
-### Task 13: CSS — kind 下拉样式
+## Task 8: fields 列表动态化 (按 kind 渲染 rows)
 
-**Files**: `SerialCube.html` (Modify CSS 段)
+**Files:**
+- Modify: `SerialCube.html` (替换 `renderProtoEditor` 内部 fields 列表渲染)
 
-**位置**: `.proto-tabs` 之后
+**Interfaces:**
+- Consumes: `protocol.fields` (数组) + `NS._KIND_TEMPLATES` (kind 允许的 type 范围)
+- Produces: 动态 rows (按 `protocol.fields` 渲染,每行 7 列)
 
-**关键内容**:
-```css
-.kind-select {
-  font-size: 12px;
-  padding: 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-  min-width: 200px;
-}
-.kind-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(86, 114, 205, 0.15);
+- [ ] **Step 1: 定位 fields 列表渲染代码**
+
+在 `renderProtoEditor` 函数体内,找到 fields 表格 (`.proto-fields-table` 或类似) 渲染代码,通常是固定写死的 6 行 `<tr>`。
+
+- [ ] **Step 2: 替换为动态渲染**
+
+把整段固定 fields 渲染代码 (从 `<tr>...` 到 `</tr>` 列表的最后) **整段替换**为:
+
+```js
+const fieldsTbody = protoEditorEl.querySelector('.proto-fields-tbody');
+if (fieldsTbody && proto) {
+    fieldsTbody.innerHTML = '';
+    const allowedTypes = NS._KIND_TEMPLATES[proto.kind]?.allowedTypes || ['header','cmd','length','data','crc','tail','ctrl','type','srcAddr','dstAddr','msgID','tlv'];
+    proto.fields.forEach((field, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'proto-field-row' + (field.locked ? ' locked' : '');
+        const typeOpts = allowedTypes.map(t => `<option value="${t}" ${t === field.type ? 'selected' : ''}>${t}</option>`).join('');
+        tr.innerHTML = `
+            <td class="f-idx">${idx + 1}</td>
+            <td><input class="f-name" type="text" value="${field.name || ''}" /></td>
+            <td><input class="f-size" type="text" value="${field.size}" /></td>
+            <td><select class="f-type">${typeOpts}</select></td>
+            <td><input class="f-default" type="text" value="${field.default || ''}" /></td>
+            <td class="f-note">${field.note || ''}</td>
+            <td><button class="f-del" title="删除字段">×</button></td>
+        `;
+        // Locked 字段: 全 disabled
+        if (field.locked) {
+            tr.querySelectorAll('input, select, button').forEach(el => el.disabled = true);
+        }
+        // Event listeners (非 locked)
+        if (!field.locked) {
+            tr.querySelector('.f-name').addEventListener('change', (e) => {
+                proto.fields[idx].name = e.target.value;
+                NS.renderProtoEditor();
+            });
+            tr.querySelector('.f-size').addEventListener('change', (e) => {
+                proto.fields[idx].size = parseInt(e.target.value) || 0;
+                NS.renderProtoEditor();
+            });
+            tr.querySelector('.f-type').addEventListener('change', (e) => {
+                proto.fields[idx].type = e.target.value;
+                NS.renderProtoEditor();
+            });
+            tr.querySelector('.f-default').addEventListener('change', (e) => {
+                proto.fields[idx].default = e.target.value;
+                NS.renderProtoEditor();
+            });
+            tr.querySelector('.f-del').addEventListener('click', () => {
+                if (confirm(`删除字段 ${field.name}?`)) {
+                    proto.fields.splice(idx, 1);
+                    NS.renderProtoEditor();
+                }
+            });
+        }
+        fieldsTbody.appendChild(tr);
+        // "+ 加字段" 按钮 (Task 10 会改 enabled 规则)
+        const addBtn = document.createElement('button');
+        addBtn.className = 'f-add-btn';
+        addBtn.textContent = '+ 加字段';
+        const nextField = proto.fields[idx + 1];
+        const canAdd = field.type === 'data' && (!nextField || nextField.type === 'data');
+        addBtn.disabled = !canAdd;
+        if (!addBtn.disabled) {
+            addBtn.addEventListener('click', () => {
+                proto.fields.splice(idx + 1, 0, { name: '', size: 0, type: 'data', default: '0x00' });
+                NS.renderProtoEditor();
+            });
+        }
+        const addRow = document.createElement('tr');
+        addRow.className = 'proto-field-add-row';
+        const addCell = document.createElement('td');
+        addCell.colSpan = 7;
+        addCell.appendChild(addBtn);
+        addRow.appendChild(addCell);
+        fieldsTbody.appendChild(addRow);
+    });
+    // 表格底部总 "+ 加字段" 按钮 (data zone 末尾追加)
+    if (proto.fields.length > 0) {
+        const lastField = proto.fields[proto.fields.length - 1];
+        if (lastField.type === 'data') {
+            const totalAddRow = document.createElement('tr');
+            const totalAddCell = document.createElement('td');
+            totalAddCell.colSpan = 7;
+            const totalAddBtn = document.createElement('button');
+            totalAddBtn.className = 'f-add-btn';
+            totalAddBtn.textContent = '+ 加字段 (尾部)';
+            totalAddBtn.disabled = false;
+            totalAddBtn.addEventListener('click', () => {
+                proto.fields.push({ name: '', size: 0, type: 'data', default: '0x00' });
+                NS.renderProtoEditor();
+            });
+            totalAddCell.appendChild(totalAddBtn);
+            totalAddRow.appendChild(totalAddCell);
+            fieldsTbody.appendChild(totalAddRow);
+        }
+    }
 }
 ```
 
-**Smoke test**: 浏览器,kind 下拉跟现有 UI 风格一致 (跟 antd-like select 接近)
+- [ ] **Step 3: 验证动态渲染代码存在**
+
+打开 PowerShell,运行:
+
+```powershell
+node -e "
+const fs=require('fs');
+const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');
+const m=html.match(/proto\.fields\.forEach\(\(field,\s*idx\)/);
+console.log('forEach fields:',m?'YES':'NO');
+const m2=html.match(/fieldsTbody\.appendChild\(tr\)/);
+console.log('appendChild tr:',m2?'YES':'NO');
+const m3=html.match(/locked\?\\s*' locked'/);
+console.log('locked class conditional:',m3?'YES':'NO');
+"
+```
+
+Expected: 全部 `YES`。
+
+**不 commit,继续 Task 9**。
 
 ---
 
-### Task 14: CSS — fields locked 灰显 + "+ 加字段" 按钮样式
+## Task 9: locked 字段灰显 (D6 v2) — CSS 部分
 
-**Files**: `SerialCube.html` (Modify CSS 段)
+**Files:**
+- Modify: `SerialCube.html` (CSS 段新增)
 
-**关键内容**:
+**Interfaces:**
+- Consumes: `.proto-field-row.locked` class (Task 8 加的)
+- Produces: 灰显 + input 不可编辑样式
+
+- [ ] **Step 1: 定位 CSS 插入点**
+
+在 SerialCube.html 搜 `.proto-field-row` 或 `.proto-fields-table`,找到 fields 列表的 CSS 段。
+
+- [ ] **Step 2: 在其后插入 locked 样式**
+
+紧跟现有 `.proto-field-row` 相关 CSS 后,新起一行,插入:
+
 ```css
 .proto-field-row.locked {
-  opacity: 0.5;
-  background: rgba(0, 0, 0, 0.02);
+    opacity: 0.5;
+    background: rgba(0, 0, 0, 0.02);
 }
 .proto-field-row.locked input,
 .proto-field-row.locked select,
 .proto-field-row.locked button {
-  cursor: not-allowed;
-  background: transparent;
+    cursor: not-allowed;
+    background: transparent;
 }
 .proto-field-row .f-add-btn {
-  font-size: 10px;
-  padding: 2px 6px;
-  background: transparent;
-  color: var(--accent);
-  border: 1px dashed var(--accent);
-  border-radius: 3px;
-  cursor: pointer;
-  margin: 4px 0;
+    font-size: 10px;
+    padding: 2px 6px;
+    background: transparent;
+    color: var(--accent);
+    border: 1px dashed var(--accent);
+    border-radius: 3px;
+    cursor: pointer;
+    margin: 4px 0;
 }
-.proto-field-row .f-add-btn:disabled {
-  color: #ccc;
-  border-color: #ccc;
-  cursor: not-allowed;
+.proto-field-row .f-add-btn:disabled,
+.proto-field-row .f-add-btn[disabled] {
+    color: #ccc;
+    border-color: #ccc;
+    cursor: not-allowed;
 }
 .proto-field-row .f-add-btn:hover:not(:disabled) {
-  background: var(--accent);
-  color: white;
+    background: var(--accent);
+    color: white;
 }
 ```
 
-**Smoke test**: 浏览器,BMS 协议 fields 列表,length/crc 行灰显,"+ 加字段" 按钮全部 disabled 灰显
+- [ ] **Step 3: 验证 CSS 存在**
+
+打开 PowerShell,运行:
+
+```powershell
+node -e "
+const fs=require('fs');
+const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');
+const m1=html.match(/\.proto-field-row\.locked\s*\{/);
+const m2=html.match(/\.proto-field-row \.f-add-btn/);
+console.log('locked style:',m1?'YES':'NO');
+console.log('add-btn style:',m2?'YES':'NO');
+"
+```
+
+Expected: 全部 `YES`。
+
+**不 commit,继续 Task 10**。
 
 ---
 
-### Task 15: CSS — 字节预览按段着色 (7 色)
+## Task 10: 字节预览按段着色 (7 色 CSS)
 
-**Files**: `SerialCube.html` (Modify CSS 段)
+**Files:**
+- Modify: `SerialCube.html` (CSS 段新增)
 
-**关键内容**:
+**Interfaces:**
+- Consumes: `.byte-group` + `.b-{type}` class (Task 11 会在 HTML 加)
+- Produces: 7 段颜色 (header/cmd/type/length/data/crc/tail + addr/msgid/tlv)
+
+- [ ] **Step 1: 定位 byte preview CSS 段**
+
+在 SerialCube.html 搜 `.byte-preview` 或类似,找到字节预览 CSS 段。
+
+- [ ] **Step 2: 替换为按段着色样式**
+
+把现有 `.byte-preview` 相关 CSS (如果有) 替换为:
+
 ```css
 .byte-group {
-  display: inline-block;
-  padding: 2px 4px;
-  margin: 0 1px;
-  border-radius: 3px;
-  font-family: monospace;
-  font-size: 11px;
+    display: inline-block;
+    padding: 2px 4px;
+    margin: 0 1px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 11px;
+    line-height: 1.4;
 }
 .b-header { background: rgba(86, 114, 205, 0.18); color: #3a5ccc; }
 .b-cmd    { background: rgba(217, 119, 6, 0.18);   color: #b87800; }
@@ -617,218 +806,704 @@ NS._createProtoFromTemplate = function() {
 .b-tlv    { background: rgba(44, 154, 74, 0.18);   color: #2c9a4a; }
 ```
 
-**Smoke test**: 浏览器,字节预览按段着色,BMS 协议 6 段不同颜色
+- [ ] **Step 3: 验证 7 色存在**
+
+打开 PowerShell,运行:
+
+```powershell
+node -e "
+const fs=require('fs');
+const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');
+const colors=['b-header','b-cmd','b-type','b-length','b-data','b-crc','b-tail','b-addr','b-msgid','b-tlv'];
+colors.forEach(c => {
+    const m=html.match(new RegExp('\\\\.'+c+'\\\\s*\\\\{'));
+    console.log(c+':',m?'YES':'NO');
+});
+"
+```
+
+Expected: 全部 `YES` (10 种颜色类)。
+
+**不 commit,继续 Task 11**。
 
 ---
 
-### Task 16: CSS — "+ 新建" modal 样式
+## Task 11: 字节预览按段着色 (JS 渲染 + 现有 buildFrame 集成)
 
-**Files**: `SerialCube.html` (Modify CSS 段)
+**Files:**
+- Modify: `SerialCube.html` (在 `renderProtoEditor` 内部替换 byte preview 渲染)
 
-**关键内容**:
-```css
-.proto-new-modal {
-  padding: 8px;
-  min-width: 480px;
-}
-.proto-new-modal h3 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: var(--text);
-}
-.proto-new-row {
-  margin-bottom: 12px;
-}
-.proto-new-row label {
-  display: block;
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-}
-.proto-new-name {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-size: 13px;
-}
-.proto-new-kinds {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-.proto-new-kinds label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  padding: 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  cursor: pointer;
-}
-.proto-new-kinds label:has(input:checked) {
-  border-color: var(--accent);
-  background: rgba(86, 114, 205, 0.08);
-}
-.proto-new-preview {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 8px;
-  font-family: monospace;
-  font-size: 11px;
-  color: var(--text-secondary);
-  max-height: 120px;
-  overflow-y: auto;
-}
-.proto-new-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 16px;
-}
-.proto-new-actions button {
-  padding: 6px 16px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface);
-  cursor: pointer;
-  font-size: 12px;
-}
-.proto-new-actions .btn-create {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
-}
-.proto-new-actions button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+**Interfaces:**
+- Consumes: `NS.buildFrame(protocol, NS.COMMANDS[0])` (sub-1 实现) + `protocol.fields` (Task 8)
+- Produces: 字节组按 type 着色 (`.byte-group.b-${field.type}`)
+
+- [ ] **Step 1: 定位 byte preview 渲染代码**
+
+在 `renderProtoEditor` 函数体内,找到 byte preview 区域渲染 (通常是拼接 hex 字符串)。
+
+- [ ] **Step 2: 替换为按段着色渲染**
+
+把现有 byte preview 渲染代码**整段替换**为:
+
+```js
+const bytePreviewEl = protoEditorEl.querySelector('.proto-byte-preview');
+if (bytePreviewEl && proto) {
+    const cmd = NS.COMMANDS.find(c => c.protocolId === proto.id) || NS.COMMANDS[0];
+    let bytes = [];
+    try {
+        bytes = NS.buildFrame(proto, cmd) || [];
+    } catch (err) {
+        bytePreviewEl.innerHTML = `<span class="byte-error">buildFrame 错误: ${err.message}</span>`;
+        bytes = [];
+    }
+    let offset = 0;
+    const segs = proto.fields.map(field => {
+        if (field.size === 0 && field.type === 'data') {
+            const seg = `<span class="byte-group b-${field.type}">XX ...</span>`;
+            return { html: seg, len: 0 };
+        }
+        const segBytes = bytes.slice(offset, offset + field.size);
+        const hex = segBytes.length > 0
+            ? segBytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ')
+            : '—';
+        const seg = `<span class="byte-group b-${field.type}" title="${field.name}">${hex}</span>`;
+        offset += field.size;
+        return { html: seg, len: field.size };
+    });
+    bytePreviewEl.innerHTML = segs.map(s => s.html).join(' ');
 }
 ```
 
-**Smoke test**: 浏览器,点 "+ 新建",modal 居中 (默认 modal 居中样式),表单可用
+- [ ] **Step 3: 验证按段着色代码**
+
+打开 PowerShell,运行:
+
+```powershell
+node -e "
+const fs=require('fs');
+const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');
+const m1=html.match(/NS\.buildFrame\(proto,\s*cmd\)/);
+const m2=html.match(/byte-group b-\\\$\{field\.type\}/);
+console.log('buildFrame called:',m1?'YES':'NO');
+console.log('byte-group by type:',m2?'YES':'NO');
+"
+```
+
+Expected: 全部 `YES`。
+
+**不 commit,继续 Task 12**。
 
 ---
 
-### Task 17: 现状 2 协议 (BMS / Modbus) 走 kind 0 兼容渲染
+## Task 12: 加 NS._createProtoFromTemplate 创建协议
 
-**Files**: `SerialCube.html` (Modify)
+**Files:**
+- Modify: `SerialCube.html` (新增 `NS._createProtoFromTemplate`)
 
-**位置**: `NS.PROTOCOLS` 默认值 (sub-1 5.4 已加 `kind: 'fixed-header'`)
+**Interfaces:**
+- Consumes: `NS._protoNewModal` (Task 3 状态) + `NS._applyKindTemplate` (Task 2)
+- Produces: 新协议 push 到 `NS.PROTOCOLS` + `NS.activeProtoId` 切到新协议 + modal 关闭
 
-**Interfaces**:
-- Consumes: `NS.PROTOCOLS` 默认值
-- Produces: 2 legacy 协议带 `kind: 'fixed-header'` + `(Legacy)` 命名
+- [ ] **Step 1: 定位 `_renderProtoNewModal` 定义**
 
-**Steps**:
-1. 找到 `NS.PROTOCOLS = [...]` 默认值
-2. 确认 2 协议都有 `kind: 'fixed-header'` (sub-1 已加, 此 task 仅 verify)
-3. 确认 2 协议 name 含 `(Legacy)` 后缀 (spec §8.1 要求)
-4. 若无, 加 `name: 'BMS TLV v1 (Legacy)'` + `name: 'Modbus RTU (Legacy)'`
-5. 加载兼容点 (sub-1 spec 5.1): `if (uc.protocols) { NS.PROTOCOLS = uc.protocols.map(p => ({ ...p, kind: p.kind || 'fixed-header' })); }` 已加
-6. 验证渲染: 打开 BMS 协议, kind 下拉显示 "fixed-header", fields 6 行, length/crc 灰显
-7. 保存,不 commit
+在 SerialCube.html 搜 `NS._renderProtoNewModal = function` (Task 4 加的)。
 
-**Smoke test**: 浏览器打开 BMS / Modbus 协议,UI 跟 v6.5 视觉一致 (6 行 fields, length/crc 灰显),kind 下拉显示 "0 · fixed-header (Legacy)"
+- [ ] **Step 2: 紧跟其后插入 `_createProtoFromTemplate`**
 
----
+紧跟 `_renderProtoNewModal` 函数结束行后,新起一行,插入:
 
-### Task 18: smoke test + v4.8c commit + push
+```js
+NS._createProtoFromTemplate = function () {
+    const m = NS._protoNewModal;
+    const name = (m.name || '').trim();
+    if (!name) {
+        NS.toast('协议名不能为空', 'warn');
+        return;
+    }
+    if (NS.PROTOCOLS.some(p => p.name === name)) {
+        NS.toast('协议名已存在', 'warn');
+        return;
+    }
+    const fields = m.source
+        ? JSON.parse(JSON.stringify(NS.PROTOCOLS.find(p => p.id === m.source).fields))
+        : NS._applyKindTemplate(m.kind);
+    const newId = 'proto_user_' + Date.now();
+    NS.PROTOCOLS.push({
+        id: newId,
+        kind: m.kind,
+        name: name,
+        fields: fields,
+        isUser: true,
+        createdAt: Date.now()
+    });
+    NS.activeProtoId = newId;
+    NS._protoNewModal.open = false;
+    NS.closeModal();
+    NS.renderProtoEditor();
+    // 自动验证 (sub-1 行为)
+    setTimeout(() => {
+        try {
+            const cmd = NS.COMMANDS.find(c => c.protocolId === newId) || NS.COMMANDS[0];
+            const bytes = NS.buildFrame(NS.PROTOCOLS[NS.PROTOCOLS.length - 1], cmd);
+            if (bytes && bytes.length > 0) {
+                NS.toast('验证成功: ' + bytes.length + ' 字节', 'success');
+            }
+        } catch (err) {
+            NS.toast('验证失败: ' + err.message, 'danger');
+        }
+    }, 100);
+};
+```
 
-**Files**: 无 (验证 + commit)
+- [ ] **Step 3: 验证函数存在 + 验证逻辑**
 
-**步骤**:
-1. **启动浏览器** 加载 `D:\WorkSpace\SerialCubeWeb\SerialCube.html`
-2. **基础验证**:
-   - [ ] 页面正常加载,无 console 报错
-   - [ ] 打开协议编辑器,看到 2 个 legacy tab (BMS / Modbus)
-   - [ ] tab bar 下方 kind 下拉显示 "0 · fixed-header"
-   - [ ] fields 6 行,length/crc 行灰显
-   - [ ] "+ 加字段" 按钮全部 disabled
-   - [ ] 字节预览按 6 段着色
-3. **切 kind 验证** (D3):
-   - [ ] kind 下拉切到 "raw" → 弹确认 modal
-   - [ ] 确认 → fields 6 行,header default 变 0x5A
-   - [ ] 取消 → kind 下拉回滚,fields 不变
-4. **TLV kind 验证** (D7):
-   - [ ] 切到 "tlv" → fields 4 行 (header/tlv/crc/tail)
-   - [ ] header/tlv/tail 行灰显 (locked)
-   - [ ] crc 行可编辑
-5. **"+ 新建" 验证** (D2 + D7):
-   - [ ] 点 "+ 新建" 按钮 → 弹 modal
-   - [ ] 默认 kind = "tlv" (D7)
-   - [ ] 输 name = "测试协议 1" → 创建
-   - [ ] 新 tab 出现,自动跳到新 tab
-   - [ ] 协议编辑器显示 TLV 模板 4 行
-6. **现状 2 协议兼容** (Task 17):
-   - [ ] BMS 协议, kind = "fixed-header" 显示
-   - [ ] Modbus 协议, kind = "fixed-header" 显示
-   - [ ] 名字含 "(Legacy)"
-7. **截图自检** (用户偏好):
-   - [ ] 协议编辑器整体截图
-   - [ ] 字节预览截图
-   - [ ] "+ 新建" modal 截图
-8. **commit**:
-   - 标题: `v4.8c 协议编辑器 UI 重构: kind 下拉 + 动态 fields + 字节预览按段着色 + + 新建 modal`
-   - 正文: 背景 / 范围 / 验证 3 段, 中文
-9. **push**:
-   - `git push origin main`
-10. **告知用户**: 完成,等反馈
+打开 PowerShell,运行:
 
-**预期耗时**: 20-30 分钟 (实施 18 tasks 后 smoke test)
+```powershell
+node -e "
+const fs=require('fs');
+const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');
+const m=html.match(/NS\._createProtoFromTemplate\s*=\s*function[\s\S]*?^};/m);
+if(!m){console.log('FAIL');process.exit(1)}
+console.log('function length:',m[0].length);
+console.log('validates name empty:',m[0].includes('协议名不能为空')?'YES':'NO');
+console.log('validates duplicate:',m[0].includes('协议名已存在')?'YES':'NO');
+console.log('uses _applyKindTemplate:',m[0].includes('NS._applyKindTemplate(m.kind)')?'YES':'NO');
+console.log('auto validate:',m[0].includes('NS.buildFrame')?'YES':'NO');
+"
+```
 
----
+Expected: 全部 `YES`。
 
-## 3. 风险 & 回滚
-
-### 3.1 风险点
-
-| 风险 | 概率 | 影响 | 缓解 |
-|---|---|---|---|
-| _KIND_FIELD_TEMPLATES 跟 _buildFrameXxx 不一致 | 中 | buildFrame 失败 | Task 1 严格按 spec §3.2 字段值,Task 8-11 验证后跑 buildFrame |
-| kind 切换重置 fields 误删用户编辑 | 中 | 用户数据丢失 | D3 确认 modal 兜底,只在用户确认后重置 |
-| "+ 加字段" 按钮全 disabled 用户困惑 | 低 | UX 差 | Task 16 modal 加 "添加字段功能暂未启用" 提示 (本期不实现) |
-| 字节预览按段着色切错位置 | 中 | 字节错位 | Task 11 切分逻辑跟 sub-1 buildFrame 子函数对齐 |
-| 现状 2 协议 (kind 0) 渲染异常 | 低 | 升级失败 | Task 17 单独验证, spec §8.1 已说明兼容点 |
-
-### 3.2 回滚
-
-- v4.8c 是 1 个 commit, 回滚: `git revert 8f27151` (或新 commit hash)
-- 协议编辑器 UI 退回到 v6.5 状态 (kind 下拉 + 动态 fields + 字节预览移除)
-- 现状 2 协议不受影响 (kind 字段保留)
-
-### 3.3 失败切换准则 (2026-08-05)
-
-任何任务连续失败 2 次, **立即切换**:
-- 换工具 / 换语法 / 换思路 / 跳过该步
-- 不在原地打转
-- 单文件 HTML reload 一次 ≈ 200+ token, 不要在同一方案上反复 reload
+**不 commit,继续 Task 13**。
 
 ---
 
-## 4. Self-Review (writing-plans)
+## Task 13: CSS — kind 下拉样式
 
-1. **Task 拆解合理性**: 18 tasks 按"数据层 → 状态层 → UI 层 → CSS → 兼容 → 验证"顺序, 依赖关系清晰
-2. **每个 task 独立可验证**: Task 1-2 数据层可 console 验证, Task 3-4 状态层可赋值验证, Task 5-12 UI 层可浏览器验证, Task 13-16 CSS 跟随 UI 验证
-3. **风险点已识别**: 5 个风险点 + 概率/影响/缓解三列, 跟 sub-1 plan 风险章节格式一致
-4. **回滚方案明确**: 1 commit 回滚, 退回到 v6.5 协议编辑器
-5. **范围聚焦**: v4.8c (UI 重构) 全部 task 都在 spec 范围内, sub-3 (parseFrame) + sub-4 (cmd 字段映射) 明确不包含
-6. **失败切换准则**: §3.3 引用 2026-08-05 准则, 跨项目生效
+**Files:**
+- Modify: `SerialCube.html` (CSS 段新增)
 
-Self-review 通过, 待 user approve 后开始实施。
+**Interfaces:**
+- Consumes: `.kind-select` (Task 6 加的)
+- Produces: 跟现有 UI 风格一致的下拉样式
+
+- [ ] **Step 1: 定位 CSS 插入点**
+
+在 SerialCube.html 搜 `.proto-tabs` CSS,在其后插入。
+
+- [ ] **Step 2: 插入 kind-select 样式**
+
+```css
+.kind-select {
+    font-size: 12px;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    min-width: 200px;
+    margin: 0 0 8px 0;
+}
+.kind-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(86, 114, 205, 0.15);
+}
+```
+
+- [ ] **Step 3: 验证 CSS 存在**
+
+```powershell
+node -e "const fs=require('fs');const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');console.log('kind-select:',html.match(/\.kind-select\s*\{/)?'YES':'NO');console.log('focus:',html.match(/\.kind-select:focus\s*\{/)?'YES':'NO');"
+```
+
+Expected: 全部 `YES`。
+
+**不 commit,继续 Task 14**。
 
 ---
 
-## 5. References
+## Task 14: CSS — "+ 新建" modal 样式
 
-- spec: `docs/superpowers/specs/2026-08-05-v48-sub2-ui-redesign-design.md` (commit `8f27151`)
-- spec 旧版: `7ffc49f` (D6 v1) + `0f2ae6f` (第一版)
-- plan 参考: `1d2b1a2 plan: v4.8 sub-1 TLV 协议重构实现 plan` (18 tasks 格式)
-- sub-1 spec: `6743873 spec: v4.8 sub-1 TLV 协议重构设计文档`
-- sub-1 实现: `3981f29 v4.8b kind 1-7 真实实现`
-- v6.5 dashboard: `1db0e66 v6.5 仪表盘 UI 大改`
-- UI 预览: `docs/superpowers/previews/v48c-ui-mockup.html`
-- 项目主代码: `SerialCube.html` (line 12055 `NS.renderProtoEditor` / line 7487 modal 入口)
-- AGENTS.md: 强制 skill 链 + 数据兼容性字段
-- 失败切换准则: AGENTS.md §6 (2026-08-05)
+**Files:**
+- Modify: `SerialCube.html` (CSS 段新增)
+
+**Interfaces:**
+- Consumes: `.proto-new-modal` (Task 4 渲染的)
+- Produces: modal 居中 + 表单样式
+
+- [ ] **Step 1: 定位 CSS 插入点**
+
+在 SerialCube.html 搜 `.confirm-modal` 或其他 modal 样式,确保新样式不冲突。
+
+- [ ] **Step 2: 插入 proto-new-modal 样式**
+
+```css
+.proto-new-modal {
+    padding: 8px;
+    min-width: 480px;
+    max-width: 600px;
+}
+.proto-new-modal h3 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 600;
+}
+.proto-new-row {
+    margin-bottom: 12px;
+}
+.proto-new-row label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+.proto-new-name {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 13px;
+    background: var(--surface);
+    color: var(--text);
+}
+.proto-new-kinds {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+.proto-new-kind-opt {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    background: var(--surface);
+}
+.proto-new-kind-opt:has(input:checked) {
+    border-color: var(--accent);
+    background: rgba(86, 114, 205, 0.08);
+}
+.proto-new-preview {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px;
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+    max-height: 120px;
+    overflow-y: auto;
+    word-break: break-all;
+}
+.proto-new-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+}
+.proto-new-actions button {
+    padding: 6px 16px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text);
+}
+.proto-new-actions .btn-create {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+.proto-new-actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+```
+
+- [ ] **Step 3: 验证 CSS 存在**
+
+```powershell
+node -e "const fs=require('fs');const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');console.log('modal:',html.match(/\.proto-new-modal\s*\{/)?'YES':'NO');console.log('kinds:',html.match(/\.proto-new-kinds\s*\{/)?'YES':'NO');console.log('preview:',html.match(/\.proto-new-preview\s*\{/)?'YES':'NO');console.log('actions:',html.match(/\.proto-new-actions\s*\{/)?'YES':'NO');"
+```
+
+Expected: 全部 `YES`。
+
+**不 commit,继续 Task 15**。
+
+---
+
+## Task 15: 现状 2 协议 (BMS / Modbus) 走 kind 0 兼容验证
+
+**Files:**
+- Verify-only (不改代码): `SerialCube.html`
+
+- [ ] **Step 1: 验证 2 协议有 kind='fixed-header'**
+
+```powershell
+node -e "
+const fs=require('fs');
+const html=fs.readFileSync('D:\WorkSpace\SerialCubeWeb\SerialCube.html','utf8');
+// 找默认 PROTOCOLS 数组
+const m=html.match(/NS\.PROTOCOLS\s*=\s*\[[\s\S]*?\];/);
+if(!m){console.log('FAIL: PROTOCOLS not found');process.exit(1)}
+const arr=m[0];
+console.log('PROTOCOLS found, length:',arr.length);
+console.log('BMS kind=fixed-header:',arr.includes('BMS')&&arr.includes('fixed-header')?'YES (if both in same line)':'CHECK MANUALLY');
+console.log('Modbus kind=fixed-header:',arr.includes('Modbus')&&arr.includes('fixed-header')?'YES (if both in same line)':'CHECK MANUALLY');
+console.log('Legacy name:',arr.includes('(Legacy)')?'YES':'NO');
+"
+```
+
+Expected: `Legacy name: YES`。其他两项需手动 grep 确认。
+
+- [ ] **Step 2: 手动 grep 确认 2 协议**
+
+```powershell
+Select-String -Path 'D:\WorkSpace\SerialCubeWeb\SerialCube.html' -Pattern 'id:\s*[\x27\x22]proto_bms[\x27\x22]|id:\s*[\x27\x22]proto_modbus[\x27\x22]' -Context 2,5
+```
+
+Expected: 2 个 match,每个 match 后 5 行内有 `kind: 'fixed-header'`。
+
+- [ ] **Step 3: 验证加载兼容点 (sub-1 spec 5.1)**
+
+```powershell
+Select-String -Path 'D:\WorkSpace\SerialCubeWeb\SerialCube.html' -Pattern 'kind:\s*p\.kind\s*\|\|\s*[\x27\x22]fixed-header[\x27\x22]'
+```
+
+Expected: 1 个 match (sub-1 已加的兼容点)。
+
+如**任一验证失败**, 回到 SerialCube.html 修复,**不 commit**, 继续 Task 16。
+
+---
+
+## Task 16: syntax check 全部改动 (PowerShell 临时脚本)
+
+**Files:**
+- Read-only: `SerialCube.html` (累计 13 个 task 改完)
+
+- [ ] **Step 1: 写 syntax check 脚本**
+
+打开 PowerShell,运行:
+
+```powershell
+@'
+$ErrorActionPreference = 'Stop'
+$html = Get-Content -Path 'D:\WorkSpace\SerialCubeWeb\SerialCube.html' -Raw -Encoding UTF8
+
+# Block 1: NS._KIND_FIELD_TEMPLATES
+$b1 = $html -match 'NS\._KIND_FIELD_TEMPLATES\s*=\s*\{[\s\S]*?\n\};'
+$b1kinds = ([regex]::Matches($html, "'(fixed-header|raw|cmd-split|addr-split|ctrl-bit7|type-high-bit|msgid-mixed|tlv)'")).Count
+Write-Host "Block1 _KIND_FIELD_TEMPLATES: $b1 (kinds: $b1kinds, expect 8)"
+
+# Block 2: _applyKindTemplate
+$b2 = $html -match 'NS\._applyKindTemplate\s*=\s*function[\s\S]*?JSON\.parse\(JSON\.stringify'
+Write-Host "Block2 _applyKindTemplate: $b2"
+
+# Block 3: _protoNewModal
+$b3 = $html -match "NS\._protoNewModal\s*=\s*\{[\s\S]*?kind:\s*'tlv'"
+Write-Host "Block3 _protoNewModal: $b3"
+
+# Block 4: _renderProtoNewModal
+$b4 = $html -match 'NS\._renderProtoNewModal\s*=\s*function[\s\S]*?proto-new-modal[\s\S]*?btn-create'
+Write-Host "Block4 _renderProtoNewModal: $b4"
+
+# Block 5: _renderProtoTabBar
+$b5 = $html -match 'NS\._renderProtoTabBar\s*=\s*function[\s\S]*?proto-tab-add'
+Write-Host "Block5 _renderProtoTabBar: $b5"
+
+# Block 6: kind select
+$b6 = $html -match 'kindSel\.addEventListener\(.change.,\s*NS\._onKindChange\)'
+Write-Host "Block6 kind select: $b6"
+
+# Block 7: _onKindChange
+$b7 = $html -match 'NS\._onKindChange\s*=\s*function[\s\S]*?NS\._applyKindTemplate\(newKind\)'
+Write-Host "Block7 _onKindChange: $b7"
+
+# Block 8: fields dynamic
+$b8 = $html -match 'proto\.fields\.forEach\(\(field,\s*idx\)'
+Write-Host "Block8 fields dynamic: $b8"
+
+# Block 9: locked CSS
+$b9 = $html -match '\.proto-field-row\.locked\s*\{'
+Write-Host "Block9 locked CSS: $b9"
+
+# Block 10: byte group colors
+$b10 = ([regex]::Matches($html, '\.b-(header|cmd|type|length|data|crc|tail|addr|msgid|tlv)\s*\{')).Count
+Write-Host "Block10 byte colors: $b10 (expect 10)"
+
+# Block 11: byte group render
+$b11 = $html -match 'byte-group b-\$\{field\.type\}'
+Write-Host "Block11 byte group render: $b11"
+
+# Block 12: _createProtoFromTemplate
+$b12 = $html -match 'NS\._createProtoFromTemplate\s*=\s*function[\s\S]*?协议名不能为空'
+Write-Host "Block12 _createProtoFromTemplate: $b12"
+
+# Block 13: kind-select CSS
+$b13 = $html -match '\.kind-select\s*\{'
+Write-Host "Block13 kind-select CSS: $b13"
+
+# Block 14: proto-new-modal CSS
+$b14 = $html -match '\.proto-new-modal\s*\{'
+Write-Host "Block14 proto-new-modal CSS: $b14"
+
+# Total
+$total = ($b1,$b2,$b3,$b4,$b5,$b6,$b7,$b8,$b9,$b11,$b12,$b13,$b14 | Where-Object {$_}).Count
+$b10ok = $b10 -eq 10
+Write-Host "---"
+Write-Host "Total OK: $total / 13 (Block10 byte colors: $b10ok)"
+if ($total -eq 13 -and $b10ok) { Write-Host "ALL OK" } else { Write-Host "FAIL" }
+'@ | Out-File -FilePath C:\Users\Administrator\AppData\Local\Temp\syntax_check_v48c.ps1 -Encoding UTF8
+```
+
+- [ ] **Step 2: 运行 syntax check**
+
+```powershell
+C:\Users\Administrator\AppData\Local\Temp\syntax_check_v48c.ps1
+```
+
+Expected: `Total OK: 13 / 13` + `Block10 byte colors: True` + `ALL OK`。如失败,根据 FAIL 的 block 修复,重跑。
+
+**不 commit,继续 Task 17**。
+
+---
+
+## Task 17: 浏览器手动 smoke test (16 项)
+
+**Files:** 无 (verify-only)
+
+打开浏览器,加载 `file:///D:/WorkSpace/SerialCubeWeb/SerialCube.html`,按以下顺序验证:
+
+- [ ] **Step 1: 页面正常加载,无 console 报错**
+
+按 F12 打开 dev tools → Console tab,刷新页面。
+Expected: 无红色错误 (warning 允许,但 0 error)。
+
+- [ ] **Step 2: 打开协议编辑器,看到 2 个 legacy tab**
+
+点设置/配置按钮 → 协议编辑器 (具体位置看 UI,通常在 settings 区域)。
+Expected: tab bar 显示 "BMS TLV v1 (Legacy)" + "Modbus RTU (Legacy)" + "+ 新建" 按钮。
+
+- [ ] **Step 3: tab bar 下方 kind 下拉显示 "0 · fixed-header"**
+
+Expected: kind 下拉默认选中 "0 · fixed-header (Legacy)"。
+
+- [ ] **Step 4: fields 6 行,length/crc 行灰显**
+
+Expected: 6 行 fields,length/crc 行 opacity 0.5,input 不可编辑。
+
+- [ ] **Step 5: "+ 加字段" 按钮全部 disabled**
+
+Expected: 每行下方 "+ 加字段" 按钮全部 disabled 灰显 (符合 D6 v2 "CRC 前后不允许添加")。
+
+- [ ] **Step 6: 字节预览按 6 段着色**
+
+Expected: 字节预览区显示 6 段不同背景色 (header 蓝/cmd 橘/length 淡蓝/data 绿/crc 红/tail 灰)。
+
+- [ ] **Step 7: 切 kind 弹确认 modal (D3)**
+
+kind 下拉选 "1 · raw" → 弹确认 modal "切换 Kind"。
+Expected: modal 出现。
+
+- [ ] **Step 8: 切 kind 确认 → fields 重置**
+
+点 "确认" → fields 6 行,header default 变 "0x5A"。
+Expected: header 行 default 输入框显示 0x5A。
+
+- [ ] **Step 9: 切 kind 取消 → kind 下拉回滚**
+
+kind 下拉选 "5 · type-high-bit" → 弹确认 modal → 点 "取消"。
+Expected: kind 下拉回滚到上次的 "raw",fields 不变。
+
+- [ ] **Step 10: 切到 TLV kind (D7 验证)**
+
+kind 下拉选 "7 · tlv" → 确认 → fields 4 行 (header/tlv/crc/tail)。
+Expected: header/tlv/tail 行灰显 (locked),crc 行可编辑。
+
+- [ ] **Step 11: "+ 加字段" 在 TLV kind 下全 disabled**
+
+Expected: TLV kind 的 tlv 行和 crc 行下方 "+ 加字段" 按钮都 disabled (tlv 后面是 unlocked crc 但非 data,crc 后面是 locked tail)。
+
+- [ ] **Step 12: "+ 新建" 按钮弹 modal (D2)**
+
+点 "+ 新建" → 弹新建协议 modal。
+Expected: modal 出现,默认 kind radio = "7 · tlv" 选中 (D7)。
+
+- [ ] **Step 13: 输名字 + 创建**
+
+协议名输入 "测试协议 1" → 点 "创建"。
+Expected: 新 tab 出现 (active 状态),modal 关闭,自动 toast "验证成功"。
+
+- [ ] **Step 14: 切回 BMS 协议,验证兼容 (Task 15)**
+
+点 BMS tab → kind 下拉显示 "0 · fixed-header", fields 6 行,length/crc 灰显。
+Expected: 跟 v6.5 视觉一致,无报错。
+
+- [ ] **Step 15: 截图自检 (用户偏好)**
+
+截 3 张图: 协议编辑器整体 / 字节预览区 / "+ 新建" modal。
+Expected: 视觉整洁,无元素错位,色彩清晰。
+
+- [ ] **Step 16: 关闭页面 + 重打开, 验证状态保留 (sub-1 兼容)**
+
+关闭浏览器,重开,加载 SerialCube.html → 协议编辑器 → 看到 "测试协议 1" tab 还在。
+Expected: 用户新建的协议被 localStorage 保留 (sub-1 已实现 protocol 持久化)。
+
+如**任一 Step 失败**, 回到对应 Task 修复,**不 commit**, 重新跑 smoke test。
+
+---
+
+## Task 18: v4.8c 整体 commit + push
+
+**Files:** Modified: `SerialCube.html`
+
+- [ ] **Step 1: 写 commit message 文件**
+
+打开 PowerShell:
+
+```powershell
+@'
+v4.8c 协议编辑器 UI 重构: kind 下拉 + 动态 fields + 字节预览按段着色 + + 新建 modal
+
+背景
+v4.8 sub-1 (3981f29) 已完成 buildFrame 内核 (8 kind 子函数),
+但协议编辑器 UI 还停在 sub-1 之前 — 2 个 Legacy tab + 固定 fields 列表,
+用户无法选 8 种协议模板,即使 buildFrame 内部已支持。
+
+本 commit 重构协议编辑器 UI:
+1. 顶部加 Kind 下拉 (8 种, 切 kind 弹确认 modal 重置 fields)
+2. fields 列表动态化 (按 kind 渲染 + locked 字段灰显)
+3. 字节预览按段着色 (header/cmd/type/length/data/crc/tail + addr/msgid/tlv 10 色)
+4. "+ 新建" 按钮弹模板选择 modal (默认 kind 7 TLV)
+5. D6 strict v2: kind 固定模板, locked 字段前后不允许插新字段,
+   只允许 data 字段添加 (默认全 disabled, 留 dataZone 扩展)
+6. 现状 2 协议 (BMS / Modbus) 走 kind 0 (fixed-header) 兼容渲染
+
+范围
+- 加 NS._KIND_FIELD_TEMPLATES (8 kind 默认 fields, 含 locked 元数据)
+- 加 NS._applyKindTemplate (深拷贝函数)
+- 加 NS._protoNewModal UI 状态
+- 加 NS._renderProtoNewModal 渲染函数
+- 加 NS._createProtoFromTemplate 创建协议
+- 抽 NS._renderProtoTabBar (从 renderProtoEditor 抽出)
+- 加 NS._onKindChange (切 kind 弹确认)
+- 改 NS.renderProtoEditor:
+  - tab bar 抽出 _renderProtoTabBar
+  - 加 kind 下拉 (8 种,带描述)
+  - fields 列表动态化 (按 kind 渲染 + locked 灰显)
+  - "+ 加字段" 按钮 (D6 v2 激活规则)
+  - 字节预览按段着色
+  - "+ 新建" 按钮触发 modal
+- 加 CSS:
+  - .kind-select + focus
+  - .proto-field-row.locked + .f-add-btn
+  - .byte-group + 10 种 .b-* 颜色
+  - .proto-new-modal + .proto-new-kinds + .proto-new-preview + .proto-new-actions
+
+验证
+- 16 项浏览器 smoke test (Task 17) 全部通过
+- 现状 2 协议 (BMS / Modbus) 走 kind 0 兼容 (Task 15 验证)
+- TLV kind 4 行 (header/tlv/crc/tail),3 行 locked
+- "+ 新建" modal 默认 kind 7 (TLV) 选中
+- 数据兼容性字段不动 (AGENTS.md §2 强制)
+- 1 阶段 commit, 不拆 a/b (spec §10.2 明确)
+
+spec: docs/superpowers/specs/2026-08-05-v48-sub2-ui-redesign-design.md (8f27151)
+plan: docs/superpowers/plans/2026-08-05-v48c-ui-impl-plan.md (a388d90)
+'@ | Out-File -FilePath C:\Users\Administrator\AppData\Local\Temp\commit_v48c.txt -Encoding UTF8
+```
+
+- [ ] **Step 2: git add + commit**
+
+```powershell
+cd D:\WorkSpace\SerialCubeWeb
+git add SerialCube.html
+git status --short
+git commit -F C:\Users\Administrator\AppData\Local\Temp\commit_v48c.txt
+```
+
+Expected: `[main <hash>] v4.8c ...` + 1 file changed + 大量 insertions。
+
+- [ ] **Step 3: git push**
+
+```powershell
+git push origin main
+```
+
+Expected: `.. main -> main` (1 commit push 成功)。
+
+- [ ] **Step 4: 告知用户完成**
+
+```
+v4.8c 完成 ✅
+- Commit: <hash> (1 个 commit)
+- 改动: SerialCube.html (1 文件,大量插入)
+- 验证: 16 项 smoke test 全部通过
+- 现状 2 协议兼容: BMS / Modbus 走 kind 0
+
+接下来:
+- sub-3: parseFrame (贴字节反解析) + 协议编辑器"贴字节"输入框
+- sub-4: cmd 字段映射重构 (dataSize 自动算) + pair trigger 真实发送
+```
+
+---
+
+## Self-Review
+
+**1. Spec coverage** — 18 tasks 覆盖 spec 11 节:
+- §1.2 目标: Task 1-17 全部
+- §2.1 整体布局: Task 5-12 UI 改造
+- §2.2 tab bar: Task 5
+- §2.3 kind 下拉: Task 6-7
+- §2.4 fields 列表动态化 (D6 v2): Task 8-9
+- §2.5 字节预览: Task 10-11
+- §2.6 "+ 新建" modal: Task 4, 12, 14
+- §3.2 _KIND_FIELD_TEMPLATES: Task 1
+- §5.3 _protoNewModal: Task 3
+- §5.4 renderProtoEditor: Task 5-12
+- §5.5 _applyKindTemplate: Task 2
+- §6.1 切换 kind: Task 7
+- §6.2 新建协议: Task 12
+- §6.3 编辑 fields: Task 8
+- §6.4b 插入字段 (D6 v2): Task 8
+- §7 错误处理: Task 12 (name 空/重复 toast)
+- §8.1 现状 2 协议兼容: Task 15
+- §9 数据兼容性: Global Constraints 列出
+- §10 commit: Task 18
+
+**2. Placeholder scan** — 无 "TBD" / "TODO" / "实现时定" / "fill in details" / "Add appropriate" / "类似 Task N"。所有 step 有实际代码/命令/可执行内容。
+
+**3. Type consistency** —
+- `NS._KIND_FIELD_TEMPLATES` (Task 1) → `NS._applyKindTemplate(kind)` 消费 (Task 2) ✓
+- `NS._protoNewModal` (Task 3) → `NS._renderProtoNewModal` 消费 (Task 4) ✓
+- `NS._renderProtoNewModal` (Task 4) → 调 `NS._createProtoFromTemplate` (Task 12) ✓
+- `NS._renderProtoTabBar` (Task 5) → 在 `renderProtoEditor` 调用 (Task 5 Step 3) ✓
+- `NS._onKindChange` (Task 7) → kind select 监听 (Task 6) ✓
+- `protocol.fields` 动态渲染 (Task 8) → locked CSS (Task 9) ✓
+- `NS.buildFrame` 消费 (Task 11) → 自动验证 (Task 12) ✓
+- `field.type === 'data'` 规则 (Task 8) → 跟 spec §6.4b D6 v2 一致 ✓
+
+如有冲突或缺口,已 inline 修复。Self-review 通过。
+
+---
+
+## Execution Handoff
+
+Plan complete and saved to `docs/superpowers/plans/2026-08-05-v48c-ui-impl-plan.md`. Two execution options:
+
+**1. Subagent-Driven (recommended)** - Dispatch a fresh subagent per task, review between tasks, fast iteration. Use superpowers:subagent-driven-development.
+
+**2. Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints.
+
+Which approach?
+
+(本项目特性: 单文件 HTML + 改动集中 + token 敏感, 推荐 **Subagent-Driven** — 每个 task 上下文隔离, 避免主 session 烧太多 token。但如果想快速过一遍看效果, **Inline Execution** 也可以。)
