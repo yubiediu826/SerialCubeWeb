@@ -6221,9 +6221,15 @@
   transition: all 0.12s;
 }
 .dashboard-host     .detail-zoom-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
-.dashboard-host     .detail-zoom-btn[data-zoom="reset"] { font-size: 13px; }
-.dashboard-host     .detail-zoom-info { font-family: var(--font-mono); font-size: 10px; color: var(--text-mute); margin: 0 4px; min-width: 56px; text-align: center; }
-.dashboard-host     .detail-chart-type { padding: 3px 6px; font-size: 11px; min-width: 0; width: 60px; flex-shrink: 0; }
+.dashboard-host     .detail-zoom-btn .icon-svg { width: 13px; height: 13px; }
+.dashboard-host     .detail-zoom-info { font-family: var(--font-mono); font-size: 10px; color: var(--text-mute); margin: 0 4px; min-width: 48px; text-align: center; }
+.dashboard-host     .detail-chart-type {
+  padding: 2px 16px 2px 6px; font-size: 11px; font-weight: 600;
+  min-width: 0; width: 60px; flex-shrink: 0;
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M2 4l3 3 3-3' stroke='%2367676c' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat; background-position: right 5px center;
+}
 
 /* v5.1.0: 时间范围 (全局 — 图表/状态行/日志共用) */
 .dashboard-host     .detail-timerange {
@@ -6232,8 +6238,8 @@
   border-bottom: 1px solid var(--border);
   background: var(--bg-panel);
 }
-.dashboard-host     .detail-timerange-label { font-size: 11px; font-weight: 700; color: var(--text-soft); letter-spacing: 0.04em; }
-.dashboard-host     .detail-timerange-chips { display: inline-flex; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-subtle); overflow: hidden; }
+.dashboard-host     .detail-timerange-label { font-size: 11px; font-weight: 700; color: var(--text-soft); letter-spacing: 0.04em; margin-right: 4px; flex-shrink: 0; }
+.dashboard-host     .detail-timerange-chips { display: inline-flex; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-subtle); overflow: hidden; margin-right: 12px; flex-shrink: 0; }
 .dashboard-host     .detail-timerange-chip {
   padding: 3px 10px; font-size: 11px; font-weight: 600;
   color: var(--text-soft); cursor: pointer;
@@ -6261,15 +6267,15 @@
 .dashboard-host     .modal-body.detail-body .detail-page-logs { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
 .dashboard-host     .modal-body.detail-body .detail-page-logs { display: none; }
 
-/* v5.1.0: 图表区 (含 X/Y 轴标签) */
-.dashboard-host     .detail-body .chart-area { position: relative; flex: 1; min-height: 0; width: 100%; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px 24px 50px; }
+/* v5.1.3: 图表区 (含 X/Y 轴标签) — padding-bottom 32 给 X 轴 tick + zoom-hint 留空间, 避免重叠 */
+.dashboard-host     .detail-body .chart-area { position: relative; flex: 1; min-height: 0; width: 100%; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px 32px 50px; }
 .dashboard-host     .detail-body canvas.detail-canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
 .dashboard-host     .detail-body .chart-area .axis-label { position: absolute; font-size: 9px; color: var(--text-mute); font-family: var(--font-mono); pointer-events: none; }
 .dashboard-host     .detail-body .chart-area .axis-title { position: absolute; font-size: 9px; color: var(--text-soft); font-weight: 600; font-family: inherit; pointer-events: none; }
-/* v5.1.0: Y/X 轴刻度数字 (HTML, 绝对定位, 在 chart-area padding 区域不被 canvas clip) */
+/* v5.1.3: Y/X 轴刻度数字 (HTML 绝对定位, bottom 32 跟 X 轴留 12px 间隔) */
 .dashboard-host     .detail-body .chart-area .axis-ticks { position: absolute; pointer-events: none; }
-.dashboard-host     .detail-body .chart-area .axis-ticks-y { left: 4px; top: 8px; bottom: 24px; width: 42px; }
-.dashboard-host     .detail-body .chart-area .axis-ticks-x { left: 50px; right: 12px; bottom: 4px; height: 16px; }
+.dashboard-host     .detail-body .chart-area .axis-ticks-y { left: 4px; top: 8px; bottom: 32px; width: 42px; }
+.dashboard-host     .detail-body .chart-area .axis-ticks-x { left: 50px; right: 12px; bottom: 8px; height: 16px; }
 .dashboard-host     .detail-body .chart-area .axis-ticks .tick {
   position: absolute; font-size: 9px; color: var(--text-mute); font-family: var(--font-mono); line-height: 12px; white-space: nowrap;
 }
@@ -6389,6 +6395,14 @@
       display: inline-flex; align-items: center; justify-content: center;
       font-size: 14px; color: var(--text-soft);
     }
+    .dashboard-host     .close-btn:hover { background: var(--bg-subtle); color: var(--text); }
+    /* v5.1.3: SVG icon 通用样式 (16x16, stroke=currentColor, 居中) */
+    .dashboard-host     .icon-svg {
+      width: 14px; height: 14px;
+      vertical-align: -3px;
+      flex-shrink: 0;
+    }
+    .dashboard-host     .modal-header .close-btn .icon-svg { width: 14px; height: 14px; vertical-align: middle; }
 .dashboard-host     .modal-title { font-size: 16px; font-weight: 800; }
 .dashboard-host     .modal-subtitle { font-size: 11px; color: var(--text-soft); }
     .dashboard-host     .modal-body { flex: 1; min-height: 0; overflow: auto; padding: 20px; }
@@ -7434,7 +7448,7 @@
         <div class="alert-drawer" id="dh-alert-drawer">
           <div class="alert-drawer-head">
             <span>告警 (0)</span>
-            <button class="icon-btn" id="dh-alert-toggle" style="width:24px; height:24px; font-size:11px;">−</button>
+            <button class="icon-btn" id="dh-alert-toggle" style="width:24px; height:24px; font-size:11px;" title="折叠/展开"><svg viewBox="0 0 16 16" class="icon-svg" width="12" height="12"><path d="M3 8 H13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg></button>
           </div>
           <div class="alert-list" id="dh-alert-list"></div>
         </div>
@@ -7444,7 +7458,7 @@
         <div class="modal-backdrop" id="dh-proto-backdrop"></div>
         <div class="modal xtra-wide" id="dh-proto-modal">
           <div class="modal-header">
-            <button class="close-btn" data-close="dh-proto">×</button>
+            <button class="close-btn" data-close="dh-proto" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
             <span class="modal-title">协议编辑器</span>
             <span class="modal-subtitle">TLV 帧结构 · 字段 / 大小端 / 数据段 / 帧预览</span>
             <span style="flex: 1;"></span>
@@ -7458,15 +7472,15 @@
           <div class="modal-footer">
             <button class="toolbar-btn" data-close="dh-proto">关闭</button>
             <span class="spacer"></span>
-            <button class="toolbar-btn" id="dh-proto-reset">↻ 恢复默认协议</button>
-            <button class="toolbar-btn primary" id="dh-proto-apply">✓ 应用协议</button>
+            <button class="toolbar-btn" id="dh-proto-reset"><svg viewBox="0 0 16 16" class="icon-svg" style="width:12px; height:12px; vertical-align:-2px; margin-right:3px;"><path d="M13 8 A5 5 0 1 1 8 3 L11 3 M11 1 L11 5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>恢复默认协议</button>
+            <button class="toolbar-btn primary" id="dh-proto-apply"><svg viewBox="0 0 16 16" class="icon-svg" style="width:12px; height:12px; vertical-align:-2px; margin-right:3px;"><path d="M3 8.5 L6.5 12 L13 4.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>应用协议</button>
           </div>
         </div>
 
         <div class="modal-backdrop" id="dh-cmd-config-backdrop"></div>
         <div class="modal" id="dh-cmd-config-modal">
           <div class="modal-header">
-            <button class="close-btn" data-close="dh-cmd-config">×</button>
+            <button class="close-btn" data-close="dh-cmd-config" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
             <span class="modal-title">命令管理</span>
             <span class="modal-subtitle">绑定协议 / 方向 / 轮询 / 数据字段</span>
           </div>
@@ -7520,7 +7534,7 @@
         <div class="modal-backdrop" id="dh-card-config-backdrop"></div>
         <div class="modal" id="dh-card-config-modal">
           <div class="modal-header">
-            <button class="close-btn" data-close="dh-card-config">×</button>
+            <button class="close-btn" data-close="dh-card-config" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
             <span class="modal-title">卡片配置</span>
             <span class="modal-subtitle">所有卡片 · 大卡 / 列表</span>
           </div>
@@ -7567,7 +7581,7 @@
         <div class="modal-backdrop" id="dh-card-edit-backdrop"></div>
         <div class="modal" id="dh-card-edit-modal">
           <div class="modal-header">
-            <button class="close-btn" data-close="dh-card-edit">×</button>
+            <button class="close-btn" data-close="dh-card-edit" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
             <span class="modal-title">卡片编辑</span>
             <span class="modal-subtitle" id="dh-card-edit-subtitle">—</span>
           </div>
@@ -7602,7 +7616,7 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button class="toolbar-btn danger" id="dh-ce-delete">× 删除卡片</button>
+            <button class="toolbar-btn danger" id="dh-ce-delete"><svg viewBox="0 0 16 16" class="icon-svg" style="width:12px; height:12px; vertical-align:-2px; margin-right:3px;"><path d="M3 4 H13 M5 4 V3 H11 V4 M6 7 V12 M10 7 V12 M4 4 L5 13 H11 L12 4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>删除卡片</button>
             <span class="spacer"></span>
             <button class="toolbar-btn" data-close="dh-card-edit">取消</button>
             <button class="toolbar-btn primary" id="dh-ce-save">保存修改</button>
@@ -7612,7 +7626,7 @@
         <div class="modal-backdrop" id="dh-ie-backdrop"></div>
         <div class="modal wide" id="dh-ie-modal">
           <div class="modal-header">
-            <button class="close-btn" data-close="dh-ie">×</button>
+            <button class="close-btn" data-close="dh-ie" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
             <span class="modal-title">协议配置 导入 / 导出 (JSON)</span>
             <span class="modal-subtitle">复用 SerialWebUserConfig v1 格式</span>
           </div>
@@ -7633,7 +7647,7 @@
         <div class="modal-backdrop" id="dh-alerts-backdrop"></div>
         <div class="modal" id="dh-alerts-modal">
           <div class="modal-header">
-            <button class="close-btn" data-close="dh-alerts">×</button>
+            <button class="close-btn" data-close="dh-alerts" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
             <span class="modal-title">告警配置</span>
           </div>
           <div class="modal-body">
@@ -7659,7 +7673,7 @@
         <div class="modal-backdrop" id="dh-detail-backdrop"></div>
         <div class="modal detail-modal" id="dh-detail-modal">
           <div class="modal-header detail-header">
-            <button class="close-btn" data-close="dh-detail">×</button>
+            <button class="close-btn" data-close="dh-detail" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
             <span class="modal-title" id="dh-detail-title">详情</span>
             <span class="detail-cmd-badge" id="dh-detail-cmd">0x00 RX</span>
             <span class="detail-range" id="dh-detail-range"></span>
@@ -7676,18 +7690,24 @@
             </div>
             <span class="detail-timerange-info" id="dh-detail-timerange-info">11:42:18 · 最近 30 分钟</span>
             <span class="detail-timerange-spacer"></span>
-            <button class="detail-timerange-refresh active" id="dh-detail-auto-refresh" title="实时自动刷新">↻</button>
+            <button class="detail-timerange-refresh active" id="dh-detail-auto-refresh" title="实时自动刷新"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M13 8 A5 5 0 1 1 8 3 L11 3 M11 1 L11 5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           </div>
           <!-- v5.1.2: 页面切换 (图表 / 日志) -->
           <div class="detail-page-tabs">
-            <button class="detail-page-tab active" data-page="chart">📈 图表</button>
-            <button class="detail-page-tab" data-page="logs">📋 日志</button>
+            <button class="detail-page-tab active" data-page="chart" title="图表">
+              <svg viewBox="0 0 16 16" class="icon-svg"><polyline points="2,13 5,10 8,12 11,7 14,4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><polyline points="11,4 14,4 14,7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              图表
+            </button>
+            <button class="detail-page-tab" data-page="logs" title="日志">
+              <svg viewBox="0 0 16 16" class="icon-svg"><rect x="3" y="3" width="10" height="2" rx="0.5" stroke="currentColor" stroke-width="1.2" fill="none"/><rect x="3" y="7" width="10" height="2" rx="0.5" stroke="currentColor" stroke-width="1.2" fill="none"/><rect x="3" y="11" width="10" height="2" rx="0.5" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+              日志
+            </button>
             <span class="detail-page-tabs-spacer"></span>
             <!-- 缩放按钮: 图表页用 (跟着 page 显隐) -->
             <span class="detail-chart-tools" data-show-on="chart">
-              <button class="detail-zoom-btn" data-zoom="out" title="缩小 (滚轮向下)">−</button>
-              <button class="detail-zoom-btn" data-zoom="in" title="放大 (滚轮向上)">+</button>
-              <button class="detail-zoom-btn" data-zoom="reset" title="复位 (双击图表)">↺</button>
+              <button class="detail-zoom-btn" data-zoom="out" title="缩小 (滚轮向下)"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M3 8 H13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg></button>
+              <button class="detail-zoom-btn" data-zoom="in" title="放大 (滚轮向上)"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M3 8 H13 M8 3 V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg></button>
+              <button class="detail-zoom-btn" data-zoom="reset" title="复位 (双击图表)"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M3.5 8 A4.5 4.5 0 1 0 5 4.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><polyline points="2.5,2 5,4.5 2.5,6" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
               <span class="detail-zoom-info" id="dh-detail-zoom-info">50 / 120</span>
               <select class="form-select detail-chart-type" id="dh-detail-chart-type" title="图表类型">
                 <option value="line">折线</option>
@@ -7705,7 +7725,7 @@
         <div class="modal-backdrop" id="dh-pair-trigger-backdrop"></div>
         <div class="modal" id="dh-pair-trigger-modal">
           <div class="modal-header">
-            <button class="close-btn" data-close="dh-pair-trigger">×</button>
+            <button class="close-btn" data-close="dh-pair-trigger" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
             <span class="modal-title" id="dh-pair-trigger-title">触发命令</span>
             <span class="modal-subtitle" id="dh-pair-trigger-subtitle">字段</span>
           </div>
@@ -10098,7 +10118,7 @@
           const add = document.createElement('div');
           add.className = 'card-add-slot ' + (layout === 'list' ? 'list' : 'card');
           // v4.4.2: 提示词统一, 已开启编辑模式时高亮 "可添加", 未开启时灰色 "编辑模式下添加"
-          add.innerHTML = '<div class="add-icon">+</div><div class="hint">' + (NS.editMode ? '<span class="hint-strong">可添加</span>新卡片' : '编辑模式下添加') + '</div>';
+          add.innerHTML = '<div class="add-icon"><svg viewBox="0 0 16 16" class="icon-svg" style="width:18px; height:18px;"><path d="M3 8 H13 M8 3 V13" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg></div><div class="hint">' + (NS.editMode ? '<span class="hint-strong">可添加</span>新卡片' : '编辑模式下添加') + '</div>';
           if (layout === 'list') {
             // v4.4.2: 列表布局 add 卡跨满列, 跟 group header 一致, 高度跟 list card 一样 (80px)
             add.style.gridColumn = '1 / -1';
@@ -10433,18 +10453,18 @@
             + '<span class="detail-logs-title">数据日志</span>'
             + '<span class="detail-logs-spacer"></span>'
             + '<span class="detail-logs-count" id="dh-detail-logs-count">0 条</span>'
-            + '<button class="detail-logs-jump-btn active" id="dh-detail-logs-jump" title="新数据自动滚到底部">⤵ 跟随</button>'
+            + '<button class="detail-logs-jump-btn active" id="dh-detail-logs-jump" title="新数据自动滚到底部"><svg viewBox="0 0 16 16" class="icon-svg" style="width:11px; height:11px; vertical-align:-1px; margin-right:3px;"><path d="M8 2 V11 M4 7 L8 11 L12 7 M2 14 H14" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>跟随</button>'
             + '</div>'
             + '<div class="detail-logs-table" id="dh-detail-logs-table"></div>'
             + '</div>'
             + '</div>';
-          // chart-area 装饰 (tooltip + marker + zoom-hint + zoom-selection) — 只在 chart 页需要
+          // chart-area 装饰 (tooltip + marker + zoom-selection) — 只在 chart 页需要
+          // v5.1.3: zoom-hint 删掉 (跟 X 轴 tick 文字重叠, 顶部 tabs 已有 [−][+][↺] 暗示)
           const ca = body.querySelector('#dh-chart-area');
           if (ca && !ca.querySelector('.detail-tooltip')) {
             const tip = document.createElement('div'); tip.className = 'detail-tooltip'; ca.appendChild(tip);
             const mk = document.createElement('div'); mk.className = 'detail-marker'; ca.appendChild(mk);
             const sel = document.createElement('div'); sel.className = 'detail-zoom-selection'; ca.appendChild(sel);
-            const hi = document.createElement('div'); hi.className = 'detail-zoom-hint'; hi.textContent = '滚轮缩放 · 拖动选区 · 双击复位'; ca.appendChild(hi);
           }
           // 拉数据
           let data = [], setData = [], actData = [];
@@ -12365,26 +12385,35 @@
               NS._renderDetailBody();
             });
           });
-          document.querySelectorAll('.detail-zoom-btn').forEach((btn) => {
-            btn.addEventListener('click', (e) => {
-              e.preventDefault();
-              if (!NS._detailCardId) return;
-              const act = btn.dataset.zoom;
-              const id = NS._detailCardId;
-              const card = NS.CARDS.find((c) => c.id === id);
-              if (!card) return;
-              let data = [];
-              if (card.type === 'pair') {
-                data = NS.trendData['09.charge_v_pair_act'] || [];
-              } else {
-                const cmdHex = card.cmd ? card.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
-                data = NS.trendData[cmdHex + '.' + card.field] || [];
-              }
-              if (act === 'in') NS._detailZoomBy(0.5, card, data);
-              else if (act === 'out') NS._detailZoomBy(2.0, card, data);
-              else if (act === 'reset') NS._resetDetailZoom();
+          // v5.1.3: 一次性绑定守卫, 防止多次 attachModalHandlers 重复触发 (导致 zoom-out 跟 reset 互相干扰)
+          if (!NS._zoomHandlersBound) {
+            NS._zoomHandlersBound = true;
+            document.querySelectorAll('.detail-zoom-btn').forEach((btn) => {
+              btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!NS._detailCardId) return;
+                const act = btn.dataset.zoom;
+                const id = NS._detailCardId;
+                const card = NS.CARDS.find((c) => c.id === id);
+                if (!card) return;
+                let data = [];
+                if (card.type === 'pair') {
+                  data = NS.trendData['09.charge_v_pair_act'] || [];
+                } else {
+                  const cmdHex = card.cmd ? card.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
+                  data = NS.trendData[cmdHex + '.' + card.field] || [];
+                }
+                if (act === 'in') NS._detailZoomBy(0.5, card, data);
+                else if (act === 'out') NS._detailZoomBy(2.0, card, data);
+                else if (act === 'reset') {
+                  // v5.1.3: reset 不管当前 zoom 状态, 强制置 null + 重 render
+                  NS._detailZoom = null;
+                  NS._renderDetailBody();
+                }
+              });
             });
-          });
+          }
           // v5.1.2: 详情 modal — 图表/日志 页切换
           document.querySelectorAll('.detail-page-tab').forEach((btn) => {
             btn.addEventListener('click', () => {
