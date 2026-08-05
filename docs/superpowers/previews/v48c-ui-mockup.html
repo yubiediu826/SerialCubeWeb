@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>v4.8c 协议编辑器 UI 重构 — 预览</title>
+<style>
+  :root {
+    --bg-elevated: #ffffff;
+    --bg-panel: #f4f5f8;
+    --bg-panel-strong: #ffffff;
+    --border: rgba(60,60,67,0.18);
+    --accent: #5672cd;
+    --accent-strong: #3a5ccc;
+    --accent-soft: rgba(86,114,205,0.14);
+    --text: #1c1c1e;
+    --text-soft: #6b6b76;
+    --success: #2c9a4a;
+    --warning: #d97706;
+    --danger: #e0575e;
+    --radius: 10px;
+    --radius-small: 6px;
+    --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --shadow-ambient: 0 6px 24px rgba(0,0,0,0.12);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #e9eaee;
+    color: var(--text);
+    padding: 24px;
+  }
+  .preview-header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .preview-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+  .preview-header .subtitle {
+    color: var(--text-soft);
+    font-size: 13px;
+  }
+  .preview-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 1800px;
+    margin: 0 auto;
+  }
+  .preview-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-ambient);
+    overflow: hidden;
+  }
+  .preview-card .label {
+    background: linear-gradient(to right, var(--accent-soft), transparent);
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--accent-strong);
+    border-bottom: 1px solid var(--border);
+  }
+  .preview-card .label.legacy { color: var(--text-soft); background: linear-gradient(to right, rgba(0,0,0,0.04), transparent); }
+  .preview-card .label.new { color: var(--success); background: linear-gradient(to right, rgba(44,154,74,0.10), transparent); }
+  .modal-mock {
+    padding: 16px;
+  }
+  /* Tab bar */
+  .proto-tabs {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+    padding-bottom: 0;
+  }
+  .proto-tab {
+    padding: 8px 14px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-soft);
+  }
+  .proto-tab.active {
+    background: var(--bg-panel);
+    border-color: var(--border);
+    color: var(--text);
+    font-weight: 600;
+    position: relative;
+    bottom: -1px;
+  }
+  .proto-tab .legacy-badge {
+    background: rgba(0,0,0,0.08);
+    color: var(--text-soft);
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+  .proto-tab .close {
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 2px;
+  }
+  .proto-tab-new {
+    padding: 8px 12px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-soft);
+    cursor: pointer;
+  }
+  .proto-tab-new:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* Kind dropdown */
+  .proto-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .proto-meta-row label {
+    font-size: 11px;
+    color: var(--text-soft);
+    font-weight: 600;
+  }
+  .proto-kind-select {
+    padding: 6px 28px 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    background: var(--bg-elevated);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--text);
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M3 5 L6 8 L9 5' fill='none' stroke='%236b6b76' stroke-width='1.4' stroke-linecap='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 10px;
+  }
+  .proto-kind-desc {
+    font-size: 11px;
+    color: var(--text-soft);
+    font-style: italic;
+  }
+  .validate-btn {
+    margin-left: auto;
+    padding: 6px 14px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-small);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .validate-btn.ok { background: var(--success); }
+
+  /* Fields table */
+  .proto-fields {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .proto-fields-head {
+    display: grid;
+    background: var(--bg-panel);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-soft);
+    letter-spacing: 0.04em;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .proto-fields-head.legacy-grid { grid-template-columns: 26px 1fr 60px 90px 60px 100px 32px; }
+  .proto-fields-head.tlv-grid { grid-template-columns: 26px 1fr 70px 70px 80px 100px 32px; }
+  .proto-fields-head.cmd-grid { grid-template-columns: 26px 1fr 60px 70px 80px 100px 32px; }
+  .proto-fields-head.msgid-grid { grid-template-columns: 26px 1fr 70px 80px 80px 100px 32px; }
+  .proto-fields-row {
+    display: grid;
+    align-items: center;
+    padding: 6px 10px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .proto-fields-row:first-child { border-top: none; }
+  .proto-fields-row input[type="text"],
+  .proto-fields-row select {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    background: var(--bg-elevated);
+  }
+  .proto-fields-row .row-idx { color: var(--text-soft); font-size: 10px; }
+  .proto-fields-row .row-del {
+    color: var(--text-soft);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    width: 22px; height: 22px;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .proto-fields-row .row-del:hover { color: var(--danger); border-color: var(--danger); }
+  .add-row-btn {
+    padding: 5px 10px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--text-soft);
+    cursor: pointer;
+    margin: 6px 0 0 10px;
+  }
+  .add-row-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* Byte preview */
+  .byte-preview {
+    background: #fafbfc;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    padding: 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-top: 10px;
+  }
+  .byte-preview .label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-soft);
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .byte-group { display: inline-block; margin-right: 6px; }
+  .byte-group .b {
+    display: inline-block;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 600;
+    margin: 0 1px;
+  }
+  .b-h { background: rgba(86,114,205,0.18); color: #3a5ccc; }  /* header */
+  .b-c { background: rgba(217,119,6,0.18); color: #d97706; }  /* cmd */
+  .b-a { background: rgba(0,0,0,0.06); color: var(--text); }   /* addr */
+  .b-t { background: rgba(156,39,176,0.18); color: #6a1b9a; }  /* type */
+  .b-l { background: rgba(86,114,205,0.10); color: #3a5ccc; }  /* length */
+  .b-d { background: rgba(44,154,74,0.18); color: #2c9a4a; }   /* data */
+  .b-crc { background: rgba(224,87,94,0.18); color: #c63d44; } /* crc */
+  .b-tl { background: rgba(60,60,67,0.18); color: var(--text-soft); } /* tail */
+  .b-mid { color: var(--text-soft); margin: 0 4px; font-weight: 400; }
+
+  /* Annotation note */
+  .note {
+    background: rgba(86,114,205,0.06);
+    border-left: 3px solid var(--accent);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text-soft);
+    line-height: 1.6;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .note strong { color: var(--text); }
+
+  /* Comparison */
+  .diff-mark {
+    display: inline-block;
+    background: rgba(44,154,74,0.18);
+    color: var(--success);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 6px;
+  }
+</style>
+</head>
+<body>
+
+<div class="preview-header">
+  <h1>v4.8c 协议编辑器 UI 重构 — 预览</h1>
+  <div class="subtitle">kind 下拉 + 动态 fields + 字节预览。左侧: 现状 (kind 0 fixed-header)。右侧: 改造后 (kind 7 TLV)。</div>
+</div>
+
+<div class="preview-pair">
+
+  <!-- LEFT: 现状 (kind 0 fixed-header) -->
+  <div class="preview-card">
+    <div class="label legacy">现状 (v5.1.6) — 固定 fields 列表</div>
+    <div class="modal-mock">
+      <!-- Tab bar -->
+      <div class="proto-tabs">
+        <div class="proto-tab">
+          BMS TLV v1
+          <span class="legacy-badge">legacy</span>
+          <span class="close">×</span>
+        </div>
+        <div class="proto-tab active">
+          Modbus RTU
+          <span class="legacy-badge">legacy</span>
+          <span class="close">×</span>
+        </div>
+        <div class="proto-tab-new">+ 新建</div>
+      </div>
+
+      <div class="note">
+        <strong>现状痛点:</strong> 每个协议 tab 写死 fields 列表,无法选择工业协议模板 (raw / cmd-split / addr-split / ctrl-bit7 / type-high-bit / msgid-mixed / tlv)。v4.8b 7 个 buildFrame 子函数虽已实现,但 UI 选不到 — 用户只能手写 schema。
+      </div>
+
+      <div class="proto-meta-row">
+        <label>Kind</label>
+        <span class="proto-kind-desc" style="color: var(--text-soft); font-style: italic;">(无下拉, 由 fields 列表推断为 kind 0 fixed-header)</span>
+        <button class="validate-btn ok">✓ 验证</button>
+      </div>
+
+      <!-- Fields table (固定 6 行) -->
+      <div class="proto-fields">
+        <div class="proto-fields-head legacy-grid">
+          <div>#</div><div>name</div><div>size</div><div>type</div><div>default</div><div>crc range</div><div></div>
+        </div>
+        <div class="proto-fields-row legacy-grid">
+          <div class="row-idx">1</div>
+          <input type="text" value="header" />
+          <input type="text" value="1" />
+          <select><option>header</option></select>
+          <input type="text" value="0xAA" />
+          <input type="text" value="—" />
+          <button class="row-del">×</button>
+        </div>
+        <div class="proto-fields-row legacy-grid">
+          <div class="row-idx">2</div>
+          <input type="text" value="cmd" />
+          <input type="text" value="1" />
+          <select><option>cmd</option></select>
+          <input type="text" value="0x00" />
+          <input type="text" value="—" />
+          <button class="row-del">×</button>
+        </div>
+        <div class="proto-fields-row legacy-grid">
+          <div class="row-idx">3</div>
+          <input type="text" value="length" />
+          <input type="text" value="1" />
+          <select><option>length</option></select>
+          <input type="text" value="auto" />
+          <input type="text" value="—" />
+          <button class="row-del">×</button>
+        </div>
+        <div class="proto-fields-row legacy-grid">
+          <div class="row-idx">4</div>
+          <input type="text" value="data" />
+          <input type="text" value="0" />
+          <select><option>data</option></select>
+          <input type="text" value="0x00" />
+          <input type="text" value="—" />
+          <button class="row-del">×</button>
+        </div>
+        <div class="proto-fields-row legacy-grid">
+          <div class="row-idx">5</div>
+          <input type="text" value="crc" />
+          <input type="text" value="2" />
+          <select><option>crc</option></select>
+          <input type="text" value="auto" />
+          <input type="text" value="all" />
+          <button class="row-del">×</button>
+        </div>
+        <div class="proto-fields-row legacy-grid">
+          <div class="row-idx">6</div>
+          <input type="text" value="tail" />
+          <input type="text" value="1" />
+          <select><option>tail</option></select>
+          <input type="text" value="0x55" />
+          <input type="text" value="—" />
+          <button class="row-del">×</button>
+        </div>
+      </div>
+      <button class="add-row-btn">+ 加字段</button>
+
+      <!-- Byte preview -->
+      <div class="byte-preview">
+        <div class="label">字节预览 (cmd 0x01, data=10B)</div>
+        <div class="byte-group">
+          <span class="b b-h">AA</span>
+          <span class="b b-c">01</span>
+          <span class="b b-l">0A</span>
+          <span class="b b-d">0A 0B 0C 0D 0E 0F 10 11 12 13</span>
+          <span class="b b-crc">XX XX</span>
+          <span class="b b-tl">55</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: 改造后 (kind 7 TLV) -->
+  <div class="preview-card">
+    <div class="label new">改造后 (v4.8c) — kind 下拉 + 动态 fields<span class="diff-mark">+kind 下拉</span><span class="diff-mark">+TLV 模板</span></div>
+    <div class="modal-mock">
+      <!-- Tab bar (同样) -->
+      <div class="proto-tabs">
+        <div class="proto-tab">
+          BMS TLV v1
+          <span class="legacy-badge">legacy</span>
+          <span class="close">×</span>
+        </div>
+        <div class="proto-tab active">
+          BMS TLV v2
+          <span style="background: rgba(44,154,74,0.18); color: #2c9a4a; font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: 700;">NEW</span>
+          <span class="close">×</span>
+        </div>
+        <div class="proto-tab">
+          Modbus RTU
+          <span class="legacy-badge">legacy</span>
+          <span class="close">×</span>
+        </div>
+        <div class="proto-tab-new">+ 新建</div>
+      </div>
+
+      <div class="proto-meta-row">
+        <label>Kind</label>
+        <select class="proto-kind-select" style="width: 200px;">
+          <option>0 · fixed-header (Legacy)</option>
+          <option>1 · Raw (MB/CB 不同帧头)</option>
+          <option>2 · Cmd Split (同帧头 + 命令分区)</option>
+          <option>3 · Addr Split (同帧头 + 地址区分)</option>
+          <option>4 · Ctrl Bit7 (控制位方向)</option>
+          <option>5 · Type High Bit (Type 高位方向)</option>
+          <option>6 · MsgID Mixed (15+7+8 packed)</option>
+          <option selected>7 · Pure TLV (Type+Length+Value 循环)</option>
+        </select>
+        <span class="proto-kind-desc">tlv type bit7 编码方向</span>
+        <button class="validate-btn ok">✓ 验证</button>
+      </div>
+
+      <!-- Fields table (TLV 模板) -->
+      <div class="proto-fields">
+        <div class="proto-fields-head tlv-grid">
+          <div>#</div><div>name</div><div>size</div><div>type</div><div>default</div><div>备注</div><div></div>
+        </div>
+        <div class="proto-fields-row tlv-grid">
+          <div class="row-idx">1</div>
+          <input type="text" value="header" />
+          <input type="text" value="1" />
+          <select><option>header</option></select>
+          <input type="text" value="0xAA" />
+          <input type="text" value="固定" disabled style="color: var(--text-soft); background: #f4f5f8;" />
+          <button class="row-del">×</button>
+        </div>
+        <div class="proto-fields-row tlv-grid" style="background: rgba(86,114,205,0.04);">
+          <div class="row-idx">2</div>
+          <input type="text" value="tlv" />
+          <input type="text" value="0" />
+          <select><option>data</option></select>
+          <input type="text" value="—" disabled style="color: var(--text-soft); background: #f4f5f8;" />
+          <input type="text" value="循环 TLV (cmd.tlvs)" disabled style="color: var(--text-soft); background: #f4f5f8;" />
+          <button class="row-del">×</button>
+        </div>
+        <div class="proto-fields-row tlv-grid">
+          <div class="row-idx">3</div>
+          <input type="text" value="crc" />
+          <input type="text" value="2" />
+          <select><option>crc</option></select>
+          <input type="text" value="auto" />
+          <input type="text" value="crc16-modbus" disabled style="color: var(--text-soft); background: #f4f5f8;" />
+          <button class="row-del">×</button>
+        </div>
+        <div class="proto-fields-row tlv-grid">
+          <div class="row-idx">4</div>
+          <input type="text" value="tail" />
+          <input type="text" value="1" />
+          <select><option>tail</option></select>
+          <input type="text" value="0x55" />
+          <input type="text" value="固定" disabled style="color: var(--text-soft); background: #f4f5f8;" />
+          <button class="row-del">×</button>
+        </div>
+      </div>
+      <button class="add-row-btn">+ 加字段</button>
+
+      <div class="note" style="margin-top: 14px;">
+        <strong>改造点 1:</strong> 顶部加 <strong>Kind 下拉</strong>,8 种 (raw / cmd-split / addr-split / ctrl-bit7 / type-high-bit / msgid-mixed / tlv / fixed-header)。切换 kind 自动填默认 fields。<br>
+        <strong>改造点 2:</strong> fields 列表<strong>根据 kind 动态化</strong> — 比如 TLV kind 自动出现 "tlv (data, 循环)" 行,不可编辑字段灰显。<br>
+        <strong>改造点 3:</strong> "+ 新建" 按钮 → 选 kind 模板 → 一键创建协议,fields 自动填。
+      </div>
+
+      <!-- Byte preview (TLV 实际字节) -->
+      <div class="byte-preview">
+        <div class="label">字节预览 (cmd 0x01, tlvs=[01:0A 0B 0C, 02:0D 0E])</div>
+        <div class="byte-group">
+          <span class="b b-h">AA</span>
+          <span class="b b-t">01 02 0A 0B 0C</span>
+          <span class="b-mid">→ TLV 1</span>
+        </div>
+        <div class="byte-group" style="margin-left: 0; margin-top: 2px;">
+          <span class="b b-h">&nbsp;</span>
+          <span class="b b-t">02 02 0D 0E</span>
+          <span class="b-mid">→ TLV 2</span>
+        </div>
+        <div class="byte-group" style="margin-left: 0; margin-top: 2px;">
+          <span class="b b-h">&nbsp;</span>
+          <span class="b b-crc">XX XX</span>
+          <span class="b b-tl">55</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="text-align: center; color: var(--text-soft); font-size: 12px; margin-top: 24px;">
+  📄 本预览文件: <code>docs/superpowers/previews/v48c-ui-mockup.html</code> — 浏览器打开即可看
+</div>
+
+</body>
+</html>
