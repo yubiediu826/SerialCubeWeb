@@ -57,7 +57,8 @@ v4.8 sub-1 已完成 buildFrame 内核 (8 kind 子函数实现),但**协议编�
 - **D3**: kind 切换行为 = **重置 fields 为该 kind 的默认模板** (用户可继续编辑,不强制)
 - **D4**: 现状 2 协议 (BMS / Modbus) **保留为 kind 0 + "(Legacy)" 命名** (跟 sub-1 spec 5.2 一致)
 - **D5**: 字节预览按段着色 (header/type/length/data/crc/tail),TLV kind 显示多 TLV 段循环
-- **D6**: **locked 字段 = 固定模板**,所有 input 不可编辑 (size/type/default 全锁);**"+ 加字段" 按钮只在 unlocked 字段位置生效**,不允许在 locked 字段间插入新行;locked 字段也不能删、不能移位。unlocked 字段(如 kind 0 的 cmd/data, TLV 的 crc)允许加/删/插。
+- **D6 (strict v2)**: **kind = 固定模板**,locked 字段 (header/length/crc/tail 等) 完全位置性固定 — 不能加/删/移,**locked 字段前后不允许插新字段**;unlocked 字段中**只有 `type='data'` 字段允许添加多个** (data zone = 连续 data 字段区),其他类型 (cmd/ctrl/srcAddr/type/msgID 等) 即使在 unlocked 行也**位置性固定**,不允许复制/添加。
+- **D7**: "+ 新建" 协议 modal **默认选中 kind 7 (TLV)** — 用户 BWS 设备主用 TLV 协议,默认落到 TLV 模板,fields 4 行 (header/tlv/crc/tail)
 
 ---
 
@@ -134,11 +135,16 @@ v4.8 sub-1 已完成 buildFrame 内核 (8 kind 子函数实现),但**协议编�
 | 备注 | 灰显文字 (kind 模板说明) | 新加列 |
 | 删除 | 按钮 | |
 
-**动态化行为**:
+**动态化行为** (D6 strict v2):
 - 切 kind → fields 重置 (弹出确认 modal: "切 kind 会重置 fields, 确认?")
-- "+ 加字段" → 按钮放在每行下方, **只在 unlocked 行后激活**;locked 行后按钮 disabled (不允许在 locked 字段间插入)
-- unlocked 字段 (可加/删/插) 示例: kind 0 的 cmd/data, TLV 的 crc, addr-split 的 header/srcAddr/dstAddr/cmd/data
-- locked 字段 (固定模板) 灰显 + 所有 input disabled + 删除按钮 disabled + 不允许插行
+- "+ 加字段" 按钮放在每行下方, **只在 data zone (连续 data 字段区间) 内激活**;其他位置按钮全部 disabled
+  - data zone 定义: 连续 `type='data'` 字段区间 (如 kind 0 的 data 行 = data zone, addr-split 的 data 行 = data zone)
+  - locked 字段后 (如 length 之后且下一行非 data) 按钮 disabled
+  - unlocked 但非 data 字段后 (如 cmd/ctrl/type/srcAddr) 按钮 disabled — 即使原 unlocked,只能放不能加
+  - locked 字段前一行 (如 data→crc 边界) 按钮 disabled (CRC 前后不允许添加,用户原话)
+- locked 字段: 灰显 + 所有 input disabled + 删除按钮 disabled + 不允许插行
+- data 字段 (data zone 内): 允许加/删/插;新增行默认 `name='', size=0, type='data', default='0x00'`
+- 非 data unlocked 字段 (cmd/ctrl/type/srcAddr/dstAddr/msgID): **位置性固定**,只能编辑原行内容,不允许加/删/插
 - 字段顺序由 kind 模板固定 (TLV = header/tlv/crc/tail, msgid-mixed = msgID/length/data/crc/tail, 等)
 
 ### 2.5 字节预览 (按段着色)
@@ -275,27 +281,34 @@ NS._KIND_FIELD_TEMPLATES = {
 ```
 
 **字段说明**:
-- `locked: true` → UI 灰显,所有 input 不可编辑 (size/type/default 全锁);不允许加/删/插 (TLV 模板的 header/tlv/tail 锁定)
-- `locked: false` (默认) → 字段可编辑,"+ 加字段" 按钮允许在 unlocked 行后插入新行
+- `locked: true` → UI 灰显,所有 input 不可编辑 (size/type/default 全锁);不允许加/删/插;locked 字段前后不允许插新字段 (D6 v2)
+- `locked: false` (默认) → 字段可编辑,但**仅 `type='data'` 字段允许添加多个** (data zone);其他类型 (cmd/ctrl/srcAddr 等) 位置性固定,不能复制/添加
+- `dataZone: true` (新加,本期不实现) → 标记此 data 字段允许多个连续 data;无此标记的 data 字段后按钮 disabled (默认 1 个 data)
 - `bit7: 'direction'` → 字节 bit7 自动编码方向 (cmd-split / ctrl-bit7 / type-high-bit 标识)
 - `addrRole` → 地址角色说明 (addr-split 标识 MB/CB 时 src/dst 含义)
 - `bitfield` → 位域说明 (msgid-mixed 的 15+7+8 packed)
 - `note` → 备注,UI 显示在"备注"列
 
-**locked 分布** (D6 严格):
+**locked 分布** (D6 strict v2):
 
-| kind | locked 行 | unlocked 行 (可加/删/插) |
-|---|---|---|
-| fixed-header | header, length, crc, tail | cmd, data |
-| raw | length, crc, tail | header, cmd, data |
-| cmd-split | length, crc, tail | header, cmd, data |
-| addr-split | length, crc, tail | header, srcAddr, dstAddr, cmd, data |
-| ctrl-bit7 | length, crc, tail | header, ctrl, cmd, data |
-| type-high-bit | length, crc, tail | header, type, cmd, data |
-| msgid-mixed | length, crc, tail | msgID, data |
-| tlv | header, tlv, tail | crc (1 个) |
+| kind | locked 行 (不可编辑/不可插) | data zone (可加 data 字段) | 其他 unlocked 行 (位置性固定,不能加) |
+|---|---|---|---|
+| fixed-header | header, length, crc, tail | data | cmd |
+| raw | length, crc, tail | data | header, cmd |
+| cmd-split | length, crc, tail | data | header, cmd |
+| addr-split | length, crc, tail | data | header, srcAddr, dstAddr, cmd |
+| ctrl-bit7 | length, crc, tail | data | header, ctrl, cmd |
+| type-high-bit | length, crc, tail | data | header, type, cmd |
+| msgid-mixed | length, crc, tail | data | msgID |
+| tlv | header, tlv, tail, crc | (无 data zone; tlv 自带循环 TLV 段) | — |
 
-**"可加字段位置"语义**: "+ 加字段" 按钮放在每行 row 下方,只在 unlocked 行后激活;locked 行后按钮 disabled。**总行数受 kind 模板限制**: unlocked 行可加任意多,locked 行数固定。
+**"+ 加字段" 按钮激活规则** (D6 strict v2):
+- ✅ 仅当**当前行**是 `type='data'` **且** **下一行也是 `type='data'` 或没有下一行 (尾部添加)** 时按钮 enabled
+- ✅ 当**当前行**是 `type='data'` **且** **下一行是 locked 字段 (如 crc)** 时按钮 disabled — **CRC 前后不允许添加** (用户原话)
+- ❌ locked 行后按钮 disabled (header/length/crc/tail 等位置性固定)
+- ❌ 非 data unlocked 行后 (cmd/ctrl/type/srcAddr/dstAddr/msgID) 按钮 disabled — 位置性固定,只能编辑不能加
+- ❌ 跨 locked 边界添加 (如 length 后插 data) — locked 字段前后不允许插新字段 (用户原话)
+- 实际效果: 多数 kind 的 data zone = 单一 data 行,加按钮 disabled (data 后面就是 locked crc);允许多 data 的 kind 暂未启用,预留扩展
 
 ### 3.3 现状 2 协议 (不动)
 
@@ -481,15 +494,26 @@ NS._applyKindTemplate = function (kind) {
 
 **locked 字段**: 删除按钮 disabled,**不允许删** (如 TLV 模板的 header/tlv/tail)。
 
-### 6.4b 插入字段 (+ 加字段)
+### 6.4b 插入字段 (+ 加字段) (D6 strict v2)
 
 ```
-用户点某行下方的 "+ 加字段" 按钮 (仅 unlocked 行下方按钮可点击)
-  → 在该行后插入空白 unlocked 行 (name='', size=0, type='data', default='0x00')
+用户点某行下方的 "+ 加字段" 按钮
+  → 仅当"该行 type='data'" 且 "下一行也是 data 或无下一行" 时按钮可点击
+  → 在该行后插入空白 data 行 (name='', size=0, type='data', default='0x00')
   → NS.renderProtoEditor() 重新渲染
 ```
 
-**locked 行下方按钮 disabled**: 不允许在 locked 字段间插入新行 (D6)。
+**disabled 规则** (D6 strict v2):
+- ❌ locked 行后 (header/length/crc/tail) 按钮 disabled
+- ❌ 非 data unlocked 行后 (cmd/ctrl/type/srcAddr/dstAddr/msgID) 按钮 disabled — 位置性固定
+- ❌ data 行后跟 locked 字段 (如 data→crc) 按钮 disabled — **CRC 前后不允许添加** (用户原话)
+- ❌ locked 字段前后不允许插新字段 (跨 locked 边界禁止)
+
+**典型 kind 实际效果** (D6 strict v2):
+- fixed-header (header/cmd/length/data/crc/tail): data 后面是 locked crc → data 行按钮 **disabled** → 整张表无 "+ 加字段" 可用
+- raw / cmd-split / type-high-bit / ctrl-bit7 / addr-split / msgid-mixed: 同上,data 行按钮 disabled
+- tlv (header/tlv/crc/tail): tlv 后面是 unlocked crc (但 crc 非 data) → tlv 行按钮 disabled;crc 后面是 locked tail → crc 行按钮 disabled → 整张表无 "+ 加字段" 可用
+- 后续如需支持多 data 字段,在 _KIND_FIELD_TEMPLATES 里给 data 字段加 `dataZone: true` 标记 (本期不实现)
 
 ### 6.5 验证 (sub-1 行为,保留)
 
@@ -677,12 +701,12 @@ sub-2 不需要中间状态,UI 改造一气呵成。
 2. **Internal consistency**: 11 节一致,UI 设计 / 数据模型 / 状态管理 / 交互流程 / 错误处理 / 兼容性 章节交叉引用一致
 3. **Scope check**: 聚焦 v4.8c (UI 重构),sub-3 (parseFrame) + sub-4 (cmd 字段映射) 明确留后续
 4. **Ambiguity check**:
-   - "切 kind 弹确认 modal" - 明确 (§6.1)
-   - "locked 字段 = 固定模板,所有 input disabled" - 明确 (D6 + §2.4 + §3.2)
-   - "+ 加字段 只在 unlocked 行后激活" - 明确 (D6 + §2.4 + §6.4b)
+   - "切 kind 弹确认 modal" - 明确 (D3 + §6.1)
+   - "kind = 固定模板,locked 字段前后不允许插新字段" - 明确 (D6 v2 + §2.4 + §3.2 + §6.4b)
+   - "只允许 data 字段添加" - 明确 (D6 v2 + §6.4b)
    - "现状 2 协议走 kind 0 渲染" - 明确 (§8.1)
-   - "+ 新建 默认 kind=tlv" - 明确 (§2.6)
+   - "+ 新建 默认 kind=tlv" - 明确 (D7 + §2.6)
    - "byte preview 按段着色" - 明确颜色方案 (§2.5)
    - "8 kind 的 locked 分布表" - 明确 (§3.2)
 
-Self-review 通过,2026-08-05 第二轮 review (D6 加强 + 8 kind locked 分布表 + §6.4b 新加段)。
+Self-review 通过,2026-08-05 第二轮 review (D6 strict v2 + 默认 kind 7 + CRC 前后不允许添加 + 8 kind locked 分布表 v2)。
