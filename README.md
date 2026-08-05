@@ -110,6 +110,26 @@ cd SerialCubeWeb
 
 详见 [`AGENTS.md` §2](./AGENTS.md) 与 [`docs/architecture.md` §6](./docs/architecture.md)。
 
+### GitHub Pages 部署
+
+仓库根目录已配好入口文件, 但 **Pages 需在 GitHub Settings 手动启用一次**,
+启用后 `https://yubiediu826.github.io/SerialCubeWeb/` 才可访问。
+
+**启用步骤** (Settings → Pages):
+```
+Source:    Deploy from a branch
+Branch:    main
+Folder:    / (root)
+```
+
+**根目录已就绪的入口文件**:
+- `index.html` — meta refresh + JS redirect 到 `./SerialCube.html`
+- `404.html` — 同上, 兜底旧链接 / 拼错路径
+- `.nojekyll` — 跳过 Jekyll, 纯静态服务
+
+**首次部署**: 保存后 1-2 分钟 (偶尔 5 分钟) 首次构建。
+**离线使用不受影响**: 上述 3 个文件只服务在线入口, 离线版 `SerialCube串口调试.html` 仍单文件运行。
+
 ### 贡献
 
 本项目是**团队内部工具**,欢迎团队成员提交 Issue 与 PR。
@@ -151,6 +171,22 @@ cd SerialCubeWeb
 - **Supported:** Edge / Chrome / Brave / any Chromium-based browser ≥ 90
 - **Not supported:** Firefox / Safari (Web Serial API not available)
 - **HTTPS required** for first use, or `localhost` / `file://`
+
+### GitHub Pages Deployment
+
+The repo root has entry files ready, but **Pages needs to be enabled once in GitHub Settings**.
+
+**Setup** (Settings → Pages):
+```
+Source:    Deploy from a branch
+Branch:    main
+Folder:    / (root)
+```
+
+**Files in root**: `index.html` (meta refresh + JS redirect to `./SerialCube.html`),
+`404.html` (fallback for stale links), `.nojekyll` (skip Jekyll).
+
+**First deploy**: 1-2 min after save (occasionally up to 5 min). Offline usage unaffected.
 
 ### Roadmap
 
