@@ -5862,8 +5862,8 @@
       min-width: 0; max-width: 280px;  /* v4.9.12: min-width:0 + max-width:280px 强制固定 280 宽, 避免 grid item 默认 min-width:auto 把 card 撑大到 416+ (trend card value cell 跟 .card-default 同步缩到 280) */
       padding: 10px 12px;
       background: #ffffff;  /* v4.9.18: 强制白底, 跟 dashboard 浅灰背景对比 */
-      border: 1px solid rgba(60, 60, 67, 0.32);  /* v4.9.19: 18%→32% 透明度, 浅灰背景下需要更明显 */
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);  /* v4.9.19: 阴影加强, 模拟 card 浮起 */
+      border: 1px solid #d0d0d0;  /* v4.9.20: 透明色全试过看不见, 用不透明浅灰 */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);  /* v4.9.20: 阴影加强, 模拟 card 浮起 */
       border-radius: var(--radius);
       display: grid;
       grid-template-rows: 24px 56px 80px 24px;  /* v4.9.12: trend row 60→80 容纳 flex column 布局 (label 12 + canvas 68) */
