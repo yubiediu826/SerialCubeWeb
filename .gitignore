@@ -27,3 +27,9 @@ drafts/
 # Claude Code / mavis 本地缓存(保留项目内 .claude/skills)
 .mavis/
 .minimax/
+
+# worktree 调试残留(用 git worktree 切换分支时生成的临时文件)
+.worktrees/
+
+# superpowers skill 本地缓存(已完成任务的 progress / plan 痕迹)
+.superpowers/
