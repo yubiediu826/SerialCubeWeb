@@ -99,9 +99,10 @@
     :root {
       color-scheme: light;
       --bg: #ffffff;
-      --bg-elevated: rgba(255, 255, 255, 0.92);
-      --bg-panel: rgba(255, 255, 255, 0.84);
-      --bg-panel-strong: rgba(255, 255, 255, 0.94);
+      --bg-elevated: #ffffff;        /* v5.1.6: 不透明, modal/浮层背景实色 */
+      --bg-panel: #ffffff;           /* v5.1.6: 不透明, panel/card 背景实色 */
+      --bg-panel-strong: #ffffff;    /* v5.1.6: 不透明 */
+      --bg-subtle: #f6f6f7;          /* v5.1.6: 浅灰非透明, 给 chip/header 区分 */
       --bg-terminal: #f6f6f7;
       --border: rgba(60, 60, 67, 0.16);
       --border-strong: rgba(60, 60, 67, 0.24);
@@ -135,9 +136,10 @@
     body.theme-dark {
       color-scheme: dark;
       --bg: #1b1b1f;
-      --bg-elevated: rgba(32, 33, 39, 0.92);
-      --bg-panel: rgba(32, 33, 39, 0.86);
-      --bg-panel-strong: rgba(32, 33, 39, 0.96);
+      --bg-elevated: #202127;        /* v5.1.6: 不透明 */
+      --bg-panel: #202127;           /* v5.1.6: 不透明 */
+      --bg-panel-strong: #202127;    /* v5.1.6: 不透明 */
+      --bg-subtle: #161618;          /* v5.1.6: 深灰非透明 */
       --bg-terminal: #161618;
       --border: rgba(60, 63, 68, 0.32);
       --border-strong: rgba(60, 63, 68, 0.44);
@@ -6168,7 +6170,7 @@
       top: 5vh; left: 50%; transform: translateX(-50%);
       width: min(900px, calc(100vw - 64px));
       max-height: 90vh;
-      background: #ffffff;  /* v5.1.5: 不透明, 避免后面 dashboard 卡片内容透过 */
+      background: var(--bg-elevated);  /* v5.1.6: --bg-elevated 已改实色 #ffffff, 整个项目统一不透明 */
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow-ambient);
