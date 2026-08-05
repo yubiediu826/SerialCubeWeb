@@ -5862,7 +5862,7 @@
       min-width: 0; max-width: 280px;  /* v4.9.12: min-width:0 + max-width:280px 强制固定 280 宽, 避免 grid item 默认 min-width:auto 把 card 撑大到 416+ (trend card value cell 跟 .card-default 同步缩到 280) */
       padding: 10px 12px;
       background: var(--bg-panel);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-strong);  /* v4.9.15: 16%→32% 透明度, 之前太淡看不见 */
       border-radius: var(--radius);
       display: grid;
       grid-template-rows: 24px 56px 80px 24px;  /* v4.9.12: trend row 60→80 容纳 flex column 布局 (label 12 + canvas 68) */
@@ -9958,7 +9958,13 @@
                 const grpHead = NS.renderGroupHeader(cmdHex, cmd ? cmd.name : ('0x' + cmdHex), dir, group.length, 'card');
                 grpHead.style.gridColumn = '1 / -1';
                 el.appendChild(grpHead);
-                group.forEach((c) => el.appendChild(NS.renderCard(c)));
+                // v4.9.15: 1 字段命令的卡跨满整行 (grid-column: 1 / -1), 消除"右边大片空白"
+                // 2/5 字段命令保持 grid auto-fill 自然排
+                group.forEach((c) => {
+                  const cardEl = NS.renderCard(c);
+                  if (group.length === 1) cardEl.style.gridColumn = '1 / -1';
+                  el.appendChild(cardEl);
+                });
               });
               el.appendChild(NS._makeAddSlot('card'));
             }
