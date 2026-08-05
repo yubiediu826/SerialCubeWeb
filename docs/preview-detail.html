@@ -518,10 +518,10 @@
     text-transform: uppercase;
     font-family: var(--font-ui);
   }
-  /* 数据组背景: 字段/数值/单位 三列浅色背景,自然成组 */
+  /* v5.1.0 调整: 数据组 (字段/数值/单位) 不再有浅蓝背景, 简洁 */
   .logs-table td.col-field,
-  .logs-table th.col-field { background-color: rgba(86, 114, 205, 0.04); }
-  .logs-table tr:hover td.col-field { background-color: rgba(86, 114, 205, 0.08); }
+  .logs-table th.col-field { /* background removed */ }
+  .logs-table tr:hover td.col-field { /* background removed */ }
   .logs-table th.col-num { text-align: left; }
   .logs-table th.col-status { text-align: center; }
   .logs-table td {
@@ -534,7 +534,7 @@
   }
   .logs-table tr:last-child td { border-bottom: none; }
   .logs-table tr:hover td { background: var(--bg-subtle); }
-  .logs-num { color: var(--text-mute); text-align: right; }
+  .logs-num { color: var(--text-mute); text-align: left; }  /* v5.1.0 调整: 序号左对齐跟其他列一致 */
   .logs-time { color: var(--text-soft); }
   .logs-cmd { color: var(--accent); font-weight: 700; }
   .logs-field { color: var(--text); }

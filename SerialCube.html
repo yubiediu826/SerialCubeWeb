@@ -6251,6 +6251,15 @@
 .dashboard-host     .detail-body canvas.detail-canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
 .dashboard-host     .detail-body .chart-area .axis-label { position: absolute; font-size: 9px; color: var(--text-mute); font-family: var(--font-mono); pointer-events: none; }
 .dashboard-host     .detail-body .chart-area .axis-title { position: absolute; font-size: 9px; color: var(--text-soft); font-weight: 600; font-family: inherit; pointer-events: none; }
+/* v5.1.0: Y/X 轴刻度数字 (HTML, 绝对定位, 在 chart-area padding 区域不被 canvas clip) */
+.dashboard-host     .detail-body .chart-area .axis-ticks { position: absolute; pointer-events: none; }
+.dashboard-host     .detail-body .chart-area .axis-ticks-y { left: 4px; top: 8px; bottom: 24px; width: 42px; }
+.dashboard-host     .detail-body .chart-area .axis-ticks-x { left: 50px; right: 12px; bottom: 4px; height: 16px; }
+.dashboard-host     .detail-body .chart-area .axis-ticks .tick {
+  position: absolute; font-size: 9px; color: var(--text-mute); font-family: var(--font-mono); line-height: 12px; white-space: nowrap;
+}
+.dashboard-host     .detail-body .chart-area .axis-ticks-y .tick { right: 0; transform: translateY(-50%); text-align: right; }
+.dashboard-host     .detail-body .chart-area .axis-ticks-x .tick { left: 0; transform: translateX(-50%); text-align: center; }
 
 /* v5.1.0: hover tooltip + 缩放 toolbar + 选区遮罩 + 缩放提示 (沿用 v4.7) */
 .dashboard-host     .detail-body .chart-area .detail-tooltip {
@@ -6342,9 +6351,9 @@
 .dashboard-host     .detail-logs-table tr:last-child td { border-bottom: none; }
 .dashboard-host     .detail-logs-table tr:hover td { background: var(--bg-subtle); }
 .dashboard-host     .detail-logs-table td.col-data,
-.dashboard-host     .detail-logs-table th.col-data { background-color: rgba(86, 114, 205, 0.04); }
-.dashboard-host     .detail-logs-table tr:hover td.col-data { background-color: rgba(86, 114, 205, 0.08); }
-.dashboard-host     .detail-logs-table .logs-num { color: var(--text-mute); text-align: right; }
+.dashboard-host     .detail-logs-table th.col-data { /* v5.1.0 调整: 数据组不再有背景, 简洁 */ }
+.dashboard-host     .detail-logs-table tr:hover td.col-data { /* v5.1.0 调整 */ }
+.dashboard-host     .detail-logs-table .logs-num { color: var(--text-mute); text-align: left; }  /* v5.1.0 调整: 序号左对齐跟其他列一致 */
 .dashboard-host     .detail-logs-table .logs-time { color: var(--text-soft); }
 .dashboard-host     .detail-logs-table .logs-cmd { color: var(--accent); font-weight: 700; }
 .dashboard-host     .detail-logs-table .logs-field { color: var(--text); }
@@ -10362,6 +10371,9 @@
           body.innerHTML = pairGridHtml
             + '<div class="chart-area">'
             + '<canvas class="detail-canvas" id="dh-detail-canvas"></canvas>'
+            // v5.1.0: Y/X 轴刻度标签容器 (绝对定位, 在 chart-area padding 区域, 不被 canvas clip)
+            + '<div class="axis-ticks axis-ticks-y" id="dh-axis-ticks-y"></div>'
+            + '<div class="axis-ticks axis-ticks-x" id="dh-axis-ticks-x"></div>'
             + '<div class="axis-title axis-y-title">' + (card.unit || '') + '</div>'
             + '<div class="axis-title axis-x-title">时间</div>'
             + '</div>'
@@ -10654,6 +10666,8 @@
             ctx.beginPath(); ctx.moveTo(0, yLo); ctx.lineTo(w, yLo); ctx.stroke();
             ctx.setLineDash([]);
           }
+          // v5.1.0: Y/X 轴刻度 (HTML 绝对定位 div, 在 chart-area padding 区域, 不被 canvas clip)
+          NS._renderAxisTicks(card, viewData, minV, maxV, range, h);
           // v4.7: 绑定 hover tooltip + 缩放 mouse handlers
           NS._bindDetailChartInteractions(card, data, viewData, xStep, h, minV, range, 'single');
         };
@@ -10721,10 +10735,39 @@
           ctx.fillText('-- SET  ' + (viewSet[viewSet.length - 1] ? viewSet[viewSet.length - 1].v.toFixed(1) : '0'), w - 8, 14);
           ctx.fillStyle = '#5672cd';
           ctx.fillText('— ACT  ' + (viewAct[viewAct.length - 1] ? viewAct[viewAct.length - 1].v.toFixed(1) : '0'), w - 8, 28);
+          // v5.1.0: Y/X 轴刻度 (HTML 绝对定位, 用 viewSet 时间)
+          NS._renderAxisTicks(card, viewSet, minV, maxV, range, h, card.precision || 1);
           // v4.7: 绑定 hover tooltip (双线) + 缩放
           // pair 模式 xStep 用 setData 长度基准 (跟 ACT 长度差不多, 都接近 all.length)
           const xStep2 = xStep(viewSet.length ? viewSet : viewAct);
           NS._bindDetailChartInteractions(card, all, viewSet, xStep2, h, minV, range, 'pair', { setData: viewSet, actData: viewAct });
+        };
+
+        // v5.1.0: 详情图表 Y/X 轴刻度 (HTML 绝对定位 div, 在 chart-area padding 区域不被 canvas clip)
+        //   Y: 5 等分值 (顶 = maxV, 底 = minV); X: 6 等分时间 (左 → 右, 用 viewData 的 t)
+        NS._renderAxisTicks = function (card, viewData, minV, maxV, range, h, overridePrec) {
+          const yEl = document.getElementById('dh-axis-ticks-y');
+          const xEl = document.getElementById('dh-axis-ticks-x');
+          if (!yEl || !xEl) return;
+          const prec = overridePrec != null ? overridePrec : (card.precision || 2);
+          // Y 轴 5 个刻度 (top: 0% maxV → 100% minV)
+          let yHtml = '';
+          for (let i = 0; i < 5; i++) {
+            const v = maxV - (range * i / 4);
+            yHtml += '<div class="tick" style="top:' + (i * 25) + '%;">' + v.toFixed(prec) + '</div>';
+          }
+          yEl.innerHTML = yHtml;
+          // X 轴 6 个时间刻度 (left: 0% → 100%)
+          let xHtml = '';
+          for (let i = 0; i < 6; i++) {
+            const idx = Math.min(viewData.length - 1, Math.round((viewData.length - 1) * i / 5));
+            const p = viewData[idx];
+            if (!p || !p.t) { xHtml += '<div class="tick" style="left:' + (i * 20) + '%;">—</div>'; continue; }
+            const t = new Date(p.t);
+            const tStr = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') + ':' + String(t.getSeconds()).padStart(2, '0');
+            xHtml += '<div class="tick" style="left:' + (i * 20) + '%;">' + tStr + '</div>';
+          }
+          xEl.innerHTML = xHtml;
         };
 
         // === v4.7: 详情图表 hover tooltip + 缩放 交互 ===
@@ -10855,6 +10898,32 @@
               NS._detailZoom = null;
               NS._renderDetailBody();
             }
+          };
+          // v5.1.0: 滚轮缩放 (向上滚 = 放大 [zoom in / 0.5x], 向下滚 = 缩小 [zoom out / 2x])
+          cv.onwheel = (e) => {
+            e.preventDefault();
+            // 中心点 = 鼠标 x 在 viewData 的位置
+            const rect = cv.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const cxRatio = Math.max(0, Math.min(1, mouseX / rect.width));
+            const curLo = NS._detailZoom ? NS._detailZoom.xMin : 0;
+            const curHi = NS._detailZoom ? NS._detailZoom.xMax : (fullData.length - 1);
+            const curRange = curHi - curLo;
+            // deltaY < 0 = 滚轮向上 = 放大 (range 减半); deltaY > 0 = 缩小
+            const factor = e.deltaY < 0 ? 0.5 : 2.0;
+            let newRange = Math.max(2, Math.round(curRange * factor));
+            // 围绕鼠标中心: 中心点保持不变
+            const center = curLo + curRange * cxRatio;
+            let newLo = Math.round(center - newRange * cxRatio);
+            let newHi = newLo + newRange;
+            if (newLo < 0) { newLo = 0; newHi = newLo + newRange; }
+            if (newHi > fullData.length - 1) { newHi = fullData.length - 1; newLo = Math.max(0, newHi - newRange); }
+            if (newLo === 0 && newHi >= fullData.length - 1) {
+              NS._detailZoom = null;
+            } else {
+              NS._detailZoom = { xMin: newLo, xMax: newHi };
+            }
+            NS._renderDetailBody();
           };
           // === v5.1.0: 缩放信息在顶部 toolbar (NS._updateDetailZoomInfo), 不再用图内 toolbar ===
         };
