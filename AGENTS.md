@@ -3,41 +3,20 @@
 > 本文件约束**任何** AI agent(Claude Code / Mavis / Codex / Cursor / Aider 等)接手 SerialCube 项目时的行为。
 > 上游优先: 用户在 chat 中的明确指令 > 本文件 > 默认行为。
 
-## 1. 强制 skill 链 (写代码前必走)
+## 1. 工作流程 (轻量, 不强制 skill 链)
 
-**禁止直接动手写代码。** 每个开发会话开头必须按顺序调用:
+**直接动手。** 项目小、单文件、用户偏好"看截图找问题不查 console" —
+不需要 superpowers / impeccable / TDD 等重型框架. 必要时调用下面的轻量 skill:
 
-### Step 1 — `using-superpowers` (superpowers framework 入口)
-- 此 skill 会自动扫描可用 skill 并路由到该用的
-- 它本身是总会话入口,任何回复前(包括澄清问题)必须先 invoke
+| 场景 | 可选 skill |
+|---|---|
+| 新功能 / 改 UI / 设计方向 | `brainstorming` (基础) → `design-taste-frontend` (色板/字体/状态判断) |
+| 生成预览图 (PNG) | `imagegen-frontend-web` (image_synthesize 用) |
+| 高端视觉参考 (landing / 营销页) | `high-end-visual-design` |
 
-### Step 2 — 按任务类型选子 skill
-
-| 任务                       | 必读 skill                              |
-| -------------------------- | --------------------------------------- |
-| 新功能 / 新模块 / 改 UI    | `brainstorming` → `impeccable:shape`    |
-| Bug 修复 / 行为不对         | `systematic-debugging`                  |
-| 任何代码完成后              | `verification-before-completion`        |
-| 性能问题                    | `impeccable:optimize`                  |
-| 跨设备适配                  | `impeccable:adapt`                     |
-
-### Step 3 — 视觉 / UI 决策:`design-taste-frontend` (taste)
-- 用于色板 / 字体 / 状态 / 阴影 / 动效判断
-- **注意边界**: taste 文档明确"Not dashboards, not data tables, not
-  multi-step product UI" — SerialCube 是 **Operate 模式**工具,
-  借鉴其规则(色彩锁定、形状一致、状态机),不照搬其 landing 美学
-
-### Step 4 — 旗舰设计 skill:`impeccable` v4.0.4
-- 首次接手项目 → 跑 `impeccable:init` 写 PRODUCT.md
-- UI 大改造 → `impeccable:critique` 选方向
-- 精修 / 微调 → `impeccable:polish` / `bolder` / `quieter` / `distill` / `harden`
-- 视觉增强 → `impeccable:animate` / `colorize` / `typeset` / `layout` / `delight` / `overdrive`
-- 修复 → `impeccable:clarify` / `adapt` / `optimize`
-- 浏览器内迭代 → `impeccable:live`
-- 抽取设计系统 → `impeccable:extract`
-
-**Impeccable 跑法**: 写 UI 代码前必读 `.claude/skills/impeccable/reference/craft-floor.md`。
-详细架构与命令参考见 `docs/architecture.md`。
+**注意边界**: `design-taste-frontend` 文档明确 *Not dashboards, not
+data tables, not multi-step product UI* — SerialCube 是 **Operate 模式**工具,
+借鉴其规则(色彩锁定、形状一致、状态机), 不照搬其 landing 美学.
 
 ## 2. 关键架构约束(不可绕过)
 
@@ -62,14 +41,12 @@
 
 ## 4. Skill 安装源(供 sync / 升级用)
 
-- superpowers: https://github.com/obra/superpowers
-- taste:       https://github.com/Leonxlnx/taste-skill
-- impeccable:  https://github.com/pbakaus/impeccable
+- taste: https://github.com/Leonxlnx/taste-skill
+- high-end-visual-design: 同 taste 作者的设计参考库
 
 项目内副本在 `.claude/skills/`(已 commit,锁定当前版本)。需要升级时:
 1. clone 上游 → 比对 `.claude/skills/` → 同步变更
-2. 或在 .claude/skills/ 内 `git pull`(若改用 submodule)
-3. 升级后单独 commit,标题写"sync skills from upstream (date)"
+2. 升级后单独 commit,标题写"sync skills from upstream (date)"
 
 ## 5. 项目速查
 
