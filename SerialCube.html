@@ -6594,6 +6594,106 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .dashboard-host     .field-row .type-color.data { background: var(--c-data); }
 .dashboard-host     .field-row .type-color.crc { background: var(--c-crc); }
 .dashboard-host     .field-row .type-color.tail { background: var(--c-tail); }
+.dashboard-host     .field-row.locked {
+      opacity: 0.5;
+      background: rgba(0, 0, 0, 0.02);
+      cursor: not-allowed;
+    }
+.dashboard-host     .field-row.locked input,
+.dashboard-host     .field-row.locked select,
+.dashboard-host     .field-row.locked button {
+      cursor: not-allowed;
+    }
+.dashboard-host     .field-row.locked .del-btn { color: var(--text-soft); border-color: var(--border); }
+.dashboard-host     .toolbar-btn:disabled,
+.dashboard-host     .toolbar-btn[disabled] {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+/* v4.8c: kind 下拉 */
+.dashboard-host     .kind-select { max-width: 280px; font-family: var(--font-mono); }
+/* v4.8c: tab 徽章 + 新建按钮 */
+.dashboard-host     .proto-tab-badge {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+.dashboard-host     .proto-tab-badge.legacy {
+      background: rgba(120, 120, 120, 0.18);
+      color: var(--text-soft);
+    }
+.dashboard-host     .proto-tab-badge.new {
+      background: rgba(44, 154, 74, 0.18);
+      color: #2c9a4a;
+    }
+.dashboard-host     .proto-tab-add {
+      color: var(--accent);
+      border: 1px dashed var(--accent);
+      font-weight: 500;
+    }
+.dashboard-host     .proto-tab-add:hover {
+      background: var(--accent-soft);
+    }
+/* v4.8c: + 新建 协议 modal */
+.dashboard-host     .proto-new-modal {
+      padding: 8px;
+      min-width: 480px;
+      max-width: 600px;
+    }
+.dashboard-host     .proto-new-modal h3 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: var(--text);
+      font-weight: 600;
+    }
+.dashboard-host     .proto-new-kinds {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+.dashboard-host     .proto-new-kind-opt {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 11px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      background: var(--bg);
+    }
+.dashboard-host     .proto-new-kind-opt:has(input:checked) {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+.dashboard-host     .proto-new-kind-opt input { margin-right: 4px; }
+.dashboard-host     .proto-new-kind-desc {
+      font-size: 10px;
+      color: var(--text-soft);
+      margin-left: 18px;
+    }
+.dashboard-host     .proto-new-preview {
+      background: var(--bg-terminal);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      max-height: 80px;
+      overflow-y: auto;
+      word-break: break-all;
+    }
+.dashboard-host     .proto-new-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
 
 .dashboard-host     .frame-preview {
       background: var(--bg-terminal);
@@ -9853,6 +9953,79 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           'msgid-mixed':   { name: 'MsgID Mixed (消息 ID 15+7+8 packed)', desc: 'msgID bit15 方向, bit14-8=func(7), bit7-0=addr(8)' },
           'tlv':           { name: 'Pure TLV (Type+Length+Value 循环)', desc: 'tlv type bit7 编码方向' }
         };
+        // v4.8c: 8 kind 默认 fields 模板 (含 locked 元数据, D6 v2 strict)
+        NS._KIND_FIELD_TEMPLATES = {
+          'fixed-header': [
+            { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null,    default: '0xAA' },
+            { id: 'f2', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE',   default: '0x00' },
+            { id: 'f3', name: 'length', type: 'length', size: 1, byteOrder: null,    default: 'auto', locked: true },
+            { id: 'f4', name: 'data',   type: 'data',   size: 0, byteOrder: 'BE',   default: '0x00' },
+            { id: 'f5', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE',   default: 'auto', locked: true },
+            { id: 'f6', name: 'tail',   type: 'tail',   size: 1, byteOrder: null,    default: '0x55' }
+          ],
+          'raw': [
+            { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null,    default: '0x5A' },
+            { id: 'f2', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE',   default: '0x00' },
+            { id: 'f3', name: 'length', type: 'length', size: 1, byteOrder: null,    default: 'auto', locked: true },
+            { id: 'f4', name: 'data',   type: 'data',   size: 0, byteOrder: 'BE',   default: '0x00' },
+            { id: 'f5', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE',   default: 'auto', locked: true },
+            { id: 'f6', name: 'tail',   type: 'tail',   size: 1, byteOrder: null,    default: '0x55' }
+          ],
+          'cmd-split': [
+            { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null,    default: '0xAA' },
+            { id: 'f2', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE',   default: '0x00' },
+            { id: 'f3', name: 'length', type: 'length', size: 1, byteOrder: null,    default: 'auto', locked: true },
+            { id: 'f4', name: 'data',   type: 'data',   size: 0, byteOrder: 'BE',   default: '0x00' },
+            { id: 'f5', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE',   default: 'auto', locked: true },
+            { id: 'f6', name: 'tail',   type: 'tail',   size: 1, byteOrder: null,    default: '0x55' }
+          ],
+          'addr-split': [
+            { id: 'f1', name: 'header',  type: 'header',  size: 1, byteOrder: null,    default: '0xAA' },
+            { id: 'f2', name: 'srcAddr', type: 'addr',    size: 1, byteOrder: null,    default: '0x00' },
+            { id: 'f3', name: 'dstAddr', type: 'addr',    size: 1, byteOrder: null,    default: '0x00' },
+            { id: 'f4', name: 'cmd',     type: 'cmd',     size: 1, byteOrder: 'BE',   default: '0x00' },
+            { id: 'f5', name: 'length',  type: 'length',  size: 1, byteOrder: null,    default: 'auto', locked: true },
+            { id: 'f6', name: 'data',    type: 'data',    size: 0, byteOrder: 'BE',   default: '0x00' },
+            { id: 'f7', name: 'crc',     type: 'crc',     size: 2, byteOrder: 'LE',   default: 'auto', locked: true },
+            { id: 'f8', name: 'tail',    type: 'tail',    size: 1, byteOrder: null,    default: '0x55' }
+          ],
+          'ctrl-bit7': [
+            { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null,    default: '0xAA' },
+            { id: 'f2', name: 'ctrl',   type: 'cmd',    size: 1, byteOrder: 'BE',   default: '0x10' },
+            { id: 'f3', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE',   default: '0x00' },
+            { id: 'f4', name: 'length', type: 'length', size: 1, byteOrder: null,    default: 'auto', locked: true },
+            { id: 'f5', name: 'data',   type: 'data',   size: 0, byteOrder: 'BE',   default: '0x00' },
+            { id: 'f6', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE',   default: 'auto', locked: true },
+            { id: 'f7', name: 'tail',   type: 'tail',   size: 1, byteOrder: null,    default: '0x55' }
+          ],
+          'type-high-bit': [
+            { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null,    default: '0xAA' },
+            { id: 'f2', name: 'type',   type: 'cmd',    size: 1, byteOrder: 'BE',   default: '0x20' },
+            { id: 'f3', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE',   default: '0x00' },
+            { id: 'f4', name: 'length', type: 'length', size: 1, byteOrder: null,    default: 'auto', locked: true },
+            { id: 'f5', name: 'data',   type: 'data',   size: 0, byteOrder: 'BE',   default: '0x00' },
+            { id: 'f6', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE',   default: 'auto', locked: true },
+            { id: 'f7', name: 'tail',   type: 'tail',   size: 1, byteOrder: null,    default: '0x55' }
+          ],
+          'msgid-mixed': [
+            { id: 'f1', name: 'msgID',  type: 'data',   size: 2, byteOrder: 'BE',   default: '0x0000' },
+            { id: 'f2', name: 'length', type: 'length', size: 1, byteOrder: null,    default: 'auto', locked: true },
+            { id: 'f3', name: 'data',   type: 'data',   size: 0, byteOrder: 'BE',   default: '0x00' },
+            { id: 'f4', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE',   default: 'auto', locked: true },
+            { id: 'f5', name: 'tail',   type: 'tail',   size: 1, byteOrder: null,    default: '0x55' }
+          ],
+          'tlv': [
+            { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null,    default: '0xAA', locked: true },
+            { id: 'f2', name: 'tlv',    type: 'data',   size: 0, byteOrder: 'BE',   default: '—',      locked: true },
+            { id: 'f3', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE',   default: 'auto' },
+            { id: 'f4', name: 'tail',   type: 'tail',   size: 1, byteOrder: null,    default: '0x55', locked: true }
+          ]
+        };
+        NS._applyKindTemplate = function (kind) {
+          const tpl = NS._KIND_FIELD_TEMPLATES[kind] || NS._KIND_FIELD_TEMPLATES['fixed-header'];
+          return JSON.parse(JSON.stringify(tpl));
+        };
+        NS._protoNewModal = { open: false, name: '', kind: 'tlv', source: null };
         NS._defaultProtocols = function () {
           return [
             {
@@ -12060,10 +12233,17 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           NS.PROTOCOLS.forEach((p) => {
             const tab = document.createElement('button');
             tab.className = 'proto-tab' + (p.id === NS.activeProtoId ? ' active' : '');
-            tab.innerHTML = `<span>${NS.escapeHtml(p.name)}</span>`;
+            const badge = p.isUser ? ' <span class="proto-tab-badge new">NEW</span>' : (p._legacy ? ' <span class="proto-tab-badge legacy">Legacy</span>' : '');
+            tab.innerHTML = `<span>${NS.escapeHtml(p.name)}</span>${badge}`;
             tab.onclick = () => { NS.activeProtoId = p.id; NS.renderProtoEditor(); };
             tabsEl.appendChild(tab);
           });
+          // v4.8c: + 新建 tab 按钮
+          const addTab = document.createElement('button');
+          addTab.className = 'proto-tab proto-tab-add';
+          addTab.innerHTML = '<span>+ 新建</span>';
+          addTab.onclick = () => NS._renderProtoNewModal();
+          tabsEl.appendChild(addTab);
           const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
           if (!proto) { bodyEl.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-soft);">未选择协议</div>'; return; }
           const previewCmd = NS.COMMANDS.find((c) => c.protocol === proto.id) || NS.COMMANDS[0];
@@ -12073,6 +12253,10 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               <div class="form-row" style="margin-bottom: 8px;">
                 <label>协议名</label>
                 <input class="form-input" id="dh-proto-name" value="${NS.escapeHtml(proto.name)}" placeholder="(必填)">
+                <label style="margin-left: 12px;">Kind</label>
+                <select class="form-select kind-select" id="dh-proto-kind" style="max-width: 280px;">
+                  ${Object.keys(NS._KIND_TEMPLATES).map((k, idx) => `<option value="${k}" ${(proto.kind || 'fixed-header') === k ? 'selected' : ''}>${idx} · ${NS._KIND_TEMPLATES[k].name}</option>`).join('')}
+                </select>
               </div>
             </div>
             <div class="proto-section">
@@ -12164,6 +12348,30 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           NS._renderFramePreview(frame, proto);
           const onChange = () => NS._renderFramePreview(NS.buildFrame(proto, previewCmd), proto);
           document.getElementById('dh-proto-name').oninput = (e) => { proto.name = e.target.value || '未命名'; };
+          // v4.8c: 切 kind 弹确认 modal (D3)
+          const kindSel = document.getElementById('dh-proto-kind');
+          if (kindSel) {
+            kindSel.onchange = (e) => {
+              const newKind = e.target.value;
+              const oldKind = proto.kind || 'fixed-header';
+              if (newKind === oldKind) return;
+              const ok = window.confirm(`切到 kind "${NS._KIND_TEMPLATES[newKind].name}" 会重置 fields, 确认?`);
+              if (ok) {
+                proto.kind = newKind;
+                proto.fields = NS._applyKindTemplate(newKind);
+                // 默认 crcType / crcInit / crcEndian 兜底 (sub-1 spec 5.2)
+                if (!proto.crcType) proto.crcType = 'crc16-modbus';
+                if (!proto.crcInit) proto.crcInit = '0xFFFF';
+                if (!proto.crcEndian) proto.crcEndian = 'LE';
+                if (!proto.crcRange) proto.crcRange = 'all';
+                if (!proto.byteOrder) proto.byteOrder = 'BE';
+                NS.renderProtoEditor();
+                NS.toast(`已切换到 ${NS._KIND_TEMPLATES[newKind].name}`, 'success');
+              } else {
+                e.target.value = oldKind;  // 回滚
+              }
+            };
+          }
           // v4.9.9a: 协议级"默认字节序" UI 已移除 (字段级独立设字节序), proto.byteOrder 字段保留 (代码兜底新字段 byteOrder)
           document.getElementById('dh-proto-crc-type').onchange = (e) => {
             proto.crcType = e.target.value;
@@ -12183,11 +12391,20 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           document.getElementById('dh-proto-crc-init').oninput = (e) => { proto.crcInit = e.target.value; onChange(); };
           document.getElementById('dh-proto-crc-endian').onchange = (e) => { proto.crcEndian = e.target.value; onChange(); };
           document.getElementById('dh-proto-crc-range').onchange = (e) => { proto.crcRange = e.target.value; onChange(); document.getElementById('dh-meta-crc-range').textContent = NS.crcRangeLabel(e.target.value); };
-          document.getElementById('dh-add-field-btn').onclick = () => {
-            proto.fields.push({ id: 'f' + Date.now().toString(36), name: 'new_field', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' });
-            NS._renderFieldList(proto, NS.buildFrame(proto, previewCmd), previewCmd);
-            onChange();
-          };
+          // v4.8c: + 添加字段 按钮遵循 D6 v2 (最后一行是 data 才能加, 否则 disabled)
+          const addFieldBtn = document.getElementById('dh-add-field-btn');
+          if (addFieldBtn) {
+            const lastField = proto.fields[proto.fields.length - 1];
+            const canAdd = lastField && lastField.type === 'data' && !lastField.locked;
+            addFieldBtn.disabled = !canAdd;
+            addFieldBtn.title = canAdd ? '在 data 段后添加 data 字段' : 'D6 v2: locked/crc/tail 后不允许添加, 需要在 data 段后';
+            addFieldBtn.onclick = () => {
+              if (!canAdd) return;
+              proto.fields.push({ id: 'f' + Date.now().toString(36), name: 'new_field', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' });
+              NS._renderFieldList(proto, NS.buildFrame(proto, previewCmd), previewCmd);
+              onChange();
+            };
+          }
           document.getElementById('dh-add-data-field-btn').onclick = () => {
             NS.DATA_FIELDS.push({ name: 'new_field_' + (NS.DATA_FIELDS.length + 1), type: 'u16', default: '0x0000' });
             NS._renderDataFieldList();
@@ -12202,21 +12419,27 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           const endians = ['', 'BE', 'LE'];
           proto.fields.forEach((f, idx) => {
             const row = document.createElement('div');
-            row.className = 'field-row';
-            row.draggable = true;
+            // v4.8c: locked 字段灰显 (D6 v2)
+            row.className = 'field-row' + (f.locked ? ' locked' : '');
+            row.draggable = !f.locked;  // locked 不允许拖动
             row.dataset.idx = idx;
             row.innerHTML = `
-              <span class="drag-handle" title="拖动排序">⠿</span>
-              <select class="type-select">${types.map((t) => `<option value="${t}" ${f.type === t ? 'selected' : ''}>${t}</option>`).join('')}</select>
-              <input class="name-input" value="${NS.escapeHtml(f.name)}" placeholder="字段名">
-              <input class="size-input mono" type="number" min="0" max="8" value="${f.size}" placeholder="字节">
-              <select class="endian-select" ${f.type === 'data' || f.type === 'cmd' || f.type === 'length' || f.type === 'crc' ? '' : 'disabled'}>
+              <span class="drag-handle" title="${f.locked ? 'locked' : '拖动排序'}">⠿</span>
+              <select class="type-select" ${f.locked ? 'disabled' : ''}>${types.map((t) => `<option value="${t}" ${f.type === t ? 'selected' : ''}>${t}</option>`).join('')}</select>
+              <input class="name-input" value="${NS.escapeHtml(f.name)}" placeholder="字段名" ${f.locked ? 'disabled' : ''}>
+              <input class="size-input mono" type="number" min="0" max="8" value="${f.size}" placeholder="字节" ${f.locked ? 'disabled' : ''}>
+              <select class="endian-select" ${f.type === 'data' || f.type === 'cmd' || f.type === 'length' || f.type === 'crc' ? (f.locked ? 'disabled' : '') : 'disabled'}>
                 ${endians.map((e) => `<option value="${e}" ${f.byteOrder === e ? 'selected' : ''}>${e || '—'}</option>`).join('')}
               </select>
-              <input class="default-input" value="${NS.escapeHtml(f.default || '')}" placeholder="(auto/hex)">
-              <button class="del-btn" title="删除">×</button>
+              <input class="default-input" value="${NS.escapeHtml(f.default || '')}" placeholder="(auto/hex)" ${f.locked ? 'disabled' : ''}>
+              <button class="del-btn" title="${f.locked ? 'locked, 不可删' : '删除'}" ${f.locked ? 'disabled' : ''}>×</button>
             `;
             const onRefresh = () => { NS._renderFieldList(proto, NS.buildFrame(proto, previewCmd), previewCmd); NS._renderFramePreview(NS.buildFrame(proto, previewCmd), proto); };
+            if (f.locked) {
+              // locked 字段: 不绑任何 event, 全部不可编辑
+              el.appendChild(row);
+              return;
+            }
             row.querySelector('.type-select').onchange = (e) => {
               f.type = e.target.value;
               if (f.type === 'data') f.size = 0;
@@ -12250,6 +12473,107 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             };
             el.appendChild(row);
           });
+        };
+
+        // v4.8c: + 新建 协议 modal (D2 + D7)
+        NS._renderProtoNewModal = function () {
+          // 每次打开都重置
+          NS._protoNewModal = { open: true, name: '', kind: 'tlv', source: null };
+          const m = NS._protoNewModal;
+          const kinds = Object.keys(NS._KIND_TEMPLATES);
+          const kindOpts = kinds.map((k, idx) => {
+            const checked = k === m.kind ? 'checked' : '';
+            const desc = NS._KIND_TEMPLATES[k].desc || '';
+            return `<label class="proto-new-kind-opt">
+              <input type="radio" name="proto-new-kind" value="${k}" ${checked} />
+              <span><strong>${idx}</strong> · ${NS._KIND_TEMPLATES[k].name}</span>
+              <span class="proto-new-kind-desc">${desc}</span>
+            </label>`;
+          }).join('');
+          const tplFields = NS._applyKindTemplate(m.kind);
+          const preview = tplFields.map(f => `${f.name}(${f.size === 0 ? '?' : f.size}B, ${f.type}${f.locked ? ' 🔒' : ''})`).join(' → ');
+          const html = `
+            <div class="proto-new-modal">
+              <h3>+ 新建协议 (D7: 默认 kind 7 TLV)</h3>
+              <div class="form-row" style="margin-bottom: 12px;">
+                <label>协议名</label>
+                <input class="form-input" id="dh-new-proto-name" type="text" placeholder="新协议 1" value="${NS.escapeHtml(m.name)}">
+              </div>
+              <div class="form-row" style="margin-bottom: 12px;">
+                <label>协议 Kind</label>
+                <div class="proto-new-kinds">${kindOpts}</div>
+              </div>
+              <div class="form-row" style="margin-bottom: 12px;">
+                <label>默认 fields 预览</label>
+                <div class="proto-new-preview">${preview}</div>
+              </div>
+              <div class="proto-new-actions">
+                <button class="toolbar-btn" id="dh-new-proto-cancel">取消</button>
+                <button class="toolbar-btn primary" id="dh-new-proto-create">创建</button>
+              </div>
+            </div>
+          `;
+          NS.openModal(html);
+          // Bind events
+          setTimeout(() => {
+            const nameInput = document.getElementById('dh-new-proto-name');
+            if (nameInput) nameInput.addEventListener('input', (e) => { NS._protoNewModal.name = e.target.value; });
+            document.querySelectorAll('input[name="proto-new-kind"]').forEach(radio => {
+              radio.addEventListener('change', (e) => {
+                NS._protoNewModal.kind = e.target.value;
+                NS._renderProtoNewModal();
+              });
+            });
+            document.getElementById('dh-new-proto-cancel').addEventListener('click', () => {
+              NS._protoNewModal = { open: false, name: '', kind: 'tlv', source: null };
+              NS.closeModal();
+            });
+            document.getElementById('dh-new-proto-create').addEventListener('click', () => NS._createProtoFromTemplate());
+          }, 0);
+        };
+        NS._createProtoFromTemplate = function () {
+          const m = NS._protoNewModal;
+          const name = (m.name || '').trim();
+          if (!name) {
+            NS.toast('协议名不能为空', 'warn');
+            return;
+          }
+          if (NS.PROTOCOLS.some(p => p.name === name)) {
+            NS.toast('协议名已存在', 'warn');
+            return;
+          }
+          const fields = NS._applyKindTemplate(m.kind);
+          const newId = 'proto_user_' + Date.now();
+          NS.PROTOCOLS.push({
+            id: newId,
+            kind: m.kind,
+            name: name,
+            byteOrder: 'BE',
+            crcType: 'crc16-modbus',
+            crcInit: '0xFFFF',
+            crcEndian: 'LE',
+            crcRange: 'all',
+            fields: fields,
+            isUser: true,
+            createdAt: Date.now()
+          });
+          NS.activeProtoId = newId;
+          NS._protoNewModal = { open: false, name: '', kind: 'tlv', source: null };
+          NS.closeModal();
+          NS.renderProtoEditor();
+          // 自动验证
+          setTimeout(() => {
+            try {
+              const proto = NS.PROTOCOLS[NS.PROTOCOLS.length - 1];
+              const cmd = NS.COMMANDS[0];
+              const bytes = NS.buildFrame(proto, cmd);
+              if (bytes && bytes.bytes) {
+                NS.toast('✓ 验证成功: ' + bytes.bytes.length + ' 字节', 'success');
+              }
+            } catch (err) {
+              NS.toast('验证失败: ' + err.message, 'danger');
+            }
+          }, 100);
         };
 
         NS._renderDataFieldList = function () {
