@@ -6191,39 +6191,51 @@
 .dashboard-host     .detail-range { font-size: 11px; color: var(--text-soft); }
 .dashboard-host     .detail-status { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 3px; background: var(--success-soft, rgba(34, 197, 94, 0.14)); color: var(--success); }
 
-/* v5.1.0: 工具栏 (缩放按钮 + 图表类型) */
-.dashboard-host     .detail-toolbar {
-  display: flex; align-items: center; gap: 6px;
-  padding: 0 16px; height: 44px; flex-shrink: 0;
+/* v5.1.2: 页面切换 tabs (图表 / 日志) — 含图表页的缩放工具 */
+.dashboard-host     .detail-page-tabs {
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 16px; height: 36px; flex-shrink: 0;
   border-bottom: 1px solid var(--border);
   background: var(--bg-subtle);
 }
+.dashboard-host     .detail-page-tab {
+  height: 24px; padding: 0 12px;
+  background: transparent; border: 1px solid transparent; border-radius: 4px;
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  color: var(--text-soft); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+  transition: all 0.12s;
+}
+.dashboard-host     .detail-page-tab:hover { background: var(--bg-panel); color: var(--text); border-color: var(--border); }
+.dashboard-host     .detail-page-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.dashboard-host     .detail-page-tabs-spacer { flex: 1; }
+/* v5.1.2: 图表页缩放工具组 (缩放按钮 + zoom-info + 窄下拉) */
+.dashboard-host     .detail-chart-tools { display: none; align-items: center; gap: 4px; }
+.dashboard-host     .detail-page-tabs[data-page="chart"] .detail-chart-tools { display: inline-flex; }
 .dashboard-host     .detail-zoom-btn {
-  width: 28px; height: 26px;
-  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px;
-  font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+  width: 24px; height: 22px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;
+  font-family: var(--font-mono); font-size: 12px; font-weight: 700;
   color: var(--text-soft); cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
   transition: all 0.12s;
 }
 .dashboard-host     .detail-zoom-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
-.dashboard-host     .detail-zoom-btn[data-zoom="reset"] { font-size: 14px; }
-.dashboard-host     .detail-zoom-info { font-family: var(--font-mono); font-size: 11px; color: var(--text-soft); margin-left: 4px; }
-.dashboard-host     .detail-toolbar-spacer { flex: 1; }
-.dashboard-host     .detail-chart-type-label { font-size: 11px; color: var(--text-soft); font-weight: 600; margin-right: 4px; white-space: nowrap; }
-.dashboard-host     .detail-chart-type { padding: 4px 8px; font-size: 11px; min-width: 0; max-width: 160px; }
+.dashboard-host     .detail-zoom-btn[data-zoom="reset"] { font-size: 13px; }
+.dashboard-host     .detail-zoom-info { font-family: var(--font-mono); font-size: 10px; color: var(--text-mute); margin: 0 4px; min-width: 56px; text-align: center; }
+.dashboard-host     .detail-chart-type { padding: 3px 6px; font-size: 11px; min-width: 0; width: 60px; flex-shrink: 0; }
 
 /* v5.1.0: 时间范围 (全局 — 图表/状态行/日志共用) */
 .dashboard-host     .detail-timerange {
   display: flex; align-items: center; gap: 10px;
-  padding: 0 16px; height: 40px; flex-shrink: 0;
+  padding: 0 16px; height: 36px; flex-shrink: 0;
   border-bottom: 1px solid var(--border);
   background: var(--bg-panel);
 }
 .dashboard-host     .detail-timerange-label { font-size: 11px; font-weight: 700; color: var(--text-soft); letter-spacing: 0.04em; }
 .dashboard-host     .detail-timerange-chips { display: inline-flex; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-subtle); overflow: hidden; }
 .dashboard-host     .detail-timerange-chip {
-  padding: 4px 10px; font-size: 11px; font-weight: 600;
+  padding: 3px 10px; font-size: 11px; font-weight: 600;
   color: var(--text-soft); cursor: pointer;
   background: transparent; border: none; border-right: 1px solid var(--border);
   font-family: inherit; transition: all 0.12s;
@@ -6243,11 +6255,14 @@
 .dashboard-host     .detail-timerange-refresh:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 .dashboard-host     .detail-timerange-refresh.active { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 
-/* v5.1.0: 主体 (flex column 装图表 + 状态行 + 日志) */
-.dashboard-host     .modal-body.detail-body { flex: 1; min-height: 0; overflow: hidden; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+/* v5.1.2: 主体 (单页 — chart 页 或 logs 页) */
+.dashboard-host     .modal-body.detail-body { flex: 1; min-height: 0; overflow: hidden; padding: 10px 12px; display: flex; flex-direction: column; }
+.dashboard-host     .modal-body.detail-body .detail-page-chart,
+.dashboard-host     .modal-body.detail-body .detail-page-logs { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.dashboard-host     .modal-body.detail-body .detail-page-logs { display: none; }
 
 /* v5.1.0: 图表区 (含 X/Y 轴标签) */
-.dashboard-host     .detail-body .chart-area { position: relative; flex-shrink: 0; width: 100%; height: 260px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px 24px 50px; }
+.dashboard-host     .detail-body .chart-area { position: relative; flex: 1; min-height: 0; width: 100%; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px 24px 50px; }
 .dashboard-host     .detail-body canvas.detail-canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
 .dashboard-host     .detail-body .chart-area .axis-label { position: absolute; font-size: 9px; color: var(--text-mute); font-family: var(--font-mono); pointer-events: none; }
 .dashboard-host     .detail-body .chart-area .axis-title { position: absolute; font-size: 9px; color: var(--text-soft); font-weight: 600; font-family: inherit; pointer-events: none; }
@@ -6300,9 +6315,9 @@
 
 /* v5.1.0: 状态行 (6 列: 当前/最小/最大/平均/σ/样本, 数字左对齐跟 logs-val 一致) */
 .dashboard-host     .detail-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; flex-shrink: 0; }
-.dashboard-host     .detail-stats .stat-cell { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; padding: 6px 6px; }
-.dashboard-host     .detail-stats .stat-label { font-size: 10px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; margin-bottom: 2px; }
-.dashboard-host     .detail-stats .stat-value { font-family: var(--font-mono); font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.2; text-align: left; }
+.dashboard-host     .detail-stats .stat-cell { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; padding: 5px 8px; }
+.dashboard-host     .detail-stats .stat-label { font-size: 10px; color: var(--text-soft); font-weight: 700; letter-spacing: 0.04em; margin-bottom: 1px; }
+.dashboard-host     .detail-stats .stat-value { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.2; text-align: left; }
 .dashboard-host     .detail-stats .stat-value .unit { font-size: 10px; color: var(--text-soft); font-weight: 600; margin-left: 2px; }
 .dashboard-host     .detail-stats .stat-value.danger { color: var(--danger); }
 .dashboard-host     .detail-stats .stat-value.warning { color: var(--warning); }
@@ -7650,22 +7665,7 @@
             <span class="detail-range" id="dh-detail-range"></span>
             <span class="detail-status" id="dh-detail-status"></span>
           </div>
-          <!-- v5.1.0: 工具栏 (缩放 + 图表类型) -->
-          <div class="detail-toolbar">
-            <button class="detail-zoom-btn" data-zoom="out" title="缩小 (滚轮向下)">−</button>
-            <button class="detail-zoom-btn" data-zoom="in" title="放大 (滚轮向上)">+</button>
-            <button class="detail-zoom-btn" data-zoom="reset" title="复位 (双击图表)">↺</button>
-            <span class="detail-zoom-info" id="dh-detail-zoom-info">显示 50 / 120 pts</span>
-            <span class="detail-toolbar-spacer"></span>
-            <span class="detail-chart-type-label">图表</span>
-            <select class="form-select detail-chart-type" id="dh-detail-chart-type">
-              <option value="line">折线 (line)</option>
-              <option value="bar">柱状 (bar)</option>
-              <option value="area">面积 (area)</option>
-              <option value="scatter">散点 (scatter)</option>
-            </select>
-          </div>
-          <!-- v5.1.0: 时间范围 (全局 — 图表 / 状态行 / 日志共用) -->
+          <!-- v5.1.2: 时间范围 (全局 — 图表 / 日志共用) -->
           <div class="detail-timerange">
             <span class="detail-timerange-label">时间范围</span>
             <div class="detail-timerange-chips">
@@ -7678,7 +7678,26 @@
             <span class="detail-timerange-spacer"></span>
             <button class="detail-timerange-refresh active" id="dh-detail-auto-refresh" title="实时自动刷新">↻</button>
           </div>
-          <!-- v5.1.0: 主体 (图表 + 状态行 + 日志) -->
+          <!-- v5.1.2: 页面切换 (图表 / 日志) -->
+          <div class="detail-page-tabs">
+            <button class="detail-page-tab active" data-page="chart">📈 图表</button>
+            <button class="detail-page-tab" data-page="logs">📋 日志</button>
+            <span class="detail-page-tabs-spacer"></span>
+            <!-- 缩放按钮: 图表页用 (跟着 page 显隐) -->
+            <span class="detail-chart-tools" data-show-on="chart">
+              <button class="detail-zoom-btn" data-zoom="out" title="缩小 (滚轮向下)">−</button>
+              <button class="detail-zoom-btn" data-zoom="in" title="放大 (滚轮向上)">+</button>
+              <button class="detail-zoom-btn" data-zoom="reset" title="复位 (双击图表)">↺</button>
+              <span class="detail-zoom-info" id="dh-detail-zoom-info">50 / 120</span>
+              <select class="form-select detail-chart-type" id="dh-detail-chart-type" title="图表类型">
+                <option value="line">折线</option>
+                <option value="bar">柱状</option>
+                <option value="area">面积</option>
+                <option value="scatter">散点</option>
+              </select>
+            </span>
+          </div>
+          <!-- v5.1.2: 主体 (根据 NS._detailPage 渲染 chart 页 或 logs 页) -->
           <div class="modal-body detail-body" id="dh-detail-body"></div>
         </div>
 
@@ -10342,14 +10361,41 @@
           document.getElementById('dh-detail-backdrop').classList.remove('open');
           document.getElementById('dh-detail-modal').classList.remove('open');
         };
+        // v5.1.2: 详情 modal 当前页 ('chart' | 'logs')
+        NS._detailPage = 'chart';
+        // v5.1.2: 切换页 + 重 render
+        NS._switchDetailPage = function (page) {
+          if (page !== 'chart' && page !== 'logs') return;
+          NS._detailPage = page;
+          // 同步 tab 状态
+          document.querySelectorAll('.detail-page-tab').forEach((b) => b.classList.toggle('active', b.dataset.page === page));
+          // 同步 page-tabs 容器 data-page (用于 .detail-chart-tools 显隐)
+          const tabs = document.querySelector('.detail-page-tabs');
+          if (tabs) tabs.setAttribute('data-page', page);
+          // 显隐 body 子页
+          const body = document.getElementById('dh-detail-body');
+          if (body) {
+            body.querySelectorAll('.detail-page-chart').forEach((el) => el.style.display = (page === 'chart') ? 'flex' : 'none');
+            body.querySelectorAll('.detail-page-logs').forEach((el) => el.style.display = (page === 'logs') ? 'flex' : 'none');
+          }
+          // 切到 logs 页: 立即滚到底 (如果有跟随)
+          if (page === 'logs') {
+            const tableEl = document.getElementById('dh-detail-logs-table');
+            const jumpBtn = document.getElementById('dh-detail-logs-jump');
+            if (tableEl && jumpBtn && jumpBtn.classList.contains('active')) {
+              const lastTr = tableEl.querySelector('tbody tr:last-child');
+              if (lastTr) lastTr.scrollIntoView({ block: 'end' });
+            }
+          }
+        };
         NS._renderDetailBody = function () {
           const id = NS._detailCardId;
           const card = NS.CARDS.find((c) => c.id === id);
           if (!card) return;
           const body = document.getElementById('dh-detail-body');
           const chartType = document.getElementById('dh-detail-chart-type').value;
-          // v5.1.0: 状态行 + 图表 + 日志 三段单页布局 (无 sub-tab)
-          // pair 卡 顶部多一段 SET/ACT/Δ 3 列
+          // v5.1.2: 拆成两页 (chart / logs), 通过 NS._detailPage 切换
+          // pair 卡 顶部多一段 SET/ACT/Δ 3 列 (放在 chart 页)
           let pairGridHtml = '';
           if (card.type === 'pair') {
             let set = 0, act = 0;
@@ -10369,15 +10415,19 @@
               + '</div>';
           }
           body.innerHTML = pairGridHtml
-            + '<div class="chart-area">'
+            // === 图表页 ===
+            + '<div class="detail-page-chart" id="dh-page-chart">'
+            + '<div class="chart-area" id="dh-chart-area">'
             + '<canvas class="detail-canvas" id="dh-detail-canvas"></canvas>'
-            // v5.1.0: Y/X 轴刻度标签容器 (绝对定位, 在 chart-area padding 区域, 不被 canvas clip)
             + '<div class="axis-ticks axis-ticks-y" id="dh-axis-ticks-y"></div>'
             + '<div class="axis-ticks axis-ticks-x" id="dh-axis-ticks-x"></div>'
             + '<div class="axis-title axis-y-title">' + (card.unit || '') + '</div>'
             + '<div class="axis-title axis-x-title">时间</div>'
             + '</div>'
             + '<div class="detail-stats" id="dh-detail-stats"></div>'
+            + '</div>'
+            // === 日志页 ===
+            + '<div class="detail-page-logs" id="dh-page-logs">'
             + '<div class="detail-logs-panel">'
             + '<div class="detail-logs-header">'
             + '<span class="detail-logs-title">数据日志</span>'
@@ -10386,16 +10436,17 @@
             + '<button class="detail-logs-jump-btn active" id="dh-detail-logs-jump" title="新数据自动滚到底部">⤵ 跟随</button>'
             + '</div>'
             + '<div class="detail-logs-table" id="dh-detail-logs-table"></div>'
+            + '</div>'
             + '</div>';
-          // chart-area 装饰 (tooltip + marker + zoom-hint + zoom-selection)
-          const ca = body.querySelector('.chart-area');
+          // chart-area 装饰 (tooltip + marker + zoom-hint + zoom-selection) — 只在 chart 页需要
+          const ca = body.querySelector('#dh-chart-area');
           if (ca && !ca.querySelector('.detail-tooltip')) {
             const tip = document.createElement('div'); tip.className = 'detail-tooltip'; ca.appendChild(tip);
             const mk = document.createElement('div'); mk.className = 'detail-marker'; ca.appendChild(mk);
             const sel = document.createElement('div'); sel.className = 'detail-zoom-selection'; ca.appendChild(sel);
             const hi = document.createElement('div'); hi.className = 'detail-zoom-hint'; hi.textContent = '滚轮缩放 · 拖动选区 · 双击复位'; ca.appendChild(hi);
           }
-          // v5.1.0: 拉数据 + 画图表 + 状态行 + 日志
+          // 拉数据
           let data = [], setData = [], actData = [];
           if (card.type === 'pair') {
             setData = NS.trendData['10.charge_v_set'] || [];
@@ -10405,6 +10456,7 @@
             const cmdHex = card.cmd ? card.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
             data = NS.trendData[cmdHex + '.' + card.field] || [];
           }
+          // 渲染两页 (chart 跟 logs 都先渲染, 切页不需要重画, 性能 + 一致性)
           requestAnimationFrame(() => {
             if (card.type === 'pair') {
               const all = [...setData, ...actData];
@@ -10416,6 +10468,8 @@
             }
             NS._renderDetailLogs(card);
             NS._updateDetailZoomInfo(card, data);
+            // 切到当前页 (新开 modal 默认 chart, 但开时已设了)
+            NS._switchDetailPage(NS._detailPage);
           });
         };
 
@@ -12329,6 +12383,13 @@
               if (act === 'in') NS._detailZoomBy(0.5, card, data);
               else if (act === 'out') NS._detailZoomBy(2.0, card, data);
               else if (act === 'reset') NS._resetDetailZoom();
+            });
+          });
+          // v5.1.2: 详情 modal — 图表/日志 页切换
+          document.querySelectorAll('.detail-page-tab').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              if (!NS._detailCardId) return;
+              NS._switchDetailPage(btn.dataset.page || 'chart');
             });
           });
           // chart type: 4 种 (line/bar/area/scatter, 直方图被日志表替代)
