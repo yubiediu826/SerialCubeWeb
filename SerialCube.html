@@ -7223,6 +7223,33 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-cmd-list-item:hover { border-color: var(--accent); }
 .v49-cmd-list-item-name { flex: 1; font-weight: 500; }
 
+    /* cmd-modal (新建/编辑命令 - 5 tab section) */
+.v49-cmd-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 12px; overflow-x: auto; }
+.v49-tab { padding: 7px 14px; font-size: 12.5px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text-soft); white-space: nowrap; transition: border-color 0.15s, color 0.15s; }
+.v49-tab:hover { color: var(--text); }
+.v49-tab.active { border-bottom-color: var(--accent); color: var(--accent); font-weight: 500; }
+.v49-tab-count { background: var(--bg-subtle); color: var(--text-soft); font-size: 10.5px; padding: 0 5px; border-radius: 8px; margin-left: 4px; }
+.v49-cmd-section { display: none; }
+.v49-cmd-section.active { display: block; }
+.v49-form-grid-cmd { display: grid; grid-template-columns: 110px 1fr; gap: 8px 10px; align-items: center; font-size: 12px; }
+.v49-inline-check { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
+.v49-preset-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.v49-preset-btn { text-align: left; line-height: 1.3; }
+.v49-preset-name { color: var(--accent); }
+.v49-preset-meta { font-size: 10px; color: var(--text-soft); }
+.v49-fields-list { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; padding: 8px; min-height: 100px; max-height: 280px; overflow-y: auto; }
+.v49-fields-actions { margin-top: 8px; display: flex; gap: 6px; }
+.v49-field-row { display: grid; grid-template-columns: 18px 18px 1fr 75px 50px 60px 60px 24px; gap: 5px; align-items: center; padding: 5px 6px; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 3px; background: var(--bg-subtle); font-size: 12px; }
+.v49-field-drag { color: var(--text-soft); cursor: grab; font-size: 13px; text-align: center; }
+.v49-field-num { color: var(--text-soft); font-size: 11px; text-align: center; }
+.v49-frame-preview { margin-bottom: 8px; }
+.v49-parse-input { width: 100%; height: 80px; font-family: var(--font-mono); font-size: 12px; padding: 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-elevated); resize: vertical; box-sizing: border-box; }
+.v49-parse-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.v49-user-presets { display: flex; flex-wrap: wrap; gap: 4px; }
+.v49-user-preset-chip { background: var(--brand-green); color: #16a34a; padding: 2px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.v49-user-preset-del { cursor: pointer; opacity: 0.5; margin-left: 2px; }
+.v49-user-preset-del:hover { opacity: 1; }
+
     /* form-field (label + input 排版) */
 .v49-form-field { margin-bottom: 12px; }
 .v49-form-label { display: block; font-size: 12px; color: var(--text-soft); margin-bottom: 4px; font-weight: 500; }
@@ -16217,15 +16244,15 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           // 字段 row 渲染函数
           function renderFieldRows() {
             return (command.fields || []).map(function (f, i) {
-              return '<div class="v49-field-row" data-field-id="' + f.id + '" style="display:grid;grid-template-columns:18px 18px 1fr 75px 50px 60px 60px 24px;gap:5px;align-items:center;padding:5px 6px;border:1px solid var(--border);border-radius:4px;margin-bottom:3px;background:#fafbfc;font-size:12px;">' +
-                '<span class="v49-field-drag" style="color:var(--text-3);cursor:grab;font-size:13px;text-align:center;" title="拖动改顺序">⋮⋮</span>' +
-                '<span class="v49-field-num" style="color:var(--text-3);font-size:11px;text-align:center;">' + (i + 1) + '</span>' +
-                '<input class="inp v49-field-name" value="' + NS.escapeHtml(f.name || '') + '" style="font-size:12px;padding:2px 6px;width:100%;">' +
-                '<select class="inp v49-field-type" style="font-size:11px;padding:2px 4px;">' + NS._FIELD_TYPES.map(function (t) { return '<option value="' + t + '" ' + (f.type === t ? 'selected' : '') + '>' + t + '</option>'; }).join('') + '</select>' +
-                '<select class="inp v49-field-bo" style="font-size:11px;padding:2px 4px;"><option value="BE" ' + (f.byteOrder === 'BE' ? 'selected' : '') + '>BE</option><option value="LE" ' + (f.byteOrder === 'LE' ? 'selected' : '') + '>LE</option></select>' +
-                '<input class="inp v49-field-scale" type="number" step="0.001" value="' + (f.scale || 1) + '" style="font-size:11px;padding:2px 4px;width:100%;">' +
-                '<input class="inp v49-field-unit" value="' + NS.escapeHtml(f.unit || '') + '" placeholder="单位" style="font-size:11px;padding:2px 4px;width:100%;">' +
-                '<button class="v49-btn sm v49-field-del" title="删除字段" style="background:transparent;border-color:transparent;color:var(--text-3);padding:0;font-size:14px;">×</button>' +
+              return '<div class="v49-field-row" data-field-id="' + f.id + '">' +
+                '<span class="v49-field-drag" title="拖动改顺序">⋮⋮</span>' +
+                '<span class="v49-field-num">' + (i + 1) + '</span>' +
+                '<input class="v49-inp v49-field-name" value="' + NS.escapeHtml(f.name || '') + '">' +
+                '<select class="v49-inp v49-field-type">' + NS._FIELD_TYPES.map(function (t) { return '<option value="' + t + '" ' + (f.type === t ? 'selected' : '') + '>' + t + '</option>'; }).join('') + '</select>' +
+                '<select class="v49-inp v49-field-bo"><option value="BE" ' + (f.byteOrder === 'BE' ? 'selected' : '') + '>BE</option><option value="LE" ' + (f.byteOrder === 'LE' ? 'selected' : '') + '>LE</option></select>' +
+                '<input class="v49-inp v49-field-scale" type="number" step="0.001" value="' + (f.scale || 1) + '">' +
+                '<input class="v49-inp v49-field-unit" value="' + NS.escapeHtml(f.unit || '') + '" placeholder="单位">' +
+                '<button class="v49-btn sm ghost v49-field-del" title="删除字段">×</button>' +
                 '</div>';
             }).join('');
           }
@@ -16241,11 +16268,11 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           function renderUserPresets() {
             const list = NS._getFieldPresets();
             if (list.length === 0) return '';
-            return '<div style="margin-top:10px;background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:8px 10px;">' +
-              '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:6px;">我的预设 (点一下加到字段):</div>' +
-              '<div style="display:flex;flex-wrap:wrap;gap:4px;">' +
+            return '<div class="v49-step1-section" style="margin-top:10px;">' +
+              '<div class="v49-step1-section-title">我的预设 (点一下加到字段)</div>' +
+              '<div class="v49-user-presets">' +
               list.map(function (p) {
-                return '<span class="v49-user-preset-chip" data-user-preset="' + p.id + '" style="background:var(--success-soft);color:var(--success);padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">' + NS.escapeHtml(p.name) + ' <span class="v49-user-preset-del" data-del="' + p.id + '" style="cursor:pointer;opacity:0.5;margin-left:2px;">×</span></span>';
+                return '<span class="v49-user-preset-chip" data-user-preset="' + p.id + '">' + NS.escapeHtml(p.name) + ' <span class="v49-user-preset-del" data-del="' + p.id + '">×</span></span>';
               }).join('') +
               '</div></div>';
           }
@@ -16254,81 +16281,75 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             recomputeOffsets();
             return [
               // Tabs
-              '<div class="v49-cmd-tabs" style="display:flex;border-bottom:1px solid var(--border);margin-bottom:12px;overflow-x:auto;">',
-              '  <div class="v49-tab active" data-tab="basic" style="padding:7px 14px;font-size:12.5px;cursor:pointer;border-bottom:2px solid var(--primary);color:var(--primary);font-weight:500;white-space:nowrap;">基础</div>',
-              '  <div class="v49-tab" data-tab="fields" style="padding:7px 14px;font-size:12.5px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">字段 <span class="v49-tab-count" style="background:var(--tag-bg);color:var(--text-2);font-size:10.5px;padding:0 5px;border-radius:8px;margin-left:4px;">' + (command.fields || []).length + '</span></div>',
-              '  <div class="v49-tab" data-tab="preview" style="padding:7px 14px;font-size:12.5px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">帧预览</div>',
-              '  <div class="v49-tab" data-tab="parse" style="padding:7px 14px;font-size:12.5px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">反向解析</div>',
-              '  <div class="v49-tab" data-tab="bind" style="padding:7px 14px;font-size:12.5px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">仪表盘绑定</div>',
+              '<div class="v49-cmd-tabs">',
+              '  <div class="v49-tab active" data-tab="basic">基础</div>',
+              '  <div class="v49-tab" data-tab="fields">字段 <span class="v49-tab-count">' + (command.fields || []).length + '</span></div>',
+              '  <div class="v49-tab" data-tab="preview">帧预览</div>',
+              '  <div class="v49-tab" data-tab="parse">反向解析</div>',
+              '  <div class="v49-tab" data-tab="bind">仪表盘绑定</div>',
               '</div>',
               // Section 1: 基础
-              '<div class="v49-cmd-section" data-section="basic">',
-              '  <div style="display:grid;grid-template-columns:110px 1fr;gap:8px 10px;align-items:center;font-size:12px;">',
-              '    <label>命令名 <span style="color:var(--danger)">*</span></label><input class="inp" id="v49-cmd-name" value="' + NS.escapeHtml(command.name || '') + '" placeholder="必填">',
-              '    <label>命令码 (hex)</label><input class="inp mono" id="v49-cmd-cmdcode" value="0x' + (command.cmdCode || 0).toString(16).padStart(2, '0').toUpperCase() + '">',
-              '    <label>Ack 命令</label><select class="inp" id="v49-cmd-ack"><option value="">无</option>' + (profile.commands || []).filter(function (c) { return c.id !== command.id; }).map(function (c) { return '<option value="' + c.id + '" ' + (command.ackCmd === c.id ? 'selected' : '') + '>' + NS.escapeHtml(c.name) + '</option>'; }).join('') + '</select>',
-              '    <label>超时 (ms)</label><input class="inp" type="number" id="v49-cmd-timeout" value="' + (command.timeoutMs || 30000) + '" min="100" max="60000">',
-              '    <label>重试次数</label><input class="inp" type="number" id="v49-cmd-retry" value="' + (command.retryCount || 3) + '" min="0" max="10">',
-              '    <label>触发模式</label><select class="inp" id="v49-cmd-trigger-mode"><option value="manual" ' + (command.trigger.mode === 'manual' ? 'selected' : '') + '>手动</option><option value="periodic" ' + (command.trigger.mode === 'periodic' ? 'selected' : '') + '>定时</option></select>',
-              '    <label>定时 (ms)</label><input class="inp" type="number" id="v49-cmd-trigger-period" value="' + (command.trigger.periodMs || 0) + '" min="0">',
-              '    <label>手动热键</label><input class="inp" id="v49-cmd-trigger-hotkey" value="' + NS.escapeHtml(command.trigger.manualHotkey || 'F5') + '" placeholder="F5">',
-              '    <label>连接后自动发</label><label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" id="v49-cmd-trigger-onconnect" ' + (command.trigger.onConnect ? 'checked' : '') + '> 启用</label>',
+              '<div class="v49-cmd-section active" data-section="basic">',
+              '  <div class="v49-form-grid-cmd">',
+              '    <label>命令名 <span class="v49-form-label-req">*</span></label><input class="v49-inp" id="v49-cmd-name" value="' + NS.escapeHtml(command.name || '') + '" placeholder="必填">',
+              '    <label>命令码 (hex)</label><input class="v49-inp mono" id="v49-cmd-cmdcode" value="0x' + (command.cmdCode || 0).toString(16).padStart(2, '0').toUpperCase() + '">',
+              '    <label>Ack 命令</label><select class="v49-inp" id="v49-cmd-ack"><option value="">无</option>' + (profile.commands || []).filter(function (c) { return c.id !== command.id; }).map(function (c) { return '<option value="' + c.id + '" ' + (command.ackCmd === c.id ? 'selected' : '') + '>' + NS.escapeHtml(c.name) + '</option>'; }).join('') + '</select>',
+              '    <label>超时 (ms)</label><input class="v49-inp" type="number" id="v49-cmd-timeout" value="' + (command.timeoutMs || 30000) + '" min="100" max="60000">',
+              '    <label>重试次数</label><input class="v49-inp" type="number" id="v49-cmd-retry" value="' + (command.retryCount || 3) + '" min="0" max="10">',
+              '    <label>触发模式</label><select class="v49-inp" id="v49-cmd-trigger-mode"><option value="manual" ' + (command.trigger.mode === 'manual' ? 'selected' : '') + '>手动</option><option value="periodic" ' + (command.trigger.mode === 'periodic' ? 'selected' : '') + '>定时</option></select>',
+              '    <label>定时 (ms)</label><input class="v49-inp" type="number" id="v49-cmd-trigger-period" value="' + (command.trigger.periodMs || 0) + '" min="0">',
+              '    <label>手动热键</label><input class="v49-inp" id="v49-cmd-trigger-hotkey" value="' + NS.escapeHtml(command.trigger.manualHotkey || 'F5') + '" placeholder="F5">',
+              '    <label>连接后自动发</label><label class="v49-inline-check"><input type="checkbox" id="v49-cmd-trigger-onconnect" ' + (command.trigger.onConnect ? 'checked' : '') + '> 启用</label>',
               '  </div>',
               '</div>',
               // Section 2: 字段定义
-              '<div class="v49-cmd-section" data-section="fields" style="display:none;">',
+              '<div class="v49-cmd-section" data-section="fields">',
               // 9 预设
-              '  <div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px;">',
-              '    <div style="font-size:11.5px;color:var(--text-3);margin-bottom:6px;">9 个嵌入式高频字段预设 (点一下自动填):</div>',
-              '    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;">',
+              '  <div class="v49-step1-section">',
+              '    <div class="v49-step1-section-title">9 个嵌入式高频字段预设 (点一下自动填)</div>',
+              '    <div class="v49-preset-grid">',
               NS._BUILTIN_FIELD_PRESETS.map(function (p) {
-                return '<button class="v49-btn-sm" data-preset="' + NS.escapeHtml(p.name) + '" style="padding:4px 6px;background:var(--card);border:1px solid var(--border);border-radius:4px;font-size:11px;text-align:left;cursor:pointer;line-height:1.3;">' +
-                  '<b style="color:var(--primary)">' + p.name + '</b><div style="font-size:10px;color:var(--text-3);">' + p.type + ' · ' + (p.unit || '—') + '</div>' +
+                return '<button class="v49-btn sm v49-preset-btn" data-preset="' + NS.escapeHtml(p.name) + '">' +
+                  '<b class="v49-preset-name">' + p.name + '</b><div class="v49-preset-meta">' + p.type + ' · ' + (p.unit || '—') + '</div>' +
                   '</button>';
               }).join(''),
               '    </div>',
               '  </div>',
               // 字段列表
-              '  <div style="font-size:11.5px;color:var(--text-3);margin-bottom:4px;">字段列表 (' + (command.fields || []).length + ' 个, byteOffset 自动按顺序计算):</div>',
-              '  <div id="v49-cmd-fields-list" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px;min-height:100px;max-height:280px;overflow-y:auto;">',
-              (command.fields || []).length > 0 ? renderFieldRows() : '<div style="color:var(--text-3);text-align:center;padding:20px;">还没有字段, 点上面 9 个预设或 "+ 加字段"</div>',
+              '  <div class="v49-section-title">字段列表 (' + (command.fields || []).length + ' 个, byteOffset 自动按顺序计算)</div>',
+              '  <div id="v49-cmd-fields-list" class="v49-fields-list">',
+              (command.fields || []).length > 0 ? renderFieldRows() : '<div class="v49-empty-state">还没有字段, 点上面 9 个预设或 "+ 加字段"</div>',
               '  </div>',
-              '  <div style="margin-top:8px;display:flex;gap:6px;">',
-              '    <button class="v49-btn-sm" id="v49-cmd-add-field" style="padding:3px 10px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;">+ 加字段</button>',
-              '    <button class="v49-btn-sm" id="v49-cmd-save-preset" style="padding:3px 10px;background:var(--card);color:var(--text);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">保存当前为预设</button>',
+              '  <div class="v49-fields-actions">',
+              '    <button class="v49-btn sm primary" id="v49-cmd-add-field">+ 加字段</button>',
+              '    <button class="v49-btn sm" id="v49-cmd-save-preset">保存当前为预设</button>',
               '  </div>',
               renderUserPresets(),
               '</div>',
               // Section 3: 帧预览 (T16)
-              '<div class="v49-cmd-section" data-section="preview" style="display:none;">',
-              '  <div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px;font-size:11.5px;color:var(--text-2);">',
-              '    <b>帧预览</b> — 调 <code style="background:var(--card);padding:1px 4px;border-radius:3px;">NS.buildFrame(profile, command)</code> 拿字节流, 按段着色, 字段 sub-高亮。',
+              '<div class="v49-cmd-section" data-section="preview">',
+              '  <div class="v49-step1-section"><b>帧预览</b> — 调 <code>NS.buildFrame(profile, command)</code> 拿字节流, 按段着色, 字段 sub-高亮。</div>',
+              '  <div id="v49-frame-preview" class="v49-frame-preview">' + NS._renderFramePreviewHtml(profile, command) + '</div>',
+              '  <div class="v49-fields-actions">',
+              '    <button class="v49-btn sm primary" id="v49-frame-refresh">↻ 重新构建</button>',
+              '    <button class="v49-btn sm" id="v49-frame-clear">清空</button>',
+              '    <button class="v49-btn sm" id="v49-frame-fill" title="用一组合成数据填字段, 走 parseFrame 验证往返">🎲 填测试数据并往返校验</button>',
               '  </div>',
-              '  <div id="v49-frame-preview" style="margin-bottom:8px;">' + NS._renderFramePreviewHtml(profile, command) + '</div>',
-              '  <div style="display:flex;gap:6px;flex-wrap:wrap;">',
-              '    <button class="v49-btn-sm" id="v49-frame-refresh" style="padding:4px 12px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;">↻ 重新构建</button>',
-              '    <button class="v49-btn-sm" id="v49-frame-clear" style="padding:4px 12px;background:var(--card);color:var(--text);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">清空</button>',
-              '    <button class="v49-btn-sm" id="v49-frame-fill" title="用一组合成数据填字段, 走 parseFrame 验证往返" style="padding:4px 12px;background:var(--card);color:var(--text);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">🎲 填测试数据并往返校验</button>',
-              '  </div>',
-              '  <div id="v49-frame-roundtrip" style="margin-top:8px;"></div>',
+              '  <div id="v49-frame-roundtrip"></div>',
               '</div>',
               // Section 4: 反向解析 (T17)
-              '<div class="v49-cmd-section" data-section="parse" style="display:none;">',
-              '  <div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px;font-size:11.5px;color:var(--text-2);">',
-              '    <b>贴字节反向解析</b> — 支持 hex 字符串, 空格 / <code style="background:var(--card);padding:1px 4px;border-radius:3px;">0x</code> 前缀 / 逗号 / 换行都接受。500ms debounce 实时解析。',
+              '<div class="v49-cmd-section" data-section="parse">',
+              '  <div class="v49-step1-section"><b>贴字节反向解析</b> — 支持 hex 字符串, 空格 / <code>0x</code> 前缀 / 逗号 / 换行都接受。500ms debounce 实时解析。</div>',
+              '  <textarea id="v49-parse-input" class="v49-parse-input" placeholder="AA 01 03 0A 0B 12 34 55"></textarea>',
+              '  <div class="v49-fields-actions">',
+              '    <button class="v49-btn sm" id="v49-parse-clear">清空</button>',
+              '    <button class="v49-btn sm primary" id="v49-parse-adopt" title="把解析结果填到字段定义 (覆盖现有)">↓ 采纳为字段定义</button>',
               '  </div>',
-              '  <textarea id="v49-parse-input" placeholder="AA 01 03 0A 0B 12 34 55" style="width:100%;height:80px;font-family:var(--mono);font-size:12px;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--card);resize:vertical;box-sizing:border-box;"></textarea>',
-              '  <div style="margin-top:6px;display:flex;gap:6px;">',
-              '    <button class="v49-btn-sm" id="v49-parse-clear" style="padding:3px 10px;background:var(--card);color:var(--text);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">清空</button>',
-              '    <button class="v49-btn-sm" id="v49-parse-adopt" title="把解析结果填到字段定义 (覆盖现有)" style="padding:3px 10px;background:var(--card);color:var(--primary);border:1px solid var(--primary);border-radius:4px;font-size:12px;cursor:pointer;">↓ 采纳为字段定义</button>',
-              '  </div>',
-              '  <div id="v49-parse-result" style="margin-top:10px;">' + NS._renderParseResultHtml(profile, command, null) + '</div>',
+              '  <div id="v49-parse-result">' + NS._renderParseResultHtml(profile, command, null) + '</div>',
               '</div>',
               // Section 5: 仪表盘绑定 (T18, Q3 锁定: 配置层)
-              '<div class="v49-cmd-section" data-section="bind" style="display:none;">',
-              '  <div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px;font-size:11.5px;color:var(--text-2);">',
-              '    <b>仪表盘绑定 (配置层)</b> — 选卡片 + 选 1-N 字段 + 布局。Q3 锁定: 数据真实刷新留 v4.9.1, 此处只存配置 + 静态预览。',
-              '  </div>',
+              '<div class="v49-cmd-section" data-section="bind">',
+              '  <div class="v49-step1-section"><b>仪表盘绑定 (配置层)</b> — 选卡片 + 选 1-N 字段 + 布局。Q3 锁定: 数据真实刷新留 v4.9.1, 此处只存配置 + 静态预览。</div>',
               '  <div id="v49-bind-list">' + NS._renderDashboardBindingsHtml(profile, command) + '</div>',
               '</div>'
             ].join('');
@@ -16380,28 +16401,19 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               function refreshFields() {
                 const list = document.getElementById('v49-cmd-fields-list');
                 if (!list) return;
-                list.innerHTML = (command.fields || []).length > 0 ? renderFieldRows() : '<div style="color:var(--text-3);text-align:center;padding:20px;">还没有字段, 点上面 9 个预设或 "+ 加字段"</div>';
+                list.innerHTML = (command.fields || []).length > 0 ? renderFieldRows() : '<div class="v49-empty-state">还没有字段, 点上面 9 个预设或 "+ 加字段"</div>';
                 const countEl = modal.querySelector('.v49-tab[data-tab="fields"] .v49-tab-count');
                 if (countEl) countEl.textContent = (command.fields || []).length;
                 bindFieldEvents();
               }
-              // Tab 切换
+              // Tab 切换 (B-FULL: 改 style 改写为 classList toggle)
               function switchTab(tabName) {
                 modal.querySelectorAll('.v49-tab').forEach(function (t) {
-                  if (t.dataset.tab === tabName) {
-                    t.classList.add('active');
-                    t.style.borderBottomColor = 'var(--primary)';
-                    t.style.color = 'var(--primary)';
-                    t.style.fontWeight = '500';
-                  } else {
-                    t.classList.remove('active');
-                    t.style.borderBottomColor = 'transparent';
-                    t.style.color = 'var(--text-2)';
-                    t.style.fontWeight = 'normal';
-                  }
+                  if (t.dataset.tab === tabName) t.classList.add('active');
+                  else t.classList.remove('active');
                 });
                 modal.querySelectorAll('.v49-cmd-section').forEach(function (s) {
-                  s.style.display = (s.dataset.section === tabName) ? '' : 'none';
+                  s.classList.toggle('active', s.dataset.section === tabName);
                 });
               }
               function reinitTabsAndPresets() {
