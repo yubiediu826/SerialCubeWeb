@@ -6940,7 +6940,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       cursor: pointer;
       font-family: var(--font-ui);
       white-space: nowrap;
-      transition: background .12s, border-color .12s;
+      transition: background .12s, border-color .12s, transform .08s ease-out, box-shadow .12s;
     }
 .v49-btn:hover {
       background: var(--bg-soft, #f7f8fa);
@@ -7140,9 +7140,41 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-tbl tr:hover td { background: var(--bg-subtle); }
 .v49-tbl tr.selected td { background: var(--accent-soft); }
 
+    /* phase 4-1: 交互动效 (2026-08-06) — modal 入场 + 行 hover + 按钮 active */
+    @keyframes v49ModalIn {
+      from { opacity: 0; transform: translateX(-50%) scale(0.96); }
+      to   { opacity: 1; transform: translateX(-50%) scale(1); }
+    }
+    @keyframes v49BackdropIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes v49FadeIn {
+      from { opacity: 0; transform: translateY(2px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #v49-modal.open { animation: v49ModalIn 0.18s ease-out; }
+    #v49-modal-backdrop.open { animation: v49BackdropIn 0.18s ease-out; }
+
     /* proto-layout (B-1 协议编辑器主架构 - 列表 + 详情两栏) */
-.v49-proto-row { cursor: pointer; transition: background 0.12s; }
-.v49-proto-row.active td { background: var(--accent-soft); border-bottom-color: var(--accent-soft); }
+.v49-proto-row { cursor: pointer; transition: background 0.12s, box-shadow 0.12s; }
+.v49-proto-row:hover td { background: var(--bg-subtle); }
+.v49-proto-row.active td { background: var(--accent-soft); border-bottom-color: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+
+    /* phase 4-1: step0/kind 卡片 hover 微微上浮 */
+.v49-step0-card { transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform .12s ease-out; }
+.v49-step0-card:hover:not(.active) { transform: translateY(-1px); box-shadow: var(--shadow-soft); }
+.v49-kind-card { transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform .12s ease-out; }
+.v49-kind-card:hover:not(.active) { transform: translateY(-1px); box-shadow: var(--shadow-soft); }
+
+    /* phase 4-1: 按钮 active 按下反馈 */
+.v49-btn:active:not(:disabled) { transform: scale(0.97); }
+.v49-btn.primary:hover { box-shadow: 0 4px 12px var(--accent-soft); }
+
+    /* phase 4-1: tab 切换 + 详情区内容淡入 */
+.v49-cmd-section.active { animation: v49FadeIn 0.15s ease-out; }
+.v49-proto-detail { animation: v49FadeIn 0.18s ease-out; }
+
 .v49-proto-detail { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 12px; min-height: 200px; box-shadow: var(--shadow-soft); }
 .v49-proto-detail-empty { text-align: center; padding: 50px 20px; color: var(--text-soft); font-size: 13px; }
 .v49-proto-detail-head { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
