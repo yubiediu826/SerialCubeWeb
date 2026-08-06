@@ -15279,6 +15279,391 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         // 5 section (本 commit 只做基础+字段, 帧预览/反向解析/绑定留 C3b)
         // ========================================================================
 
+        // --- C3b T17: hex 字符串 → Uint8Array ---
+        //   接受空格 / 0x 前缀 / 逗号 / 换行 / tab 分隔
+        //   失败返回 { error: 'PARSE_FAIL', message, position }
+        NS._hexStringToBytes = function (str) {
+          if (!str || typeof str !== 'string') return { error: 'EMPTY', bytes: [] };
+          // 去掉 0x 前缀 + 逗号 + 换行 + tab + 空格
+          const cleaned = str.replace(/0x/gi, '').replace(/[,;\n\r\t\s]/g, '');
+          if (cleaned.length === 0) return { error: 'EMPTY', bytes: [] };
+          if (cleaned.length % 2 !== 0) return { error: 'ODD_LENGTH', bytes: [], position: cleaned.length };
+          const bytes = [];
+          for (let i = 0; i < cleaned.length; i += 2) {
+            const hi = cleaned.charAt(i), lo = cleaned.charAt(i + 1);
+            const h = parseInt(hi, 16), l = parseInt(lo, 16);
+            if (isNaN(h) || isNaN(l)) {
+              return { error: 'PARSE_FAIL', bytes: [], position: i, message: '位置 ' + i + ' 不是 hex: ' + hi + lo };
+            }
+            bytes.push((h << 4) | l);
+          }
+          return { bytes: bytes };
+        };
+
+        // --- C3b T17: v4.9 type 名 → _bytesToNumber 用的 type 名 ---
+        NS._v49TypeToDecodeType = function (t) {
+          const map = { uint8: 'u8', uint16: 'u16', uint32: 'u32', int8: 'i8', int16: 'i16', int32: 'i32', float32: 'float' };
+          return map[t] || 'u16';
+        };
+
+        // --- C3b T17: 按 cmd.fields 拆 data 段 bytes, 转成实际值 ---
+        //   找不到 data 段时返 null
+        //   bytes 全部 hex 字符串 (用 NS._bytesToNumber 之前的 u8 数组)
+        NS._splitDataBytesByFields = function (dataBytes, fields) {
+          const out = [];
+          if (!dataBytes || !fields || fields.length === 0) return out;
+          let off = 0;
+          for (const f of fields) {
+            const len = NS._fieldTypeToByteLen(f.type);
+            if (off + len > dataBytes.length) {
+              out.push({ id: f.id, name: f.name, type: f.type, byteOrder: f.byteOrder, scale: f.scale, unit: f.unit, format: f.format, error: 'INSUFFICIENT', rawBytes: dataBytes.slice(off) });
+              break;
+            }
+            const slice = dataBytes.slice(off, off + len);
+            const rawVal = NS._bytesToNumber(slice, f.byteOrder || 'BE', NS._v49TypeToDecodeType(f.type));
+            const scaled = (f.scale && f.scale !== 1) ? (rawVal * f.scale) : rawVal;
+            out.push({
+              id: f.id, name: f.name, type: f.type, byteOrder: f.byteOrder, scale: f.scale, unit: f.unit, format: f.format,
+              rawBytes: slice, rawValue: rawVal, value: scaled,
+              hexStr: '0x' + Array.from(slice).map(function (b) { return (b & 0xFF).toString(16).padStart(2, '0').toUpperCase(); }).join('')
+            });
+            off += len;
+          }
+          return out;
+        };
+
+        // --- C3b T16: 帧预览 section HTML 渲染 ---
+        //   buildFrame 拿 bytes + sections, 按段着色
+        NS._renderFramePreviewHtml = function (profile, command) {
+          const result = NS.buildFrame(profile, command);
+          if (!result) {
+            return '<div style="background:var(--danger-soft);color:var(--danger);padding:10px;border-radius:6px;font-size:12px;">buildFrame 返回空</div>';
+          }
+          if (result.error) {
+            return '<div style="background:var(--danger-soft);color:var(--danger);padding:10px;border-radius:6px;font-size:12px;">' +
+              '<b>构建失败:</b> ' + NS.escapeHtml(result.error) +
+              (result.kind ? ' (kind=' + NS.escapeHtml(result.kind) + ')' : '') +
+              '</div>';
+          }
+          const sections = result.sections || [];
+          const bytes = result.bytes || [];
+          if (bytes.length === 0) {
+            return '<div style="background:var(--warn-soft);color:var(--warn);padding:10px;border-radius:6px;font-size:12px;">帧为空 (无字段/未配)</div>';
+          }
+          // 段配色:header/cmd/length/data/crc/tail 6 种
+          const colorMap = {
+            header:  { bg: '#e3f2fd', fg: '#1565c0', label: '头' },
+            cmd:     { bg: '#fff3e0', fg: '#e65100', label: '命' },
+            length:  { bg: '#f3e5f5', fg: '#6a1b9a', label: '长' },
+            data:    { bg: '#e8f5e9', fg: '#2e7d32', label: '数' },
+            crc:     { bg: '#fce4ec', fg: '#c2185b', label: '校' },
+            tail:    { bg: '#eceff1', fg: '#37474f', label: '尾' }
+          };
+          // 找 data 段内的子字段边界
+          const dataSection = sections.find(function (s) { return s.type === 'data'; });
+          let fieldBoundaries = [];
+          if (dataSection && command && (command.fields || []).length > 0) {
+            let doff = dataSection.bytes[0] !== undefined ? bytes.indexOf(dataSection.bytes[0]) : -1;
+            if (doff >= 0) {
+              // 用 buildFrame 的字节顺序算出每个 field 的 byteOffset (从 data 段开始)
+              let fOff = 0;
+              for (const f of command.fields) {
+                fieldBoundaries.push({ start: doff + fOff, end: doff + fOff + NS._fieldTypeToByteLen(f.type), name: f.name });
+                fOff += NS._fieldTypeToByteLen(f.type);
+              }
+            }
+          }
+          // 渲染:每段一行
+          let html = '<div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px;">';
+          // 段名/byte 列表
+          html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">';
+          for (const sec of sections) {
+            const col = colorMap[sec.type] || { bg: '#f5f5f5', fg: '#333', label: sec.type };
+            const hexStr = '0x' + sec.bytes.map(function (b) { return (b & 0xFF).toString(16).padStart(2, '0').toUpperCase(); }).join('');
+            html += '<div style="background:' + col.bg + ';color:' + col.fg + ';padding:3px 8px;border-radius:4px;font-size:11px;font-weight:500;">' +
+              '<b>' + col.label + '</b> ' + sec.bytes.length + 'B · ' + NS.escapeHtml(hexStr) + '</div>';
+          }
+          html += '</div>';
+          // 字节流 (单格,按段背景色)
+          html += '<div style="font-family:var(--mono);font-size:11px;line-height:1.6;background:#fafbfc;border:1px solid var(--border);border-radius:4px;padding:6px;word-break:break-all;">';
+          for (let i = 0; i < bytes.length; i++) {
+            const sec = sections.find(function (s) {
+              const start = bytes.indexOf(s.bytes[0]);
+              return start >= 0 && start <= i && i < start + s.bytes.length;
+            });
+            const col = sec ? (colorMap[sec.type] || { bg: '#f5f5f5', fg: '#333' }) : { bg: '#f5f5f5', fg: '#333' };
+            // 字段 sub-高亮 (data 段内)
+            let inField = null;
+            if (sec && sec.type === 'data') {
+              inField = fieldBoundaries.find(function (b) { return i >= b.start && i < b.end; });
+            }
+            const border = inField ? 'box-shadow:inset 0 -2px 0 ' + col.fg + ';' : '';
+            const byteHex = (bytes[i] & 0xFF).toString(16).padStart(2, '0').toUpperCase();
+            html += '<span title="' + (inField ? NS.escapeHtml(inField.name) : (sec ? sec.type : '')) + '" style="background:' + col.bg + ';color:' + col.fg + ';padding:1px 3px;margin:0 1px;border-radius:2px;display:inline-block;' + border + '">' + byteHex + '</span>';
+          }
+          html += '</div>';
+          // 字段映射说明
+          if (fieldBoundaries.length > 0) {
+            html += '<div style="margin-top:8px;font-size:11px;color:var(--text-3);"><b>字段映射:</b> ';
+            html += fieldBoundaries.map(function (b) { return '<span style="background:#e8f5e9;color:#2e7d32;padding:1px 6px;border-radius:3px;margin-right:4px;">' + NS.escapeHtml(b.name) + ' [' + b.start + '..' + (b.end - 1) + ']</span>'; }).join('');
+            html += '</div>';
+          }
+          // 字节总长 + 统计
+          html += '<div style="margin-top:6px;font-size:11px;color:var(--text-3);">共 <b>' + bytes.length + '</b> 字节 · ' + sections.length + ' 段</div>';
+          html += '</div>';
+          return html;
+        };
+
+        // --- C3b T17: 反向解析 section HTML 渲染 ---
+        NS._renderParseResultHtml = function (profile, command, parseResult, hexStr) {
+          if (!parseResult) return '<div style="color:var(--text-3);font-size:12px;text-align:center;padding:20px;">等待输入字节…</div>';
+          if (parseResult.error === 'EMPTY') return '<div style="color:var(--text-3);font-size:12px;text-align:center;padding:20px;">请输入 hex 字节 (如: AA 01 03 0A 0B CRC1 CRC2 55)</div>';
+          if (parseResult.error === 'PARSE_FAIL' || parseResult.error === 'ODD_LENGTH') {
+            return '<div style="background:var(--danger-soft);color:var(--danger);padding:10px;border-radius:6px;font-size:12px;">' +
+              '<b>解析失败:</b> ' + (parseResult.message || parseResult.error) +
+              (parseResult.position !== undefined ? ' (位置 ' + parseResult.position + ')' : '') +
+              '</div>';
+          }
+          if (parseResult.error) {
+            return '<div style="background:var(--danger-soft);color:var(--danger);padding:10px;border-radius:6px;font-size:12px;">' +
+              '<b>parseFrame 失败:</b> ' + NS.escapeHtml(parseResult.error) + '</div>';
+          }
+          // OK: 展示 sections + 按 cmd.fields 拆 data
+          const sections = parseResult.sections || [];
+          const dataSec = sections.find(function (s) { return s.type === 'data'; });
+          let html = '<div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px;">';
+          // 段列表
+          html += '<div style="margin-bottom:8px;font-size:11.5px;color:var(--text-3);"><b>段解析结果:</b></div>';
+          html += '<div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px 10px;font-size:11.5px;background:#fafbfc;border-radius:4px;padding:6px;">';
+          for (const sec of sections) {
+            const hexStr = '0x' + sec.bytes.map(function (b) { return (b & 0xFF).toString(16).padStart(2, '0').toUpperCase(); }).join('');
+            html += '<div style="color:var(--text-2);font-weight:500;">' + NS.escapeHtml(sec.name || sec.type) + '</div>' +
+              '<div style="font-family:var(--mono);">' + NS.escapeHtml(hexStr) + '</div>' +
+              '<div style="color:var(--text-3);">' + (sec.value !== null && sec.value !== undefined ? 'value=' + sec.value : '—') + '</div>';
+          }
+          html += '</div>';
+          // 字段拆分
+          if (dataSec && dataSec.bytes && (command.fields || []).length > 0) {
+            const fieldSplits = NS._splitDataBytesByFields(dataSec.bytes, command.fields);
+            if (fieldSplits.length > 0) {
+              html += '<div style="margin-top:12px;font-size:11.5px;color:var(--text-3);"><b>字段拆分 (按命令字段定义):</b></div>';
+              html += '<div style="margin-top:4px;display:grid;grid-template-columns:1fr 1fr 1fr 80px 60px;gap:4px 8px;font-size:11.5px;background:#fafbfc;border-radius:4px;padding:6px;font-family:var(--mono);">';
+              for (const fs of fieldSplits) {
+                if (fs.error === 'INSUFFICIENT') {
+                  html += '<div style="color:var(--danger);">' + NS.escapeHtml(fs.name) + ' (不足)</div><div>—</div><div>—</div><div>—</div><div>—</div>';
+                } else {
+                  const valStr = (typeof fs.value === 'number') ? (fs.value.toFixed ? fs.value.toFixed(2) : fs.value) : fs.value;
+                  html += '<div style="color:var(--primary);font-weight:500;">' + NS.escapeHtml(fs.name) + '</div>' +
+                    '<div>' + NS.escapeHtml(fs.hexStr) + '</div>' +
+                    '<div style="color:var(--success);">' + valStr + ' ' + (fs.unit || '') + '</div>' +
+                    '<div style="color:var(--text-3);">' + (fs.type || '') + '</div>' +
+                    '<div style="color:var(--text-3);">' + (fs.byteOrder || 'BE') + '</div>';
+                }
+              }
+              html += '</div>';
+            }
+          } else if (dataSec && (command.fields || []).length === 0) {
+            html += '<div style="margin-top:8px;background:var(--warn-soft);color:var(--warn);padding:6px 10px;border-radius:4px;font-size:11.5px;">⚠ 当前命令还没字段定义, 无法拆分 data 段</div>';
+          }
+          html += '</div>';
+          return html;
+        };
+
+        // --- C3b T18: 仪表盘绑定 section HTML 渲染 ---
+        NS._renderDashboardBindingsHtml = function (profile, command) {
+          const bindings = command.dashboardBindings || [];
+          const cards = NS.CARDS || [];
+          // 卡片下拉
+          const cardOpts = cards.map(function (c) { return '<option value="' + NS.escapeHtml(c.id) + '">' + NS.escapeHtml(c.title) + ' (' + NS.escapeHtml(c.type) + ')</option>'; }).join('');
+          if (cards.length === 0) {
+            return '<div style="background:var(--warn-soft);color:var(--warn);padding:14px;border-radius:6px;font-size:12px;text-align:center;">⚠ 还没有仪表盘卡片, 请先到仪表盘页面创建卡片 (Q3 配置层只做绑定, 数据真实生效留 v4.9.1)</div>';
+          }
+          let html = '';
+          if (bindings.length === 0) {
+            html += '<div style="background:#fafbfc;border:1px dashed var(--border-strong);border-radius:6px;padding:18px;text-align:center;color:var(--text-3);font-size:12px;margin-bottom:10px;">' +
+              '还没有绑定。点下方按钮把当前命令的字段绑定到仪表盘卡片 →</div>';
+          } else {
+            html += '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:6px;">已绑定 (' + bindings.length + '):</div>';
+            for (let i = 0; i < bindings.length; i++) {
+              const b = bindings[i];
+              const card = cards.find(function (c) { return c.id === b.cardId; });
+              const fieldNames = (b.fieldIds || []).map(function (fid) {
+                const f = (command.fields || []).find(function (x) { return x.id === fid; });
+                return f ? f.name : fid;
+              }).join(', ') || '(无字段)';
+              html += '<div class="v49-bind-row" data-bind-idx="' + i + '" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:4px;background:var(--card);font-size:12px;">' +
+                '<div style="flex:1;">' +
+                  '<div style="font-weight:500;">' + (card ? NS.escapeHtml(card.title) : '已删除卡片') + ' <span style="background:var(--tag-bg);color:var(--text-2);padding:1px 6px;border-radius:3px;font-size:11px;margin-left:4px;">' + NS.escapeHtml(b.layout) + '</span></div>' +
+                  '<div style="color:var(--text-3);font-size:11px;margin-top:2px;">字段: ' + NS.escapeHtml(fieldNames) + '</div>' +
+                '</div>' +
+                '<button class="v49-bind-del" data-idx="' + i + '" title="解绑" style="background:transparent;border:1px solid var(--danger);color:var(--danger);padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer;">解绑</button>' +
+                '</div>';
+              // 静态预览
+              html += '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:4px;padding:8px;margin-bottom:8px;margin-left:14px;font-size:11px;color:var(--text-3);">' +
+                '<b>预览 (' + NS.escapeHtml(b.layout) + '):</b> ' +
+                NS._renderBindingPreviewHtml(b, command) +
+                '</div>';
+            }
+          }
+          // 添加按钮
+          html += '<button id="v49-bind-add" style="padding:5px 14px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;margin-top:4px;">+ 绑定到仪表盘卡片</button>';
+          return html;
+        };
+
+        // --- C3b T18: 单条绑定的预览 HTML (静态 mock) ---
+        NS._renderBindingPreviewHtml = function (binding, command) {
+          const fieldIds = binding.fieldIds || [];
+          const fields = fieldIds.map(function (fid) {
+            return (command.fields || []).find(function (x) { return x.id === fid; });
+          }).filter(function (x) { return !!x; });
+          if (fields.length === 0) return '<span style="color:var(--danger);">(无字段)</span>';
+          const layout = binding.layout || '1x1';
+          let inner = '';
+          if (layout === '2x1') {
+            // 2 列 1 行
+            inner = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">' +
+              fields.map(function (f) {
+                return '<div style="background:var(--card);border:1px solid var(--border);border-radius:4px;padding:6px;">' +
+                  '<div style="font-size:10px;color:var(--text-3);">' + NS.escapeHtml(f.name) + '</div>' +
+                  '<div style="font-size:14px;font-weight:500;color:var(--text);">— ' + (f.unit || '') + '</div>' +
+                  '</div>';
+              }).join('') + '</div>';
+          } else if (layout === '1x2') {
+            // 1 列 2 行
+            inner = '<div style="display:flex;flex-direction:column;gap:6px;">' +
+              fields.map(function (f) {
+                return '<div style="background:var(--card);border:1px solid var(--border);border-radius:4px;padding:6px;">' +
+                  '<div style="font-size:10px;color:var(--text-3);">' + NS.escapeHtml(f.name) + '</div>' +
+                  '<div style="font-size:14px;font-weight:500;color:var(--text);">— ' + (f.unit || '') + '</div>' +
+                  '</div>';
+              }).join('') + '</div>';
+          } else {
+            // 1x1: 只取第一个
+            const f = fields[0];
+            inner = '<div style="background:var(--card);border:1px solid var(--border);border-radius:4px;padding:6px;text-align:center;">' +
+              '<div style="font-size:10px;color:var(--text-3);">' + NS.escapeHtml(f.name) + '</div>' +
+              '<div style="font-size:16px;font-weight:600;color:var(--text);">— ' + (f.unit || '') + '</div>' +
+              '</div>';
+          }
+          return inner;
+        };
+
+        // --- C3b T18: 弹出添加绑定 modal (子 modal) ---
+        NS._showAddBindingModal = function (profileId, commandId, onAdded) {
+          const profile = (NS.PROFILES || []).find(function (p) { return p.id === profileId; });
+          const command = profile && (profile.commands || []).find(function (c) { return c.id === commandId; });
+          if (!command) { NS.toast('命令不存在', 'warn'); return; }
+          const cards = NS.CARDS || [];
+          const fields = command.fields || [];
+          if (cards.length === 0) { NS.toast('没有仪表盘卡片', 'warn'); return; }
+          if (fields.length === 0) { NS.toast('请先在"字段"页定义至少 1 个字段', 'warn'); return; }
+          // 选第一张卡片 + 第一个字段
+          let selectedCardId = cards[0].id;
+          let selectedFieldIds = [fields[0].id];
+          let selectedLayout = '1x1';
+          function renderCardOptions() {
+            return cards.map(function (c) {
+              return '<option value="' + NS.escapeHtml(c.id) + '" ' + (c.id === selectedCardId ? 'selected' : '') + '>' + NS.escapeHtml(c.title) + ' (' + NS.escapeHtml(c.type) + ')</option>';
+            }).join('');
+          }
+          function renderFieldCheckboxes() {
+            return fields.map(function (f) {
+              return '<label style="display:flex;align-items:center;gap:5px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;cursor:pointer;background:' + (selectedFieldIds.indexOf(f.id) >= 0 ? 'var(--primary-soft)' : 'var(--card)') + ';">' +
+                '<input type="checkbox" class="v49-bind-field-cb" value="' + NS.escapeHtml(f.id) + '" ' + (selectedFieldIds.indexOf(f.id) >= 0 ? 'checked' : '') + '>' +
+                '<span style="flex:1;">' + NS.escapeHtml(f.name) + ' <span style="color:var(--text-3);">(' + NS.escapeHtml(f.type) + ')</span></span>' +
+                '</label>';
+            }).join('');
+          }
+          function renderLayoutOptions() {
+            const layouts = [
+              { val: '2x1', label: '2×1 (横排)', available: selectedFieldIds.length >= 2 },
+              { val: '1x2', label: '1×2 (竖排)', available: selectedFieldIds.length >= 2 },
+              { val: '1x1', label: '1×1 (单值)', available: true }
+            ];
+            return layouts.map(function (l) {
+              return '<label style="display:flex;align-items:center;gap:5px;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;cursor:' + (l.available ? 'pointer' : 'not-allowed') + ';opacity:' + (l.available ? '1' : '0.4') + ';background:' + (selectedLayout === l.val ? 'var(--primary-soft)' : 'var(--card)') + ';">' +
+                '<input type="radio" class="v49-bind-layout-rb" name="v49-bind-layout" value="' + l.val + '" ' + (selectedLayout === l.val ? 'checked' : '') + (l.available ? '' : ' disabled') + '>' +
+                NS.escapeHtml(l.label) + '</label>';
+            }).join('');
+          }
+          function renderPreview() {
+            const mockBinding = { cardId: selectedCardId, fieldIds: selectedFieldIds, layout: selectedLayout };
+            return NS._renderBindingPreviewHtml(mockBinding, command);
+          }
+          function renderBody() {
+            return [
+              '<div style="display:grid;grid-template-columns:110px 1fr;gap:8px 10px;align-items:center;font-size:12px;margin-bottom:12px;">',
+              '  <label>选卡片 <span style="color:var(--danger)">*</span></label><select class="inp" id="v49-bind-card">' + renderCardOptions() + '</select>',
+              '</div>',
+              '<div style="margin-bottom:12px;">',
+              '  <div style="font-size:12px;font-weight:500;margin-bottom:5px;">选字段 (多选):</div>',
+              '  <div id="v49-bind-fields" style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;">' + renderFieldCheckboxes() + '</div>',
+              '</div>',
+              '<div style="margin-bottom:12px;">',
+              '  <div style="font-size:12px;font-weight:500;margin-bottom:5px;">布局 (1 字段只能用 1×1):</div>',
+              '  <div id="v49-bind-layouts" style="display:flex;gap:6px;">' + renderLayoutOptions() + '</div>',
+              '</div>',
+              '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;">',
+              '  <div style="font-size:11.5px;color:var(--text-3);margin-bottom:6px;">静态预览 (Q3 锁定: 数据不真刷新, v4.9.1 接仪表盘数据源):</div>',
+              '  <div id="v49-bind-preview">' + renderPreview() + '</div>',
+              '</div>'
+            ].join('');
+          }
+          NS._showV49Modal('绑定到仪表盘卡片', renderBody(),
+            '<button class="v49-btn" id="v49-bind-cancel">取消</button>' +
+            '<button class="v49-btn primary" id="v49-bind-save">添加</button>',
+            function (modal) {
+              function refresh() {
+                // 同步选中状态
+                const cardSel = document.getElementById('v49-bind-card');
+                if (cardSel) selectedCardId = cardSel.value;
+                selectedFieldIds = [];
+                modal.querySelectorAll('.v49-bind-field-cb:checked').forEach(function (cb) { selectedFieldIds.push(cb.value); });
+                const rb = modal.querySelector('.v49-bind-layout-rb:checked');
+                if (rb) selectedLayout = rb.value;
+                // 字段 < 2 → 强制 1x1
+                if (selectedFieldIds.length < 2 && selectedLayout !== '1x1') {
+                  selectedLayout = '1x1';
+                  const rb1x1 = modal.querySelector('.v49-bind-layout-rb[value="1x1"]');
+                  if (rb1x1) rb1x1.checked = true;
+                }
+                // 重渲染布局可用性 + 预览
+                document.getElementById('v49-bind-layouts').innerHTML = renderLayoutOptions();
+                document.getElementById('v49-bind-preview').innerHTML = renderPreview();
+                modal.querySelectorAll('.v49-bind-field-cb').forEach(function (cb) {
+                  cb.onchange = function () {
+                    if (cb.checked) {
+                      if (selectedFieldIds.indexOf(cb.value) < 0) selectedFieldIds.push(cb.value);
+                    } else {
+                      selectedFieldIds = selectedFieldIds.filter(function (x) { return x !== cb.value; });
+                    }
+                    refresh();
+                  };
+                });
+                modal.querySelectorAll('.v49-bind-layout-rb').forEach(function (rb2) {
+                  rb2.onchange = function () { if (rb2.checked) { selectedLayout = rb2.value; refresh(); } };
+                });
+              }
+              refresh();
+              document.getElementById('v49-bind-card').onchange = refresh;
+              document.getElementById('v49-bind-cancel').onclick = function () { NS._closeV49Modal(); };
+              document.getElementById('v49-bind-save').onclick = function () {
+                if (selectedFieldIds.length === 0) { NS.toast('至少选 1 个字段', 'warn'); return; }
+                command.dashboardBindings = command.dashboardBindings || [];
+                command.dashboardBindings.push({
+                  cardId: selectedCardId,
+                  fieldIds: selectedFieldIds.slice(),
+                  layout: selectedLayout,
+                  valueFormat: {},
+                  boundAt: new Date().toISOString()
+                });
+                NS._closeV49Modal();
+                if (onAdded) onAdded();
+              };
+            }
+          );
+        };
+
         // --- T14: 9 个内置字段预设 ---
         NS._BUILTIN_FIELD_PRESETS = [
           { name: '温度', type: 'int16', byteOrder: 'BE', scale: 0.1, unit: '℃', format: '0.0' },
@@ -15409,10 +15794,38 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               '  </div>',
               renderUserPresets(),
               '</div>',
-              // Section 3-5: 留 C3b
-              '<div class="v49-cmd-section" data-section="preview" style="display:none;"><div style="padding:20px;text-align:center;color:var(--text-3);font-size:12px;">⏳ 帧预览 — 留 C3b 实现 (T16)</div></div>',
-              '<div class="v49-cmd-section" data-section="parse" style="display:none;"><div style="padding:20px;text-align:center;color:var(--text-3);font-size:12px;">⏳ 反向解析 — 留 C3b 实现 (T17)</div></div>',
-              '<div class="v49-cmd-section" data-section="bind" style="display:none;"><div style="padding:20px;text-align:center;color:var(--text-3);font-size:12px;">⏳ 仪表盘绑定 — 留 C3b 实现 (T18, 配置层)</div></div>'
+              // Section 3: 帧预览 (T16)
+              '<div class="v49-cmd-section" data-section="preview" style="display:none;">',
+              '  <div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px;font-size:11.5px;color:var(--text-2);">',
+              '    <b>帧预览</b> — 调 <code style="background:var(--card);padding:1px 4px;border-radius:3px;">NS.buildFrame(profile, command)</code> 拿字节流, 按段着色, 字段 sub-高亮。',
+              '  </div>',
+              '  <div id="v49-frame-preview" style="margin-bottom:8px;">' + NS._renderFramePreviewHtml(profile, command) + '</div>',
+              '  <div style="display:flex;gap:6px;flex-wrap:wrap;">',
+              '    <button class="v49-btn-sm" id="v49-frame-refresh" style="padding:4px 12px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;">↻ 重新构建</button>',
+              '    <button class="v49-btn-sm" id="v49-frame-clear" style="padding:4px 12px;background:var(--card);color:var(--text);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">清空</button>',
+              '    <button class="v49-btn-sm" id="v49-frame-fill" title="用一组合成数据填字段, 走 parseFrame 验证往返" style="padding:4px 12px;background:var(--card);color:var(--text);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">🎲 填测试数据并往返校验</button>',
+              '  </div>',
+              '  <div id="v49-frame-roundtrip" style="margin-top:8px;"></div>',
+              '</div>',
+              // Section 4: 反向解析 (T17)
+              '<div class="v49-cmd-section" data-section="parse" style="display:none;">',
+              '  <div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px;font-size:11.5px;color:var(--text-2);">',
+              '    <b>贴字节反向解析</b> — 支持 hex 字符串, 空格 / <code style="background:var(--card);padding:1px 4px;border-radius:3px;">0x</code> 前缀 / 逗号 / 换行都接受。500ms debounce 实时解析。',
+              '  </div>',
+              '  <textarea id="v49-parse-input" placeholder="AA 01 03 0A 0B 12 34 55" style="width:100%;height:80px;font-family:var(--mono);font-size:12px;padding:8px;border:1px solid var(--border);border-radius:4px;background:var(--card);resize:vertical;box-sizing:border-box;"></textarea>',
+              '  <div style="margin-top:6px;display:flex;gap:6px;">',
+              '    <button class="v49-btn-sm" id="v49-parse-clear" style="padding:3px 10px;background:var(--card);color:var(--text);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">清空</button>',
+              '    <button class="v49-btn-sm" id="v49-parse-adopt" title="把解析结果填到字段定义 (覆盖现有)" style="padding:3px 10px;background:var(--card);color:var(--primary);border:1px solid var(--primary);border-radius:4px;font-size:12px;cursor:pointer;">↓ 采纳为字段定义</button>',
+              '  </div>',
+              '  <div id="v49-parse-result" style="margin-top:10px;">' + NS._renderParseResultHtml(profile, command, null) + '</div>',
+              '</div>',
+              // Section 5: 仪表盘绑定 (T18, Q3 锁定: 配置层)
+              '<div class="v49-cmd-section" data-section="bind" style="display:none;">',
+              '  <div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px;font-size:11.5px;color:var(--text-2);">',
+              '    <b>仪表盘绑定 (配置层)</b> — 选卡片 + 选 1-N 字段 + 布局。Q3 锁定: 数据真实刷新留 v4.9.1, 此处只存配置 + 静态预览。',
+              '  </div>',
+              '  <div id="v49-bind-list">' + NS._renderDashboardBindingsHtml(profile, command) + '</div>',
+              '</div>'
             ].join('');
           }
           // 弹 modal
@@ -15568,6 +15981,171 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               // 初始绑
               reinitTabsAndPresets();
               bindFieldEvents();
+              // C3b 事件绑 -------------------------------------------------
+              // T16: 帧预览
+              const frameRefresh = document.getElementById('v49-frame-refresh');
+              const frameClear = document.getElementById('v49-frame-clear');
+              const frameFill = document.getElementById('v49-frame-fill');
+              if (frameRefresh) frameRefresh.onclick = function () {
+                const c = document.getElementById('v49-frame-preview');
+                if (c) c.innerHTML = NS._renderFramePreviewHtml(profile, command);
+                const rt = document.getElementById('v49-frame-roundtrip');
+                if (rt) rt.innerHTML = '';
+              };
+              if (frameClear) frameClear.onclick = function () {
+                const c = document.getElementById('v49-frame-preview');
+                if (c) c.innerHTML = '<div style="color:var(--text-3);font-size:12px;text-align:center;padding:20px;">已清空</div>';
+                const rt = document.getElementById('v49-frame-roundtrip');
+                if (rt) rt.innerHTML = '';
+              };
+              if (frameFill) frameFill.onclick = function () {
+                // 用合成数据填字段, 走 buildFrame → parseFrame 验证往返
+                const fields = command.fields || [];
+                if (fields.length === 0) {
+                  NS.toast('当前命令没有字段, 请先在"字段"页定义', 'warn');
+                  return;
+                }
+                // 合成 0x42 0x01 0x02 0x03 ... 模式
+                fields.forEach(function (f, i) {
+                  const len = NS._fieldTypeToByteLen(f.type);
+                  let val = 0;
+                  if (f.type === 'float32') val = 1234 + i;
+                  else if (f.type === 'int8' || f.type === 'int16' || f.type === 'int32') val = 100 + i;
+                  else val = 200 + i;
+                  f.testValue = val;
+                });
+                // 重新 build
+                const built = NS.buildFrame(profile, command);
+                if (built.error || !built.bytes || built.bytes.length === 0) {
+                  NS.toast('构建失败, 无法验证', 'danger');
+                  return;
+                }
+                // 再 parse 回来
+                const parsed = NS.parseFrame(built.bytes, profile, command);
+                const rt = document.getElementById('v49-frame-roundtrip');
+                if (rt) {
+                  let html = '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;font-size:11.5px;">';
+                  html += '<b style="color:var(--primary);">往返校验:</b> build→parse 一致? ' +
+                    (!parsed.error ? '<span style="color:var(--success);">✓ 通过</span>' : '<span style="color:var(--danger);">✗ ' + NS.escapeHtml(parsed.error) + '</span>') + '<br>';
+                  const dataSec = (parsed.sections || []).find(function (s) { return s.type === 'data'; });
+                  if (dataSec && dataSec.bytes) {
+                    const splits = NS._splitDataBytesByFields(dataSec.bytes, fields);
+                    html += '<div style="margin-top:4px;font-family:var(--mono);">字段值: ';
+                    splits.forEach(function (fs) {
+                      if (fs.error) {
+                        html += '<span style="color:var(--danger);">' + NS.escapeHtml(fs.name) + '=ERR</span> ';
+                      } else {
+                        const matchOk = (Math.abs((fs.rawValue || 0) - (fs.hexStr ? 0 : 0)) < 0.001);  // 仅展示
+                        html += '<span style="color:var(--success);">' + NS.escapeHtml(fs.name) + '=' + fs.rawValue + (fs.unit || '') + '</span> ';
+                      }
+                    });
+                    html += '</div>';
+                  }
+                  html += '<div style="margin-top:4px;color:var(--text-3);font-family:var(--mono);font-size:11px;">原始 bytes: ' +
+                    '0x' + built.bytes.map(function (b) { return (b & 0xFF).toString(16).padStart(2, '0').toUpperCase(); }).join(' ') + '</div>';
+                  html += '</div>';
+                  rt.innerHTML = html;
+                }
+              };
+              // T17: 反向解析 (500ms debounce)
+              const parseInput = document.getElementById('v49-parse-input');
+              const parseClear = document.getElementById('v49-parse-clear');
+              const parseAdopt = document.getElementById('v49-parse-adopt');
+              let parseTimer = null;
+              let lastParseResult = null;
+              let lastParseHex = '';
+              function doParse() {
+                const str = parseInput ? parseInput.value : '';
+                if (!str.trim()) {
+                  const r = document.getElementById('v49-parse-result');
+                  if (r) r.innerHTML = NS._renderParseResultHtml(profile, command, null);
+                  lastParseResult = null;
+                  return;
+                }
+                const hexRes = NS._hexStringToBytes(str);
+                if (hexRes.error) {
+                  const r = document.getElementById('v49-parse-result');
+                  if (r) r.innerHTML = NS._renderParseResultHtml(profile, command, hexRes);
+                  lastParseResult = hexRes;
+                  return;
+                }
+                const parseRes = NS.parseFrame(hexRes.bytes, profile, command);
+                const r = document.getElementById('v49-parse-result');
+                if (r) r.innerHTML = NS._renderParseResultHtml(profile, command, parseRes);
+                lastParseResult = parseRes;
+                lastParseHex = str;
+              }
+              if (parseInput) parseInput.oninput = function () {
+                if (parseTimer) clearTimeout(parseTimer);
+                parseTimer = setTimeout(doParse, 500);
+              };
+              if (parseClear) parseClear.onclick = function () {
+                if (parseInput) parseInput.value = '';
+                doParse();
+              };
+              if (parseAdopt) parseAdopt.onclick = function () {
+                if (!lastParseResult || lastParseResult.error) {
+                  NS.toast('没有可采纳的解析结果', 'warn');
+                  return;
+                }
+                const dataSec = (lastParseResult.sections || []).find(function (s) { return s.type === 'data'; });
+                if (!dataSec || !dataSec.bytes || dataSec.bytes.length === 0) {
+                  NS.toast('data 段为空, 无法生成字段', 'warn');
+                  return;
+                }
+                // 自动推断 type:按字节长度分 (1→uint8, 2→uint16, 4→uint32, 默认 uint16)
+                const total = dataSec.bytes.length;
+                const newFields = [];
+                let off = 0;
+                while (off < total) {
+                  const remain = total - off;
+                  let type, len;
+                  if (remain >= 4) { type = 'uint32'; len = 4; }
+                  else if (remain >= 2) { type = 'uint16'; len = 2; }
+                  else { type = 'uint8'; len = 1; }
+                  newFields.push({
+                    id: 'f-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6) + '-' + off,
+                    name: 'field_' + (newFields.length + 1),
+                    type: type, byteOrder: 'BE', scale: 1, unit: '', format: '0',
+                    byteOffset: off, byteLen: len
+                  });
+                  off += len;
+                }
+                if (!window.confirm('采纳将覆盖当前命令的 ' + (command.fields || []).length + ' 个字段, 生成 ' + newFields.length + ' 个新字段。继续?')) return;
+                command.fields = newFields;
+                const tabCount = modal.querySelector('.v49-tab[data-tab="fields"] .v49-tab-count');
+                if (tabCount) tabCount.textContent = newFields.length;
+                NS.toast('已采纳 ' + newFields.length + ' 个字段, 切到"字段"页查看', 'success');
+                switchTab('fields');
+                const list = document.getElementById('v49-cmd-fields-list');
+                if (list) {
+                  list.innerHTML = newFields.length > 0 ? renderFieldRows() : '<div style="color:var(--text-3);text-align:center;padding:20px;">还没有字段</div>';
+                  bindFieldEvents();
+                }
+              };
+              // T18: 仪表盘绑定
+              function refreshBindList() {
+                const c = document.getElementById('v49-bind-list');
+                if (c) c.innerHTML = NS._renderDashboardBindingsHtml(profile, command);
+                bindBindEvents();
+              }
+              function bindBindEvents() {
+                const addBtn = document.getElementById('v49-bind-add');
+                if (addBtn) addBtn.onclick = function () {
+                  NS._showAddBindingModal(profileId, command.id, refreshBindList);
+                };
+                modal.querySelectorAll('.v49-bind-del').forEach(function (btn) {
+                  btn.onclick = function () {
+                    const idx = parseInt(btn.dataset.idx, 10);
+                    if (isNaN(idx)) return;
+                    if (!window.confirm('解绑这条绑定?')) return;
+                    command.dashboardBindings.splice(idx, 1);
+                    refreshBindList();
+                  };
+                });
+              }
+              bindBindEvents();
+              // C3b 事件绑结束 ---------------------------------------------
               // 取消 / 保存
               document.getElementById('v49-cmd-cancel').onclick = function () { NS._closeV49Modal(); };
               document.getElementById('v49-cmd-save').onclick = function () {
