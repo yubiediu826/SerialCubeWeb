@@ -7215,6 +7215,14 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-kind-card-name { font-weight: 600; font-size: 12px; }
 .v49-kind-card-desc { color: var(--text-soft); font-size: 11px; margin-top: 2px; line-height: 1.4; }
 
+    /* cmd-list (命令列表 - profile 的 commands modal) */
+.v49-cmd-list-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.v49-cmd-list-head-info { flex: 1; font-size: 12px; color: var(--text-soft); }
+.v49-cmd-list { max-height: 400px; overflow-y: auto; }
+.v49-cmd-list-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 4px; background: var(--bg-elevated); font-size: 12px; cursor: pointer; transition: border-color 0.15s; }
+.v49-cmd-list-item:hover { border-color: var(--accent); }
+.v49-cmd-list-item-name { flex: 1; font-weight: 500; }
+
     /* form-field (label + input 排版) */
 .v49-form-field { margin-bottom: 12px; }
 .v49-form-label { display: block; font-size: 12px; color: var(--text-soft); margin-bottom: 4px; font-weight: 500; }
@@ -16706,21 +16714,21 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           if (!profile) { NS.toast('方案不存在', 'warn'); return; }
           const cmds = profile.commands || [];
           const listHtml = cmds.length > 0 ? cmds.map(function (c) {
-            return '<div class="v49-cmd-list-item" data-cmd-id="' + c.id + '" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:4px;background:var(--card);font-size:12px;cursor:pointer;">' +
-              '<span style="background:var(--tag-bg);color:var(--text-2);padding:1px 6px;border-radius:3px;font-size:11px;">0x' + (c.cmdCode || 0).toString(16).padStart(2, '0').toUpperCase() + '</span>' +
-              '<span style="flex:1;font-weight:500;">' + NS.escapeHtml(c.name) + '</span>' +
-              '<span style="color:var(--text-3);font-size:11px;">' + ((c.fields || []).length) + ' 字段</span>' +
-              '<span style="color:var(--text-3);font-size:11px;">' + (c.trigger.mode || 'manual') + '</span>' +
-              '<button class="v49-btn-sm" data-act="edit" style="padding:2px 8px;font-size:11px;background:var(--card);border:1px solid var(--border-strong);border-radius:3px;cursor:pointer;">编辑</button>' +
-              '<button class="v49-btn-sm" data-act="del" style="padding:2px 8px;font-size:11px;background:var(--card);color:var(--danger);border:1px solid var(--danger);border-radius:3px;cursor:pointer;">删除</button>' +
+            return '<div class="v49-cmd-list-item" data-cmd-id="' + c.id + '">' +
+              '<span class="v49-tag">0x' + (c.cmdCode || 0).toString(16).padStart(2, '0').toUpperCase() + '</span>' +
+              '<span class="v49-cmd-list-item-name">' + NS.escapeHtml(c.name) + '</span>' +
+              '<span class="v49-tbl-sub">' + ((c.fields || []).length) + ' 字段</span>' +
+              '<span class="v49-tbl-sub">' + (c.trigger.mode || 'manual') + '</span>' +
+              '<button class="v49-btn sm" data-act="edit">编辑</button>' +
+              '<button class="v49-btn sm danger" data-act="del">删除</button>' +
               '</div>';
-          }).join('') : '<div style="text-align:center;padding:30px;color:var(--text-3);font-size:12px;">还没有命令, 点 "+ 新建命令" 开始</div>';
+          }).join('') : '<div class="v49-empty-state">还没有命令, 点 "+ 新建命令" 开始</div>';
           const body = [
-            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">',
-            '  <div style="flex:1;font-size:12px;color:var(--text-2);"><b>' + NS.escapeHtml(profile.name) + '</b> · ' + cmds.length + ' 个命令 · ' + profile.kind + ' · ' + (profile.crc && profile.crc.algorithm) + '</div>',
-            '  <button class="v49-btn-sm" id="v49-cmd-list-new" style="padding:4px 12px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;">+ 新建命令</button>',
+            '<div class="v49-cmd-list-head">',
+            '  <div class="v49-cmd-list-head-info"><b>' + NS.escapeHtml(profile.name) + '</b> · ' + cmds.length + ' 个命令 · ' + profile.kind + ' · ' + (profile.crc && profile.crc.algorithm) + '</div>',
+            '  <button class="v49-btn sm primary" id="v49-cmd-list-new">+ 新建命令</button>',
             '</div>',
-            '<div style="max-height:400px;overflow-y:auto;">' + listHtml + '</div>'
+            '<div class="v49-cmd-list">' + listHtml + '</div>'
           ].join('');
           NS._showV49Modal('命令列表 · ' + profile.name, body, '<button class="v49-btn" id="v49-cmd-list-close">关闭</button>', function (modal) {
             document.getElementById('v49-cmd-list-close').onclick = function () { NS._closeV49Modal(); };
