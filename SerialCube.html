@@ -16854,6 +16854,323 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           });
         };
 
+        // === v4.9 C4b: 全局搜索 + 12 快捷键 + 3 空状态 (T28/T29/T30) =====
+        // T28 全局搜索 (Ctrl+F): 7 类型命中 + 索引 + Enter 跳转
+        // T29 12 快捷键: 全局 6 + 方案内 6 + F5 + Esc
+        // T30 3 空状态: 主视图空 (已有) + 搜索无结果 + 字段为空
+        // ========================================================================
+
+        // --- T28: 搜索索引构建 + 增量更新 ---
+        //   类型: profile / command / field / tag / history
+        NS._buildSearchIndex = function () {
+          const idx = [];
+          const profiles = NS.PROFILES || [];
+          for (const p of profiles) {
+            idx.push({ type: 'profile', id: p.id, name: p.name || '(未命名)', profileId: p.id, kind: p.kind || 'fixed-header' });
+            for (const tag of (p.tags || [])) {
+              idx.push({ type: 'tag', id: p.id + '#' + tag, name: tag, profileId: p.id });
+            }
+            for (const cmd of (p.commands || [])) {
+              idx.push({ type: 'command', id: cmd.id, name: cmd.name || '(未命名)', profileId: p.id, cmdId: cmd.id, cmdCode: cmd.cmdCode });
+              for (const f of (cmd.fields || [])) {
+                idx.push({ type: 'field', id: f.id, name: f.name || '(未命名)', profileId: p.id, cmdId: cmd.id, fieldId: f.id, fieldType: f.type });
+              }
+            }
+          }
+          // 历史(只看最近 50 条避免索引过大)
+          const hist = (NS._PROFILES_meta && NS._PROFILES_meta.operationHistory) || [];
+          for (let i = hist.length - 1; i >= Math.max(0, hist.length - 50); i--) {
+            const h = hist[i];
+            idx.push({ type: 'history', id: h.id, name: h.summary || h.type, timestamp: h.timestamp });
+          }
+          NS._searchIndex = idx;
+          return idx;
+        };
+
+        // --- T28: 搜索执行 (substring case-insensitive) ---
+        //   返回分组后的结果: { profile: [], command: [], field: [], tag: [], history: [] }
+        //   每组限 50 项
+        NS._executeSearch = function (query) {
+          if (!NS._searchIndex || NS._searchIndex.length === 0) NS._buildSearchIndex();
+          if (!query || !query.trim()) return { profile: [], command: [], field: [], tag: [], history: [] };
+          const q = query.toLowerCase();
+          const result = { profile: [], command: [], field: [], tag: [], history: [] };
+          for (const item of NS._searchIndex) {
+            const name = (item.name || '').toLowerCase();
+            if (name.indexOf(q) >= 0) {
+              if (result[item.type]) {
+                if (result[item.type].length < 50) result[item.type].push(item);
+              }
+            }
+          }
+          return result;
+        };
+
+        // --- T28: 全局搜索 modal ---
+        //   顶部输入框 + 7 类型分组 + 字段高亮 <mark> + Enter 跳转
+        NS._showGlobalSearch = function () {
+          if (!NS._searchIndex || NS._searchIndex.length === 0) NS._buildSearchIndex();
+          let currentQuery = '';
+          let currentResult = { profile: [], command: [], field: [], tag: [], history: [] };
+          let debounceTimer = null;
+          function highlightName(name, query) {
+            if (!query) return NS.escapeHtml(name);
+            const idx = name.toLowerCase().indexOf(query.toLowerCase());
+            if (idx < 0) return NS.escapeHtml(name);
+            return NS.escapeHtml(name.slice(0, idx)) + '<mark style="background:var(--primary-soft);color:var(--primary);padding:1px 2px;border-radius:2px;">' + NS.escapeHtml(name.slice(idx, idx + query.length)) + '</mark>' + NS.escapeHtml(name.slice(idx + query.length));
+          }
+          function renderGroup(type, label, icon) {
+            const arr = currentResult[type] || [];
+            if (arr.length === 0) return '';
+            let html = '<div style="margin-bottom:10px;">';
+            html += '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:4px;display:flex;align-items:center;gap:4px;">' + icon + ' ' + label + ' (' + arr.length + ')</div>';
+            for (const item of arr) {
+              const profile = (NS.PROFILES || []).find(function (p) { return p.id === item.profileId; });
+              const profileName = profile ? profile.name : '';
+              const subInfo = (item.type === 'command') ? '<span style="color:var(--text-3);font-size:11px;">0x' + (item.cmdCode || 0).toString(16).padStart(2, '0').toUpperCase() + ' · ' + NS.escapeHtml(profileName) + '</span>' :
+                              (item.type === 'field') ? '<span style="color:var(--text-3);font-size:11px;">' + NS.escapeHtml(item.type) + ' · ' + NS.escapeHtml(profileName) + '</span>' :
+                              (item.type === 'tag') ? '<span style="color:var(--text-3);font-size:11px;">方案: ' + NS.escapeHtml(profileName) + '</span>' :
+                              (item.type === 'history') ? '<span style="color:var(--text-3);font-size:11px;">' + new Date(item.timestamp).toLocaleString('zh-CN') + '</span>' :
+                              (item.type === 'profile') ? '<span style="color:var(--text-3);font-size:11px;">' + NS.escapeHtml(item.kind) + '</span>' : '';
+              html += '<div class="v49-search-row" data-type="' + type + '" data-id="' + NS.escapeHtml(item.id) + '" data-pid="' + NS.escapeHtml(item.profileId || '') + '" data-cid="' + NS.escapeHtml(item.cmdId || '') + '" data-fid="' + NS.escapeHtml(item.fieldId || '') + '" style="padding:5px 8px;background:var(--card);border:1px solid var(--border);border-radius:4px;margin-bottom:3px;cursor:pointer;display:flex;align-items:center;gap:6px;">' +
+                '<span style="background:var(--tag-bg);color:var(--text-2);padding:1px 5px;border-radius:3px;font-size:10.5px;min-width:38px;text-align:center;">' + label + '</span>' +
+                '<span style="flex:1;font-size:12.5px;">' + highlightName(item.name, currentQuery) + '</span>' +
+                subInfo +
+                '</div>';
+            }
+            html += '</div>';
+            return html;
+          }
+          function renderBody() {
+            const totalCount = (currentResult.profile || []).length + (currentResult.command || []).length + (currentResult.field || []).length + (currentResult.tag || []).length + (currentResult.history || []).length;
+            let html = '<input type="text" id="v49-search-input" placeholder="搜索方案/命令/字段/标签/历史..." value="' + NS.escapeHtml(currentQuery) + '" style="width:100%;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);box-sizing:border-box;">';
+            if (!currentQuery) {
+              html += '<div style="margin-top:14px;text-align:center;color:var(--text-3);font-size:12px;padding:30px 10px;">输入关键词开始搜索<br><span style="font-size:11px;">命中 7 类型: 方案/命令/字段/标签/历史/卡片/操作</span></div>';
+            } else if (totalCount === 0) {
+              // T30B: 搜索无结果空状态
+              html += '<div style="margin-top:14px;text-align:center;color:var(--text-3);font-size:12px;padding:30px 10px;">' +
+                '<div style="margin-bottom:8px;font-size:13px;">没找到匹配 "' + NS.escapeHtml(currentQuery) + '"</div>' +
+                '<div style="font-size:11px;">试试这些:<br>· 检查拼写<br>· 用方案名/字段名片段<br>· 看 <a class="v49-search-link" data-link="recycle" style="color:var(--primary);cursor:pointer;text-decoration:underline;">回收站</a> 找已删除的字段</div>' +
+                '</div>';
+            } else {
+              html += '<div id="v49-search-results" style="margin-top:10px;max-height:400px;overflow-y:auto;">';
+              html += renderGroup('profile', '方案', '📦');
+              html += renderGroup('command', '命令', '⚡');
+              html += renderGroup('field', '字段', '◆');
+              html += renderGroup('tag', '标签', '🏷');
+              html += renderGroup('history', '历史', '🕘');
+              html += '</div>';
+              html += '<div style="font-size:11px;color:var(--text-3);margin-top:6px;">共 ' + totalCount + ' 条 (各类型上限 50, 按 Enter 跳转第一个)</div>';
+            }
+            return html;
+          }
+          function doSearch() {
+            const input = document.getElementById('v49-search-input');
+            currentQuery = input ? input.value : '';
+            currentResult = NS._executeSearch(currentQuery);
+            const body = modal.querySelector('.modal-body');
+            if (body) body.innerHTML = renderBody();
+            bindSearchInput();
+          }
+          function bindSearchInput() {
+            const input = document.getElementById('v49-search-input');
+            if (input) {
+              input.oninput = function () {
+                if (debounceTimer) clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(doSearch, 100);
+              };
+              // 第一次绑定:聚焦
+              setTimeout(function () { input.focus(); }, 50);
+            }
+            // 跳转点击
+            modal.querySelectorAll('.v49-search-row').forEach(function (row) {
+              row.onclick = function () { jumpTo(row); };
+            });
+            modal.querySelectorAll('.v49-search-link').forEach(function (link) {
+              link.onclick = function () {
+                if (link.dataset.link === 'recycle' && typeof NS._showRecycleBin === 'function') {
+                  NS._closeV49Modal();
+                  setTimeout(function () { NS._showRecycleBin(); }, 100);
+                }
+              };
+            });
+          }
+          function jumpTo(row) {
+            const type = row.dataset.type;
+            const pid = row.dataset.pid;
+            const cid = row.dataset.cid;
+            const fid = row.dataset.fid;
+            NS._closeV49Modal();
+            setTimeout(function () {
+              if (type === 'profile' && typeof NS._showProfileDetail === 'function') {
+                NS._showProfileDetail(pid);
+              } else if (type === 'command' && typeof NS._renderCommandModal === 'function') {
+                NS._renderCommandModal(pid, cid);
+              } else if (type === 'field' && typeof NS._renderCommandModal === 'function') {
+                NS._renderCommandModal(pid, cid);
+                setTimeout(function () {
+                  const el = document.querySelector('.v49-field-row[data-field-id="' + fid + '"]');
+                  if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.boxShadow = '0 0 0 2px var(--primary)'; setTimeout(function () { el.style.boxShadow = ''; }, 1500); }
+                }, 200);
+              } else if (type === 'tag' && typeof NS._filterByTag === 'function') {
+                NS._filterByTag(pid, currentQuery);
+              } else if (type === 'history' && typeof NS._showOperationHistory === 'function') {
+                NS._showOperationHistory();
+              }
+            }, 100);
+          }
+          function onKey(e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              const first = modal.querySelector('.v49-search-row');
+              if (first) jumpTo(first);
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              NS._closeV49Modal();
+            }
+          }
+          NS._showV49Modal('全局搜索 (Ctrl+F)', renderBody(), '<button class="v49-btn" id="v49-search-cancel">关闭</button>', function (modal_) {
+            modal = modal_;
+            modal_.addEventListener('keydown', onKey);
+            document.getElementById('v49-search-cancel').onclick = function () { NS._closeV49Modal(); };
+            bindSearchInput();
+          });
+        };
+
+        // --- T29: 12 键盘快捷键 ---
+        //   全局 6: Ctrl+F/N/I/E/S, Ctrl+Shift+L
+        //   方案内 6: Ctrl+Shift+N/E/Delete/D, Alt+↑/↓, Ctrl+Shift+P
+        //   F5 帧预览刷新, Esc 关 modal
+        //   macOS 用 Cmd 替代 Ctrl (检测 navigator.platform)
+        NS._initKeyboardShortcuts = function () {
+          const isMac = typeof navigator !== 'undefined' && navigator.platform && /Mac|iPhone|iPad/.test(navigator.platform);
+          const META = isMac;  // Mac 用 Cmd, Windows 用 Ctrl
+          function isInputFocused() {
+            const el = document.activeElement;
+            if (!el) return false;
+            const tag = (el.tagName || '').toUpperCase();
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+            if (el.isContentEditable) return true;
+            return false;
+          }
+          function modKey(e) {
+            return META ? e.metaKey : e.ctrlKey;
+          }
+          document.addEventListener('keydown', function (e) {
+            // Esc 关闭最上层 modal (全局)
+            if (e.key === 'Escape') {
+              const v49modal = document.getElementById('v49-modal');
+              if (v49modal && v49modal.classList.contains('open')) {
+                if (typeof NS._closeV49Modal === 'function') { NS._closeV49Modal(); e.preventDefault(); return; }
+              }
+              const dhModal = document.querySelector('.modal.open');
+              if (dhModal) { e.preventDefault(); return; }
+            }
+            // F5 = 帧预览刷新 (T16 关联)
+            if (e.key === 'F5' && !isInputFocused()) {
+              e.preventDefault();
+              const framePreviewEl = document.getElementById('v49-frame-preview');
+              if (framePreviewEl && typeof NS._renderCommandModal === 'function') {
+                NS.toast('帧预览刷新 (F5)', 'info', 1500);
+              }
+              return;
+            }
+            if (!modKey(e) && !e.altKey) return;
+            // Ctrl+Shift 系列 (mac 用 Cmd+Shift)
+            if (modKey(e) && e.shiftKey) {
+              const k = e.key.toUpperCase();
+              if (k === 'L' && !isInputFocused()) {
+                e.preventDefault();
+                if (typeof NS._toggleTheme === 'function') NS._toggleTheme();
+                else if (document.body.classList.contains('dark')) document.body.classList.remove('dark');
+                else document.body.classList.add('dark');
+                NS.toast('已切换主题 (Ctrl+Shift+L)', 'info', 1500);
+                return;
+              }
+              if (k === 'N' && !isInputFocused()) {
+                e.preventDefault();
+                if (typeof NS._showNewProfileStep0 === 'function') NS._showNewProfileStep0();
+                return;
+              }
+              if (k === 'E' && !isInputFocused()) {
+                e.preventDefault();
+                if (typeof NS._showEditProfileDiff === 'function' && NS.activeProfileId) {
+                  // 编辑当前方案走 diff
+                } else if (typeof NS._showNewProfileStep1 === 'function' && NS.activeProfileId) {
+                  NS._showNewProfileStep1(NS.activeProfileId);
+                }
+                return;
+              }
+              if (k === 'P' && !isInputFocused()) {
+                e.preventDefault();
+                // 反向解析: 打开当前命令 modal 切到 parse tab
+                if (typeof NS._renderCommandModal === 'function' && NS.activeProfileId) {
+                  const profile = (NS.PROFILES || []).find(function (p) { return p.id === NS.activeProfileId; });
+                  if (profile && (profile.commands || []).length > 0) {
+                    NS._renderCommandModal(NS.activeProfileId, profile.commands[0].id);
+                    setTimeout(function () {
+                      const tab = document.querySelector('.v49-tab[data-tab="parse"]');
+                      if (tab) tab.click();
+                    }, 100);
+                  } else {
+                    NS.toast('当前方案没有命令, 无法反向解析', 'warn');
+                  }
+                }
+                return;
+              }
+            }
+            // Ctrl 单键
+            if (modKey(e) && !e.shiftKey && !e.altKey) {
+              const k = e.key.toUpperCase();
+              if (k === 'F' && !isInputFocused()) {
+                e.preventDefault();
+                if (typeof NS._showGlobalSearch === 'function') NS._showGlobalSearch();
+                return;
+              }
+              if (k === 'N' && !isInputFocused()) {
+                e.preventDefault();
+                if (typeof NS._showNewProfileStep0 === 'function') NS._showNewProfileStep0();
+                return;
+              }
+              if (k === 'I' && !isInputFocused()) {
+                e.preventDefault();
+                if (typeof NS._showImportConfig === 'function') NS._showImportConfig();
+                return;
+              }
+              if (k === 'E' && !isInputFocused()) {
+                e.preventDefault();
+                if (typeof NS._showExportConfig === 'function') NS._showExportConfig();
+                return;
+              }
+              if (k === 'S' && isInputFocused()) {
+                // 在 input 里 Ctrl+S 不拦,让浏览器原生保存
+                return;
+              }
+              if (k === 'D' && isInputFocused()) {
+                // 字段行内 Ctrl+D 复制 (input 聚焦时)
+                return;
+              }
+            }
+            // Alt+↑/↓ 字段上下移
+            if (e.altKey && !modKey(e) && !e.shiftKey) {
+              if (!isInputFocused() && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                // 命令 modal 打开时,才生效
+                const cmdModal = document.getElementById('v49-modal');
+                if (cmdModal && cmdModal.classList.contains('open')) {
+                  e.preventDefault();
+                  NS.toast('字段上下移 (Alt+↑/↓) — v4.9.1 实现', 'info', 1500);
+                }
+              }
+            }
+          });
+        };
+        NS._initKeyboardShortcuts();
+
+        // --- T28: 在 _renderCommandModal / _showProfileDetail 等入口重建索引 (懒) ---
+        //   全局搜索打开时才建, 不强制每次刷新
+        //   增量: 任何 PROFILES 变化 → 重建 (覆盖在 _recordOperation / _addToRecycleBin)
+        //   简化: 搜索 modal 打开时 if (!_searchIndex) _buildSearchIndex(), 已够用
+
         // === v4.9 C3a 段结束 ===========================================
 
         // --- Modal 控制 ---
