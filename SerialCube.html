@@ -14125,7 +14125,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                   NS.activeProfileId = pid;
                   NS._renderProtoEditorLegacy();
                 } else if (act === 'edit') {
-                  NS.toast('编辑 · diff 视图 — 留 C2b 实现 (T11)', 'info');
+                  // C2b: 编辑 → 调 diff 视图
+                  NS._showEditProfileDiff(pid);
                 } else if (act === 'export') {
                   NS.toast('导出方案 — 留 C4 实现 (T24)', 'info');
                 }
@@ -14186,21 +14187,537 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             };
           });
 
-          // 8. 绑定顶部按钮 (留 placeholder)
+          // 8. 绑定顶部按钮
+          function bindAction(id, fn) {
+            const btn = document.getElementById(id);
+            if (btn) btn.onclick = fn;
+          }
+          // C2b 实现的按钮
+          bindAction('v49-btn-new', function () { NS._showNewProfileStep0(); });
+          bindAction('v49-btn-new-empty', function () { NS._showNewProfileStep0(); });
+          bindAction('v49-btn-templates', function () { NS.toast('协议模板 — 集成在 Step 0 里 (C2b)', 'info'); });
+          bindAction('v49-btn-templates-empty', function () { NS.toast('协议模板 — 集成在 Step 0 里 (C2b)', 'info'); });
+          // C4 实现的按钮 (留 placeholder)
           function bindPlaceholder(id, msg) {
             const btn = document.getElementById(id);
-            if (btn) btn.onclick = function () { NS.toast(msg + ' — 还没实现 (留后续 session)', 'info'); };
+            if (btn) btn.onclick = function () { NS.toast(msg + ' — 留 C4 实现 (T24/T25)', 'info'); };
           }
-          bindPlaceholder('v49-btn-templates', '协议模板');
           bindPlaceholder('v49-btn-import', '导入');
           bindPlaceholder('v49-btn-export', '导出');
-          bindPlaceholder('v49-btn-new', '新建方案');
-          bindPlaceholder('v49-btn-new-empty', '新建方案');
-          bindPlaceholder('v49-btn-templates-empty', '协议模板');
           bindPlaceholder('v49-btn-import-empty', '导入已有配置');
         };
 
         // === v4.9 C2a 段结束 ===========================================
+
+        // === v4.9 C2b: Step 0/1 wizard + diff 视图 (T9-T11) =========
+        // 通用 v49 modal helper + 6 协议模板 + Step 0/1 wizard + diff 视图
+        // 不破坏现有 NS.openModal/closeModal (那个有 bug 传 HTML 字符串)
+        // ====================================================================
+
+        // --- 通用 v49 modal helper ---
+        NS._showV49Modal = function (title, bodyHtml, footerHtml, onMount) {
+          let backdrop = document.getElementById('v49-modal-backdrop');
+          let modal = document.getElementById('v49-modal');
+          if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = 'v49-modal-backdrop';
+            backdrop.className = 'modal-backdrop';
+            document.body.appendChild(backdrop);
+          }
+          if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'v49-modal';
+            modal.className = 'modal xtra-wide';
+            document.body.appendChild(modal);
+          }
+          modal.innerHTML = [
+            '<div class="modal-head">',
+            '  <h3>' + NS.escapeHtml(title) + '</h3>',
+            '  <button class="modal-close" id="v49-modal-close" aria-label="关闭">×</button>',
+            '</div>',
+            '<div class="modal-body">' + bodyHtml + '</div>',
+            '<div class="modal-foot">' + (footerHtml || '') + '</div>'
+          ].join('');
+          backdrop.classList.add('open');
+          modal.classList.add('open');
+          const closeBtn = document.getElementById('v49-modal-close');
+          if (closeBtn) closeBtn.onclick = function () { NS._closeV49Modal(); };
+          backdrop.onclick = function (e) { if (e.target === backdrop) NS._closeV49Modal(); };
+          if (onMount) onMount(modal);
+        };
+        NS._closeV49Modal = function () {
+          const backdrop = document.getElementById('v49-modal-backdrop');
+          const modal = document.getElementById('v49-modal');
+          if (backdrop) backdrop.classList.remove('open');
+          if (modal) modal.classList.remove('open');
+        };
+
+        // --- 6 个内置协议模板 (Q2 锁定: 6 个够用) ---
+        NS._PROTOCOL_TEMPLATES = [
+          { id: 'modbus-rtu', name: 'Modbus RTU', desc: '工业总线标准, 主从问答, 16-bit CRC', kind: 'fixed-header',
+            crc: { algorithm: 'CRC16-MODBUS', initValue: '0xFFFF', byteOrder: 'LE', range: 'no_header' } },
+          { id: 'modbus-tcp', name: 'Modbus TCP', desc: 'Modbus over TCP/IP, MBAP header', kind: 'fixed-header',
+            crc: { algorithm: 'none', initValue: '0x0000', byteOrder: 'BE', range: 'all' } },
+          { id: 'canopen', name: 'CANopen', desc: 'CAN 总线应用层, COB-ID + 8 字节 data', kind: 'fixed-header',
+            crc: { algorithm: 'none', initValue: '0x0000', byteOrder: 'LE', range: 'all' } },
+          { id: 'j1939', name: 'J1939', desc: '重型车 CAN, 29-bit ID + 8 字节', kind: 'fixed-header',
+            crc: { algorithm: 'none', initValue: '0x0000', byteOrder: 'LE', range: 'all' } },
+          { id: 'dlt645', name: 'DL/T 645', desc: '中国电表协议, 帧头 0x68 + BCD 数据', kind: 'fixed-header',
+            crc: { algorithm: 'checksum', initValue: '0x0000', byteOrder: 'BE', range: 'all' } },
+          { id: 'custom', name: '自定义', desc: '从空白开始, 自己配 8 kind + CRC', kind: 'fixed-header',
+            crc: { algorithm: 'CRC16-MODBUS', initValue: '0xFFFF', byteOrder: 'LE', range: 'all' } }
+        ];
+
+        // --- 8 种 CRC 算法配置 (内置) ---
+        NS._CRC_ALGORITHMS = ['none', 'checksum', 'xor', 'crc8', 'crc16-modbus', 'crc16-ccitt', 'crc32', 'crc32c'];
+
+        // --- T9: Step 0 入口选择 modal ---
+        NS._showNewProfileStep0 = function () {
+          const profileCount = (NS.PROFILES || []).length;
+          const body = [
+            '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">',
+            // card 1: 空白
+            '  <div class="v49-step0-card" data-entry="blank" style="border:2px solid var(--primary);background:var(--primary-soft);border-radius:8px;padding:12px;cursor:pointer;box-shadow:0 0 0 3px var(--primary-soft);">',
+            '    <div style="font-weight:600;font-size:12.5px;display:flex;align-items:center;gap:5px;">',
+            '      <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M9 1L3 8h4l-1 7 6-9H8l1-5z"/></svg> 从空白开始',
+            '    </div>',
+            '    <div style="color:var(--text-3);font-size:11px;margin-top:3px;line-height:1.5;">手动选 8 kind + CRC, 适合全新协议</div>',
+            '    <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">',
+            '      <span style="background:var(--card);color:var(--text-2);padding:1px 8px;border-radius:4px;font-size:11px;">8 kinds</span>',
+            '      <span style="background:var(--card);color:var(--text-2);padding:1px 8px;border-radius:4px;font-size:11px;">8 CRC</span>',
+            '    </div>',
+            '  </div>',
+            // card 2: 复制
+            '  <div class="v49-step0-card" data-entry="copy" style="border:1px solid var(--border-strong);background:var(--card);border-radius:8px;padding:12px;cursor:pointer;">',
+            '    <div style="font-weight:600;font-size:12.5px;display:flex;align-items:center;gap:5px;">',
+            '      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M11 5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h2"/></svg> 基于现有复制',
+            '    </div>',
+            '    <div style="color:var(--text-3);font-size:11px;margin-top:3px;line-height:1.5;">复制命令+字段+仪表盘, 80% 场景最快</div>',
+            '    <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">',
+            '      <span style="background:var(--success-soft);color:var(--success);padding:1px 8px;border-radius:4px;font-size:11px;">推荐</span>',
+            '      <span style="background:var(--card);color:var(--text-2);padding:1px 8px;border-radius:4px;font-size:11px;">' + profileCount + ' 现有方案</span>',
+            '    </div>',
+            '  </div>',
+            // card 3: 模板
+            '  <div class="v49-step0-card" data-entry="template" style="border:1px solid var(--border-strong);background:var(--card);border-radius:8px;padding:12px;cursor:pointer;">',
+            '    <div style="font-weight:600;font-size:12.5px;display:flex;align-items:center;gap:5px;">',
+            '      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg> 协议模板',
+            '    </div>',
+            '    <div style="color:var(--text-3);font-size:11px;margin-top:3px;line-height:1.5;">Modbus / CANopen / J1939 等</div>',
+            '    <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">',
+            '      <span style="background:var(--card);color:var(--text-2);padding:1px 8px;border-radius:4px;font-size:11px;">6 模板</span>',
+            '      <span style="background:var(--card);color:var(--text-2);padding:1px 8px;border-radius:4px;font-size:11px;">社区可扩展</span>',
+            '    </div>',
+            '  </div>',
+            '</div>',
+            '<div id="v49-step0-detail" style="margin-top:10px;"></div>'
+          ].join('');
+          const footer = [
+            '<button class="v49-btn" id="v49-step0-cancel">取消</button>',
+            '<button class="v49-btn primary" id="v49-step0-next" disabled>下一步 →</button>'
+          ].join('');
+          NS._showV49Modal('新建方案 · Step 0 / 2 · 选择来源', body, footer, function (modal) {
+            let selected = 'blank';
+            let selectedCopySource = null;
+            let selectedTemplate = null;
+            function updateNext() {
+              const btn = document.getElementById('v49-step0-next');
+              if (!btn) return;
+              if (selected === 'copy' && !selectedCopySource) { btn.disabled = true; return; }
+              if (selected === 'template' && !selectedTemplate) { btn.disabled = true; return; }
+              btn.disabled = false;
+            }
+            function renderDetail() {
+              const detail = document.getElementById('v49-step0-detail');
+              if (!detail) return;
+              if (selected === 'blank') {
+                detail.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:10px;background:#fafbfc;border-radius:6px;">→ 下一步选 8 kind + CRC 算法</div>';
+              } else if (selected === 'copy') {
+                if (profileCount === 0) {
+                  detail.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:10px;background:#fafbfc;border-radius:6px;">还没有现有方案可选, 改用「从空白开始」</div>';
+                } else {
+                  const list = (NS.PROFILES || []).map(function (p) {
+                    return '<label style="display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:4px;cursor:pointer;font-size:12px;">' +
+                      '<input type="radio" name="v49-step0-copy" value="' + NS.escapeHtml(p.id) + '">' +
+                      '<span><b>' + NS.escapeHtml(p.name) + '</b> <span style="color:var(--text-3);font-size:11px;">' + (p.kind || '') + ' · ' + ((p.commands || []).length) + ' 命令</span></span>' +
+                      '</label>';
+                  }).join('');
+                  detail.innerHTML = [
+                    '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;">',
+                    '  <div style="font-weight:600;font-size:12px;margin-bottom:6px;">选源方案:</div>',
+                    '  <div style="max-height:200px;overflow-y:auto;">' + list + '</div>',
+                    '  <div style="font-size:11.5px;margin-top:6px;color:var(--text-3);">复制选项:</div>',
+                    '  <div style="font-size:11.5px;color:var(--text-2);margin-top:2px;">',
+                    '    <label><input type="checkbox" checked> 命令定义</label> ',
+                    '    <label><input type="checkbox" checked> 字段定义</label> ',
+                    '    <label><input type="checkbox"> 仪表盘绑定</label> ',
+                    '    <label><input type="checkbox" checked> CRC 配置</label>',
+                    '  </div>',
+                    '</div>'
+                  ].join('');
+                  detail.querySelectorAll('input[name="v49-step0-copy"]').forEach(function (r) {
+                    r.onchange = function () { selectedCopySource = r.value; updateNext(); };
+                  });
+                }
+              } else if (selected === 'template') {
+                const list = NS._PROTOCOL_TEMPLATES.map(function (t) {
+                  return '<label style="display:flex;align-items:flex-start;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:4px;cursor:pointer;font-size:12px;">' +
+                    '<input type="radio" name="v49-step0-template" value="' + t.id + '" style="margin-top:2px;">' +
+                    '<div><b>' + NS.escapeHtml(t.name) + '</b><div style="color:var(--text-3);font-size:11px;margin-top:2px;line-height:1.4;">' + NS.escapeHtml(t.desc) + '</div></div>' +
+                    '</label>';
+                }).join('');
+                detail.innerHTML = [
+                  '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;">',
+                  '  <div style="font-weight:600;font-size:12px;margin-bottom:6px;">选协议模板:</div>',
+                  '  <div style="max-height:200px;overflow-y:auto;">' + list + '</div>',
+                  '</div>'
+                ].join('');
+                detail.querySelectorAll('input[name="v49-step0-template"]').forEach(function (r) {
+                  r.onchange = function () { selectedTemplate = r.value; updateNext(); };
+                });
+              }
+            }
+            modal.querySelectorAll('.v49-step0-card').forEach(function (card) {
+              card.onclick = function () {
+                selected = card.dataset.entry;
+                modal.querySelectorAll('.v49-step0-card').forEach(function (c) {
+                  c.style.border = '1px solid var(--border-strong)';
+                  c.style.background = 'var(--card)';
+                  c.style.boxShadow = 'none';
+                });
+                card.style.border = '2px solid var(--primary)';
+                card.style.background = 'var(--primary-soft)';
+                card.style.boxShadow = '0 0 0 3px var(--primary-soft)';
+                renderDetail();
+                updateNext();
+              };
+            });
+            document.getElementById('v49-step0-cancel').onclick = function () { NS._closeV49Modal(); };
+            document.getElementById('v49-step0-next').onclick = function () {
+              const prefill = { source: selected };
+              if (selected === 'copy') prefill.copySourceId = selectedCopySource;
+              if (selected === 'template') prefill.templateId = selectedTemplate;
+              NS._closeV49Modal();
+              setTimeout(function () { NS._showNewProfileStep1(prefill); }, 100);
+            };
+            renderDetail();
+            updateNext();
+          });
+        };
+
+        // --- T10: Step 1 wizard (name + kind + CRC) ---
+        NS._showNewProfileStep1 = function (prefill) {
+          prefill = prefill || { source: 'blank' };
+          // 从 prefill 初始化 form
+          let initName = '';
+          let initKind = 'fixed-header';
+          let initCrc = { algorithm: 'CRC16-MODBUS', initValue: '0xFFFF', byteOrder: 'LE', range: 'all' };
+          let initTags = [];
+          let prefillCommands = null;
+          if (prefill.source === 'copy' && prefill.copySourceId) {
+            const src = (NS.PROFILES || []).find(function (p) { return p.id === prefill.copySourceId; });
+            if (src) {
+              initName = src.name + ' (副本)';
+              initKind = src.kind || 'fixed-header';
+              initCrc = src.crc ? JSON.parse(JSON.stringify(src.crc)) : initCrc;
+              initTags = (src.tags || []).slice();
+              prefillCommands = JSON.parse(JSON.stringify(src.commands || []));
+            }
+          } else if (prefill.source === 'template' && prefill.templateId) {
+            const tpl = NS._PROTOCOL_TEMPLATES.find(function (t) { return t.id === prefill.templateId; });
+            if (tpl) {
+              initName = tpl.name;
+              initKind = tpl.kind || 'fixed-header';
+              initCrc = tpl.crc ? JSON.parse(JSON.stringify(tpl.crc)) : initCrc;
+            }
+          }
+          const kinds = (NS._KIND_TEMPLATES ? Object.keys(NS._KIND_TEMPLATES) : ['fixed-header', 'raw', 'cmd-split', 'addr-split', 'ctrl-bit7', 'type-high-bit', 'msgid-mixed', 'tlv']);
+          const kindCards = kinds.map(function (k) {
+            const tpl = NS._KIND_TEMPLATES && NS._KIND_TEMPLATES[k];
+            const name = tpl ? tpl.name : k;
+            const desc = tpl && tpl.desc ? tpl.desc : '';
+            const checked = k === initKind ? 'checked' : '';
+            const style = k === initKind
+              ? 'border:2px solid var(--primary);background:var(--primary-soft);box-shadow:0 0 0 3px var(--primary-soft);'
+              : 'border:1px solid var(--border-strong);background:var(--card);';
+            return '<label class="v49-kind-card" data-kind="' + k + '" style="' + style + 'border-radius:6px;padding:8px 10px;cursor:pointer;display:block;">' +
+              '<input type="radio" name="v49-step1-kind" value="' + k + '" ' + checked + ' style="display:none;">' +
+              '<div style="font-weight:600;font-size:12px;">' + NS.escapeHtml(name) + '</div>' +
+              '<div style="color:var(--text-3);font-size:11px;margin-top:2px;line-height:1.4;">' + NS.escapeHtml(desc) + '</div>' +
+              '</label>';
+          }).join('');
+          const crcOpts = NS._CRC_ALGORITHMS.map(function (a) {
+            return '<option value="' + a + '" ' + (a === initCrc.algorithm ? 'selected' : '') + '>' + a + '</option>';
+          }).join('');
+          const body = [
+            // 基础
+            '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px;">',
+            '  <div style="font-weight:600;font-size:12.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">',
+            '    <span style="background:var(--primary);color:#fff;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">1</span>基础',
+            '  </div>',
+            '  <div class="form-row" style="display:grid;grid-template-columns:100px 1fr;gap:8px;align-items:center;margin-bottom:6px;">',
+            '    <label style="font-size:12px;">方案名 <span style="color:var(--danger)">*</span></label>',
+            '    <input class="inp wfull" id="v49-step1-name" type="text" placeholder="必填, 1-32 字符" value="' + NS.escapeHtml(initName) + '">',
+            '  </div>',
+            '  <div class="form-row" style="display:grid;grid-template-columns:100px 1fr;gap:8px;align-items:center;">',
+            '    <label style="font-size:12px;">标签</label>',
+            '    <div id="v49-step1-tags" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:4px 6px;background:var(--card);border:1px solid var(--border-strong);border-radius:6px;min-height:30px;">',
+            initTags.map(function (t) { return '<span class="v49-tag-chip" style="background:var(--primary-soft);color:var(--primary);padding:2px 8px;border-radius:4px;font-size:11px;display:inline-flex;align-items:center;gap:4px;">' + NS.escapeHtml(t) + ' <span class="v49-tag-del" style="cursor:pointer;opacity:0.6;">×</span></span>'; }).join('') +
+            '      <input id="v49-step1-tag-input" type="text" placeholder="回车添加" style="border:none;outline:none;flex:1;min-width:80px;background:transparent;font-size:12px;">',
+            '    </div>',
+            '  </div>',
+            '  <div id="v49-step1-name-err" style="color:var(--danger);font-size:11px;margin-top:4px;display:none;"></div>',
+            '</div>',
+            // 协议类型
+            '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px;">',
+            '  <div style="font-weight:600;font-size:12.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">',
+            '    <span style="background:var(--primary);color:#fff;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">2</span>协议类型 <span style="color:var(--danger)">*</span>',
+            '  </div>',
+            '  <div id="v49-step1-kinds" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:200px;overflow-y:auto;">' + kindCards + '</div>',
+            '</div>',
+            // CRC
+            '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px;">',
+            '  <div style="font-weight:600;font-size:12.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">',
+            '    <span style="background:var(--primary);color:#fff;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">3</span>CRC 配置',
+            '  </div>',
+            '  <div style="display:grid;grid-template-columns:120px 1fr;gap:6px 8px;align-items:center;font-size:12px;">',
+            '    <label>算法</label><select class="inp" id="v49-step1-crc-algo">' + crcOpts + '</select>',
+            '    <label>起始值 (hex)</label><input class="inp mono" id="v49-step1-crc-init" value="' + NS.escapeHtml(initCrc.initValue) + '">',
+            '    <label>字节序</label><select class="inp" id="v49-step1-crc-endian"><option value="LE" ' + (initCrc.byteOrder === 'LE' ? 'selected' : '') + '>LE 小端</option><option value="BE" ' + (initCrc.byteOrder === 'BE' ? 'selected' : '') + '>BE 大端</option></select>',
+            '    <label>覆盖范围</label><select class="inp" id="v49-step1-crc-range"><option value="all" ' + (initCrc.range === 'all' ? 'selected' : '') + '>全部 (header→tail)</option><option value="no_header" ' + (initCrc.range === 'no_header' ? 'selected' : '') + '>不含帧头 (Modbus)</option><option value="no_tail" ' + (initCrc.range === 'no_tail' ? 'selected' : '') + '>不含帧尾</option><option value="no_header_tail" ' + (initCrc.range === 'no_header_tail' ? 'selected' : '') + '>不含帧头帧尾</option><option value="data_only" ' + (initCrc.range === 'data_only' ? 'selected' : '') + '>只对 data 段</option></select>',
+            '  </div>',
+            '  <div id="v49-step1-crc-err" style="color:var(--danger);font-size:11px;margin-top:4px;display:none;"></div>',
+            '</div>'
+          ].join('');
+          const footer = [
+            '<button class="v49-btn" id="v49-step1-back">← 上一步</button>',
+            '<button class="v49-btn primary" id="v49-step1-create">创建方案</button>'
+          ].join('');
+          NS._showV49Modal('新建方案 · Step 1 / 2 · 配置', body, footer, function (modal) {
+            // 绑定 kind card 点击
+            modal.querySelectorAll('.v49-kind-card').forEach(function (card) {
+              card.onclick = function () {
+                modal.querySelectorAll('.v49-kind-card').forEach(function (c) {
+                  c.style.border = '1px solid var(--border-strong)';
+                  c.style.background = 'var(--card)';
+                  c.style.boxShadow = 'none';
+                  const r = c.querySelector('input'); if (r) r.checked = false;
+                });
+                card.style.border = '2px solid var(--primary)';
+                card.style.background = 'var(--primary-soft)';
+                card.style.boxShadow = '0 0 0 3px var(--primary-soft)';
+                const r = card.querySelector('input'); if (r) r.checked = true;
+              };
+            });
+            // 绑定 tag 输入
+            const tagInput = document.getElementById('v49-step1-tag-input');
+            const tagBox = document.getElementById('v49-step1-tags');
+            function addTag(name) {
+              name = String(name || '').trim();
+              if (!name || name.length > 16) return;
+              if (tagBox.querySelector('[data-tag="' + name + '"]')) return;
+              const chip = document.createElement('span');
+              chip.className = 'v49-tag-chip';
+              chip.dataset.tag = name;
+              chip.style.cssText = 'background:var(--primary-soft);color:var(--primary);padding:2px 8px;border-radius:4px;font-size:11px;display:inline-flex;align-items:center;gap:4px;';
+              chip.innerHTML = NS.escapeHtml(name) + ' <span class="v49-tag-del" style="cursor:pointer;opacity:0.6;">×</span>';
+              tagBox.insertBefore(chip, tagInput);
+              chip.querySelector('.v49-tag-del').onclick = function () { chip.remove(); };
+            }
+            if (tagInput) {
+              tagInput.onkeydown = function (e) {
+                if (e.key === 'Enter' || e.key === ',') {
+                  e.preventDefault();
+                  addTag(tagInput.value);
+                  tagInput.value = '';
+                }
+              };
+            }
+            // 已有 init tags 绑定删除
+            tagBox.querySelectorAll('.v49-tag-del').forEach(function (del) {
+              del.onclick = function () { del.parentNode.remove(); };
+            });
+            document.getElementById('v49-step1-back').onclick = function () {
+              NS._closeV49Modal();
+              setTimeout(function () { NS._showNewProfileStep0(); }, 100);
+            };
+            document.getElementById('v49-step1-create').onclick = function () {
+              // 校验
+              const name = String(document.getElementById('v49-step1-name').value || '').trim();
+              const nameErr = document.getElementById('v49-step1-name-err');
+              if (!name || name.length > 32) {
+                nameErr.textContent = '方案名必填, 1-32 字符';
+                nameErr.style.display = 'block';
+                return;
+              }
+              // 重名校验
+              if ((NS.PROFILES || []).some(function (p) { return p.name === name; })) {
+                nameErr.textContent = '方案名已存在, 请改名';
+                nameErr.style.display = 'block';
+                return;
+              }
+              nameErr.style.display = 'none';
+              // CRC 起始值校验
+              const crcInit = String(document.getElementById('v49-step1-crc-init').value || '').trim();
+              const crcErr = document.getElementById('v49-step1-crc-err');
+              if (crcInit && !/^0x[0-9a-fA-F]+$/.test(crcInit)) {
+                crcErr.textContent = 'CRC 起始值必须是 hex (如 0xFFFF)';
+                crcErr.style.display = 'block';
+                return;
+              }
+              crcErr.style.display = 'none';
+              // 取选中 kind
+              const kindInput = modal.querySelector('input[name="v49-step1-kind"]:checked');
+              const kind = kindInput ? kindInput.value : 'fixed-header';
+              // 收集 tags
+              const tags = Array.from(tagBox.querySelectorAll('.v49-tag-chip')).map(function (c) { return c.dataset.tag; });
+              // CRC
+              const crc = {
+                algorithm: document.getElementById('v49-step1-crc-algo').value,
+                initValue: crcInit || '0xFFFF',
+                byteOrder: document.getElementById('v49-step1-crc-endian').value,
+                range: document.getElementById('v49-step1-crc-range').value
+              };
+              // 创建 profile
+              const profile = {
+                id: 'profile-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                name: name,
+                kind: kind,
+                crc: crc,
+                byteOrder: crc.byteOrder,
+                tags: tags,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                commands: []
+              };
+              // 如果是 copy 模式, 复制 commands
+              if (prefillCommands && prefillCommands.length > 0) {
+                profile.commands = prefillCommands.map(function (c) {
+                  return JSON.parse(JSON.stringify(c));
+                });
+              }
+              NS.PROFILES = (NS.PROFILES || []).concat([profile]);
+              NS.activeProfileId = profile.id;
+              NS._recordOperation('add-profile', profile.id, '创建方案: ' + name, { profile: JSON.parse(JSON.stringify(profile)) });
+              NS._closeV49Modal();
+              NS.renderProtoEditor();
+              NS.toast('已创建方案: ' + name, 'success');
+            };
+          });
+        };
+
+        // --- T11: Profile 编辑 diff 视图 ---
+        NS._showEditProfileDiff = function (profileId) {
+          const profile = (NS.PROFILES || []).find(function (p) { return p.id === profileId; });
+          if (!profile) { NS.toast('方案不存在', 'warn'); return; }
+          // 备份原值 + 显示 diff 编辑表单
+          const backup = JSON.parse(JSON.stringify(profile));
+          const kinds = (NS._KIND_TEMPLATES ? Object.keys(NS._KIND_TEMPLATES) : ['fixed-header']);
+          const kindOpts = kinds.map(function (k) {
+            return '<option value="' + k + '" ' + ((profile.kind || 'fixed-header') === k ? 'selected' : '') + '>' + (NS._KIND_TEMPLATES && NS._KIND_TEMPLATES[k] ? NS._KIND_TEMPLATES[k].name : k) + '</option>';
+          }).join('');
+          const crc = profile.crc || { algorithm: 'CRC16-MODBUS', initValue: '0xFFFF', byteOrder: 'LE', range: 'all' };
+          const crcOpts = NS._CRC_ALGORITHMS.map(function (a) {
+            return '<option value="' + a + '" ' + (crc.algorithm === a ? 'selected' : '') + '>' + a + '</option>';
+          }).join('');
+          const commands = profile.commands || [];
+          const body = [
+            // diff 视图
+            '<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:stretch;background:var(--card);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;">',
+            '  <div style="padding:10px 12px;font-size:12px;line-height:1.6;background:#fafbfc;border-right:1px solid var(--border);">',
+            '    <div style="font-size:10.5px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">原值</div>',
+            '    <div>名称: <b>' + NS.escapeHtml(backup.name) + '</b></div>',
+            '    <div>Kind: ' + NS.escapeHtml(backup.kind || '—') + '</div>',
+            '    <div>CRC: ' + (backup.crc ? (backup.crc.algorithm + ' ' + backup.crc.initValue + ' ' + backup.crc.byteOrder) : '—') + '</div>',
+            '    <div>标签: ' + ((backup.tags || []).map(function (t) { return '<span style="background:var(--tag-bg);padding:1px 6px;border-radius:3px;font-size:11px;">' + NS.escapeHtml(t) + '</span>'; }).join(' ') || '—') + '</div>',
+            '  </div>',
+            '  <div style="display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--primary);">',
+            '    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 8h10M9.5 4.5L13 8l-3.5 3.5"/></svg>',
+            '  </div>',
+            '  <div style="padding:10px 12px;font-size:12px;line-height:1.6;">',
+            '    <div style="font-size:10.5px;font-weight:600;color:var(--success);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">新值 (编辑)</div>',
+            '    <div>名称: <input class="inp" id="v49-edit-name" value="' + NS.escapeHtml(profile.name) + '" style="width:100%;font-size:12px;padding:2px 6px;"></div>',
+            '    <div>Kind: <select class="inp" id="v49-edit-kind" style="font-size:12px;padding:2px 6px;">' + kindOpts + '</select></div>',
+            '    <div>CRC: <select class="inp" id="v49-edit-crc-algo" style="font-size:12px;padding:2px 6px;">' + crcOpts + '</select> <input class="inp mono" id="v49-edit-crc-init" value="' + NS.escapeHtml(crc.initValue) + '" style="width:80px;font-size:12px;padding:2px 6px;"> <select class="inp" id="v49-edit-crc-endian" style="font-size:12px;padding:2px 6px;"><option value="LE" ' + (crc.byteOrder === 'LE' ? 'selected' : '') + '>LE</option><option value="BE" ' + (crc.byteOrder === 'BE' ? 'selected' : '') + '>BE</option></select></div>',
+            '    <div>标签: <input class="inp" id="v49-edit-tags" value="' + NS.escapeHtml((profile.tags || []).join(',')) + '" placeholder="逗号分隔" style="width:100%;font-size:12px;padding:2px 6px;"></div>',
+            '  </div>',
+            '</div>',
+            // 影响列表
+            '<div style="background:var(--warn-soft);border:1px solid #fde68a;border-radius:6px;padding:10px 12px;font-size:12px;margin-bottom:12px;">',
+            '  <div style="font-weight:600;color:#92400e;margin-bottom:6px;">⚠ 影响 ' + commands.length + ' 个命令:</div>',
+            commands.length > 0 ? commands.map(function (c) {
+              return '<div style="padding:3px 0;display:flex;gap:6px;align-items:center;">' +
+                '<span style="background:var(--card);padding:1px 6px;border-radius:3px;font-size:11px;">0x' + (typeof c.cmdCode === 'number' ? c.cmdCode.toString(16).padStart(2, '0').toUpperCase() : '??') + '</span>' +
+                '<span>' + NS.escapeHtml(c.name || '未命名') + ' <span style="color:var(--text-3);font-size:11px;">' + ((c.fields || []).length) + ' 字段</span></span>' +
+                '</div>';
+            }).join('') : '<div style="color:var(--text-3);font-size:11px;">无命令</div>',
+            '</div>',
+            // 警告
+            '<div style="background:#fafbfc;border:1px dashed var(--border-strong);border-radius:6px;padding:8px 12px;font-size:11.5px;color:var(--text-2);margin-bottom:12px;">',
+            '  <div style="font-weight:600;margin-bottom:4px;">⚠ 提示:</div>',
+            '  <div>• 改 kind 影响所有命令的帧布局</div>',
+            '  <div>• 改 CRC 算法/起始值影响所有命令的校验字节</div>',
+            '  <div>• 改 name/标签 不影响命令</div>',
+            '</div>'
+          ].join('');
+          const footer = [
+            '<button class="v49-btn" id="v49-edit-cancel">取消</button>',
+            '<button class="v49-btn" id="v49-edit-keep-old">保留 v2.0 副本并新建</button>',
+            '<button class="v49-btn primary" id="v49-edit-apply">应用到 ' + commands.length + ' 个命令</button>'
+          ].join('');
+          NS._showV49Modal('编辑方案: ' + backup.name, body, footer, function (modal) {
+            document.getElementById('v49-edit-cancel').onclick = function () { NS._closeV49Modal(); };
+            document.getElementById('v49-edit-keep-old').onclick = function () {
+              // 深拷贝当前 profile 为 backup2, 给原 profile 加 (副本) 后缀
+              const copy = JSON.parse(JSON.stringify(profile));
+              copy.id = 'profile-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+              copy.name = profile.name + ' (副本)';
+              copy.createdAt = new Date().toISOString();
+              copy.updatedAt = new Date().toISOString();
+              NS.PROFILES = (NS.PROFILES || []).concat([copy]);
+              NS._recordOperation('keep-old-copy', copy.id, '保留旧版: ' + backup.name, { backup: backup });
+              // 然后正常应用新值
+              NS._applyEditToProfile(profile, backup, modal);
+              NS._closeV49Modal();
+              NS.renderProtoEditor();
+              NS.toast('已保留旧版副本, 新值已应用', 'success');
+            };
+            document.getElementById('v49-edit-apply').onclick = function () {
+              NS._applyEditToProfile(profile, backup, modal);
+              NS._closeV49Modal();
+              NS.renderProtoEditor();
+              NS.toast('已应用编辑', 'success');
+            };
+          });
+        };
+        // 应用 edit 值
+        NS._applyEditToProfile = function (profile, backup, modal) {
+          const newName = String(document.getElementById('v49-edit-name').value || '').trim();
+          const newKind = document.getElementById('v49-edit-kind').value;
+          const newCrcAlgo = document.getElementById('v49-edit-crc-algo').value;
+          const newCrcInit = String(document.getElementById('v49-edit-crc-init').value || '').trim();
+          const newCrcEndian = document.getElementById('v49-edit-crc-endian').value;
+          const newTags = String(document.getElementById('v49-edit-tags').value || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+          // 重名校验 (排除自己)
+          if (newName && (NS.PROFILES || []).some(function (p) { return p.id !== profile.id && p.name === newName; })) {
+            NS.toast('新名称 "' + newName + '" 已被占用, 已保留原名', 'warn');
+          } else if (newName) {
+            profile.name = newName;
+          }
+          profile.kind = newKind;
+          profile.crc = {
+            algorithm: newCrcAlgo,
+            initValue: newCrcInit || '0xFFFF',
+            byteOrder: newCrcEndian,
+            range: (profile.crc && profile.crc.range) || 'all'
+          };
+          profile.byteOrder = newCrcEndian;
+          profile.tags = newTags;
+          profile.updatedAt = new Date().toISOString();
+          NS._recordOperation('edit-profile', profile.id, '编辑方案: ' + profile.name, { backup: backup, new: JSON.parse(JSON.stringify(profile)) });
+        };
+
+        // === v4.9 C2b 段结束 ===========================================
 
         // --- Modal 控制 ---
         NS.openModal = function (name) {
