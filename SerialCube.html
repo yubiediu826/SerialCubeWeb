@@ -14124,9 +14124,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 const pid = tr.dataset.profileId;
                 const act = btn.dataset.act;
                 if (act === 'view') {
-                  // 走老 modal (legacy) 看详情
-                  NS.activeProfileId = pid;
-                  NS._renderProtoEditorLegacy();
+                  // C3a: 查看 → 调命令列表 modal
+                  NS._showProfileCommands(pid);
                 } else if (act === 'edit') {
                   // C2b: 编辑 → 调 diff 视图
                   NS._showEditProfileDiff(pid);
@@ -15273,6 +15272,411 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         };
 
         // === v4.9 C2c 段结束 ===========================================
+
+        // === v4.9 C3a: 命令 modal + 字段定义 + 9 预设 (T12-T15) =====
+        // 不破坏现有 NS.renderCmdList / NS.populateCmdForm (v4.8c 命令管理)
+        // 新的命令 modal 走 v2 格式 (commands 在 profile.commands[] 数组)
+        // 5 section (本 commit 只做基础+字段, 帧预览/反向解析/绑定留 C3b)
+        // ========================================================================
+
+        // --- T14: 9 个内置字段预设 ---
+        NS._BUILTIN_FIELD_PRESETS = [
+          { name: '温度', type: 'int16', byteOrder: 'BE', scale: 0.1, unit: '℃', format: '0.0' },
+          { name: '电压', type: 'uint16', byteOrder: 'BE', scale: 0.01, unit: 'V', format: '0.00' },
+          { name: '电流', type: 'int16', byteOrder: 'LE', scale: 0.01, unit: 'A', format: '0.00' },
+          { name: '功率', type: 'int32', byteOrder: 'LE', scale: 0.001, unit: 'kW', format: '0.000' },
+          { name: 'SOC', type: 'uint8', byteOrder: 'BE', scale: 0.392, unit: '%', format: '0.0' },
+          { name: '频率', type: 'uint16', byteOrder: 'BE', scale: 1, unit: 'Hz', format: '0' },
+          { name: '字节', type: 'bytes', byteOrder: 'BE', scale: 1, unit: '', format: '0x' },
+          { name: '时间戳', type: 'bcd', byteOrder: 'BE', scale: 1, unit: '', format: 'YYYYMMDDhhmmss' },
+          { name: '状态字', type: 'uint16', byteOrder: 'BE', scale: 1, unit: '', format: 'bits' }
+        ];
+        NS._FIELD_TYPES = ['uint8', 'uint16', 'uint32', 'int8', 'int16', 'int32', 'float32', 'bytes', 'string', 'bcd', 'timestamp'];
+
+        // 工具: 根据 type 推 byteLen
+        NS._fieldTypeToByteLen = function (type) {
+          const map = { uint8: 1, int8: 1, uint16: 2, int16: 2, uint32: 4, int32: 4, float32: 4 };
+          return map[type] || 2;
+        };
+
+        // --- T12: 命令 modal 主结构 (5 section + tabs) ---
+        NS._renderCommandModal = function (profileId, commandId) {
+          const profile = (NS.PROFILES || []).find(function (p) { return p.id === profileId; });
+          if (!profile) { NS.toast('方案不存在', 'warn'); return; }
+          let command = commandId ? (profile.commands || []).find(function (c) { return c.id === commandId; }) : null;
+          const isNew = !command;
+          if (isNew) {
+            // 找下一个可用 cmdCode
+            const usedCodes = (profile.commands || []).map(function (c) { return c.cmdCode; });
+            let nextCode = 0x01;
+            while (usedCodes.indexOf(nextCode) >= 0) nextCode = (nextCode + 1) & 0xFF;
+            command = {
+              id: 'cmd-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+              name: '',
+              cmdCode: nextCode,
+              ackCmd: null,
+              timeoutMs: 30000,
+              retryCount: 3,
+              trigger: { mode: 'manual', periodMs: 0, manualHotkey: 'F5', onConnect: false },
+              direction: 'rx',
+              frameType: 'query',
+              fields: [],
+              dashboardBindings: []
+            };
+          }
+          // 字段 row 渲染函数
+          function renderFieldRows() {
+            return (command.fields || []).map(function (f, i) {
+              return '<div class="v49-field-row" data-field-id="' + f.id + '" style="display:grid;grid-template-columns:18px 18px 1fr 75px 50px 60px 60px 24px;gap:5px;align-items:center;padding:5px 6px;border:1px solid var(--border);border-radius:4px;margin-bottom:3px;background:#fafbfc;font-size:12px;">' +
+                '<span class="v49-field-drag" style="color:var(--text-3);cursor:grab;font-size:13px;text-align:center;" title="拖动改顺序">⋮⋮</span>' +
+                '<span class="v49-field-num" style="color:var(--text-3);font-size:11px;text-align:center;">' + (i + 1) + '</span>' +
+                '<input class="inp v49-field-name" value="' + NS.escapeHtml(f.name || '') + '" style="font-size:12px;padding:2px 6px;width:100%;">' +
+                '<select class="inp v49-field-type" style="font-size:11px;padding:2px 4px;">' + NS._FIELD_TYPES.map(function (t) { return '<option value="' + t + '" ' + (f.type === t ? 'selected' : '') + '>' + t + '</option>'; }).join('') + '</select>' +
+                '<select class="inp v49-field-bo" style="font-size:11px;padding:2px 4px;"><option value="BE" ' + (f.byteOrder === 'BE' ? 'selected' : '') + '>BE</option><option value="LE" ' + (f.byteOrder === 'LE' ? 'selected' : '') + '>LE</option></select>' +
+                '<input class="inp v49-field-scale" type="number" step="0.001" value="' + (f.scale || 1) + '" style="font-size:11px;padding:2px 4px;width:100%;">' +
+                '<input class="inp v49-field-unit" value="' + NS.escapeHtml(f.unit || '') + '" placeholder="单位" style="font-size:11px;padding:2px 4px;width:100%;">' +
+                '<button class="v49-btn sm v49-field-del" title="删除字段" style="background:transparent;border-color:transparent;color:var(--text-3);padding:0;font-size:14px;">×</button>' +
+                '</div>';
+            }).join('');
+          }
+          // 字段 byteOffset 重算
+          function recomputeOffsets() {
+            let off = 0;
+            (command.fields || []).forEach(function (f) {
+              f.byteOffset = off;
+              off += NS._fieldTypeToByteLen(f.type);
+            });
+          }
+          // 用户预设 chips
+          function renderUserPresets() {
+            const list = NS._getFieldPresets();
+            if (list.length === 0) return '';
+            return '<div style="margin-top:10px;background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:8px 10px;">' +
+              '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:6px;">我的预设 (点一下加到字段):</div>' +
+              '<div style="display:flex;flex-wrap:wrap;gap:4px;">' +
+              list.map(function (p) {
+                return '<span class="v49-user-preset-chip" data-user-preset="' + p.id + '" style="background:var(--success-soft);color:var(--success);padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">' + NS.escapeHtml(p.name) + ' <span class="v49-user-preset-del" data-del="' + p.id + '" style="cursor:pointer;opacity:0.5;margin-left:2px;">×</span></span>';
+              }).join('') +
+              '</div></div>';
+          }
+          // 渲染 body
+          function renderBody() {
+            recomputeOffsets();
+            return [
+              // Tabs
+              '<div class="v49-cmd-tabs" style="display:flex;border-bottom:1px solid var(--border);margin-bottom:12px;overflow-x:auto;">',
+              '  <div class="v49-tab active" data-tab="basic" style="padding:7px 14px;font-size:12.5px;cursor:pointer;border-bottom:2px solid var(--primary);color:var(--primary);font-weight:500;white-space:nowrap;">基础</div>',
+              '  <div class="v49-tab" data-tab="fields" style="padding:7px 14px;font-size:12.5px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">字段 <span class="v49-tab-count" style="background:var(--tag-bg);color:var(--text-2);font-size:10.5px;padding:0 5px;border-radius:8px;margin-left:4px;">' + (command.fields || []).length + '</span></div>',
+              '  <div class="v49-tab" data-tab="preview" style="padding:7px 14px;font-size:12.5px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">帧预览</div>',
+              '  <div class="v49-tab" data-tab="parse" style="padding:7px 14px;font-size:12.5px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">反向解析</div>',
+              '  <div class="v49-tab" data-tab="bind" style="padding:7px 14px;font-size:12.5px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">仪表盘绑定</div>',
+              '</div>',
+              // Section 1: 基础
+              '<div class="v49-cmd-section" data-section="basic">',
+              '  <div style="display:grid;grid-template-columns:110px 1fr;gap:8px 10px;align-items:center;font-size:12px;">',
+              '    <label>命令名 <span style="color:var(--danger)">*</span></label><input class="inp" id="v49-cmd-name" value="' + NS.escapeHtml(command.name || '') + '" placeholder="必填">',
+              '    <label>命令码 (hex)</label><input class="inp mono" id="v49-cmd-cmdcode" value="0x' + (command.cmdCode || 0).toString(16).padStart(2, '0').toUpperCase() + '">',
+              '    <label>Ack 命令</label><select class="inp" id="v49-cmd-ack"><option value="">无</option>' + (profile.commands || []).filter(function (c) { return c.id !== command.id; }).map(function (c) { return '<option value="' + c.id + '" ' + (command.ackCmd === c.id ? 'selected' : '') + '>' + NS.escapeHtml(c.name) + '</option>'; }).join('') + '</select>',
+              '    <label>超时 (ms)</label><input class="inp" type="number" id="v49-cmd-timeout" value="' + (command.timeoutMs || 30000) + '" min="100" max="60000">',
+              '    <label>重试次数</label><input class="inp" type="number" id="v49-cmd-retry" value="' + (command.retryCount || 3) + '" min="0" max="10">',
+              '    <label>触发模式</label><select class="inp" id="v49-cmd-trigger-mode"><option value="manual" ' + (command.trigger.mode === 'manual' ? 'selected' : '') + '>手动</option><option value="periodic" ' + (command.trigger.mode === 'periodic' ? 'selected' : '') + '>定时</option></select>',
+              '    <label>定时 (ms)</label><input class="inp" type="number" id="v49-cmd-trigger-period" value="' + (command.trigger.periodMs || 0) + '" min="0">',
+              '    <label>手动热键</label><input class="inp" id="v49-cmd-trigger-hotkey" value="' + NS.escapeHtml(command.trigger.manualHotkey || 'F5') + '" placeholder="F5">',
+              '    <label>连接后自动发</label><label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" id="v49-cmd-trigger-onconnect" ' + (command.trigger.onConnect ? 'checked' : '') + '> 启用</label>',
+              '  </div>',
+              '</div>',
+              // Section 2: 字段定义
+              '<div class="v49-cmd-section" data-section="fields" style="display:none;">',
+              // 9 预设
+              '  <div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px;">',
+              '    <div style="font-size:11.5px;color:var(--text-3);margin-bottom:6px;">9 个嵌入式高频字段预设 (点一下自动填):</div>',
+              '    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;">',
+              NS._BUILTIN_FIELD_PRESETS.map(function (p) {
+                return '<button class="v49-btn-sm" data-preset="' + NS.escapeHtml(p.name) + '" style="padding:4px 6px;background:var(--card);border:1px solid var(--border);border-radius:4px;font-size:11px;text-align:left;cursor:pointer;line-height:1.3;">' +
+                  '<b style="color:var(--primary)">' + p.name + '</b><div style="font-size:10px;color:var(--text-3);">' + p.type + ' · ' + (p.unit || '—') + '</div>' +
+                  '</button>';
+              }).join(''),
+              '    </div>',
+              '  </div>',
+              // 字段列表
+              '  <div style="font-size:11.5px;color:var(--text-3);margin-bottom:4px;">字段列表 (' + (command.fields || []).length + ' 个, byteOffset 自动按顺序计算):</div>',
+              '  <div id="v49-cmd-fields-list" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px;min-height:100px;max-height:280px;overflow-y:auto;">',
+              (command.fields || []).length > 0 ? renderFieldRows() : '<div style="color:var(--text-3);text-align:center;padding:20px;">还没有字段, 点上面 9 个预设或 "+ 加字段"</div>',
+              '  </div>',
+              '  <div style="margin-top:8px;display:flex;gap:6px;">',
+              '    <button class="v49-btn-sm" id="v49-cmd-add-field" style="padding:3px 10px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;">+ 加字段</button>',
+              '    <button class="v49-btn-sm" id="v49-cmd-save-preset" style="padding:3px 10px;background:var(--card);color:var(--text);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">保存当前为预设</button>',
+              '  </div>',
+              renderUserPresets(),
+              '</div>',
+              // Section 3-5: 留 C3b
+              '<div class="v49-cmd-section" data-section="preview" style="display:none;"><div style="padding:20px;text-align:center;color:var(--text-3);font-size:12px;">⏳ 帧预览 — 留 C3b 实现 (T16)</div></div>',
+              '<div class="v49-cmd-section" data-section="parse" style="display:none;"><div style="padding:20px;text-align:center;color:var(--text-3);font-size:12px;">⏳ 反向解析 — 留 C3b 实现 (T17)</div></div>',
+              '<div class="v49-cmd-section" data-section="bind" style="display:none;"><div style="padding:20px;text-align:center;color:var(--text-3);font-size:12px;">⏳ 仪表盘绑定 — 留 C3b 实现 (T18, 配置层)</div></div>'
+            ].join('');
+          }
+          // 弹 modal
+          NS._showV49Modal(
+            (isNew ? '+ 新建命令' : '编辑命令: ' + command.name) + ' · ' + profile.name,
+            renderBody(),
+            '<button class="v49-btn" id="v49-cmd-cancel">取消</button>' +
+            '<button class="v49-btn primary" id="v49-cmd-save">' + (isNew ? '创建并继续' : '保存') + '</button>',
+            function (modal) {
+              // 字段事件绑定
+              function bindFieldEvents() {
+                modal.querySelectorAll('.v49-field-del').forEach(function (btn) {
+                  btn.onclick = function () {
+                    const row = btn.closest('.v49-field-row');
+                    if (!row) return;
+                    const fid = row.dataset.fieldId;
+                    command.fields = (command.fields || []).filter(function (f) { return f.id !== fid; });
+                    recomputeOffsets();
+                    refreshFields();
+                  };
+                });
+                modal.querySelectorAll('.v49-field-row').forEach(function (row) {
+                  const fid = row.dataset.fieldId;
+                  const nameInp = row.querySelector('.v49-field-name');
+                  const typeSel = row.querySelector('.v49-field-type');
+                  const boSel = row.querySelector('.v49-field-bo');
+                  const scaleInp = row.querySelector('.v49-field-scale');
+                  const unitInp = row.querySelector('.v49-field-unit');
+                  function sync() {
+                    const f = (command.fields || []).find(function (x) { return x.id === fid; });
+                    if (!f) return;
+                    f.name = nameInp.value;
+                    f.type = typeSel.value;
+                    f.byteOrder = boSel.value;
+                    f.scale = Number(scaleInp.value) || 1;
+                    f.unit = unitInp.value;
+                    f.byteLen = NS._fieldTypeToByteLen(f.type);
+                  }
+                  if (nameInp) nameInp.oninput = sync;
+                  if (typeSel) { typeSel.onchange = function () { sync(); recomputeOffsets(); }; }
+                  if (boSel) boSel.onchange = sync;
+                  if (scaleInp) scaleInp.oninput = sync;
+                  if (unitInp) unitInp.oninput = sync;
+                });
+              }
+              // 刷新字段列表
+              function refreshFields() {
+                const list = document.getElementById('v49-cmd-fields-list');
+                if (!list) return;
+                list.innerHTML = (command.fields || []).length > 0 ? renderFieldRows() : '<div style="color:var(--text-3);text-align:center;padding:20px;">还没有字段, 点上面 9 个预设或 "+ 加字段"</div>';
+                const countEl = modal.querySelector('.v49-tab[data-tab="fields"] .v49-tab-count');
+                if (countEl) countEl.textContent = (command.fields || []).length;
+                bindFieldEvents();
+              }
+              // Tab 切换
+              function switchTab(tabName) {
+                modal.querySelectorAll('.v49-tab').forEach(function (t) {
+                  if (t.dataset.tab === tabName) {
+                    t.classList.add('active');
+                    t.style.borderBottomColor = 'var(--primary)';
+                    t.style.color = 'var(--primary)';
+                    t.style.fontWeight = '500';
+                  } else {
+                    t.classList.remove('active');
+                    t.style.borderBottomColor = 'transparent';
+                    t.style.color = 'var(--text-2)';
+                    t.style.fontWeight = 'normal';
+                  }
+                });
+                modal.querySelectorAll('.v49-cmd-section').forEach(function (s) {
+                  s.style.display = (s.dataset.section === tabName) ? '' : 'none';
+                });
+              }
+              function reinitTabsAndPresets() {
+                modal.querySelectorAll('.v49-tab').forEach(function (t) {
+                  t.onclick = function () { switchTab(t.dataset.tab); };
+                });
+                modal.querySelectorAll('button[data-preset]').forEach(function (btn) {
+                  btn.onclick = function () {
+                    const p = NS._BUILTIN_FIELD_PRESETS.find(function (x) { return x.name === btn.dataset.preset; });
+                    if (!p) return;
+                    command.fields = command.fields || [];
+                    command.fields.push({
+                      id: 'f-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                      name: p.name + '_' + (command.fields.length + 1),
+                      type: p.type, byteOrder: p.byteOrder, scale: p.scale,
+                      unit: p.unit, format: p.format, byteOffset: 0,
+                      byteLen: NS._fieldTypeToByteLen(p.type)
+                    });
+                    recomputeOffsets();
+                    refreshFields();
+                    switchTab('fields');
+                  };
+                });
+                modal.querySelectorAll('.v49-user-preset-chip').forEach(function (chip) {
+                  chip.onclick = function (e) {
+                    if (e.target.classList.contains('v49-user-preset-del')) return;
+                    const id = chip.dataset.userPreset;
+                    const p = NS._getFieldPresets().find(function (x) { return x.id === id; });
+                    if (!p) return;
+                    command.fields = command.fields || [];
+                    command.fields.push({
+                      id: 'f-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                      name: p.name + '_' + (command.fields.length + 1),
+                      type: p.type, byteOrder: p.byteOrder, scale: p.scale,
+                      unit: p.unit, format: p.format, byteOffset: 0,
+                      byteLen: NS._fieldTypeToByteLen(p.type)
+                    });
+                    recomputeOffsets();
+                    refreshFields();
+                    switchTab('fields');
+                  };
+                });
+                modal.querySelectorAll('.v49-user-preset-del').forEach(function (del) {
+                  del.onclick = function (e) {
+                    e.stopPropagation();
+                    NS._removeFieldPreset(del.dataset.del);
+                    modal.querySelector('.modal-body').innerHTML = renderBody();
+                    reinitTabsAndPresets();
+                    bindFieldEvents();
+                  };
+                });
+                document.getElementById('v49-cmd-add-field').onclick = function () {
+                  command.fields = command.fields || [];
+                  command.fields.push({
+                    id: 'f-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                    name: 'field_' + (command.fields.length + 1),
+                    type: 'uint16', byteOrder: 'BE', scale: 1, unit: '', format: '0',
+                    byteOffset: 0, byteLen: 2
+                  });
+                  recomputeOffsets();
+                  refreshFields();
+                };
+                document.getElementById('v49-cmd-save-preset').onclick = function () {
+                  if (!command.fields || command.fields.length === 0) {
+                    NS.toast('当前命令没有字段, 无法保存为预设', 'warn');
+                    return;
+                  }
+                  const tpl = command.fields[command.fields.length - 1];
+                  const name = window.prompt('预设名 (1-16 字符):', tpl.name);
+                  if (!name || name.length < 1 || name.length > 16) return;
+                  try {
+                    NS._addFieldPreset({ name: name, type: tpl.type, byteOrder: tpl.byteOrder, scale: tpl.scale, unit: tpl.unit, format: tpl.format });
+                    NS.toast('已保存预设: ' + name, 'success');
+                    modal.querySelector('.modal-body').innerHTML = renderBody();
+                    reinitTabsAndPresets();
+                    bindFieldEvents();
+                  } catch (e) {
+                    NS.toast('保存失败: ' + e.message, 'danger');
+                  }
+                };
+              }
+              // 初始绑
+              reinitTabsAndPresets();
+              bindFieldEvents();
+              // 取消 / 保存
+              document.getElementById('v49-cmd-cancel').onclick = function () { NS._closeV49Modal(); };
+              document.getElementById('v49-cmd-save').onclick = function () {
+                // 校验
+                const name = String(document.getElementById('v49-cmd-name').value || '').trim();
+                if (!name) { NS.toast('命令名必填', 'warn'); return; }
+                // Q1 锁定: 同 profile 内重名校验
+                const dup = (profile.commands || []).some(function (c) { return c.id !== command.id && c.name === name; });
+                if (dup) { NS.toast('同 profile 内命令名重复: ' + name, 'warn'); return; }
+                // cmdCode hex 校验
+                const cmdCodeStr = String(document.getElementById('v49-cmd-cmdcode').value || '').trim();
+                const cmdCodeMatch = cmdCodeStr.match(/^0x([0-9a-fA-F]+)$/);
+                if (!cmdCodeMatch) { NS.toast('命令码必须是 hex (如 0x01)', 'warn'); return; }
+                // 字段同步 (确保 in-progress 改动写入 command.fields)
+                modal.querySelectorAll('.v49-field-row').forEach(function (row) {
+                  const fid = row.dataset.fieldId;
+                  const f = (command.fields || []).find(function (x) { return x.id === fid; });
+                  if (!f) return;
+                  const nameInp = row.querySelector('.v49-field-name');
+                  const typeSel = row.querySelector('.v49-field-type');
+                  const boSel = row.querySelector('.v49-field-bo');
+                  const scaleInp = row.querySelector('.v49-field-scale');
+                  const unitInp = row.querySelector('.v49-field-unit');
+                  if (nameInp) f.name = nameInp.value;
+                  if (typeSel) f.type = typeSel.value;
+                  if (boSel) f.byteOrder = boSel.value;
+                  if (scaleInp) f.scale = Number(scaleInp.value) || 1;
+                  if (unitInp) f.unit = unitInp.value;
+                  f.byteLen = NS._fieldTypeToByteLen(f.type);
+                });
+                command.name = name;
+                command.cmdCode = parseInt(cmdCodeMatch[1], 16);
+                command.ackCmd = document.getElementById('v49-cmd-ack').value || null;
+                command.timeoutMs = Math.max(100, Math.min(60000, Number(document.getElementById('v49-cmd-timeout').value) || 30000));
+                command.retryCount = Math.max(0, Math.min(10, Number(document.getElementById('v49-cmd-retry').value) || 0));
+                command.trigger.mode = document.getElementById('v49-cmd-trigger-mode').value;
+                command.trigger.periodMs = Math.max(0, Number(document.getElementById('v49-cmd-trigger-period').value) || 0);
+                command.trigger.manualHotkey = document.getElementById('v49-cmd-trigger-hotkey').value || 'F5';
+                command.trigger.onConnect = document.getElementById('v49-cmd-trigger-onconnect').checked;
+                command.updatedAt = new Date().toISOString();
+                recomputeOffsets();
+                if (!profile.commands) profile.commands = [];
+                if (isNew) {
+                  profile.commands.push(command);
+                  NS._recordOperation('add-command', command.id, '在 ' + profile.name + ' 新增命令: ' + name);
+                } else {
+                  NS._recordOperation('edit-command', command.id, '编辑命令: ' + name);
+                }
+                profile.updatedAt = new Date().toISOString();
+                NS._closeV49Modal();
+                NS.renderProtoEditor();
+                NS.toast('已保存: ' + name, 'success');
+              };
+            }
+          );
+        };
+
+        // --- 命令列表 modal (C2a "查看" 按钮入口) ---
+        NS._showProfileCommands = function (profileId) {
+          const profile = (NS.PROFILES || []).find(function (p) { return p.id === profileId; });
+          if (!profile) { NS.toast('方案不存在', 'warn'); return; }
+          const cmds = profile.commands || [];
+          const listHtml = cmds.length > 0 ? cmds.map(function (c) {
+            return '<div class="v49-cmd-list-item" data-cmd-id="' + c.id + '" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:4px;background:var(--card);font-size:12px;cursor:pointer;">' +
+              '<span style="background:var(--tag-bg);color:var(--text-2);padding:1px 6px;border-radius:3px;font-size:11px;">0x' + (c.cmdCode || 0).toString(16).padStart(2, '0').toUpperCase() + '</span>' +
+              '<span style="flex:1;font-weight:500;">' + NS.escapeHtml(c.name) + '</span>' +
+              '<span style="color:var(--text-3);font-size:11px;">' + ((c.fields || []).length) + ' 字段</span>' +
+              '<span style="color:var(--text-3);font-size:11px;">' + (c.trigger.mode || 'manual') + '</span>' +
+              '<button class="v49-btn-sm" data-act="edit" style="padding:2px 8px;font-size:11px;background:var(--card);border:1px solid var(--border-strong);border-radius:3px;cursor:pointer;">编辑</button>' +
+              '<button class="v49-btn-sm" data-act="del" style="padding:2px 8px;font-size:11px;background:var(--card);color:var(--danger);border:1px solid var(--danger);border-radius:3px;cursor:pointer;">删除</button>' +
+              '</div>';
+          }).join('') : '<div style="text-align:center;padding:30px;color:var(--text-3);font-size:12px;">还没有命令, 点 "+ 新建命令" 开始</div>';
+          const body = [
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">',
+            '  <div style="flex:1;font-size:12px;color:var(--text-2);"><b>' + NS.escapeHtml(profile.name) + '</b> · ' + cmds.length + ' 个命令 · ' + profile.kind + ' · ' + (profile.crc && profile.crc.algorithm) + '</div>',
+            '  <button class="v49-btn-sm" id="v49-cmd-list-new" style="padding:4px 12px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;">+ 新建命令</button>',
+            '</div>',
+            '<div style="max-height:400px;overflow-y:auto;">' + listHtml + '</div>'
+          ].join('');
+          NS._showV49Modal('命令列表 · ' + profile.name, body, '<button class="v49-btn" id="v49-cmd-list-close">关闭</button>', function (modal) {
+            document.getElementById('v49-cmd-list-close').onclick = function () { NS._closeV49Modal(); };
+            document.getElementById('v49-cmd-list-new').onclick = function () {
+              NS._closeV49Modal();
+              setTimeout(function () { NS._renderCommandModal(profileId, null); }, 100);
+            };
+            modal.querySelectorAll('.v49-cmd-list-item').forEach(function (item) {
+              const cid = item.dataset.cmdId;
+              item.querySelectorAll('button[data-act]').forEach(function (btn) {
+                btn.onclick = function (e) {
+                  e.stopPropagation();
+                  const act = btn.dataset.act;
+                  if (act === 'edit') {
+                    NS._closeV49Modal();
+                    setTimeout(function () { NS._renderCommandModal(profileId, cid); }, 100);
+                  } else if (act === 'del') {
+                    NS._showDeleteConfirm('command', cid, profileId, function () { NS._showProfileCommands(profileId); });
+                  }
+                };
+              });
+              // 点击行 → 编辑
+              item.onclick = function () {
+                NS._closeV49Modal();
+                setTimeout(function () { NS._renderCommandModal(profileId, cid); }, 100);
+              };
+            });
+          });
+        };
+
+        // === v4.9 C3a 段结束 ===========================================
 
         // --- Modal 控制 ---
         NS.openModal = function (name) {
