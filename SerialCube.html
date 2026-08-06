@@ -15027,6 +15027,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             // 0 方案时 toolbar 5 按钮(协议模板/导出/历史/回收站)都无意义, 隐藏整条 toolbar
             // 让空状态卡片(3 列 + 教程)成为唯一内容, 避免"协议模板"等按钮冗余点击
             toolbar.style.display = 'none';
+            toolbar.setAttribute('hidden', '');
             const empty = document.createElement('div');
             empty.className = 'v49-empty';
             empty.innerHTML = [
@@ -15077,8 +15078,10 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           }
 
           // 5. 表格渲染函数
+          // B-2/B-4 polish fix: tbody 提到 renderProtoEditor 闭包顶层, 让 selectProfile / renderTable 都能访问
+          // (之前 const tbody 在 renderTable 内, selectProfile 引用会 ReferenceError, 导致行点不亮 + 编辑按钮无效)
+          const tbody = document.getElementById('v49-tbody');
           function renderTable(filterTag, searchQuery) {
-            const tbody = document.getElementById('v49-tbody');
             if (!tbody) return;
             let list = NS.PROFILES || [];
             if (filterTag) {
