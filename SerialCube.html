@@ -13874,6 +13874,334 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 
         // === v4.9 C1 段结束 ===========================================
 
+        // === v4.9 C2a: 主视图 + 统计 + 标签 (T6-T8) ==================
+        // 备份老 renderProtoEditor (v4.8c 全功能 modal) → legacy
+        // 重写为 v2 主视图: 搜索 + 标签 + 列表
+        // ====================================================================
+
+        // --- T7: 方案统计派生函数 ---
+        NS._calcProfileStats = function (profile) {
+          if (!profile) return { commandCount: 0, fieldCount: 0, referenceCount: 0, lastModified: '—', lastModifiedBy: '—' };
+          const commands = Array.isArray(profile.commands) ? profile.commands : [];
+          const commandCount = commands.length;
+          const fieldCount = commands.reduce(function (s, c) { return s + ((c.fields || []).length); }, 0);
+          // 引用次数 = 被 dashboard cards + presets 引用 (粗略估算)
+          let referenceCount = 0;
+          const cmdIds = commands.map(function (c) { return c.id; }).filter(Boolean);
+          const cmdNames = commands.map(function (c) { return c.name; }).filter(Boolean);
+          if (Array.isArray(NS.CARDS)) {
+            referenceCount += NS.CARDS.filter(function (card) {
+              if (card.protocol === profile.id) return true;
+              if (cmdIds.indexOf(card.cmd) >= 0) return true;
+              return false;
+            }).length;
+          }
+          // 预设引用 (粗略: 描述含 cmd 名字)
+          try {
+            if (typeof state !== 'undefined' && state && state.presetSend && Array.isArray(state.presetSend.items)) {
+              referenceCount += state.presetSend.items.filter(function (p) {
+                return p && p.description && cmdNames.some(function (n) { return p.description.indexOf(n) >= 0; });
+              }).length;
+            }
+          } catch (e) { /* 静默 */ }
+          const lastModified = profile.updatedAt
+            ? new Date(profile.updatedAt).toLocaleString('zh-CN', { hour12: false })
+            : '—';
+          return {
+            commandCount: commandCount,
+            fieldCount: fieldCount,
+            referenceCount: referenceCount,
+            lastModified: lastModified,
+            lastModifiedBy: '当前用户'  // v4.9 暂不实现多用户
+          };
+        };
+
+        // --- T8: 标签管理 helper ---
+        NS._getAllTags = function () {
+          const map = new Map();
+          (NS.PROFILES || []).forEach(function (p) {
+            (p.tags || []).forEach(function (t) {
+              map.set(t, (map.get(t) || 0) + 1);
+            });
+          });
+          return Array.from(map.entries())
+            .map(function (e) { return { name: e[0], count: e[1] }; })
+            .sort(function (a, b) { return b.count - a.count; });
+        };
+        NS._addProfileTag = function (profileId, tag) {
+          const p = (NS.PROFILES || []).find(function (x) { return x.id === profileId; });
+          if (!p || !tag) return false;
+          if (!Array.isArray(p.tags)) p.tags = [];
+          if (p.tags.indexOf(tag) >= 0) return false;
+          p.tags.push(tag);
+          p.updatedAt = new Date().toISOString();
+          NS._schedulePersist();
+          NS._recordOperation('add-tag', profileId, '添加标签: ' + tag, { tag: tag });
+          return true;
+        };
+        NS._removeProfileTag = function (profileId, tag) {
+          const p = (NS.PROFILES || []).find(function (x) { return x.id === profileId; });
+          if (!p || !tag || !Array.isArray(p.tags)) return false;
+          const i = p.tags.indexOf(tag);
+          if (i < 0) return false;
+          p.tags.splice(i, 1);
+          p.updatedAt = new Date().toISOString();
+          NS._schedulePersist();
+          NS._recordOperation('remove-tag', profileId, '删除标签: ' + tag, { tag: tag });
+          return true;
+        };
+        NS._getProfilesByTag = function (tag) {
+          return (NS.PROFILES || []).filter(function (p) {
+            return Array.isArray(p.tags) && p.tags.indexOf(tag) >= 0;
+          });
+        };
+
+        // --- T6: 重写主视图为 v2 格式 ---
+        // 备份老 renderProtoEditor (v4.8c 全功能 modal) 为 legacy
+        NS._renderProtoEditorLegacy = NS.renderProtoEditor;
+        NS.renderProtoEditor = function () {
+          const tabsEl = document.getElementById('dh-proto-tabs');
+          const bodyEl = document.getElementById('dh-proto-body');
+          if (!bodyEl) return;
+
+          // tabs 改为只显示标题 (老 tabs 在新主视图不需要)
+          if (tabsEl) {
+            tabsEl.innerHTML = '<span style="color:var(--text-3);font-size:12px;padding:8px 12px;">v4.9 方案编辑器 (v2 格式 · 12 块 UX 改进)</span>';
+          }
+          bodyEl.innerHTML = '';
+          bodyEl.style.padding = '12px';
+
+          const profiles = NS.PROFILES || [];
+          const allCount = profiles.length;
+
+          // 1. 顶部工具栏
+          const toolbar = document.createElement('div');
+          toolbar.className = 'v49-toolbar';
+          toolbar.innerHTML = [
+            '<div class="v49-search">',
+            '  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-3);">',
+            '    <circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round" stroke-width="1.6"/>',
+            '  </svg>',
+            '  <input id="v49-search-input" placeholder="搜索方案名/命令/字段/标签 (Ctrl+F)">',
+            '  <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--tag-bg);color:var(--text-3);border-radius:3px;padding:1px 5px;font-size:10px;font-family:monospace;">Ctrl F</span>',
+            '</div>',
+            '<div class="v49-actions">',
+            '  <button class="v49-btn" id="v49-btn-templates"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>协议模板</button>',
+            '  <button class="v49-btn" id="v49-btn-import"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M5 5l3-3 3 3M3 13h10"/></svg>导入</button>',
+            '  <button class="v49-btn" id="v49-btn-export"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M5 8l3 3 3-3M3 14h10"/></svg>导出</button>',
+            '  <button class="v49-btn primary" id="v49-btn-new"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>新建方案</button>',
+            '</div>'
+          ].join('');
+          bodyEl.appendChild(toolbar);
+
+          // 2. 标签筛选条
+          const tags = NS._getAllTags();
+          const filterBar = document.createElement('div');
+          filterBar.className = 'v49-filter-bar';
+          filterBar.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;padding:0 4px;';
+          let chipsHtml = '<span class="v49-chip active" data-tag="" style="' +
+            'padding:3px 10px;border-radius:999px;border:1px solid var(--border-strong);background:var(--primary);color:#fff;font-size:11.5px;cursor:pointer;">' +
+            '全部 <span style="opacity:0.85;margin-left:3px;font-size:10.5px;">' + allCount + '</span></span>';
+          tags.forEach(function (t) {
+            chipsHtml += '<span class="v49-chip" data-tag="' + NS.escapeHtml(t.name) + '" style="' +
+              'padding:3px 10px;border-radius:999px;border:1px solid var(--border-strong);background:var(--card);font-size:11.5px;color:var(--text-2);cursor:pointer;">' +
+              NS.escapeHtml(t.name) + ' <span style="opacity:0.75;margin-left:3px;font-size:10.5px;">' + t.count + '</span></span>';
+          });
+          chipsHtml += '<span class="v49-chip add" data-tag="__add__" style="' +
+            'padding:3px 10px;border-radius:999px;border:1px dashed var(--border-strong);background:transparent;font-size:11.5px;color:var(--text-3);cursor:pointer;">+ 新建标签</span>';
+          filterBar.innerHTML = chipsHtml;
+          bodyEl.appendChild(filterBar);
+
+          // 3. 方案列表表格
+          const tableWrap = document.createElement('div');
+          tableWrap.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;';
+          const table = document.createElement('table');
+          table.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px;';
+          table.innerHTML = [
+            '<thead><tr style="text-align:left;background:#fafbfc;">',
+            '  <th style="padding:8px 12px;color:var(--text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--border);">名称</th>',
+            '  <th style="padding:8px 12px;color:var(--text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--border);">类型</th>',
+            '  <th style="padding:8px 12px;color:var(--text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--border);">标签</th>',
+            '  <th style="padding:8px 12px;color:var(--text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--border);">命令/字段</th>',
+            '  <th style="padding:8px 12px;color:var(--text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--border);">引用</th>',
+            '  <th style="padding:8px 12px;color:var(--text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--border);">最近修改</th>',
+            '  <th style="padding:8px 12px;color:var(--text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--border);width:160px;"></th>',
+            '</tr></thead>',
+            '<tbody id="v49-tbody"></tbody>'
+          ].join('');
+          tableWrap.appendChild(table);
+          bodyEl.appendChild(tableWrap);
+
+          // 4. 空状态
+          if (allCount === 0) {
+            tableWrap.style.display = 'none';
+            const empty = document.createElement('div');
+            empty.style.cssText = 'text-align:center;padding:60px 20px;color:var(--text-3);';
+            empty.innerHTML = [
+              '<div style="width:60px;height:60px;margin:0 auto 12px;background:var(--primary-soft);border-radius:50%;display:flex;align-items:center;justify-content:center;">',
+              '  <svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.4" style="color:var(--primary)">',
+              '    <path d="M6 8 L26 8 L26 26 L6 26 Z" stroke-linejoin="round"/><path d="M6 8 L16 16 L26 8" stroke-linejoin="round"/><path d="M11 12 L11 22 M21 12 L21 22" stroke-width="0.8"/>',
+              '  </svg>',
+              '</div>',
+              '<h4 style="margin:0 0 4px;font-size:14px;color:var(--text);">还没有协议方案</h4>',
+              '<p style="margin:0 0 14px;font-size:12px;">方案 = 一组共享协议规则 + 命令的集合。先建一个,5 分钟跑通第一个命令</p>',
+              '<div style="display:inline-flex;gap:8px;">',
+              '  <button class="v49-btn primary" id="v49-btn-new-empty">+ 新建方案</button>',
+              '  <button class="v49-btn" id="v49-btn-templates-empty">协议模板</button>',
+              '  <button class="v49-btn" id="v49-btn-import-empty">导入已有配置</button>',
+              '</div>',
+              '<div style="margin-top:18px;display:inline-flex;gap:8px;text-align:left;background:#fafbfc;border:1px dashed var(--border-strong);border-radius:8px;padding:12px 16px;">',
+              '  <div style="background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>',
+              '  <div style="font-size:12px;"><b>选协议类型</b><div style="color:var(--text-3);font-size:11px;margin-top:2px;">8 种 Modbus / TLV / 固定帧头...</div></div>',
+              '  <div style="background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:18px;">2</div>',
+              '  <div style="font-size:12px;"><b>配 CRC</b><div style="color:var(--text-3);font-size:11px;margin-top:2px;">8 种算法 + 起始值</div></div>',
+              '  <div style="background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:18px;">3</div>',
+              '  <div style="font-size:12px;"><b>加命令 + 字段</b><div style="color:var(--text-3);font-size:11px;margin-top:2px;">用预设或贴字节反向解析</div></div>',
+              '</div>'
+            ].join('');
+            bodyEl.appendChild(empty);
+          }
+
+          // 5. 表格渲染函数
+          function renderTable(filterTag, searchQuery) {
+            const tbody = document.getElementById('v49-tbody');
+            if (!tbody) return;
+            let list = NS.PROFILES || [];
+            if (filterTag) {
+              list = list.filter(function (p) {
+                return Array.isArray(p.tags) && p.tags.indexOf(filterTag) >= 0;
+              });
+            }
+            if (searchQuery) {
+              const q = String(searchQuery).toLowerCase();
+              list = list.filter(function (p) {
+                if (p.name && p.name.toLowerCase().indexOf(q) >= 0) return true;
+                if (p.kind && p.kind.toLowerCase().indexOf(q) >= 0) return true;
+                if (Array.isArray(p.tags) && p.tags.some(function (t) { return t.toLowerCase().indexOf(q) >= 0; })) return true;
+                if (Array.isArray(p.commands) && p.commands.some(function (c) {
+                  if (c.name && c.name.toLowerCase().indexOf(q) >= 0) return true;
+                  if (Array.isArray(c.fields) && c.fields.some(function (f) { return f.name && f.name.toLowerCase().indexOf(q) >= 0; })) return true;
+                  return false;
+                })) return true;
+                return false;
+              });
+            }
+            if (list.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-3);">' +
+                (searchQuery ? '没找到匹配 "' + NS.escapeHtml(searchQuery) + '" 的内容' : '没找到匹配 "' + NS.escapeHtml(filterTag) + '" 标签的方案') +
+                '</td></tr>';
+              return;
+            }
+            tbody.innerHTML = list.map(function (p) {
+              const stats = NS._calcProfileStats(p);
+              const tagsHtml = (p.tags || []).map(function (t) {
+                return '<span style="display:inline-block;background:var(--primary-soft);color:var(--primary);padding:1px 8px;border-radius:4px;font-size:11px;margin-right:4px;">' + NS.escapeHtml(t) + '</span>';
+              }).join('') || '<span style="color:var(--text-3)">—</span>';
+              const kindLabel = (NS._KIND_TEMPLATES && NS._KIND_TEMPLATES[p.kind]) ? NS._KIND_TEMPLATES[p.kind].name : (p.kind || '—');
+              return '<tr data-profile-id="' + NS.escapeHtml(p.id) + '" style="border-bottom:1px solid var(--border);">' +
+                '<td style="padding:10px 12px;"><b>' + NS.escapeHtml(p.name) + '</b></td>' +
+                '<td style="padding:10px 12px;"><span style="display:inline-block;background:var(--tag-bg);color:var(--text-2);padding:1px 8px;border-radius:4px;font-size:11px;">' + NS.escapeHtml(kindLabel) + '</span></td>' +
+                '<td style="padding:10px 12px;">' + tagsHtml + '</td>' +
+                '<td style="padding:10px 12px;">' + stats.commandCount + ' <span style="color:var(--text-3)">/ ' + stats.fieldCount + ' 字段</span></td>' +
+                '<td style="padding:10px 12px;">' + stats.referenceCount + ' 处</td>' +
+                '<td style="padding:10px 12px;color:var(--text-2)">' + NS.escapeHtml(String(stats.lastModified)) + '</td>' +
+                '<td style="padding:10px 12px;white-space:nowrap;">' +
+                '<button class="v49-btn sm" data-act="view" style="padding:2px 8px;font-size:11.5px;margin-right:2px;">查看</button>' +
+                '<button class="v49-btn sm" data-act="edit" style="padding:2px 8px;font-size:11.5px;margin-right:2px;">编辑</button>' +
+                '<button class="v49-btn sm" data-act="export" style="padding:2px 8px;font-size:11.5px;">导出</button>' +
+                '</td>' +
+                '</tr>';
+            }).join('');
+
+            // 绑定行操作
+            tbody.querySelectorAll('button[data-act]').forEach(function (btn) {
+              btn.onclick = function (e) {
+                const tr = e.target.closest('tr');
+                if (!tr) return;
+                const pid = tr.dataset.profileId;
+                const act = btn.dataset.act;
+                if (act === 'view') {
+                  // 走老 modal (legacy) 看详情
+                  NS.activeProfileId = pid;
+                  NS._renderProtoEditorLegacy();
+                } else if (act === 'edit') {
+                  NS.toast('编辑 · diff 视图 — 留 C2b 实现 (T11)', 'info');
+                } else if (act === 'export') {
+                  NS.toast('导出方案 — 留 C4 实现 (T24)', 'info');
+                }
+              };
+            });
+          }
+
+          // 初次渲染
+          renderTable('', '');
+
+          // 6. 绑定搜索
+          const searchInput = document.getElementById('v49-search-input');
+          if (searchInput) {
+            let searchTimer = null;
+            searchInput.oninput = function (e) {
+              const q = e.target.value;
+              clearTimeout(searchTimer);
+              searchTimer = setTimeout(function () {
+                const activeChip = filterBar.querySelector('.v49-chip.active');
+                const filterTag = activeChip ? activeChip.dataset.tag : '';
+                renderTable(filterTag, q);
+              }, 150);
+            };
+            // Ctrl+F 聚焦
+            document.addEventListener('keydown', function v49SearchKeydown(e) {
+              if ((e.ctrlKey || e.metaKey) && e.key === 'f' && !e.shiftKey) {
+                e.preventDefault();
+                searchInput.focus();
+              }
+            });
+          }
+
+          // 7. 绑定标签 chip
+          filterBar.querySelectorAll('.v49-chip').forEach(function (chip) {
+            chip.onclick = function () {
+              if (chip.classList.contains('add')) {
+                const tag = window.prompt('新标签名 (1-16 字符):');
+                if (tag && tag.length >= 1 && tag.length <= 16) {
+                  if (NS.activeProfileId) {
+                    NS._addProfileTag(NS.activeProfileId, tag);
+                    NS.renderProtoEditor();
+                  } else {
+                    NS.toast('先在列表里选一个方案 (点查看)', 'warn');
+                  }
+                }
+                return;
+              }
+              filterBar.querySelectorAll('.v49-chip').forEach(function (c) {
+                c.classList.remove('active');
+                c.style.background = 'var(--card)';
+                c.style.color = 'var(--text-2)';
+              });
+              chip.classList.add('active');
+              chip.style.background = 'var(--primary)';
+              chip.style.color = '#fff';
+              const q = searchInput ? searchInput.value : '';
+              renderTable(chip.dataset.tag, q);
+            };
+          });
+
+          // 8. 绑定顶部按钮 (留 placeholder)
+          function bindPlaceholder(id, msg) {
+            const btn = document.getElementById(id);
+            if (btn) btn.onclick = function () { NS.toast(msg + ' — 还没实现 (留后续 session)', 'info'); };
+          }
+          bindPlaceholder('v49-btn-templates', '协议模板');
+          bindPlaceholder('v49-btn-import', '导入');
+          bindPlaceholder('v49-btn-export', '导出');
+          bindPlaceholder('v49-btn-new', '新建方案');
+          bindPlaceholder('v49-btn-new-empty', '新建方案');
+          bindPlaceholder('v49-btn-templates-empty', '协议模板');
+          bindPlaceholder('v49-btn-import-empty', '导入已有配置');
+        };
+
+        // === v4.9 C2a 段结束 ===========================================
+
         // --- Modal 控制 ---
         NS.openModal = function (name) {
           const backdrop = document.getElementById(name + '-backdrop');
