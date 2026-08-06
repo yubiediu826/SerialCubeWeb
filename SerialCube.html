@@ -7175,6 +7175,24 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-step.done { color: #16a34a; }
 .v49-step-sep { color: var(--text-soft); opacity: 0.4; }
 
+    /* step0 (新建方案 Step 0 - 3 入口卡) */
+.v49-step0-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.v49-step0-card { background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: 8px; padding: 12px; cursor: pointer; transition: border-color 0.15s, background 0.15s, box-shadow 0.15s; }
+.v49-step0-card:hover { border-color: var(--accent); }
+.v49-step0-card.active { border: 2px solid var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-soft); }
+.v49-step0-card-title { font-weight: 600; font-size: 12.5px; display: flex; align-items: center; gap: 5px; }
+.v49-step0-card-sub { color: var(--text-soft); font-size: 11px; margin-top: 3px; line-height: 1.5; }
+.v49-step0-card-tags { margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap; }
+.v49-step0-hint { color: var(--text-soft); font-size: 12px; padding: 10px; background: var(--bg-subtle); border-radius: 6px; }
+.v49-step0-radio { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 4px; cursor: pointer; font-size: 12px; }
+.v49-step0-radio.tall { align-items: flex-start; padding: 8px 10px; }
+.v49-step0-radio-sub { color: var(--text-soft); font-size: 11px; margin-top: 2px; line-height: 1.4; }
+.v49-step0-detail-box { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 10px; }
+.v49-step0-detail-title { font-weight: 600; font-size: 12px; margin-bottom: 6px; }
+.v49-step0-detail-list { max-height: 200px; overflow-y: auto; }
+.v49-step0-detail-section-title { font-size: 11.5px; margin-top: 6px; color: var(--text-soft); }
+.v49-step0-detail-section-row { font-size: 11.5px; color: var(--text-soft); margin-top: 2px; }
+
     /* form-field (label + input 排版) */
 .v49-form-field { margin-bottom: 12px; }
 .v49-form-label { display: block; font-size: 12px; color: var(--text-soft); margin-bottom: 4px; font-weight: 500; }
@@ -14754,38 +14772,38 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         NS._showNewProfileStep0 = function () {
           const profileCount = (NS.PROFILES || []).length;
           const body = [
-            '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">',
+            '<div class="v49-step0-grid">',
             // card 1: 空白
-            '  <div class="v49-step0-card" data-entry="blank" style="border:2px solid var(--primary);background:var(--primary-soft);border-radius:8px;padding:12px;cursor:pointer;box-shadow:0 0 0 3px var(--primary-soft);">',
-            '    <div style="font-weight:600;font-size:12.5px;display:flex;align-items:center;gap:5px;">',
+            '  <div class="v49-step0-card active" data-entry="blank">',
+            '    <div class="v49-step0-card-title">',
             '      <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M9 1L3 8h4l-1 7 6-9H8l1-5z"/></svg> 从空白开始',
             '    </div>',
-            '    <div style="color:var(--text-3);font-size:11px;margin-top:3px;line-height:1.5;">手动选 8 kind + CRC, 适合全新协议</div>',
-            '    <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">',
-            '      <span style="background:var(--card);color:var(--text-2);padding:1px 8px;border-radius:4px;font-size:11px;">8 kinds</span>',
-            '      <span style="background:var(--card);color:var(--text-2);padding:1px 8px;border-radius:4px;font-size:11px;">8 CRC</span>',
+            '    <div class="v49-step0-card-sub">手动选 8 kind + CRC, 适合全新协议</div>',
+            '    <div class="v49-step0-card-tags">',
+            '      <span class="v49-tag">8 kinds</span>',
+            '      <span class="v49-tag">8 CRC</span>',
             '    </div>',
             '  </div>',
             // card 2: 复制
-            '  <div class="v49-step0-card" data-entry="copy" style="border:1px solid var(--border-strong);background:var(--card);border-radius:8px;padding:12px;cursor:pointer;">',
-            '    <div style="font-weight:600;font-size:12.5px;display:flex;align-items:center;gap:5px;">',
+            '  <div class="v49-step0-card" data-entry="copy">',
+            '    <div class="v49-step0-card-title">',
             '      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M11 5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h2"/></svg> 基于现有复制',
             '    </div>',
-            '    <div style="color:var(--text-3);font-size:11px;margin-top:3px;line-height:1.5;">复制命令+字段+仪表盘, 80% 场景最快</div>',
-            '    <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">',
-            '      <span style="background:var(--success-soft);color:var(--success);padding:1px 8px;border-radius:4px;font-size:11px;">推荐</span>',
-            '      <span style="background:var(--card);color:var(--text-2);padding:1px 8px;border-radius:4px;font-size:11px;">' + profileCount + ' 现有方案</span>',
+            '    <div class="v49-step0-card-sub">复制命令+字段+仪表盘, 80% 场景最快</div>',
+            '    <div class="v49-step0-card-tags">',
+            '      <span class="v49-tag success">推荐</span>',
+            '      <span class="v49-tag">' + profileCount + ' 现有方案</span>',
             '    </div>',
             '  </div>',
             // card 3: 模板
-            '  <div class="v49-step0-card" data-entry="template" style="border:1px solid var(--border-strong);background:var(--card);border-radius:8px;padding:12px;cursor:pointer;">',
-            '    <div style="font-weight:600;font-size:12.5px;display:flex;align-items:center;gap:5px;">',
+            '  <div class="v49-step0-card" data-entry="template">',
+            '    <div class="v49-step0-card-title">',
             '      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg> 协议模板',
             '    </div>',
-            '    <div style="color:var(--text-3);font-size:11px;margin-top:3px;line-height:1.5;">Modbus / CANopen / J1939 等</div>',
-            '    <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">',
-            '      <span style="background:var(--card);color:var(--text-2);padding:1px 8px;border-radius:4px;font-size:11px;">6 模板</span>',
-            '      <span style="background:var(--card);color:var(--text-2);padding:1px 8px;border-radius:4px;font-size:11px;">社区可扩展</span>',
+            '    <div class="v49-step0-card-sub">Modbus / CANopen / J1939 等</div>',
+            '    <div class="v49-step0-card-tags">',
+            '      <span class="v49-tag">6 模板</span>',
+            '      <span class="v49-tag">社区可扩展</span>',
             '    </div>',
             '  </div>',
             '</div>',
@@ -14810,23 +14828,23 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               const detail = document.getElementById('v49-step0-detail');
               if (!detail) return;
               if (selected === 'blank') {
-                detail.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:10px;background:#fafbfc;border-radius:6px;">→ 下一步选 8 kind + CRC 算法</div>';
+                detail.innerHTML = '<div class="v49-step0-hint">→ 下一步选 8 kind + CRC 算法</div>';
               } else if (selected === 'copy') {
                 if (profileCount === 0) {
-                  detail.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:10px;background:#fafbfc;border-radius:6px;">还没有现有方案可选, 改用「从空白开始」</div>';
+                  detail.innerHTML = '<div class="v49-step0-hint">还没有现有方案可选, 改用「从空白开始」</div>';
                 } else {
                   const list = (NS.PROFILES || []).map(function (p) {
-                    return '<label style="display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:4px;cursor:pointer;font-size:12px;">' +
+                    return '<label class="v49-step0-radio">' +
                       '<input type="radio" name="v49-step0-copy" value="' + NS.escapeHtml(p.id) + '">' +
-                      '<span><b>' + NS.escapeHtml(p.name) + '</b> <span style="color:var(--text-3);font-size:11px;">' + (p.kind || '') + ' · ' + ((p.commands || []).length) + ' 命令</span></span>' +
+                      '<span><b>' + NS.escapeHtml(p.name) + '</b> <span class="v49-step0-radio-sub">' + (p.kind || '') + ' · ' + ((p.commands || []).length) + ' 命令</span></span>' +
                       '</label>';
                   }).join('');
                   detail.innerHTML = [
-                    '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;">',
-                    '  <div style="font-weight:600;font-size:12px;margin-bottom:6px;">选源方案:</div>',
-                    '  <div style="max-height:200px;overflow-y:auto;">' + list + '</div>',
-                    '  <div style="font-size:11.5px;margin-top:6px;color:var(--text-3);">复制选项:</div>',
-                    '  <div style="font-size:11.5px;color:var(--text-2);margin-top:2px;">',
+                    '<div class="v49-step0-detail-box">',
+                    '  <div class="v49-step0-detail-title">选源方案:</div>',
+                    '  <div class="v49-step0-detail-list">' + list + '</div>',
+                    '  <div class="v49-step0-detail-section-title">复制选项:</div>',
+                    '  <div class="v49-step0-detail-section-row">',
                     '    <label><input type="checkbox" checked> 命令定义</label> ',
                     '    <label><input type="checkbox" checked> 字段定义</label> ',
                     '    <label><input type="checkbox"> 仪表盘绑定</label> ',
@@ -14840,15 +14858,15 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 }
               } else if (selected === 'template') {
                 const list = NS._PROTOCOL_TEMPLATES.map(function (t) {
-                  return '<label style="display:flex;align-items:flex-start;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:4px;cursor:pointer;font-size:12px;">' +
-                    '<input type="radio" name="v49-step0-template" value="' + t.id + '" style="margin-top:2px;">' +
-                    '<div><b>' + NS.escapeHtml(t.name) + '</b><div style="color:var(--text-3);font-size:11px;margin-top:2px;line-height:1.4;">' + NS.escapeHtml(t.desc) + '</div></div>' +
+                  return '<label class="v49-step0-radio tall">' +
+                    '<input type="radio" name="v49-step0-template" value="' + t.id + '">' +
+                    '<div><b>' + NS.escapeHtml(t.name) + '</b><div class="v49-step0-radio-sub">' + NS.escapeHtml(t.desc) + '</div></div>' +
                     '</label>';
                 }).join('');
                 detail.innerHTML = [
-                  '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;">',
-                  '  <div style="font-weight:600;font-size:12px;margin-bottom:6px;">选协议模板:</div>',
-                  '  <div style="max-height:200px;overflow-y:auto;">' + list + '</div>',
+                  '<div class="v49-step0-detail-box">',
+                  '  <div class="v49-step0-detail-title">选协议模板:</div>',
+                  '  <div class="v49-step0-detail-list">' + list + '</div>',
                   '</div>'
                 ].join('');
                 detail.querySelectorAll('input[name="v49-step0-template"]').forEach(function (r) {
@@ -14859,14 +14877,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             modal.querySelectorAll('.v49-step0-card').forEach(function (card) {
               card.onclick = function () {
                 selected = card.dataset.entry;
-                modal.querySelectorAll('.v49-step0-card').forEach(function (c) {
-                  c.style.border = '1px solid var(--border-strong)';
-                  c.style.background = 'var(--card)';
-                  c.style.boxShadow = 'none';
-                });
-                card.style.border = '2px solid var(--primary)';
-                card.style.background = 'var(--primary-soft)';
-                card.style.boxShadow = '0 0 0 3px var(--primary-soft)';
+                modal.querySelectorAll('.v49-step0-card').forEach(function (c) { c.classList.remove('active'); });
+                card.classList.add('active');
                 renderDetail();
                 updateNext();
               };
