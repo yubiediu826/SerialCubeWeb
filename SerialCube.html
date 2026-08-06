@@ -7472,6 +7472,40 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-list-item .main { flex: 1; min-width: 0; }
 .v49-list-item .actions { display: flex; gap: 4px; }
 
+    /* phase 4-4: 响应式 — v49 modal 在 < 768px 移动端适配 (2026-08-06) */
+    @media (max-width: 768px) {
+      #v49-modal {
+        top: 8px; left: 8px; right: 8px;
+        transform: none;
+        width: auto; max-width: none;
+        max-height: calc(100vh - 16px);
+        border-radius: 10px;
+      }
+      #v49-modal .modal-head { padding: 10px 14px; }
+      #v49-modal .modal-body { padding: 12px; }
+      #v49-modal .modal-foot { padding: 8px 14px; flex-wrap: wrap; }
+
+      .v49-step0-grid { grid-template-columns: 1fr; }
+      .v49-step1-kinds-grid { grid-template-columns: 1fr; max-height: none; }
+      .v49-preset-grid { grid-template-columns: repeat(2, 1fr); }
+      .v49-form-grid, .v49-form-grid-cmd, .v49-form-grid-wide { grid-template-columns: 1fr; gap: 4px 0; }
+      .v49-form-grid > label, .v49-form-grid-cmd > label, .v49-form-grid-wide > label { margin-bottom: -4px; }
+
+      .v49-proto-stat-row { flex-wrap: wrap; gap: 8px; }
+      .v49-proto-stat { min-width: calc(50% - 4px); flex: 1 1 calc(50% - 4px); }
+      .v49-proto-detail-name { min-width: 0; font-size: 15px; }
+      .v49-proto-detail-grid { grid-template-columns: 70px 1fr; gap: 4px 8px; font-size: 11.5px; }
+      .v49-proto-detail-actions { width: 100%; }
+
+      .v49-toolbar { flex-direction: column; align-items: stretch; gap: 6px; }
+      .v49-toolbar .right { margin-left: 0; }
+      .v49-search { max-width: none; }
+      .v49-cmd-tabs { margin: 0 -12px 12px; padding: 0 12px; }
+
+      .v49-import-step-progress { flex-direction: column; gap: 6px; }
+      .v49-import-step { width: 100%; }
+    }
+
     /* v4.9.4: Pair trigger modal (0x10/0x11 共用) - 字段行 + 数字 stepper + 字节预览框 */
 .dashboard-host     #dh-pair-trigger-fields {
       display: flex; flex-direction: column; gap: 12px;
