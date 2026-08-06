@@ -7275,6 +7275,20 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-form-row { display: flex; gap: 8px; align-items: center; }
 .v49-form-row .v49-form-label { margin-bottom: 0; flex-shrink: 0; min-width: 80px; }
 
+    /* search (全局搜索 modal - 5 类型 + Enter 跳转 + 字段高亮) */
+.v49-search-input { width: 100%; font-size: 13px; padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--bg-elevated); color: var(--text); box-sizing: border-box; font-family: inherit; }
+.v49-search-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.v49-search-results { margin-top: 10px; max-height: 400px; overflow-y: auto; }
+.v49-search-group { margin-bottom: 10px; }
+.v49-search-group-title { font-size: 11.5px; color: var(--text-soft); margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+.v49-search-row { padding: 5px 8px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 3px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: border-color 0.12s, background 0.12s; }
+.v49-search-row:hover { border-color: var(--accent); background: var(--accent-soft); }
+.v49-search-row-tag { background: var(--bg-subtle); color: var(--text-soft); padding: 1px 5px; border-radius: 3px; font-size: 10.5px; min-width: 38px; text-align: center; }
+.v49-search-row-name { flex: 1; font-size: 12.5px; }
+.v49-search-mark { background: var(--accent-soft); color: var(--accent); padding: 1px 2px; border-radius: 2px; }
+.v49-search-summary { font-size: 11px; color: var(--text-soft); margin-top: 6px; }
+.v49-search-link { color: var(--accent); cursor: pointer; text-decoration: underline; }
+
     /* dashboard-bindings (T18 仪表盘绑定 3 辅助函数) */
 .v49-bind-row { /* 兼容 .v49-list-item 复用,纯标记 */ }
 .v49-bind-del { /* 兼容 .v49-btn.danger.sm 复用,纯标记 */ }
@@ -17520,28 +17534,29 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           let currentQuery = '';
           let currentResult = { profile: [], command: [], field: [], tag: [], history: [] };
           let debounceTimer = null;
+          let modal = null;
           function highlightName(name, query) {
             if (!query) return NS.escapeHtml(name);
             const idx = name.toLowerCase().indexOf(query.toLowerCase());
             if (idx < 0) return NS.escapeHtml(name);
-            return NS.escapeHtml(name.slice(0, idx)) + '<mark style="background:var(--primary-soft);color:var(--primary);padding:1px 2px;border-radius:2px;">' + NS.escapeHtml(name.slice(idx, idx + query.length)) + '</mark>' + NS.escapeHtml(name.slice(idx + query.length));
+            return NS.escapeHtml(name.slice(0, idx)) + '<mark class="v49-search-mark">' + NS.escapeHtml(name.slice(idx, idx + query.length)) + '</mark>' + NS.escapeHtml(name.slice(idx + query.length));
           }
           function renderGroup(type, label, icon) {
             const arr = currentResult[type] || [];
             if (arr.length === 0) return '';
-            let html = '<div style="margin-bottom:10px;">';
-            html += '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:4px;display:flex;align-items:center;gap:4px;">' + icon + ' ' + label + ' (' + arr.length + ')</div>';
+            let html = '<div class="v49-search-group">';
+            html += '<div class="v49-search-group-title">' + icon + ' ' + label + ' (' + arr.length + ')</div>';
             for (const item of arr) {
               const profile = (NS.PROFILES || []).find(function (p) { return p.id === item.profileId; });
               const profileName = profile ? profile.name : '';
-              const subInfo = (item.type === 'command') ? '<span style="color:var(--text-3);font-size:11px;">0x' + (item.cmdCode || 0).toString(16).padStart(2, '0').toUpperCase() + ' · ' + NS.escapeHtml(profileName) + '</span>' :
-                              (item.type === 'field') ? '<span style="color:var(--text-3);font-size:11px;">' + NS.escapeHtml(item.type) + ' · ' + NS.escapeHtml(profileName) + '</span>' :
-                              (item.type === 'tag') ? '<span style="color:var(--text-3);font-size:11px;">方案: ' + NS.escapeHtml(profileName) + '</span>' :
-                              (item.type === 'history') ? '<span style="color:var(--text-3);font-size:11px;">' + new Date(item.timestamp).toLocaleString('zh-CN') + '</span>' :
-                              (item.type === 'profile') ? '<span style="color:var(--text-3);font-size:11px;">' + NS.escapeHtml(item.kind) + '</span>' : '';
-              html += '<div class="v49-search-row" data-type="' + type + '" data-id="' + NS.escapeHtml(item.id) + '" data-pid="' + NS.escapeHtml(item.profileId || '') + '" data-cid="' + NS.escapeHtml(item.cmdId || '') + '" data-fid="' + NS.escapeHtml(item.fieldId || '') + '" style="padding:5px 8px;background:var(--card);border:1px solid var(--border);border-radius:4px;margin-bottom:3px;cursor:pointer;display:flex;align-items:center;gap:6px;">' +
-                '<span style="background:var(--tag-bg);color:var(--text-2);padding:1px 5px;border-radius:3px;font-size:10.5px;min-width:38px;text-align:center;">' + label + '</span>' +
-                '<span style="flex:1;font-size:12.5px;">' + highlightName(item.name, currentQuery) + '</span>' +
+              const subInfo = (item.type === 'command') ? '<span class="v49-tbl-sub">0x' + (item.cmdCode || 0).toString(16).padStart(2, '0').toUpperCase() + ' · ' + NS.escapeHtml(profileName) + '</span>' :
+                              (item.type === 'field') ? '<span class="v49-tbl-sub">' + NS.escapeHtml(item.type) + ' · ' + NS.escapeHtml(profileName) + '</span>' :
+                              (item.type === 'tag') ? '<span class="v49-tbl-sub">方案: ' + NS.escapeHtml(profileName) + '</span>' :
+                              (item.type === 'history') ? '<span class="v49-tbl-sub">' + new Date(item.timestamp).toLocaleString('zh-CN') + '</span>' :
+                              (item.type === 'profile') ? '<span class="v49-tbl-sub">' + NS.escapeHtml(item.kind) + '</span>' : '';
+              html += '<div class="v49-search-row" data-type="' + type + '" data-id="' + NS.escapeHtml(item.id) + '" data-pid="' + NS.escapeHtml(item.profileId || '') + '" data-cid="' + NS.escapeHtml(item.cmdId || '') + '" data-fid="' + NS.escapeHtml(item.fieldId || '') + '">' +
+                '<span class="v49-search-row-tag">' + label + '</span>' +
+                '<span class="v49-search-row-name">' + highlightName(item.name, currentQuery) + '</span>' +
                 subInfo +
                 '</div>';
             }
@@ -17550,24 +17565,24 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           }
           function renderBody() {
             const totalCount = (currentResult.profile || []).length + (currentResult.command || []).length + (currentResult.field || []).length + (currentResult.tag || []).length + (currentResult.history || []).length;
-            let html = '<input type="text" id="v49-search-input" placeholder="搜索方案/命令/字段/标签/历史..." value="' + NS.escapeHtml(currentQuery) + '" style="width:100%;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);box-sizing:border-box;">';
+            let html = '<input type="text" id="v49-search-input" class="v49-search-input" placeholder="搜索方案/命令/字段/标签/历史..." value="' + NS.escapeHtml(currentQuery) + '">';
             if (!currentQuery) {
-              html += '<div style="margin-top:14px;text-align:center;color:var(--text-3);font-size:12px;padding:30px 10px;">输入关键词开始搜索<br><span style="font-size:11px;">命中 7 类型: 方案/命令/字段/标签/历史/卡片/操作</span></div>';
+              html += '<div class="v49-empty-state"><div class="v49-empty-text">输入关键词开始搜索</div><div class="v49-empty-sub">命中 5 类型: 方案 / 命令 / 字段 / 标签 / 历史 (各类型上限 50, 按 Enter 跳转第一个)</div></div>';
             } else if (totalCount === 0) {
               // T30B: 搜索无结果空状态
-              html += '<div style="margin-top:14px;text-align:center;color:var(--text-3);font-size:12px;padding:30px 10px;">' +
-                '<div style="margin-bottom:8px;font-size:13px;">没找到匹配 "' + NS.escapeHtml(currentQuery) + '"</div>' +
-                '<div style="font-size:11px;">试试这些:<br>· 检查拼写<br>· 用方案名/字段名片段<br>· 看 <a class="v49-search-link" data-link="recycle" style="color:var(--primary);cursor:pointer;text-decoration:underline;">回收站</a> 找已删除的字段</div>' +
+              html += '<div class="v49-empty-state">' +
+                '<div class="v49-empty-text">没找到匹配 "' + NS.escapeHtml(currentQuery) + '"</div>' +
+                '<div class="v49-empty-sub">试试这些:<br>· 检查拼写<br>· 用方案名/字段名片段<br>· 看 <a class="v49-search-link" data-link="recycle">回收站</a> 找已删除的字段</div>' +
                 '</div>';
             } else {
-              html += '<div id="v49-search-results" style="margin-top:10px;max-height:400px;overflow-y:auto;">';
+              html += '<div id="v49-search-results" class="v49-search-results">';
               html += renderGroup('profile', '方案', '📦');
               html += renderGroup('command', '命令', '⚡');
               html += renderGroup('field', '字段', '◆');
               html += renderGroup('tag', '标签', '🏷');
               html += renderGroup('history', '历史', '🕘');
               html += '</div>';
-              html += '<div style="font-size:11px;color:var(--text-3);margin-top:6px;">共 ' + totalCount + ' 条 (各类型上限 50, 按 Enter 跳转第一个)</div>';
+              html += '<div class="v49-search-summary">共 ' + totalCount + ' 条 (各类型上限 50, 按 Enter 跳转第一个)</div>';
             }
             return html;
           }
