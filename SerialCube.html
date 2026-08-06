@@ -14205,14 +14205,14 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           // C2c 实现的按钮
           bindAction('v49-btn-history', function () { NS._showOperationHistory(); });
           bindAction('v49-btn-recycle', function () { NS._showRecycleBin(); });
-          // C4 实现的按钮 (留 placeholder)
+          // C4a 实现的按钮 (T24 导出 / T25 导入 / T27 导入历史)
           function bindPlaceholder(id, msg) {
             const btn = document.getElementById(id);
             if (btn) btn.onclick = function () { NS.toast(msg + ' — 留 C4 实现 (T24/T25)', 'info'); };
           }
-          bindPlaceholder('v49-btn-import', '导入');
-          bindPlaceholder('v49-btn-export', '导出');
-          bindPlaceholder('v49-btn-import-empty', '导入已有配置');
+          bindAction('v49-btn-import', function () { NS._showImportConfig(); });
+          bindAction('v49-btn-export', function () { NS._showExportConfig(); });
+          bindAction('v49-btn-import-empty', function () { NS._showImportConfig(); });
         };
 
         // === v4.9 C2a 段结束 ===========================================
@@ -16249,6 +16249,606 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               item.onclick = function () {
                 NS._closeV49Modal();
                 setTimeout(function () { NS._renderCommandModal(profileId, cid); }, 100);
+              };
+            });
+          });
+        };
+
+        // === v4.9 C4a: 导入导出 modal (T24/T25/T27) ==================
+        // T24 导出: 4 粒度 + 文件名 + 内容预览 + 复制/下载
+        // T25 导入: 3 步 modal (解析/diff/写入) + v1 自动迁移
+        // T27 导入历史: 列表 + 查看 diff + 回滚
+        // ========================================================================
+
+        // --- T24 扩展: exportConfig 支持 4 粒度 (options = { granularity, profileId, commandIds }) ---
+        NS.exportConfigGranular = function (options) {
+          const opt = options || {};
+          const meta = NS._PROFILES_meta || { operationHistory: [], fieldPresets: [], importHistory: [], recycleBin: [] };
+          const allProfiles = Array.isArray(NS.PROFILES) ? NS.PROFILES : [];
+          const granularity = opt.granularity || 'all';
+          let profiles = [];
+          if (granularity === 'all') {
+            profiles = allProfiles.slice();
+          } else if (granularity === 'profile') {
+            const p = allProfiles.find(function (x) { return x.id === opt.profileId; });
+            profiles = p ? [JSON.parse(JSON.stringify(p))] : [];
+          } else if (granularity === 'profile-with-deps') {
+            // 选中方案 + 引用它的其他 profile (从 dashboardBindings 推)
+            const targetId = opt.profileId;
+            const target = allProfiles.find(function (x) { return x.id === targetId; });
+            if (target) {
+              profiles = [JSON.parse(JSON.stringify(target))];
+              // 找引用了 target 字段的所有 profile
+              allProfiles.forEach(function (p) {
+                if (p.id === targetId) return;
+                let refsTarget = false;
+                (p.commands || []).forEach(function (c) {
+                  (c.dashboardBindings || []).forEach(function (b) {
+                    if (b.cardId === targetId) refsTarget = true;
+                  });
+                });
+                if (refsTarget) profiles.push(JSON.parse(JSON.stringify(p)));
+              });
+            }
+          } else if (granularity === 'profile-commands') {
+            const p = allProfiles.find(function (x) { return x.id === opt.profileId; });
+            if (p) {
+              const copy = JSON.parse(JSON.stringify(p));
+              if (Array.isArray(opt.commandIds) && opt.commandIds.length > 0) {
+                copy.commands = (p.commands || []).filter(function (c) { return opt.commandIds.indexOf(c.id) >= 0; });
+              }
+              profiles = [copy];
+            }
+          }
+          const config = {
+            type: 'SerialWebUserConfig',
+            version: 2,
+            _migrated: meta._migrated || 'v2-native',
+            _exportGranularity: granularity,
+            _exportTimestamp: new Date().toISOString(),
+            profiles: profiles,
+            activeProfileId: (granularity === 'all') ? (NS.activeProfileId || null) : null,
+            operationHistory: (granularity === 'all') ? (meta.operationHistory || []) : [],
+            fieldPresets: (granularity === 'all') ? (meta.fieldPresets || []) : [],
+            importHistory: (granularity === 'all') ? (meta.importHistory || []) : [],
+            recycleBin: (granularity === 'all') ? (meta.recycleBin || []) : [],
+            userConfig: { dashboard: {
+              protocols: (granularity === 'all') ? NS.PROTOCOLS : [],
+              dataFields: (granularity === 'all') ? NS.DATA_FIELDS : [],
+              commands: profiles.reduce(function (acc, p) { return acc.concat((p.commands || []).map(function (c) {
+                return { id: c.cmdCode, name: c.name, direction: c.direction, frameType: c.frameType, protocol: p.id, dataFields: (c.fields || []).map(function (f) { return f.name; }), dataSize: (c.fields || []).reduce(function (s, f) { return s + (NS._fieldTypeToByteLen ? NS._fieldTypeToByteLen(f.type) : 2); }, 0) };
+              })); }, []),
+              cards: (granularity === 'all') ? NS.CARDS : [],
+              settings: (granularity === 'all') ? { cmdMismatchEnabled: NS.cmdMismatchEnabled, alertDebounceMs: NS.alertDebounceMs, cardLayout: NS.cardLayout } : {}
+            }}
+          };
+          return JSON.stringify(config, null, 2);
+        };
+
+        // --- T24 导出 modal ---
+        NS._showExportConfig = function (defaultProfileId) {
+          const profiles = NS.PROFILES || [];
+          let selectedGranularity = 'all';
+          let selectedProfileId = defaultProfileId || (profiles[0] && profiles[0].id) || null;
+          let selectedCommandIds = [];
+          function renderProfileOptions() {
+            return profiles.map(function (p) {
+              return '<option value="' + NS.escapeHtml(p.id) + '" ' + (p.id === selectedProfileId ? 'selected' : '') + '>' + NS.escapeHtml(p.name) + '</option>';
+            }).join('');
+          }
+          function renderCommandOptions() {
+            const p = profiles.find(function (x) { return x.id === selectedProfileId; });
+            const cmds = p ? (p.commands || []) : [];
+            if (cmds.length === 0) return '<div style="color:var(--text-3);font-size:12px;padding:6px;">该方案没有命令</div>';
+            return cmds.map(function (c) {
+              const checked = selectedCommandIds.indexOf(c.id) >= 0 ? 'checked' : '';
+              return '<label style="display:flex;align-items:center;gap:5px;padding:3px 6px;font-size:12px;cursor:pointer;"><input type="checkbox" class="v49-export-cmd-cb" value="' + NS.escapeHtml(c.id) + '" ' + checked + '>' + NS.escapeHtml(c.name) + ' (0x' + (c.cmdCode || 0).toString(16).padStart(2, '0').toUpperCase() + ')</label>';
+            }).join('');
+          }
+          function buildJson() {
+            if (selectedGranularity === 'profile-commands') {
+              return NS.exportConfigGranular({ granularity: selectedGranularity, profileId: selectedProfileId, commandIds: selectedCommandIds });
+            }
+            if (selectedGranularity === 'all') {
+              return NS.exportConfigGranular({ granularity: 'all' });
+            }
+            return NS.exportConfigGranular({ granularity: selectedGranularity, profileId: selectedProfileId });
+          }
+          function buildFilename() {
+            const d = new Date();
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            let suffix = '';
+            if (selectedGranularity !== 'all') {
+              const p = profiles.find(function (x) { return x.id === selectedProfileId; });
+              if (p) suffix = '-' + p.name.replace(/[^\w\u4e00-\u9fa5-]/g, '_');
+            }
+            return 'serialweb-config-' + y + '-' + m + '-' + dd + suffix + '.json';
+          }
+          function renderBody() {
+            return [
+              '<div style="display:grid;grid-template-columns:110px 1fr;gap:8px 12px;align-items:center;font-size:12px;margin-bottom:12px;">',
+              '  <label>导出粒度</label>',
+              '  <div>',
+              '    <label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><input type="radio" name="v49-export-gran" value="all" ' + (selectedGranularity === 'all' ? 'checked' : '') + '> 全部配置</label>',
+              '    <label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><input type="radio" name="v49-export-gran" value="profile" ' + (selectedGranularity === 'profile' ? 'checked' : '') + '> 选中方案</label>',
+              '    <label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><input type="radio" name="v49-export-gran" value="profile-with-deps" ' + (selectedGranularity === 'profile-with-deps' ? 'checked' : '') + '> 选中方案 + 依赖</label>',
+              '    <label style="display:inline-flex;align-items:center;gap:4px;"><input type="radio" name="v49-export-gran" value="profile-commands" ' + (selectedGranularity === 'profile-commands' ? 'checked' : '') + '> 选中方案 + 命令级</label>',
+              '  </div>',
+              '  <label>目标方案</label>',
+              '  <select class="inp" id="v49-export-profile" ' + (selectedGranularity === 'all' ? 'disabled' : '') + '>' + renderProfileOptions() + '</select>',
+              '  <label>命令多选</label>',
+              '  <div id="v49-export-cmds" style="max-height:80px;overflow-y:auto;background:#fafbfc;border:1px solid var(--border);border-radius:4px;padding:4px;' + (selectedGranularity === 'profile-commands' ? '' : 'display:none;') + '">' + renderCommandOptions() + '</div>',
+              '</div>',
+              '<div style="margin-bottom:8px;font-size:12px;color:var(--text-2);"><b>文件名:</b> <code style="background:var(--card);padding:2px 6px;border-radius:3px;">' + NS.escapeHtml(buildFilename()) + '</code></div>',
+              '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:4px;">内容预览 (前 1000 字符):</div>',
+              '<pre id="v49-export-preview" style="background:#fafbfc;border:1px solid var(--border);border-radius:4px;padding:8px;font-size:11px;font-family:var(--mono);max-height:200px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:0;"></pre>'
+            ].join('');
+          }
+          NS._showV49Modal('导出配置', renderBody(),
+            '<button class="v49-btn" id="v49-export-cancel">取消</button>' +
+            '<button class="v49-btn" id="v49-export-copy" style="background:var(--card);color:var(--text);border:1px solid var(--border-strong);">⎘ 复制到剪贴板</button>' +
+            '<button class="v49-btn primary" id="v49-export-download">↓ 下载 JSON</button>',
+            function (modal) {
+              function refresh() {
+                modal.querySelectorAll('input[name="v49-export-gran"]').forEach(function (rb) {
+                  rb.onchange = function () {
+                    if (rb.checked) {
+                      selectedGranularity = rb.value;
+                      modal.querySelector('.modal-body').innerHTML = renderBody();
+                      refresh();
+                    }
+                  };
+                });
+                const profileSel = document.getElementById('v49-export-profile');
+                if (profileSel) {
+                  profileSel.onchange = function () { selectedProfileId = profileSel.value; refresh(); };
+                }
+                modal.querySelectorAll('.v49-export-cmd-cb').forEach(function (cb) {
+                  cb.onchange = function () {
+                    if (cb.checked) { if (selectedCommandIds.indexOf(cb.value) < 0) selectedCommandIds.push(cb.value); }
+                    else { selectedCommandIds = selectedCommandIds.filter(function (x) { return x !== cb.value; }); }
+                  };
+                });
+                const json = buildJson();
+                const preview = json.length > 1000 ? json.slice(0, 1000) + '\n... (截断, 共 ' + json.length + ' 字符)' : json;
+                const prev = document.getElementById('v49-export-preview');
+                if (prev) prev.textContent = preview;
+              }
+              refresh();
+              document.getElementById('v49-export-cancel').onclick = function () { NS._closeV49Modal(); };
+              document.getElementById('v49-export-copy').onclick = function () {
+                const json = buildJson();
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(json).then(function () { NS.toast('已复制到剪贴板 (' + json.length + ' 字符)', 'success'); });
+                } else {
+                  // fallback
+                  const ta = document.createElement('textarea');
+                  ta.value = json;
+                  document.body.appendChild(ta);
+                  ta.select();
+                  try { document.execCommand('copy'); NS.toast('已复制到剪贴板 (fallback)', 'success'); }
+                  catch (e) { NS.toast('复制失败, 请手动复制', 'danger'); }
+                  document.body.removeChild(ta);
+                }
+              };
+              document.getElementById('v49-export-download').onclick = function () {
+                const json = buildJson();
+                const filename = buildFilename();
+                try {
+                  const blob = new Blob([json], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  NS.toast('已下载: ' + filename, 'success');
+                } catch (e) {
+                  NS.toast('下载失败: ' + e.message, 'danger');
+                }
+              };
+            }
+          );
+        };
+
+        // --- T25 导入 modal (3 步) ---
+        //   内部状态: { step, parsedJson, filename, conflictResolutions: { profileId: 'merge'|'replace'|'rename'|'skip' }, backupSnapshot }
+        NS._showImportConfig = function () {
+          let step = 1;
+          let parsedJson = null;
+          let parsedVersion = null;
+          let filename = '';
+          let parseError = null;
+          let conflictResolutions = {};  // profileName -> action
+          let selectedProfileNames = []; // 用户勾选要导入的
+          let backupSnapshot = null;
+          const allProfiles = NS.PROFILES || [];
+
+          function getImportedProfiles() {
+            if (!parsedJson) return [];
+            if (parsedVersion === 2 && Array.isArray(parsedJson.profiles)) {
+              return parsedJson.profiles;
+            }
+            if (parsedJson.userConfig && parsedJson.userConfig.dashboard) {
+              const result = (typeof NS._migrateV1ToV2 === 'function') ? NS._migrateV1ToV2(parsedJson) : null;
+              if (result && result.migrated && Array.isArray(result.profiles)) {
+                return result.profiles;
+              }
+            }
+            return [];
+          }
+
+          function renderStep1() {
+            if (parseError) {
+              return [
+                '<div style="background:var(--danger-soft);color:var(--danger);padding:12px;border-radius:6px;font-size:12px;">',
+                '  <b>解析失败:</b> ' + NS.escapeHtml(parseError.message || parseError.error || '未知错误'),
+                '</div>',
+                '<div style="margin-top:10px;display:flex;gap:6px;">',
+                '  <button class="v49-btn-sm" id="v49-import-retry" style="padding:4px 12px;background:var(--card);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">↻ 重试</button>',
+                '</div>'
+              ].join('');
+            }
+            if (!parsedJson) {
+              return [
+                '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:10px;font-size:12px;">',
+                '  <b>第 1 步:选择文件</b> — 支持 v1 (老版 SerialCube) 和 v2 (v4.9+) JSON 配置。',
+                '</div>',
+                '<div style="display:flex;flex-direction:column;gap:10px;">',
+                '  <input type="file" id="v49-import-file" accept=".json,application/json" style="font-size:12px;padding:6px;border:1px solid var(--border);border-radius:4px;background:var(--card);">',
+                '  <div style="font-size:11.5px;color:var(--text-3);">或拖拽 JSON 到此区域:</div>',
+                '  <div id="v49-import-drop" style="border:2px dashed var(--border-strong);border-radius:8px;padding:24px;text-align:center;color:var(--text-3);font-size:12px;background:#fafbfc;">⬇ 拖拽文件到此处</div>',
+                '  <div style="font-size:11.5px;color:var(--text-3);">或粘贴 JSON 内容:</div>',
+                '  <textarea id="v49-import-paste" placeholder="{\\"type\\": \\"SerialWebUserConfig\\", ..." style="width:100%;height:80px;font-family:var(--mono);font-size:11.5px;padding:6px;border:1px solid var(--border);border-radius:4px;background:var(--card);resize:vertical;box-sizing:border-box;"></textarea>',
+                '  <div style="display:flex;gap:6px;">',
+                '    <button class="v49-btn-sm" id="v49-import-parse" style="padding:4px 14px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;">解析</button>',
+                '    <button class="v49-btn-sm" id="v49-import-sample" style="padding:4px 14px;background:var(--card);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">载入示例</button>',
+                '  </div>',
+                '</div>'
+              ].join('');
+            }
+            // 已解析,显示清单
+            const profiles = getImportedProfiles();
+            const totalCommands = profiles.reduce(function (s, p) { return s + (p.commands || []).length; }, 0);
+            const totalFields = profiles.reduce(function (s, p) { return (p.commands || []).reduce(function (s2, c) { return s2 + (c.fields || []).length; }, 0) + s; }, 0);
+            return [
+              '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px;font-size:11.5px;">',
+              '  <b>文件:</b> ' + NS.escapeHtml(filename) + ' · <b>格式:</b> v' + parsedVersion + ' ' + (parsedVersion === 1 ? '(将自动迁移到 v2)' : '(直接读取)') + ' · <b>方案:</b> ' + profiles.length + ' · <b>命令:</b> ' + totalCommands + ' · <b>字段:</b> ' + totalFields,
+              '</div>',
+              '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:4px;">将导入的方案:</div>',
+              '<div style="max-height:200px;overflow-y:auto;background:#fafbfc;border:1px solid var(--border);border-radius:4px;padding:6px;">',
+              profiles.length > 0 ? profiles.map(function (p) {
+                return '<div style="padding:4px 6px;font-size:12px;"><b>' + NS.escapeHtml(p.name || '(无名)') + '</b> · ' + (p.kind || 'fixed-header') + ' · ' + (p.commands || []).length + ' 命令</div>';
+              }).join('') : '<div style="color:var(--text-3);font-size:12px;text-align:center;padding:10px;">文件中没有方案</div>',
+              '</div>',
+              '<div style="margin-top:10px;display:flex;gap:6px;">',
+              '  <button class="v49-btn-sm" id="v49-import-retry" style="padding:4px 12px;background:var(--card);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">↻ 选其他文件</button>',
+              '  <button class="v49-btn-sm" id="v49-import-next" style="padding:4px 14px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;margin-left:auto;">下一步: 冲突处理 →</button>',
+              '</div>'
+            ].join('');
+          }
+
+          function renderStep2() {
+            const profiles = getImportedProfiles();
+            // 找出重名
+            const existingNames = allProfiles.map(function (p) { return p.name; });
+            const conflicts = profiles.filter(function (p) { return existingNames.indexOf(p.name) >= 0; });
+            const noConflicts = profiles.filter(function (p) { return existingNames.indexOf(p.name) < 0; });
+            // 默认勾选全部
+            if (selectedProfileNames.length === 0) {
+              selectedProfileNames = profiles.map(function (p) { return p.name; });
+              conflicts.forEach(function (p) {
+                if (!conflictResolutions[p.name]) conflictResolutions[p.name] = 'rename';
+              });
+            }
+            let html = '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px;font-size:11.5px;">';
+            html += '<b>第 2 步:冲突处理</b> — 勾选要导入的方案,重名选处理方式。';
+            html += '</div>';
+            // 潜在问题列表
+            if (conflicts.length > 0) {
+              html += '<div style="background:var(--warn-soft);color:var(--warn);padding:8px 10px;border-radius:4px;margin-bottom:8px;font-size:11.5px;">⚠ 检测到 ' + conflicts.length + ' 个重名方案</div>';
+            }
+            // 方案列表 + 重名处理
+            if (profiles.length > 0) {
+              html += '<div style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;padding:6px;">';
+              profiles.forEach(function (p) {
+                const isConflict = conflicts.indexOf(p) >= 0;
+                const isSelected = selectedProfileNames.indexOf(p.name) >= 0;
+                const action = conflictResolutions[p.name] || 'rename';
+                html += '<div style="padding:6px 8px;border-bottom:1px dashed var(--border);' + (isSelected ? '' : 'opacity:0.4;') + '">';
+                html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;">';
+                html += '<input type="checkbox" class="v49-import-cb" value="' + NS.escapeHtml(p.name) + '" ' + (isSelected ? 'checked' : '') + '>';
+                html += '<span style="flex:1;"><b>' + NS.escapeHtml(p.name) + '</b> ' + (isConflict ? '<span style="color:var(--warn);font-size:11px;">(重名)</span>' : '<span style="color:var(--success);font-size:11px;">(无冲突)</span>') + ' · ' + (p.kind || 'fixed-header') + ' · ' + (p.commands || []).length + ' 命令</span>';
+                html += '</label>';
+                if (isConflict) {
+                  html += '<div style="margin-top:4px;margin-left:20px;display:flex;gap:5px;flex-wrap:wrap;font-size:11px;">';
+                  ['merge', 'replace', 'rename', 'skip'].forEach(function (act) {
+                    const labels = { merge: '合并命令', replace: '替换方案', rename: '重命名', skip: '跳过' };
+                    html += '<label style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:' + (action === act ? 'var(--primary-soft)' : 'var(--card)') + ';">';
+                    html += '<input type="radio" name="v49-import-conflict-' + NS.escapeHtml(p.name) + '" value="' + act + '" ' + (action === act ? 'checked' : '') + '>' + labels[act];
+                    html += '</label>';
+                  });
+                  html += '</div>';
+                }
+                html += '</div>';
+              });
+              html += '</div>';
+            }
+            html += '<div style="margin-top:10px;display:flex;gap:6px;">';
+            html += '  <button class="v49-btn-sm" id="v49-import-back" style="padding:4px 12px;background:var(--card);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">← 上一步</button>';
+            html += '  <button class="v49-btn-sm" id="v49-import-next2" style="padding:4px 14px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;margin-left:auto;">下一步: 备份 + 写入 →</button>';
+            html += '</div>';
+            return html;
+          }
+
+          function renderStep3() {
+            let html = '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px;font-size:11.5px;">';
+            html += '<b>第 3 步:备份 + 写入</b> — 确认后立即应用。建议先备份。';
+            html += '</div>';
+            html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;padding:8px;background:#fafbfc;border:1px solid var(--border);border-radius:4px;margin-bottom:8px;cursor:pointer;">';
+            html += '<input type="checkbox" id="v49-import-backup-cb" checked> <b>导入前先备份当前配置到操作历史</b> (默认勾, 可恢复)';
+            html += '</label>';
+            // 待导入清单
+            const profiles = getImportedProfiles();
+            const toImport = profiles.filter(function (p) { return selectedProfileNames.indexOf(p.name) >= 0; });
+            html += '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:4px;">将导入 (' + toImport.length + ' 个):</div>';
+            html += '<div style="max-height:120px;overflow-y:auto;background:#fafbfc;border:1px solid var(--border);border-radius:4px;padding:6px;margin-bottom:10px;">';
+            toImport.forEach(function (p) {
+              const action = conflictResolutions[p.name];
+              const actionLabel = action ? { merge: '合并', replace: '替换', rename: '重命名 (' + p.name + ' → ' + p.name + '_imported)', skip: '跳过' }[action] : '新增';
+              html += '<div style="padding:3px 6px;font-size:11.5px;"><b>' + NS.escapeHtml(p.name) + '</b> · <span style="color:var(--text-3);">' + actionLabel + '</span> · ' + (p.commands || []).length + ' 命令</div>';
+            });
+            html += '</div>';
+            html += '<div style="display:flex;gap:6px;">';
+            html += '  <button class="v49-btn-sm" id="v49-import-back2" style="padding:4px 12px;background:var(--card);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">← 上一步</button>';
+            html += '  <button class="v49-btn-sm" id="v49-import-apply" style="padding:4px 16px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;margin-left:auto;">✓ 确认导入</button>';
+            html += '</div>';
+            return html;
+          }
+
+          function renderBody() {
+            let stepHtml = '';
+            const stepIndicator = '<div style="display:flex;gap:4px;margin-bottom:12px;font-size:11.5px;">' +
+              ['1 解析', '2 冲突', '3 备份+写入'].map(function (label, i) {
+                const idx = i + 1;
+                const isActive = idx === step;
+                return '<div style="flex:1;padding:5px 8px;border-radius:4px;text-align:center;background:' + (isActive ? 'var(--primary)' : 'var(--card)') + ';color:' + (isActive ? '#fff' : 'var(--text-2)') + ';border:1px solid ' + (isActive ? 'var(--primary)' : 'var(--border)') + ';">' + (isActive ? '● ' : '') + label + '</div>';
+              }).join('') + '</div>';
+            if (step === 1) stepHtml = renderStep1();
+            else if (step === 2) stepHtml = renderStep2();
+            else if (step === 3) stepHtml = renderStep3();
+            return stepIndicator + stepHtml;
+          }
+
+          NS._showV49Modal('导入配置 (3 步)', renderBody(), '<button class="v49-btn" id="v49-import-cancel">取消</button>', function (modal) {
+            function refresh() {
+              modal.querySelector('.modal-body').innerHTML = renderBody();
+              bindEvents();
+            }
+            function bindEvents() {
+              // 公共
+              const cancel = document.getElementById('v49-import-cancel');
+              if (cancel) cancel.onclick = function () { NS._closeV49Modal(); };
+              // Step 1
+              const fileInput = document.getElementById('v49-import-file');
+              if (fileInput) {
+                fileInput.onchange = function (e) {
+                  const f = e.target.files && e.target.files[0];
+                  if (!f) return;
+                  filename = f.name;
+                  const reader = new FileReader();
+                  reader.onload = function () { tryParse(reader.result); };
+                  reader.onerror = function () { parseError = { message: '文件读取失败' }; refresh(); };
+                  reader.readAsText(f);
+                };
+              }
+              const dropZone = document.getElementById('v49-import-drop');
+              if (dropZone) {
+                dropZone.ondragover = function (e) { e.preventDefault(); dropZone.style.background = 'var(--primary-soft)'; };
+                dropZone.ondragleave = function () { dropZone.style.background = '#fafbfc'; };
+                dropZone.ondrop = function (e) {
+                  e.preventDefault();
+                  dropZone.style.background = '#fafbfc';
+                  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+                  if (!f) return;
+                  filename = f.name;
+                  const reader = new FileReader();
+                  reader.onload = function () { tryParse(reader.result); };
+                  reader.readAsText(f);
+                };
+              }
+              const parseBtn = document.getElementById('v49-import-parse');
+              if (parseBtn) {
+                parseBtn.onclick = function () {
+                  const paste = document.getElementById('v49-import-paste');
+                  if (paste && paste.value.trim()) { filename = 'pasted.json'; tryParse(paste.value); }
+                  else { parseError = { message: '请先选文件 / 拖拽 / 粘贴内容' }; refresh(); }
+                };
+              }
+              const sampleBtn = document.getElementById('v49-import-sample');
+              if (sampleBtn) {
+                sampleBtn.onclick = function () {
+                  const sample = {
+                    type: 'SerialWebUserConfig', version: 2, _migrated: 'v2-native',
+                    profiles: [{
+                      id: 'p-sample-1', name: '示例方案 (Sample)', kind: 'fixed-header',
+                      crc: { algorithm: 'CRC16-MODBUS', initValue: '0xFFFF', byteOrder: 'LE', range: 'no_header' },
+                      commands: [
+                        { id: 'c-sample-1', name: 'Sample Cmd', cmdCode: 0x10, direction: 'rx', fields: [
+                          { id: 'f-sample-1', name: 'voltage', type: 'uint16', byteOrder: 'BE', scale: 0.01, unit: 'V', byteOffset: 0, byteLen: 2 }
+                        ] }
+                      ],
+                      tags: ['sample']
+                    }]
+                  };
+                  filename = 'sample.json';
+                  tryParse(JSON.stringify(sample));
+                };
+              }
+              const retry = document.getElementById('v49-import-retry');
+              if (retry) retry.onclick = function () { parsedJson = null; parseError = null; filename = ''; selectedProfileNames = []; conflictResolutions = {}; step = 1; refresh(); };
+              const next1 = document.getElementById('v49-import-next');
+              if (next1) next1.onclick = function () {
+                const profiles = getImportedProfiles();
+                if (profiles.length === 0) { NS.toast('文件中没有方案', 'warn'); return; }
+                step = 2; refresh();
+              };
+              // Step 2
+              modal.querySelectorAll('.v49-import-cb').forEach(function (cb) {
+                cb.onchange = function () {
+                  if (cb.checked) { if (selectedProfileNames.indexOf(cb.value) < 0) selectedProfileNames.push(cb.value); }
+                  else { selectedProfileNames = selectedProfileNames.filter(function (x) { return x !== cb.value; }); }
+                  refresh();
+                };
+              });
+              modal.querySelectorAll('input[type=radio][name^=v49-import-conflict-]').forEach(function (rb) {
+                rb.onchange = function () {
+                  if (!rb.checked) return;
+                  const profileName = rb.name.replace('v49-import-conflict-', '');
+                  conflictResolutions[profileName] = rb.value;
+                  refresh();
+                };
+              });
+              const back = document.getElementById('v49-import-back');
+              if (back) back.onclick = function () { step = 1; refresh(); };
+              const next2 = document.getElementById('v49-import-next2');
+              if (next2) next2.onclick = function () { step = 3; refresh(); };
+              // Step 3
+              const back2 = document.getElementById('v49-import-back2');
+              if (back2) back2.onclick = function () { step = 2; refresh(); };
+              const apply = document.getElementById('v49-import-apply');
+              if (apply) apply.onclick = function () {
+                const backupCb = document.getElementById('v49-import-backup-cb');
+                doApply(backupCb && backupCb.checked);
+              };
+            }
+
+            function tryParse(text) {
+              try {
+                const obj = JSON.parse(text);
+                if (obj.type !== 'SerialWebUserConfig') throw new Error('type 不是 SerialWebUserConfig');
+                parsedJson = obj;
+                parsedVersion = obj.version === 2 || Array.isArray(obj.profiles) ? 2 : 1;
+                parseError = null;
+                // v1 → v2 预迁移以便显示正确清单
+                if (parsedVersion === 1 && obj.userConfig && obj.userConfig.dashboard) {
+                  if (typeof NS._migrateV1ToV2 === 'function') {
+                    NS._migrateV1ToV2(obj);
+                  }
+                }
+                refresh();
+              } catch (e) {
+                parseError = { message: e.message };
+                parsedJson = null;
+                refresh();
+              }
+            }
+
+            function doApply(doBackup) {
+              // 备份当前 PROFILES
+              if (doBackup) {
+                if (typeof NS._recordOperation === 'function') {
+                  NS._recordOperation('import-config-backup', null, '导入前自动备份 (' + (NS.PROFILES || []).length + ' 方案)');
+                }
+              }
+              const profiles = getImportedProfiles();
+              const newArr = (NS.PROFILES || []).slice();
+              let importedCount = 0, replacedCount = 0, renamedCount = 0, mergedCount = 0, skippedCount = 0;
+              profiles.forEach(function (p) {
+                if (selectedProfileNames.indexOf(p.name) < 0) { skippedCount++; return; }
+                const existingIdx = newArr.findIndex(function (x) { return x.name === p.name; });
+                const action = conflictResolutions[p.name];
+                if (existingIdx < 0) {
+                  // 新增
+                  newArr.push(JSON.parse(JSON.stringify(p)));
+                  importedCount++;
+                } else if (action === 'skip') {
+                  skippedCount++;
+                } else if (action === 'replace') {
+                  newArr[existingIdx] = JSON.parse(JSON.stringify(p));
+                  replacedCount++;
+                } else if (action === 'rename') {
+                  const newP = JSON.parse(JSON.stringify(p));
+                  newP.name = p.name + '_imported';
+                  newArr.push(newP);
+                  renamedCount++;
+                } else if (action === 'merge') {
+                  const existing = newArr[existingIdx];
+                  const existingCmdIds = (existing.commands || []).map(function (c) { return c.id; });
+                  (p.commands || []).forEach(function (c) {
+                    if (existingCmdIds.indexOf(c.id) < 0) {
+                      existing.commands = existing.commands || [];
+                      existing.commands.push(c);
+                    }
+                  });
+                  mergedCount++;
+                } else {
+                  // 默认重命名
+                  const newP = JSON.parse(JSON.stringify(p));
+                  newP.name = p.name + '_imported';
+                  newArr.push(newP);
+                  renamedCount++;
+                }
+              });
+              NS.PROFILES = newArr;
+              // 记录到 importHistory
+              if (typeof NS._recordImport === 'function') {
+                NS._recordImport(filename, {
+                  profileCount: importedCount + replacedCount + renamedCount + mergedCount,
+                  commandCount: profiles.reduce(function (s, p) { return s + (p.commands || []).length; }, 0),
+                  status: 'success'
+                });
+              }
+              // 操作历史
+              if (typeof NS._recordOperation === 'function') {
+                NS._recordOperation('import-config', null, '导入 ' + filename + ' (' + importedCount + ' 新增, ' + replacedCount + ' 替换, ' + renamedCount + ' 重命名, ' + mergedCount + ' 合并, ' + skippedCount + ' 跳过)');
+              }
+              if (typeof NS._schedulePersist === 'function') NS._schedulePersist();
+              if (typeof NS.renderProtoEditor === 'function') NS.renderProtoEditor();
+              NS._closeV49Modal();
+              NS.toast('导入完成: +' + importedCount + ' 新, ' + replacedCount + ' 替, ' + renamedCount + ' 重命名, ' + mergedCount + ' 合, ' + skippedCount + ' 跳', 'success', 5000);
+            }
+
+            bindEvents();
+          });
+        };
+
+        // --- T27 导入历史 modal ---
+        NS._showImportHistoryModal = function () {
+          const history = (typeof NS._getImportHistory === 'function') ? NS._getImportHistory() : [];
+          function renderRow(h) {
+            const d = new Date(h.timestamp);
+            const dtStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+            const statusColor = h.status === 'success' ? 'var(--success)' : (h.status === 'error' ? 'var(--danger)' : 'var(--warn)');
+            return '<div class="v49-imp-hist-row" data-id="' + NS.escapeHtml(h.id) + '" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:4px;background:var(--card);font-size:12px;">' +
+              '<div style="flex:1;">' +
+                '<div style="font-weight:500;">' + NS.escapeHtml(h.filename) + ' <span style="background:' + statusColor + ';color:#fff;padding:1px 6px;border-radius:3px;font-size:10.5px;margin-left:4px;">' + NS.escapeHtml(h.status) + '</span></div>' +
+                '<div style="color:var(--text-3);font-size:11px;margin-top:2px;">' + dtStr + ' · ' + h.profileCount + ' 方案 · ' + h.commandCount + ' 命令' + (h.error ? ' · <span style="color:var(--danger);">' + NS.escapeHtml(h.error) + '</span>' : '') + '</div>' +
+              '</div>' +
+              '<button class="v49-imp-hist-del" data-id="' + NS.escapeHtml(h.id) + '" style="background:transparent;border:1px solid var(--danger);color:var(--danger);padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer;">删除</button>' +
+              '</div>';
+          }
+          const body = history.length > 0
+            ? '<div style="max-height:400px;overflow-y:auto;">' + history.map(renderRow).join('') + '</div>'
+            : '<div style="text-align:center;padding:30px;color:var(--text-3);font-size:12px;">还没有导入历史</div>';
+          NS._showV49Modal('导入历史 (' + history.length + ' / 上限 10)', body, '<button class="v49-btn" id="v49-imp-hist-close">关闭</button>', function (modal) {
+            document.getElementById('v49-imp-hist-close').onclick = function () { NS._closeV49Modal(); };
+            modal.querySelectorAll('.v49-imp-hist-del').forEach(function (btn) {
+              btn.onclick = function () {
+                const id = btn.dataset.id;
+                if (typeof NS._PROFILES_meta !== 'undefined' && NS._PROFILES_meta && NS._PROFILES_meta.importHistory) {
+                  const idx = NS._PROFILES_meta.importHistory.findIndex(function (x) { return x.id === id; });
+                  if (idx >= 0) {
+                    NS._PROFILES_meta.importHistory.splice(idx, 1);
+                    if (typeof NS._schedulePersist === 'function') NS._schedulePersist();
+                    NS._closeV49Modal();
+                    NS._showImportHistoryModal();
+                  }
+                }
               };
             });
           });
