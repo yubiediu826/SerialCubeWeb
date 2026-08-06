@@ -13989,6 +13989,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             '  <button class="v49-btn" id="v49-btn-templates"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>协议模板</button>',
             '  <button class="v49-btn" id="v49-btn-import"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M5 5l3-3 3 3M3 13h10"/></svg>导入</button>',
             '  <button class="v49-btn" id="v49-btn-export"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M5 8l3 3 3-3M3 14h10"/></svg>导出</button>',
+            '  <button class="v49-btn" id="v49-btn-history" title="操作历史 (30 天)"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 3v3h3M8 5v3l2 1.5"/></svg>历史</button>',
+            '  <button class="v49-btn" id="v49-btn-recycle" title="回收站 (30 天)"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h10M6 4V2.5h4V4M5 4l.5 9h5L11 4M6.5 7v4M9.5 7v4"/></svg>回收站</button>',
             '  <button class="v49-btn primary" id="v49-btn-new"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>新建方案</button>',
             '</div>'
           ].join('');
@@ -14108,7 +14110,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 '<td style="padding:10px 12px;white-space:nowrap;">' +
                 '<button class="v49-btn sm" data-act="view" style="padding:2px 8px;font-size:11.5px;margin-right:2px;">查看</button>' +
                 '<button class="v49-btn sm" data-act="edit" style="padding:2px 8px;font-size:11.5px;margin-right:2px;">编辑</button>' +
-                '<button class="v49-btn sm" data-act="export" style="padding:2px 8px;font-size:11.5px;">导出</button>' +
+                '<button class="v49-btn sm" data-act="export" style="padding:2px 8px;font-size:11.5px;margin-right:2px;">导出</button>' +
+                '<button class="v49-btn sm" data-act="delete" style="padding:2px 8px;font-size:11.5px;color:var(--danger);border-color:var(--danger);">删除</button>' +
                 '</td>' +
                 '</tr>';
             }).join('');
@@ -14127,6 +14130,9 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 } else if (act === 'edit') {
                   // C2b: 编辑 → 调 diff 视图
                   NS._showEditProfileDiff(pid);
+                } else if (act === 'delete') {
+                  // C2c: 3-tier 删除
+                  NS._showDeleteConfirm('profile', pid);
                 } else if (act === 'export') {
                   NS.toast('导出方案 — 留 C4 实现 (T24)', 'info');
                 }
@@ -14197,6 +14203,9 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           bindAction('v49-btn-new-empty', function () { NS._showNewProfileStep0(); });
           bindAction('v49-btn-templates', function () { NS.toast('协议模板 — 集成在 Step 0 里 (C2b)', 'info'); });
           bindAction('v49-btn-templates-empty', function () { NS.toast('协议模板 — 集成在 Step 0 里 (C2b)', 'info'); });
+          // C2c 实现的按钮
+          bindAction('v49-btn-history', function () { NS._showOperationHistory(); });
+          bindAction('v49-btn-recycle', function () { NS._showRecycleBin(); });
           // C4 实现的按钮 (留 placeholder)
           function bindPlaceholder(id, msg) {
             const btn = document.getElementById(id);
@@ -14718,6 +14727,552 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         };
 
         // === v4.9 C2b 段结束 ===========================================
+
+        // === v4.9 C2c: 删除 + 影响分析 + 撤销 + 回收站 + 操作历史 (T19-T23) ==
+        // 3-tier 删除: profile/command/field
+        // 影响分析 + 3 种回退选项 + 强制规则
+        // 10s 撤销 + 30d 回收站
+        // 操作历史 UI
+        // ========================================================================
+
+        // --- T19: 删除影响分析函数 ---
+        NS._calcDeleteImpact = function (type, id, parentProfileId) {
+          // type: 'profile' | 'command' | 'field'
+          // id: profile.id / command.id / field.id
+          // parentProfileId: 删除 command/field 时需要
+          const impact = {
+            type: type,
+            id: id,
+            affectedCommands: 0,
+            affectedFields: 0,
+            affectedCards: 0,
+            affectedPresets: 0,
+            affectedProfiles: 0,
+            details: []  // [{ category, name, desc }]
+          };
+          if (type === 'profile') {
+            const p = (NS.PROFILES || []).find(function (x) { return x.id === id; });
+            if (!p) return impact;
+            const cmds = Array.isArray(p.commands) ? p.commands : [];
+            impact.affectedCommands = cmds.length;
+            impact.affectedFields = cmds.reduce(function (s, c) { return s + ((c.fields || []).length); }, 0);
+            // 被 dashboard cards 引用
+            const cmdIds = cmds.map(function (c) { return c.id; });
+            if (Array.isArray(NS.CARDS)) {
+              const cardList = NS.CARDS.filter(function (card) {
+                if (card.protocol === id) return true;
+                if (cmdIds.indexOf(card.cmd) >= 0) return true;
+                return false;
+              });
+              impact.affectedCards = cardList.length;
+              if (cardList.length > 0) {
+                impact.details.push({ category: 'dashboard', name: '卡片', desc: cardList.length + ' 个仪表盘卡片会变空白' });
+              }
+            }
+            // 被 preset 引用
+            try {
+              if (typeof state !== 'undefined' && state && state.presetSend && Array.isArray(state.presetSend.items)) {
+                const cmdNames = cmds.map(function (c) { return c.name; });
+                const presetList = state.presetSend.items.filter(function (p) {
+                  return p && p.description && cmdNames.some(function (n) { return p.description.indexOf(n) >= 0; });
+                });
+                impact.affectedPresets = presetList.length;
+                if (presetList.length > 0) {
+                  impact.details.push({ category: 'preset', name: '预设', desc: presetList.length + ' 个发送预设提到此方案的命令' });
+                }
+              }
+            } catch (e) { /* 静默 */ }
+            // 其他 profile 引用
+            const otherRefs = (NS.PROFILES || []).filter(function (other) {
+              if (other.id === id) return false;
+              return (other.commands || []).some(function (c) { return c.protocol === id || c.crcSource === id; });
+            });
+            impact.affectedProfiles = otherRefs.length;
+            if (otherRefs.length > 0) {
+              impact.details.push({ category: 'profile', name: '其他方案', desc: otherRefs.length + ' 个方案引用了此方案' });
+            }
+            impact.total = impact.affectedCommands + impact.affectedFields + impact.affectedCards + impact.affectedPresets + impact.affectedProfiles;
+          } else if (type === 'command' && parentProfileId) {
+            const p = (NS.PROFILES || []).find(function (x) { return x.id === parentProfileId; });
+            if (!p) return impact;
+            const cmd = (p.commands || []).find(function (c) { return c.id === id; });
+            if (!cmd) return impact;
+            impact.affectedFields = (cmd.fields || []).length;
+            if (impact.affectedFields > 0) {
+              impact.details.push({ category: 'fields', name: '字段', desc: '该命令 ' + impact.affectedFields + ' 个字段全部删除' });
+            }
+            if (Array.isArray(NS.CARDS)) {
+              const cardList = NS.CARDS.filter(function (card) { return card.cmd === id; });
+              impact.affectedCards = cardList.length;
+              if (cardList.length > 0) {
+                impact.details.push({ category: 'dashboard', name: '卡片', desc: cardList.length + ' 个仪表盘卡片绑定此命令' });
+              }
+            }
+            try {
+              if (typeof state !== 'undefined' && state && state.presetSend && Array.isArray(state.presetSend.items)) {
+                const presetList = state.presetSend.items.filter(function (pr) {
+                  return pr && pr.description && cmd.name && pr.description.indexOf(cmd.name) >= 0;
+                });
+                impact.affectedPresets = presetList.length;
+                if (presetList.length > 0) {
+                  impact.details.push({ category: 'preset', name: '预设', desc: presetList.length + ' 个发送预设提到此命令' });
+                }
+              }
+            } catch (e) { /* 静默 */ }
+            impact.total = impact.affectedFields + impact.affectedCards + impact.affectedPresets;
+          } else if (type === 'field' && parentProfileId) {
+            const p = (NS.PROFILES || []).find(function (x) { return x.id === parentProfileId; });
+            if (!p) return impact;
+            // 找包含此 field 的 command
+            for (let i = 0; i < (p.commands || []).length; i++) {
+              const cmd = p.commands[i];
+              if ((cmd.fields || []).some(function (f) { return f.id === id; })) {
+                impact.affectedCommands = 1;
+                impact.affectedFields = 1;
+                impact.details.push({ category: 'field', name: cmd.name || '未命名', desc: '该命令少 1 个数据点' });
+                // 引用此 field 的 dashboard cards
+                if (Array.isArray(NS.CARDS)) {
+                  const cardList = NS.CARDS.filter(function (card) {
+                    if (card.cmd !== cmd.id) return false;
+                    if (card.field === id) return true;
+                    return false;
+                  });
+                  impact.affectedCards = cardList.length;
+                  if (cardList.length > 0) {
+                    impact.details.push({ category: 'dashboard', name: '卡片', desc: cardList.length + ' 个仪表盘卡片绑定此字段' });
+                  }
+                }
+                break;
+              }
+            }
+            impact.total = impact.affectedCommands + impact.affectedFields + impact.affectedCards;
+          }
+          return impact;
+        };
+
+        // --- T21: 10 秒撤销 toast (独立 DOM, 不用 NS.toast) ---
+        NS._showUndoToast = function (message, undoFn, durationMs) {
+          durationMs = durationMs || 10000;
+          // 移除老的撤销 toast (避免堆积)
+          document.querySelectorAll('.v49-undo-toast').forEach(function (t) { t.remove(); });
+          const layer = document.getElementById('dh-toast-layer');
+          if (!layer) return;
+          const t = document.createElement('div');
+          t.className = 'toast info v49-undo-toast';
+          t.style.cssText = 'min-width:320px;';
+          t.innerHTML = [
+            '<svg viewBox="0 0 16 16" class="toast-icon" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6.5"/><path d="M8 7 V11" stroke-linecap="round"/><circle cx="8" cy="5" r="0.6" fill="currentColor" stroke="none"/></svg>',
+            '<span class="toast-label">已撤销</span>',
+            '<span class="toast-text">' + NS.escapeHtml(message) + '</span>',
+            '<button class="v49-btn sm" id="v49-undo-btn" style="margin-left:8px;background:rgba(255,255,255,0.2);color:#fff;border-color:transparent;padding:2px 10px;">撤销</button>',
+            '<button class="v49-btn sm" id="v49-undo-close" style="margin-left:4px;background:transparent;color:currentColor;border-color:transparent;padding:2px 6px;">×</button>',
+            '<div class="v49-undo-progress" style="position:absolute;left:0;bottom:0;height:3px;background:rgba(255,255,255,0.5);width:100%;transition:width ' + durationMs + 'ms linear;"></div>'
+          ].join('');
+          t.style.position = 'relative';
+          t.style.overflow = 'hidden';
+          layer.appendChild(t);
+          // 启动进度条
+          requestAnimationFrame(function () {
+            const prog = t.querySelector('.v49-undo-progress');
+            if (prog) prog.style.width = '0%';
+          });
+          const timer = setTimeout(function () {
+            if (t.parentNode) t.remove();
+          }, durationMs);
+          t.querySelector('#v49-undo-btn').onclick = function () {
+            clearTimeout(timer);
+            t.remove();
+            if (typeof undoFn === 'function') {
+              try { undoFn(); } catch (e) { console.error('[v4.9] undo 失败', e); }
+            }
+          };
+          t.querySelector('#v49-undo-close').onclick = function () {
+            clearTimeout(timer);
+            t.remove();
+          };
+        };
+
+        // --- T20: 3-tier 删除弹窗 (profile/command/field) ---
+        NS._showDeleteConfirm = function (type, id, parentProfileId, refreshFn) {
+          const impact = NS._calcDeleteImpact(type, id, parentProfileId);
+          let title, name;
+          if (type === 'profile') {
+            const p = (NS.PROFILES || []).find(function (x) { return x.id === id; });
+            name = p ? p.name : '(未知)';
+            title = '删除方案 · ' + name;
+          } else if (type === 'command') {
+            const p = (NS.PROFILES || []).find(function (x) { return x.id === parentProfileId; });
+            const cmd = p && (p.commands || []).find(function (c) { return c.id === id; });
+            name = cmd ? (cmd.name || '未命名') : '(未知)';
+            title = '删除命令 · ' + name;
+          } else {
+            title = '删除字段';
+            name = '(字段)';
+          }
+          // 强制规则
+          let requireExport = false;
+          if (type === 'profile' && impact.total >= 5) requireExport = true;
+          if (type === 'command' && impact.affectedCards >= 3) requireExport = true;
+          // 渲染影响列表
+          const impactHtml = impact.details.length > 0
+            ? impact.details.map(function (d) {
+                return '<div style="padding:3px 0;display:flex;gap:6px;align-items:center;">' +
+                  '<span style="color:var(--warn);">⚠</span>' +
+                  '<span style="font-weight:500;min-width:60px;">' + NS.escapeHtml(d.name) + '</span>' +
+                  '<span style="color:var(--text-2);">' + NS.escapeHtml(d.desc) + '</span>' +
+                  '</div>';
+              }).join('')
+            : '<div style="color:var(--text-3);font-size:12px;">无影响, 可安全删除</div>';
+          // 回退选项
+          const isProfile = type === 'profile';
+          const body = [
+            '<div style="background:var(--warn-soft);border:1px solid #fde68a;border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12px;">',
+            '  <div style="font-weight:600;color:#92400e;margin-bottom:6px;">⚠ 影响 ' + impact.total + ' 处:</div>',
+            impactHtml,
+            '</div>',
+            '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-size:12px;">',
+            '  <div style="font-weight:600;margin-bottom:6px;">回退选项:</div>',
+            '  <label style="display:flex;align-items:flex-start;gap:6px;padding:4px 0;cursor:pointer;">',
+            '    <input type="radio" name="v49-del-mode" value="direct" ' + (requireExport ? '' : 'checked') + ' style="margin-top:3px;">',
+            '    <div><b>直接删除</b> <span style="color:var(--text-3);font-size:11px;">(10 秒内可撤销)</span></div>',
+            '  </label>',
+            '  <label style="display:flex;align-items:flex-start;gap:6px;padding:4px 0;cursor:pointer;">',
+            '    <input type="radio" name="v49-del-mode" value="soft" style="margin-top:3px;">',
+            '    <div><b>软删除</b> <span style="color:var(--text-3);font-size:11px;">(移到回收站, 30 天后清除)</span></div>',
+            '  </label>',
+            '  <label style="display:flex;align-items:flex-start;gap:6px;padding:4px 0;cursor:pointer;">',
+            '    <input type="radio" name="v49-del-mode" value="export" ' + (requireExport ? 'checked' : '') + ' style="margin-top:3px;">',
+            '    <div><b>导出备份后删除</b> <span style="color:var(--text-3);font-size:11px;">(建议)</span>' + (requireExport ? ' <span style="color:var(--warn);font-size:11px;">[影响 ≥ ' + (type === 'profile' ? '5' : '3') + ', 强制]</span>' : '') + '</div>',
+            '  </label>',
+            '</div>'
+          ].join('');
+          const footer = [
+            '<button class="v49-btn" id="v49-del-cancel">取消</button>',
+            '<button class="v49-btn" id="v49-del-export">先导出备份</button>',
+            '<button class="v49-btn danger" id="v49-del-confirm"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h10M6 4V2.5h4V4M5 4l.5 9h5L11 4M6.5 7v4M9.5 7v4"/></svg>确认删除</button>'
+          ].join('');
+          NS._showV49Modal(title, body, footer, function (modal) {
+            // 强制规则检查
+            const checkMode = function () {
+              const checked = modal.querySelector('input[name="v49-del-mode"]:checked');
+              const confirmBtn = document.getElementById('v49-del-confirm');
+              if (!confirmBtn) return;
+              if (requireExport && checked && checked.value !== 'export') {
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.5';
+                confirmBtn.title = '影响过大, 必须先导出备份';
+              } else {
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+                confirmBtn.title = '';
+              }
+            };
+            modal.querySelectorAll('input[name="v49-del-mode"]').forEach(function (r) { r.onchange = checkMode; });
+            checkMode();
+            document.getElementById('v49-del-cancel').onclick = function () { NS._closeV49Modal(); };
+            document.getElementById('v49-del-export').onclick = function () {
+              // 备份当前所有 profile 到 operationHistory
+              const snapshot = { profiles: NS.PROFILES, activeProfileId: NS.activeProfileId, exportedAt: new Date().toISOString() };
+              NS._recordOperation('pre-delete-export', id, '删除前备份', { snapshot: snapshot });
+              // 触发 export (走 C2 占位)
+              NS.toast('备份已存到操作历史 — 现在可以安全删除', 'info');
+              // 切到 export 模式
+              const expRadio = modal.querySelector('input[name="v49-del-mode"][value="export"]');
+              if (expRadio) { expRadio.checked = true; checkMode(); }
+            };
+            document.getElementById('v49-del-confirm').onclick = function () {
+              if (this.disabled) return;
+              const mode = modal.querySelector('input[name="v49-del-mode"]:checked');
+              const modeValue = mode ? mode.value : 'direct';
+              // 执行删除
+              const result = NS._executeDelete(type, id, parentProfileId, modeValue, name);
+              NS._closeV49Modal();
+              if (result && result.success) {
+                if (result.deletedObject) {
+                  NS._showUndoToast('已删除「' + name + '」+ ' + (result.affectedCount || 0) + ' 个关联项', function () {
+                    if (result.restoreFn) result.restoreFn();
+                  }, 10000);
+                }
+                if (typeof refreshFn === 'function') refreshFn();
+                else NS.renderProtoEditor();
+              }
+            };
+          });
+        };
+
+        // 执行删除 (直接删 / 软删 / 导出后删)
+        NS._executeDelete = function (type, id, parentProfileId, mode, name) {
+          if (type === 'profile') {
+            const p = (NS.PROFILES || []).find(function (x) { return x.id === id; });
+            if (!p) { NS.toast('方案不存在', 'warn'); return { success: false }; }
+            const backup = JSON.parse(JSON.stringify(p));
+            const idx = NS.PROFILES.findIndex(function (x) { return x.id === id; });
+            const affectedCount = (p.commands || []).length + (p.commands || []).reduce(function (s, c) { return s + ((c.fields || []).length); }, 0);
+            if (mode === 'soft') {
+              NS._addToRecycleBin('profile', backup);
+            } else {
+              NS._recordOperation('delete-profile', id, '删除方案: ' + p.name, { backup: backup });
+            }
+            NS.PROFILES.splice(idx, 1);
+            // 切 active
+            if (NS.activeProfileId === id) {
+              NS.activeProfileId = (NS.PROFILES[0] && NS.PROFILES[0].id) || null;
+            }
+            return {
+              success: true,
+              deletedObject: true,
+              affectedCount: affectedCount,
+              restoreFn: function () {
+                // 恢复
+                if (!NS.PROFILES.some(function (x) { return x.id === backup.id; })) {
+                  NS.PROFILES = (NS.PROFILES || []).concat([backup]);
+                }
+                NS.activeProfileId = backup.id;
+                NS._recordOperation('undo-delete-profile', backup.id, '撤销删除: ' + backup.name, { restored: backup });
+                NS.renderProtoEditor();
+                NS.toast('已恢复方案: ' + backup.name, 'success');
+              }
+            };
+          } else if (type === 'command') {
+            const p = (NS.PROFILES || []).find(function (x) { return x.id === parentProfileId; });
+            if (!p) { NS.toast('父方案不存在', 'warn'); return { success: false }; }
+            const idx = (p.commands || []).findIndex(function (c) { return c.id === id; });
+            if (idx < 0) { NS.toast('命令不存在', 'warn'); return { success: false }; }
+            const backupCmd = JSON.parse(JSON.stringify(p.commands[idx]));
+            const affectedCount = (backupCmd.fields || []).length;
+            if (mode === 'soft') {
+              NS._addToRecycleBin('command', { parentProfileId: parentProfileId, command: backupCmd });
+            } else {
+              NS._recordOperation('delete-command', id, '删除命令: ' + backupCmd.name, { profileId: parentProfileId, backup: backupCmd });
+            }
+            p.commands.splice(idx, 1);
+            p.updatedAt = new Date().toISOString();
+            return {
+              success: true,
+              deletedObject: true,
+              affectedCount: affectedCount,
+              restoreFn: function () {
+                if (!p.commands) p.commands = [];
+                if (!p.commands.some(function (c) { return c.id === backupCmd.id; })) {
+                  p.commands.splice(idx, 0, backupCmd);
+                }
+                p.updatedAt = new Date().toISOString();
+                NS._recordOperation('undo-delete-command', id, '撤销删除: ' + backupCmd.name, { profileId: parentProfileId, restored: backupCmd });
+                NS.renderProtoEditor();
+                NS.toast('已恢复命令: ' + backupCmd.name, 'success');
+              }
+            };
+          } else if (type === 'field') {
+            const p = (NS.PROFILES || []).find(function (x) { return x.id === parentProfileId; });
+            if (!p) { NS.toast('父方案不存在', 'warn'); return { success: false }; }
+            for (let ci = 0; ci < (p.commands || []).length; ci++) {
+              const cmd = p.commands[ci];
+              const fi = (cmd.fields || []).findIndex(function (f) { return f.id === id; });
+              if (fi >= 0) {
+                const backupField = JSON.parse(JSON.stringify(cmd.fields[fi]));
+                if (mode === 'soft') {
+                  NS._addToRecycleBin('field', { parentProfileId: parentProfileId, commandId: cmd.id, field: backupField });
+                } else {
+                  NS._recordOperation('delete-field', id, '删除字段: ' + backupField.name, { profileId: parentProfileId, commandId: cmd.id, backup: backupField });
+                }
+                cmd.fields.splice(fi, 1);
+                cmd.fields.forEach(function (f, i) { f.byteOffset = i * (f.byteLen || 1); });
+                p.updatedAt = new Date().toISOString();
+                return {
+                  success: true,
+                  deletedObject: true,
+                  affectedCount: 1,
+                  restoreFn: function () {
+                    if (!cmd.fields) cmd.fields = [];
+                    if (!cmd.fields.some(function (f) { return f.id === backupField.id; })) {
+                      cmd.fields.splice(fi, 0, backupField);
+                      cmd.fields.forEach(function (f, i) { f.byteOffset = i * (f.byteLen || 1); });
+                    }
+                    p.updatedAt = new Date().toISOString();
+                    NS._recordOperation('undo-delete-field', id, '撤销删除字段: ' + backupField.name, { profileId: parentProfileId, commandId: cmd.id, restored: backupField });
+                    NS.renderProtoEditor();
+                    NS.toast('已恢复字段: ' + backupField.name, 'success');
+                  }
+                };
+              }
+            }
+            NS.toast('字段不存在', 'warn');
+            return { success: false };
+          }
+          return { success: false };
+        };
+
+        // --- T22 复用 + 增强: 回收站 UI ---
+        NS._showRecycleBin = function () {
+          const items = NS._getRecycleBin();
+          if (items.length === 0) {
+            NS._showV49Modal('回收站', '<div style="text-align:center;padding:40px;color:var(--text-3);"><div style="margin-bottom:8px;">🗑 回收站是空的</div><div style="font-size:12px;">删除的对象会在 30 天后自动清除</div></div>', '<button class="v49-btn" id="v49-rb-close">关闭</button>', function (m) {
+              document.getElementById('v49-rb-close').onclick = function () { NS._closeV49Modal(); };
+            });
+            return;
+          }
+          const list = items.map(function (e) {
+            const typeLabel = ({ profile: '方案', command: '命令', field: '字段' })[e.type] || e.type;
+            const name = e.type === 'profile' ? e.data.name : (e.type === 'command' ? e.data.command.name : e.data.field.name);
+            const remaining = Math.max(0, Math.round((new Date(e.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+            return '<div class="v49-rb-item" data-id="' + NS.escapeHtml(e.id) + '" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;background:var(--card);font-size:12px;">' +
+              '<span style="background:var(--tag-bg);color:var(--text-2);padding:1px 8px;border-radius:3px;font-size:11px;">' + typeLabel + '</span>' +
+              '<span style="flex:1;font-weight:500;">' + NS.escapeHtml(name || '(未命名)') + '</span>' +
+              '<span style="color:var(--text-3);font-size:11px;">' + remaining + ' 天后清除</span>' +
+              '<button class="v49-btn sm" data-act="view">查看</button>' +
+              '<button class="v49-btn sm" data-act="restore">恢复</button>' +
+              '<button class="v49-btn sm danger" data-act="purge">永久删</button>' +
+              '</div>';
+          }).join('');
+          const body = '<div style="max-height:380px;overflow-y:auto;">' + list + '</div>';
+          const footer = '<button class="v49-btn danger" id="v49-rb-empty">清空回收站</button><button class="v49-btn" id="v49-rb-close">关闭</button>';
+          NS._showV49Modal('回收站 (' + items.length + ' 项 · 30 天后清除)', body, footer, function (m) {
+            document.getElementById('v49-rb-close').onclick = function () { NS._closeV49Modal(); };
+            document.getElementById('v49-rb-empty').onclick = function () {
+              if (confirm('永久删除回收站所有 ' + items.length + ' 项? 不可恢复!')) {
+                NS._emptyRecycleBin();
+                NS._closeV49Modal();
+                NS.renderProtoEditor();
+                NS.toast('回收站已清空', 'success');
+              }
+            };
+            m.querySelectorAll('.v49-rb-item').forEach(function (item) {
+              const id = item.dataset.id;
+              item.querySelectorAll('button[data-act]').forEach(function (btn) {
+                btn.onclick = function () {
+                  const e = NS._getRecycleBin().find(function (x) { return x.id === id; });
+                  if (!e) return;
+                  const act = btn.dataset.act;
+                  if (act === 'view') {
+                    NS.toast('查看: ' + (e.data.name || e.data.command?.name || e.data.field?.name || '(未命名)'), 'info');
+                  } else if (act === 'restore') {
+                    NS._restoreFromRecycleBin(id);
+                    // 自动恢复到 NS.PROFILES
+                    if (e.type === 'profile') {
+                      if (!NS.PROFILES.some(function (p) { return p.id === e.data.id; })) {
+                        NS.PROFILES = (NS.PROFILES || []).concat([e.data]);
+                      }
+                    } else if (e.type === 'command') {
+                      const p = (NS.PROFILES || []).find(function (x) { return x.id === e.data.parentProfileId; });
+                      if (p && !p.commands.some(function (c) { return c.id === e.data.command.id; })) {
+                        p.commands = (p.commands || []).concat([e.data.command]);
+                      }
+                    } else if (e.type === 'field') {
+                      const p = (NS.PROFILES || []).find(function (x) { return x.id === e.data.parentProfileId; });
+                      if (p) {
+                        const cmd = (p.commands || []).find(function (c) { return c.id === e.data.commandId; });
+                        if (cmd && !cmd.fields.some(function (f) { return f.id === e.data.field.id; })) {
+                          cmd.fields = (cmd.fields || []).concat([e.data.field]);
+                        }
+                      }
+                    }
+                    NS._recordOperation('restore-recycle', id, '从回收站恢复: ' + (e.data.name || e.data.command?.name || e.data.field?.name || '?'));
+                    NS._closeV49Modal();
+                    NS.renderProtoEditor();
+                    NS.toast('已恢复', 'success');
+                  } else if (act === 'purge') {
+                    if (confirm('永久删除? 不可恢复!')) {
+                      NS._restoreFromRecycleBin(id);
+                      NS.toast('已永久删除', 'info');
+                      NS._closeV49Modal();
+                      NS._showRecycleBin();
+                    }
+                  }
+                };
+              });
+            });
+          });
+        };
+
+        // --- T23: 操作历史 UI ---
+        NS._showOperationHistory = function () {
+          const history = NS._getOperationHistory();
+          const typeLabel = {
+            'add-profile': '新建方案',
+            'edit-profile': '编辑方案',
+            'delete-profile': '删除方案',
+            'undo-delete-profile': '撤销删除',
+            'add-command': '新建命令',
+            'edit-command': '编辑命令',
+            'delete-command': '删除命令',
+            'undo-delete-command': '撤销删除命令',
+            'add-field': '新建字段',
+            'delete-field': '删除字段',
+            'undo-delete-field': '撤销删除字段',
+            'add-tag': '添加标签',
+            'remove-tag': '删除标签',
+            'migrate-v1-to-v2': '升级 v1',
+            'import-config': '导入配置',
+            'import-config-v1': '导入 v1',
+            'export-config': '导出配置',
+            'pre-delete-export': '删除前备份',
+            'restore-recycle': '回收站恢复',
+            'keep-old-copy': '保留副本'
+          };
+          // 按类型筛选
+          const types = Array.from(new Set(history.map(function (h) { return h.type; })));
+          const filterHtml = [
+            '<div class="v49-history-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;padding:8px;background:#fafbfc;border:1px solid var(--border);border-radius:6px;">',
+            '  <span class="v49-chip active" data-filter="" style="padding:2px 10px;border-radius:999px;border:1px solid var(--border-strong);background:var(--primary);color:#fff;font-size:11px;cursor:pointer;">全部 (' + history.length + ')</span>',
+            types.map(function (t) {
+              const cnt = history.filter(function (h) { return h.type === t; }).length;
+              return '<span class="v49-chip" data-filter="' + t + '" style="padding:2px 10px;border-radius:999px;border:1px solid var(--border-strong);background:var(--card);font-size:11px;color:var(--text-2);cursor:pointer;">' + (typeLabel[t] || t) + ' (' + cnt + ')</span>';
+            }).join(''),
+            '  <button class="v49-btn sm" id="v49-history-export" style="margin-left:auto;">导出全部</button>',
+            '</div>'
+          ].join('');
+          // 列表
+          function renderList(filter) {
+            let list = history;
+            if (filter) list = list.filter(function (h) { return h.type === filter; });
+            if (list.length === 0) {
+              return '<div style="text-align:center;padding:30px;color:var(--text-3);font-size:12px;">没有操作记录</div>';
+            }
+            // 倒序 (最新在前)
+            return list.slice().reverse().map(function (h) {
+              const dotClass = h.type.indexOf('delete') >= 0 ? 'del' : (h.type.indexOf('add') >= 0 ? 'add' : 'mod');
+              const time = new Date(h.timestamp).toLocaleString('zh-CN', { hour12: false });
+              return '<div class="v49-history-item" data-id="' + h.id + '" style="display:grid;grid-template-columns:14px 1fr auto;gap:10px;padding:8px 0;align-items:center;border-bottom:1px solid var(--border);">' +
+                '<span class="v49-history-dot" style="width:8px;height:8px;border-radius:50%;background:' + (dotClass === 'del' ? 'var(--danger)' : (dotClass === 'add' ? 'var(--success)' : 'var(--primary)')) + ';"></span>' +
+                '<span><b style="color:var(--text-2);font-size:11px;">' + (typeLabel[h.type] || h.type) + '</b> · ' + NS.escapeHtml(h.summary) + '</span>' +
+                '<span style="color:var(--text-3);font-size:11px;">' + time + '</span>' +
+                '</div>';
+            }).join('');
+          }
+          const body = filterHtml + '<div id="v49-history-list" style="max-height:400px;overflow-y:auto;">' + renderList('') + '</div>';
+          const footer = '<button class="v49-btn" id="v49-history-close">关闭</button>';
+          NS._showV49Modal('操作历史 (' + history.length + ' 条 · 30 天 rolling)', body, footer, function (m) {
+            // 筛选 chip
+            m.querySelectorAll('.v49-chip').forEach(function (chip) {
+              chip.onclick = function () {
+                m.querySelectorAll('.v49-chip').forEach(function (c) {
+                  c.classList.remove('active');
+                  c.style.background = 'var(--card)';
+                  c.style.color = 'var(--text-2)';
+                });
+                chip.classList.add('active');
+                chip.style.background = 'var(--primary)';
+                chip.style.color = '#fff';
+                const list = document.getElementById('v49-history-list');
+                if (list) list.innerHTML = renderList(chip.dataset.filter);
+              };
+            });
+            document.getElementById('v49-history-close').onclick = function () { NS._closeV49Modal(); };
+            document.getElementById('v49-history-export').onclick = function () {
+              const json = JSON.stringify(history, null, 2);
+              const blob = new Blob([json], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'serialweb-history-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
+              a.click();
+              URL.revokeObjectURL(url);
+              NS.toast('已导出操作历史', 'success');
+            };
+          });
+        };
+
+        // === v4.9 C2c 段结束 ===========================================
 
         // --- Modal 控制 ---
         NS.openModal = function (name) {
