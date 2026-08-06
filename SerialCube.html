@@ -130,6 +130,20 @@
       --scrollbar-thumb-hover: rgba(52, 81, 178, 0.66);
       --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
       --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+
+      /* v4.9 UI 重构过渡: v5 mockup 风格 CSS 变量 fallback (2026-08-06)
+         历史/导入 等 modal 旧代码沿用 v5 命名, 映射到 SerialCube 现有 token.
+         自动跟随 light/dark theme 切换 (因为引用了 var(--accent) 等会随 theme override). */
+      --primary: var(--accent);
+      --primary-strong: var(--accent-strong);
+      --primary-soft: var(--accent-soft);
+      --card: var(--bg-elevated);
+      --text-2: var(--text-soft);
+      --text-3: var(--text-soft);
+      --warn-soft: rgba(217, 119, 6, 0.14);
+      --danger-soft: rgba(224, 87, 94, 0.14);
+      --success-soft: var(--brand-green);
+      --mono: var(--font-mono);
     }
 
     :root.theme-dark,
