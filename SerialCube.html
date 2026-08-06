@@ -7193,6 +7193,28 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-step0-detail-section-title { font-size: 11.5px; margin-top: 6px; color: var(--text-soft); }
 .v49-step0-detail-section-row { font-size: 11.5px; color: var(--text-soft); margin-top: 2px; }
 
+    /* step1 (新建方案 Step 1 - 基础/类型/CRC 三段表单) */
+.v49-step1-section { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 12px; }
+.v49-step1-section-title { font-weight: 600; font-size: 12.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.v49-step1-section-num { background: var(--accent); color: #fff; width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+.v49-form-grid { display: grid; grid-template-columns: 100px 1fr; gap: 8px; align-items: center; margin-bottom: 6px; }
+.v49-form-grid-wide { display: grid; grid-template-columns: 120px 1fr; gap: 6px 8px; align-items: center; font-size: 12px; }
+.v49-form-label-req { color: var(--danger); }
+.v49-step1-tags-box { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding: 4px 6px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: 6px; min-height: 30px; }
+.v49-step1-tags-input { border: none; outline: none; flex: 1; min-width: 80px; background: transparent; font-size: 12px; }
+.v49-tag-chip { background: var(--accent-soft); color: var(--accent); padding: 2px 8px; border-radius: 4px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; }
+.v49-tag-del { cursor: pointer; opacity: 0.6; }
+.v49-tag-del:hover { opacity: 1; }
+.v49-step1-err { color: var(--danger); font-size: 11px; margin-top: 4px; display: none; }
+.v49-step1-err.show { display: block; }
+.v49-step1-kinds-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 200px; overflow-y: auto; }
+.v49-kind-card { background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: 6px; padding: 8px 10px; cursor: pointer; display: block; transition: border-color 0.15s, background 0.15s, box-shadow 0.15s; }
+.v49-kind-card:hover { border-color: var(--accent); }
+.v49-kind-card.active { border: 2px solid var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-soft); }
+.v49-kind-card input { display: none; }
+.v49-kind-card-name { font-weight: 600; font-size: 12px; }
+.v49-kind-card-desc { color: var(--text-soft); font-size: 11px; margin-top: 2px; line-height: 1.4; }
+
     /* form-field (label + input 排版) */
 .v49-form-field { margin-bottom: 12px; }
 .v49-form-label { display: block; font-size: 12px; color: var(--text-soft); margin-bottom: 4px; font-weight: 500; }
@@ -14927,14 +14949,11 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             const tpl = NS._KIND_TEMPLATES && NS._KIND_TEMPLATES[k];
             const name = tpl ? tpl.name : k;
             const desc = tpl && tpl.desc ? tpl.desc : '';
-            const checked = k === initKind ? 'checked' : '';
-            const style = k === initKind
-              ? 'border:2px solid var(--primary);background:var(--primary-soft);box-shadow:0 0 0 3px var(--primary-soft);'
-              : 'border:1px solid var(--border-strong);background:var(--card);';
-            return '<label class="v49-kind-card" data-kind="' + k + '" style="' + style + 'border-radius:6px;padding:8px 10px;cursor:pointer;display:block;">' +
-              '<input type="radio" name="v49-step1-kind" value="' + k + '" ' + checked + ' style="display:none;">' +
-              '<div style="font-weight:600;font-size:12px;">' + NS.escapeHtml(name) + '</div>' +
-              '<div style="color:var(--text-3);font-size:11px;margin-top:2px;line-height:1.4;">' + NS.escapeHtml(desc) + '</div>' +
+            const activeCls = k === initKind ? ' active' : '';
+            return '<label class="v49-kind-card' + activeCls + '" data-kind="' + k + '">' +
+              '<input type="radio" name="v49-step1-kind" value="' + k + '" ' + (k === initKind ? 'checked' : '') + '>' +
+              '<div class="v49-kind-card-name">' + NS.escapeHtml(name) + '</div>' +
+              '<div class="v49-kind-card-desc">' + NS.escapeHtml(desc) + '</div>' +
               '</label>';
           }).join('');
           const crcOpts = NS._CRC_ALGORITHMS.map(function (a) {
@@ -14942,42 +14961,42 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           }).join('');
           const body = [
             // 基础
-            '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px;">',
-            '  <div style="font-weight:600;font-size:12.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">',
-            '    <span style="background:var(--primary);color:#fff;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">1</span>基础',
+            '<div class="v49-step1-section">',
+            '  <div class="v49-step1-section-title">',
+            '    <span class="v49-step1-section-num">1</span>基础',
             '  </div>',
-            '  <div class="form-row" style="display:grid;grid-template-columns:100px 1fr;gap:8px;align-items:center;margin-bottom:6px;">',
-            '    <label style="font-size:12px;">方案名 <span style="color:var(--danger)">*</span></label>',
-            '    <input class="inp wfull" id="v49-step1-name" type="text" placeholder="必填, 1-32 字符" value="' + NS.escapeHtml(initName) + '">',
+            '  <div class="v49-form-grid">',
+            '    <label class="v49-form-label v49-form-label-req">方案名 *</label>',
+            '    <input class="v49-inp wfull" id="v49-step1-name" type="text" placeholder="必填, 1-32 字符" value="' + NS.escapeHtml(initName) + '">',
             '  </div>',
-            '  <div class="form-row" style="display:grid;grid-template-columns:100px 1fr;gap:8px;align-items:center;">',
-            '    <label style="font-size:12px;">标签</label>',
-            '    <div id="v49-step1-tags" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:4px 6px;background:var(--card);border:1px solid var(--border-strong);border-radius:6px;min-height:30px;">',
-            initTags.map(function (t) { return '<span class="v49-tag-chip" style="background:var(--primary-soft);color:var(--primary);padding:2px 8px;border-radius:4px;font-size:11px;display:inline-flex;align-items:center;gap:4px;">' + NS.escapeHtml(t) + ' <span class="v49-tag-del" style="cursor:pointer;opacity:0.6;">×</span></span>'; }).join('') +
-            '      <input id="v49-step1-tag-input" type="text" placeholder="回车添加" style="border:none;outline:none;flex:1;min-width:80px;background:transparent;font-size:12px;">',
+            '  <div class="v49-form-grid">',
+            '    <label class="v49-form-label">标签</label>',
+            '    <div id="v49-step1-tags" class="v49-step1-tags-box">',
+            initTags.map(function (t) { return '<span class="v49-tag-chip" data-tag="' + NS.escapeHtml(t) + '">' + NS.escapeHtml(t) + ' <span class="v49-tag-del">×</span></span>'; }).join('') +
+            '      <input id="v49-step1-tag-input" class="v49-step1-tags-input" type="text" placeholder="回车添加">',
             '    </div>',
             '  </div>',
-            '  <div id="v49-step1-name-err" style="color:var(--danger);font-size:11px;margin-top:4px;display:none;"></div>',
+            '  <div id="v49-step1-name-err" class="v49-step1-err"></div>',
             '</div>',
             // 协议类型
-            '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px;">',
-            '  <div style="font-weight:600;font-size:12.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">',
-            '    <span style="background:var(--primary);color:#fff;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">2</span>协议类型 <span style="color:var(--danger)">*</span>',
+            '<div class="v49-step1-section">',
+            '  <div class="v49-step1-section-title">',
+            '    <span class="v49-step1-section-num">2</span>协议类型 <span class="v49-form-label-req">*</span>',
             '  </div>',
-            '  <div id="v49-step1-kinds" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:200px;overflow-y:auto;">' + kindCards + '</div>',
+            '  <div id="v49-step1-kinds" class="v49-step1-kinds-grid">' + kindCards + '</div>',
             '</div>',
             // CRC
-            '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px;">',
-            '  <div style="font-weight:600;font-size:12.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">',
-            '    <span style="background:var(--primary);color:#fff;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">3</span>CRC 配置',
+            '<div class="v49-step1-section">',
+            '  <div class="v49-step1-section-title">',
+            '    <span class="v49-step1-section-num">3</span>CRC 配置',
             '  </div>',
-            '  <div style="display:grid;grid-template-columns:120px 1fr;gap:6px 8px;align-items:center;font-size:12px;">',
-            '    <label>算法</label><select class="inp" id="v49-step1-crc-algo">' + crcOpts + '</select>',
-            '    <label>起始值 (hex)</label><input class="inp mono" id="v49-step1-crc-init" value="' + NS.escapeHtml(initCrc.initValue) + '">',
-            '    <label>字节序</label><select class="inp" id="v49-step1-crc-endian"><option value="LE" ' + (initCrc.byteOrder === 'LE' ? 'selected' : '') + '>LE 小端</option><option value="BE" ' + (initCrc.byteOrder === 'BE' ? 'selected' : '') + '>BE 大端</option></select>',
-            '    <label>覆盖范围</label><select class="inp" id="v49-step1-crc-range"><option value="all" ' + (initCrc.range === 'all' ? 'selected' : '') + '>全部 (header→tail)</option><option value="no_header" ' + (initCrc.range === 'no_header' ? 'selected' : '') + '>不含帧头 (Modbus)</option><option value="no_tail" ' + (initCrc.range === 'no_tail' ? 'selected' : '') + '>不含帧尾</option><option value="no_header_tail" ' + (initCrc.range === 'no_header_tail' ? 'selected' : '') + '>不含帧头帧尾</option><option value="data_only" ' + (initCrc.range === 'data_only' ? 'selected' : '') + '>只对 data 段</option></select>',
+            '  <div class="v49-form-grid-wide">',
+            '    <label>算法</label><select class="v49-inp" id="v49-step1-crc-algo">' + crcOpts + '</select>',
+            '    <label>起始值 (hex)</label><input class="v49-inp mono" id="v49-step1-crc-init" value="' + NS.escapeHtml(initCrc.initValue) + '">',
+            '    <label>字节序</label><select class="v49-inp" id="v49-step1-crc-endian"><option value="LE" ' + (initCrc.byteOrder === 'LE' ? 'selected' : '') + '>LE 小端</option><option value="BE" ' + (initCrc.byteOrder === 'BE' ? 'selected' : '') + '>BE 大端</option></select>',
+            '    <label>覆盖范围</label><select class="v49-inp" id="v49-step1-crc-range"><option value="all" ' + (initCrc.range === 'all' ? 'selected' : '') + '>全部 (header→tail)</option><option value="no_header" ' + (initCrc.range === 'no_header' ? 'selected' : '') + '>不含帧头 (Modbus)</option><option value="no_tail" ' + (initCrc.range === 'no_tail' ? 'selected' : '') + '>不含帧尾</option><option value="no_header_tail" ' + (initCrc.range === 'no_header_tail' ? 'selected' : '') + '>不含帧头帧尾</option><option value="data_only" ' + (initCrc.range === 'data_only' ? 'selected' : '') + '>只对 data 段</option></select>',
             '  </div>',
-            '  <div id="v49-step1-crc-err" style="color:var(--danger);font-size:11px;margin-top:4px;display:none;"></div>',
+            '  <div id="v49-step1-crc-err" class="v49-step1-err"></div>',
             '</div>'
           ].join('');
           const footer = [
@@ -14985,18 +15004,14 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             '<button class="v49-btn primary" id="v49-step1-create">创建方案</button>'
           ].join('');
           NS._showV49Modal('新建方案 · Step 1 / 2 · 配置', body, footer, function (modal) {
-            // 绑定 kind card 点击
+            // 绑定 kind card 点击 (B-FULL: 改 style 改写为 classList toggle)
             modal.querySelectorAll('.v49-kind-card').forEach(function (card) {
               card.onclick = function () {
                 modal.querySelectorAll('.v49-kind-card').forEach(function (c) {
-                  c.style.border = '1px solid var(--border-strong)';
-                  c.style.background = 'var(--card)';
-                  c.style.boxShadow = 'none';
+                  c.classList.remove('active');
                   const r = c.querySelector('input'); if (r) r.checked = false;
                 });
-                card.style.border = '2px solid var(--primary)';
-                card.style.background = 'var(--primary-soft)';
-                card.style.boxShadow = '0 0 0 3px var(--primary-soft)';
+                card.classList.add('active');
                 const r = card.querySelector('input'); if (r) r.checked = true;
               };
             });
@@ -15010,8 +15025,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               const chip = document.createElement('span');
               chip.className = 'v49-tag-chip';
               chip.dataset.tag = name;
-              chip.style.cssText = 'background:var(--primary-soft);color:var(--primary);padding:2px 8px;border-radius:4px;font-size:11px;display:inline-flex;align-items:center;gap:4px;';
-              chip.innerHTML = NS.escapeHtml(name) + ' <span class="v49-tag-del" style="cursor:pointer;opacity:0.6;">×</span>';
+              chip.innerHTML = NS.escapeHtml(name) + ' <span class="v49-tag-del">×</span>';
               tagBox.insertBefore(chip, tagInput);
               chip.querySelector('.v49-tag-del').onclick = function () { chip.remove(); };
             }
