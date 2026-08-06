@@ -13230,30 +13230,102 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         };
 
         // --- 导入导出 (ie modal) ---
+        // v4.9 C1: exportConfig 输出 v2 格式,保留 v1 兼容字段供老版本读
         NS.exportConfig = function () {
-          const config = { type: 'SerialWebUserConfig', version: 1, userConfig: { dashboard: {
-            protocols: NS.PROTOCOLS, dataFields: NS.DATA_FIELDS, commands: NS.COMMANDS, cards: NS.CARDS,
-            settings: { cmdMismatchEnabled: NS.cmdMismatchEnabled, alertDebounceMs: NS.alertDebounceMs, cardLayout: NS.cardLayout }
-          }}};
+          const meta = NS._PROFILES_meta || { operationHistory: [], fieldPresets: [], importHistory: [], recycleBin: [] };
+          const config = {
+            type: 'SerialWebUserConfig',
+            version: 2,
+            _migrated: meta._migrated || 'v2-native',
+            // v2 主数据
+            profiles: Array.isArray(NS.PROFILES) ? NS.PROFILES : [],
+            activeProfileId: NS.activeProfileId || null,
+            // 4 个新存储 (Q4 锁定:不存大字节)
+            operationHistory: meta.operationHistory || [],
+            fieldPresets: meta.fieldPresets || [],
+            importHistory: meta.importHistory || [],
+            recycleBin: meta.recycleBin || [],
+            // v1 兼容 (老版本 SerialCube 仍可读)
+            userConfig: { dashboard: {
+              protocols: NS.PROTOCOLS, dataFields: NS.DATA_FIELDS, commands: NS.COMMANDS, cards: NS.CARDS,
+              settings: { cmdMismatchEnabled: NS.cmdMismatchEnabled, alertDebounceMs: NS.alertDebounceMs, cardLayout: NS.cardLayout }
+            }}
+          };
           return JSON.stringify(config, null, 2);
         };
         NS.importConfig = function (json) {
           try {
             const obj = JSON.parse(json);
             if (obj.type !== 'SerialWebUserConfig') throw new Error('type 不是 SerialWebUserConfig');
+
+            // v4.9 C1: v2 直接走 v2 路径
+            if (obj.version === 2 || Array.isArray(obj.profiles)) {
+              // 加载 v2 字段
+              if (Array.isArray(obj.profiles)) {
+                NS.PROFILES = obj.profiles.map((p) => ({ ...p, kind: p.kind || 'fixed-header' }));
+              }
+              if (obj.activeProfileId) {
+                NS.activeProfileId = obj.activeProfileId;
+              }
+              // 4 个新存储
+              const meta = NS._PROFILES_meta || (NS._PROFILES_meta = { operationHistory: [], fieldPresets: [], importHistory: [], recycleBin: [] });
+              if (Array.isArray(obj.operationHistory)) meta.operationHistory = obj.operationHistory;
+              if (Array.isArray(obj.fieldPresets)) meta.fieldPresets = obj.fieldPresets;
+              if (Array.isArray(obj.importHistory)) meta.importHistory = obj.importHistory;
+              if (Array.isArray(obj.recycleBin)) meta.recycleBin = obj.recycleBin;
+              // v1 兼容字段 (供老代码读)
+              const uc = obj.userConfig && obj.userConfig.dashboard;
+              if (uc) {
+                if (uc.protocols) {
+                  NS.PROTOCOLS = uc.protocols.map((p) => ({ ...p, kind: p.kind || 'fixed-header' }));
+                }
+                if (uc.dataFields) NS.DATA_FIELDS = uc.dataFields;
+                if (uc.commands) {
+                  NS.COMMANDS = uc.commands;
+                  // v4.9.2: 容错
+                  if (!NS.COMMANDS.find((c) => c.id === 0x90)) {
+                    NS.COMMANDS.push({ id: 0x90, name: 'Charge Ack', direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['charge_v_set', 'charge_i_set'], dataSize: 4 });
+                  }
+                  if (!NS.COMMANDS.find((c) => c.id === 0x91)) {
+                    NS.COMMANDS.push({ id: 0x91, name: 'Disch Ack', direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2 });
+                  }
+                }
+                if (uc.cards) NS.CARDS = uc.cards;
+                if (uc.settings) {
+                  if (typeof uc.settings.cmdMismatchEnabled === 'boolean') NS.cmdMismatchEnabled = uc.settings.cmdMismatchEnabled;
+                  if (typeof uc.settings.alertDebounceMs === 'number') NS.alertDebounceMs = uc.settings.alertDebounceMs;
+                  if (uc.settings.cardLayout) NS.cardLayout = uc.settings.cardLayout;
+                }
+              }
+              // 兼容 activeProtoId
+              if (!NS.activeProfileId && NS.activeProtoId) {
+                NS.activeProfileId = NS.activeProtoId;
+              } else if (NS.activeProfileId && !NS.activeProtoId) {
+                NS.activeProtoId = NS.activeProfileId;
+              }
+              NS._recordOperation('import-config', null, '导入 v2 配置 (' + (Array.isArray(obj.profiles) ? obj.profiles.length : 0) + ' 方案)');
+              NS.initMockData();
+              NS.renderKpiCards();
+              NS.toast('已应用 v2 配置 (' + (Array.isArray(obj.profiles) ? obj.profiles.length : 0) + ' 方案)', 'success');
+              return true;
+            }
+
+            // v1 路径 (向后兼容)
             const uc = obj.userConfig && obj.userConfig.dashboard;
             if (!uc) throw new Error('userConfig.dashboard 缺失');
+            // v4.9 C1: v1 走迁移函数
+            const migrateResult = (typeof NS._migrateV1ToV2 === 'function') ? NS._migrateV1ToV2(obj) : null;
+            if (migrateResult && migrateResult.migrated && Array.isArray(migrateResult.count >= 0 ? obj.profiles : null)) {
+              // 迁移后用 v2 路径
+              return NS.importConfig(JSON.stringify(obj));
+            }
+            // 兜底老路径 (无 _migrateV1ToV2 时)
             if (uc.protocols) {
-              // v4.8a: 兼容旧 user config (无 kind 字段 → kind 0 'fixed-header')
-              NS.PROTOCOLS = uc.protocols.map((p) => ({
-                ...p,
-                kind: p.kind || 'fixed-header'
-              }));
+              NS.PROTOCOLS = uc.protocols.map((p) => ({ ...p, kind: p.kind || 'fixed-header' }));
             }
             if (uc.dataFields) NS.DATA_FIELDS = uc.dataFields;
             if (uc.commands) {
               NS.COMMANDS = uc.commands;
-              // v4.9.2: 容错 - 旧 config 可能没 0x90/0x91 ACK 定义, 自动补
               if (!NS.COMMANDS.find((c) => c.id === 0x90)) {
                 NS.COMMANDS.push({ id: 0x90, name: 'Charge Ack', direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['charge_v_set', 'charge_i_set'], dataSize: 4 });
               }
@@ -13268,9 +13340,10 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               if (uc.settings.cardLayout) NS.cardLayout = uc.settings.cardLayout;
             }
             NS.activeProtoId = NS.PROTOCOLS[0] && NS.PROTOCOLS[0].id;
+            NS._recordOperation('import-config-v1', null, '导入 v1 配置 (' + (uc.protocols ? uc.protocols.length : 0) + ' 方案,已自动迁移)');
             NS.initMockData();
             NS.renderKpiCards();
-            NS.toast('已应用导入配置', 'success');
+            NS.toast('已应用 v1 配置 (自动迁移 v1→v2)', 'success');
             return true;
           } catch (e) { NS.toast('导入失败: ' + e.message, 'danger'); return false; }
         };
@@ -13360,6 +13433,446 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100%)'; t.style.transition = 'all 0.3s'; }, ms);
           setTimeout(() => t.remove(), ms + 400);
         };
+
+        // === v4.9 Session 1: 数据模型 + 迁移 (C1) ==================
+        // 4 个新存储 (operationHistory / fieldPresets / importHistory / recycleBin)
+        // + v1→v2 迁移函数 + 别名同步 (NS.PROFILES ↔ NS.PROTOCOLS)
+        // 不破坏 AGENTS.md §2 兼容字段 (localStorage key / API / __serialWeb* 命名)
+        // ====================================================================
+
+        // 初始化 _PROFILES_meta 容器
+        NS._PROFILES_meta = NS._PROFILES_meta || {
+          operationHistory: [],
+          fieldPresets: [],
+          importHistory: [],
+          recycleBin: []
+        };
+        // 初始化 _PROFILES / _activeProfileId 临时值 (line 10140 PROTOCOLS 赋值会走 setter 同步)
+        NS._PROFILES = NS._PROFILES || [];
+        NS._activeProfileId = NS._activeProfileId || null;
+
+        // --- 别名同步: NS.PROFILES ↔ NS.PROTOCOLS (向下兼容 v4.8 已有代码) ---
+        NS.__syncingProfileAlias = false;
+        NS._logDeprecation = true;  // 全局开关,调试完可关
+
+        Object.defineProperty(NS, 'PROFILES', {
+          configurable: true,
+          enumerable: true,
+          get() { return NS._PROFILES; },
+          set(v) {
+            const arr = Array.isArray(v) ? v : [];
+            if (NS.__syncingProfileAlias) {
+              NS._PROFILES = arr;
+              return;
+            }
+            NS.__syncingProfileAlias = true;
+            try {
+              NS._PROFILES = arr;
+              // 同步给 PROTOCOLS 触发它的 setter (会走 __syncingProfileAlias 短路)
+              NS.PROTOCOLS = arr;
+            } finally {
+              NS.__syncingProfileAlias = false;
+            }
+          }
+        });
+
+        Object.defineProperty(NS, 'PROTOCOLS', {
+          configurable: true,
+          enumerable: true,
+          get() { return NS._PROFILES; },
+          set(v) {
+            const arr = Array.isArray(v) ? v : [];
+            if (NS.__syncingProfileAlias) {
+              NS._PROFILES = arr;
+              return;
+            }
+            NS.__syncingProfileAlias = true;
+            try {
+              NS._PROFILES = arr;
+              if (NS._logDeprecation) {
+                console.warn('[v4.9 deprecation] NS.PROTOCOLS is deprecated, use NS.PROFILES instead');
+              }
+            } finally {
+              NS.__syncingProfileAlias = false;
+            }
+          }
+        });
+
+        // --- 别名: NS.activeProfileId ↔ NS.activeProtoId ---
+        Object.defineProperty(NS, 'activeProfileId', {
+          configurable: true,
+          enumerable: true,
+          get() { return NS._activeProfileId; },
+          set(v) {
+            NS._activeProfileId = v;
+            if (!NS.__syncingProfileAlias) {
+              NS.__syncingProfileAlias = true;
+              try {
+                NS.activeProtoId = v;
+              } finally {
+                NS.__syncingProfileAlias = false;
+              }
+            }
+          }
+        });
+
+        Object.defineProperty(NS, 'activeProtoId', {
+          configurable: true,
+          enumerable: true,
+          get() { return NS._activeProfileId; },
+          set(v) {
+            NS._activeProfileId = v;
+            if (NS._logDeprecation) {
+              console.warn('[v4.9 deprecation] NS.activeProtoId is deprecated, use NS.activeProfileId instead');
+            }
+          }
+        });
+
+        // --- 持久化调度 (接 buildLocalPrefsSnapshot 修改后会真正持久化;未接前 noop) ---
+        NS._schedulePersist = function () {
+          if (typeof window.__serialWebSchedulePersist === 'function') {
+            window.__serialWebSchedulePersist();
+          }
+        };
+
+        // --- 4 个新存储 helper ---
+
+        // 1. operationHistory (30 天 rolling, 不存大字节 Q4 锁定)
+        NS._recordOperation = function (type, refId, summary, snapshot) {
+          if (!NS._PROFILES_meta) NS._PROFILES_meta = { operationHistory: [], fieldPresets: [], importHistory: [], recycleBin: [] };
+          if (!NS._PROFILES_meta.operationHistory) NS._PROFILES_meta.operationHistory = [];
+          const op = {
+            id: 'op-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+            type: String(type || ''),
+            refId: refId != null ? String(refId) : null,
+            summary: String(summary || ''),
+            timestamp: new Date().toISOString()
+          };
+          if (snapshot !== undefined) op.snapshot = snapshot;
+          NS._PROFILES_meta.operationHistory.push(op);
+          NS._enforceOperationHistoryLimit();
+          NS._schedulePersist();
+          return op;
+        };
+        NS._enforceOperationHistoryLimit = function () {
+          if (!NS._PROFILES_meta || !NS._PROFILES_meta.operationHistory) return;
+          const arr = NS._PROFILES_meta.operationHistory;
+          const now = Date.now();
+          const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+          let i = 0;
+          while (i < arr.length && (now - new Date(arr[i].timestamp).getTime()) > THIRTY_DAYS) {
+            i++;
+          }
+          if (i > 0) arr.splice(0, i);
+          // 永久保留最后 5 条 (防误删,已在尾部)
+        };
+        NS._getOperationHistory = function (limit) {
+          if (!NS._PROFILES_meta || !NS._PROFILES_meta.operationHistory) return [];
+          const arr = NS._PROFILES_meta.operationHistory;
+          return typeof limit === 'number' ? arr.slice(-limit) : arr.slice();
+        };
+
+        // 2. fieldPresets (上限 50)
+        NS._getFieldPresets = function () {
+          if (!NS._PROFILES_meta) NS._PROFILES_meta = { operationHistory: [], fieldPresets: [], importHistory: [], recycleBin: [] };
+          if (!NS._PROFILES_meta.fieldPresets) NS._PROFILES_meta.fieldPresets = [];
+          return NS._PROFILES_meta.fieldPresets.slice();
+        };
+        NS._addFieldPreset = function (preset) {
+          if (!NS._PROFILES_meta) NS._PROFILES_meta = { operationHistory: [], fieldPresets: [], importHistory: [], recycleBin: [] };
+          if (!NS._PROFILES_meta.fieldPresets) NS._PROFILES_meta.fieldPresets = [];
+          const p = {
+            id: 'fp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+            name: String(preset.name || '未命名预设'),
+            type: String(preset.type || 'uint16'),
+            byteOrder: preset.byteOrder || 'BE',
+            scale: Number(preset.scale) || 1,
+            unit: String(preset.unit || ''),
+            format: String(preset.format || '0')
+          };
+          const existing = NS._PROFILES_meta.fieldPresets.findIndex(function (x) { return x.name === p.name; });
+          if (existing >= 0) {
+            if (!preset._overwrite) {
+              throw new Error('fieldPreset name already exists: ' + p.name);
+            }
+            NS._PROFILES_meta.fieldPresets[existing] = p;
+          } else {
+            NS._PROFILES_meta.fieldPresets.push(p);
+          }
+          if (NS._PROFILES_meta.fieldPresets.length > 50) {
+            NS._PROFILES_meta.fieldPresets.splice(0, NS._PROFILES_meta.fieldPresets.length - 50);
+          }
+          NS._schedulePersist();
+          return p;
+        };
+        NS._removeFieldPreset = function (id) {
+          if (!NS._PROFILES_meta || !NS._PROFILES_meta.fieldPresets) return false;
+          const i = NS._PROFILES_meta.fieldPresets.findIndex(function (x) { return x.id === id; });
+          if (i < 0) return false;
+          NS._PROFILES_meta.fieldPresets.splice(i, 1);
+          NS._schedulePersist();
+          return true;
+        };
+
+        // 3. importHistory (上限 10)
+        NS._recordImport = function (filename, result) {
+          if (!NS._PROFILES_meta) NS._PROFILES_meta = { operationHistory: [], fieldPresets: [], importHistory: [], recycleBin: [] };
+          if (!NS._PROFILES_meta.importHistory) NS._PROFILES_meta.importHistory = [];
+          const r = result || {};
+          const entry = {
+            id: 'imp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+            filename: String(filename || 'unknown.json'),
+            timestamp: new Date().toISOString(),
+            profileCount: Number(r.profileCount) || 0,
+            commandCount: Number(r.commandCount) || 0,
+            status: r.status || 'success',
+            error: r.error || null
+          };
+          NS._PROFILES_meta.importHistory.push(entry);
+          if (NS._PROFILES_meta.importHistory.length > 10) {
+            NS._PROFILES_meta.importHistory.splice(0, NS._PROFILES_meta.importHistory.length - 10);
+          }
+          NS._schedulePersist();
+          return entry;
+        };
+        NS._getImportHistory = function (limit) {
+          if (!NS._PROFILES_meta || !NS._PROFILES_meta.importHistory) return [];
+          const arr = NS._PROFILES_meta.importHistory;
+          return typeof limit === 'number' ? arr.slice(-limit) : arr.slice();
+        };
+
+        // 4. recycleBin (上限 100, 30 天 LRU)
+        NS._addToRecycleBin = function (type, data) {
+          if (!NS._PROFILES_meta) NS._PROFILES_meta = { operationHistory: [], fieldPresets: [], importHistory: [], recycleBin: [] };
+          if (!NS._PROFILES_meta.recycleBin) NS._PROFILES_meta.recycleBin = [];
+          const now = Date.now();
+          const entry = {
+            id: 'rc-' + now + '-' + Math.random().toString(36).slice(2, 8),
+            type: String(type || 'unknown'),
+            data: data,
+            deletedAt: new Date(now).toISOString(),
+            expiresAt: new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString()
+          };
+          NS._PROFILES_meta.recycleBin.push(entry);
+          if (NS._PROFILES_meta.recycleBin.length > 100) {
+            NS._PROFILES_meta.recycleBin.splice(0, NS._PROFILES_meta.recycleBin.length - 100);
+          }
+          NS._schedulePersist();
+          return entry;
+        };
+        NS._getRecycleBin = function () {
+          if (!NS._PROFILES_meta || !NS._PROFILES_meta.recycleBin) return [];
+          const now = Date.now();
+          NS._PROFILES_meta.recycleBin = NS._PROFILES_meta.recycleBin.filter(function (e) { return new Date(e.expiresAt).getTime() > now; });
+          return NS._PROFILES_meta.recycleBin.slice();
+        };
+        NS._restoreFromRecycleBin = function (id) {
+          if (!NS._PROFILES_meta || !NS._PROFILES_meta.recycleBin) return null;
+          const i = NS._PROFILES_meta.recycleBin.findIndex(function (x) { return x.id === id; });
+          if (i < 0) return null;
+          const entry = NS._PROFILES_meta.recycleBin.splice(i, 1)[0];
+          NS._schedulePersist();
+          return entry;
+        };
+        NS._emptyRecycleBin = function () {
+          if (!NS._PROFILES_meta || !NS._PROFILES_meta.recycleBin) return;
+          NS._PROFILES_meta.recycleBin = [];
+          NS._schedulePersist();
+        };
+
+        // --- v1 → v2 迁移函数 ---
+        NS._migrateV1ToV2 = function (prefs) {
+          if (!prefs || typeof prefs !== 'object') return { migrated: false, reason: 'invalid-prefs' };
+          if (prefs._migrated === 'v1-to-v2') return { migrated: false, reason: 'already-migrated' };
+          if (prefs.version === 2) return { migrated: false, reason: 'already-v2' };
+
+          const warnings = [];
+          const oldProfiles = Array.isArray(prefs.profiles) ? prefs.profiles : null;
+          const oldProtocols = Array.isArray(prefs.protocols) ? prefs.protocols : null;
+          const oldDataFields = Array.isArray(prefs.dataFields) ? prefs.dataFields : null;
+          const oldCommands = Array.isArray(prefs.commands) ? prefs.commands : null;
+          const oldActiveId = prefs.activeProfileId || prefs.activeProtoId || null;
+
+          // 没协议数据,无需迁移
+          if (!oldProtocols && !oldProfiles) {
+            prefs.version = 2;
+            prefs._migrated = 'v1-to-v2';
+            return { migrated: true, count: 0, warnings: ['无协议数据,空升级'] };
+          }
+
+          // 1. 备份 v1
+          try {
+            NS._recordOperation('migrate-v1-to-v2', null, '升级 v1 配置到 v2', { v1Snapshot: JSON.parse(JSON.stringify(prefs)) });
+          } catch (e) {
+            // 即使备份失败也继续迁移
+            console.warn('[v4.9] 备份 v1 失败', e);
+          }
+
+          // 2. 构建 profiles (v2 格式)
+          const profiles = [];
+          const sources = oldProtocols || oldProfiles || [];
+          const nameCount = {};
+          for (let i = 0; i < sources.length; i++) {
+            const p = sources[i];
+            let name = String(p.name || ('profile-' + i));
+            if (nameCount[name]) {
+              name = name + ' (migrated)';
+              warnings.push('profile[' + i + '] 名称重复,已追加 (migrated) 后缀');
+            }
+            nameCount[name] = 1;
+
+            const profile = {
+              id: 'profile-' + Date.now() + '-' + i + '-' + Math.random().toString(36).slice(2, 6),
+              name: name,
+              kind: p.kind || 'fixed-header',
+              crc: {
+                algorithm: p.crcType || (p.crc && p.crc.algorithm) || 'CRC16-MODBUS',
+                initValue: p.crcInit || (p.crc && p.crc.initValue) || '0xFFFF',
+                byteOrder: p.crcEndian || (p.crc && p.crc.byteOrder) || 'LE',
+                range: p.crcRange || (p.crc && p.crc.range) || 'no_header'
+              },
+              byteOrder: p.byteOrder || 'BE',
+              tags: Array.isArray(p.tags) ? p.tags : [],
+              createdAt: p.createdAt || new Date().toISOString(),
+              updatedAt: p.updatedAt || new Date().toISOString(),
+              commands: []
+            };
+
+            // 3. 找此 protocol 的 commands (v1 cmd.protocol === profile.id)
+            const cmds = (oldCommands || []).filter(function (c) { return c.protocol === p.id; });
+            if (cmds.length === 0) {
+              // 兜底:建一个 default command
+              const fields = NS._v1FrameFieldsToDataFields(p.fields);
+              profile.commands.push({
+                id: 'cmd-default-' + i,
+                name: 'default',
+                cmdCode: 0x00,
+                ackCmd: null,
+                timeoutMs: 30000,
+                retryCount: 3,
+                trigger: { mode: 'manual', periodMs: 0, manualHotkey: 'F5', onConnect: false },
+                direction: 'rx',
+                frameType: 'query',
+                fields: fields,
+                dashboardBindings: []
+              });
+              if (fields.length === 0 && Array.isArray(p.fields) && p.fields.length > 0) {
+                warnings.push('profile[' + i + '] 帧字段无 data 段,default command fields 为空');
+              }
+            } else {
+              for (let j = 0; j < cmds.length; j++) {
+                const c = cmds[j];
+                const dataFieldNames = Array.isArray(c.dataFields) ? c.dataFields : [];
+                const fields = [];
+                for (let k = 0; k < dataFieldNames.length; k++) {
+                  const fname = dataFieldNames[k];
+                  const df = (oldDataFields || []).find(function (d) { return d.name === fname; });
+                  if (!df) {
+                    warnings.push('profile[' + i + '].commands[' + j + '] dataFields[' + k + ']="' + fname + '" 找不到,已跳过');
+                    continue;
+                  }
+                  fields.push({
+                    id: 'f-' + Date.now() + '-' + j + '-' + k + '-' + i,
+                    name: String(df.name || fname),
+                    type: df.type || 'uint16',
+                    byteOrder: df.byteOrder || p.byteOrder || 'BE',
+                    scale: Number(df.scale) || 1,
+                    unit: String(df.unit || ''),
+                    format: String(df.format || '0'),
+                    byteOffset: 0,
+                    byteLen: NS._v1TypeToByteLen(df.type || 'uint16')
+                  });
+                }
+                profile.commands.push({
+                  id: 'cmd-' + Date.now() + '-' + j + '-' + i + '-' + Math.random().toString(36).slice(2, 6),
+                  name: String(c.name || ('cmd-' + j)),
+                  cmdCode: c.id || 0x00,
+                  ackCmd: c.expectResponse ? ('cmd-resp-' + c.expectResponse) : null,
+                  timeoutMs: 30000,
+                  retryCount: 3,
+                  trigger: {
+                    mode: (c.cadence && c.cadence > 0) ? 'periodic' : 'manual',
+                    periodMs: c.cadence || 0,
+                    manualHotkey: 'F5',
+                    onConnect: false
+                  },
+                  direction: c.direction || 'rx',
+                  frameType: c.frameType || 'query',
+                  fields: fields,
+                  dashboardBindings: []
+                });
+              }
+            }
+            profiles.push(profile);
+          }
+
+          // 4. 写入 v2
+          prefs.version = 2;
+          prefs._migrated = 'v1-to-v2';
+          prefs.profiles = profiles;
+          // 保留 v1 字段供老代码读 (activeProtoId/protocols/dataFields/commands 暂不删,v5 砍)
+          if (oldActiveId) {
+            const newActive = profiles.find(function (p) { return p.name === sources.find(function (s) { return s.id === oldActiveId; }).name; }) || profiles[0];
+            if (newActive) prefs.activeProfileId = newActive.id;
+          } else if (profiles[0]) {
+            prefs.activeProfileId = profiles[0].id;
+          }
+          // 同步到运行时 (如果 NS 已有值)
+          if (typeof NS !== 'undefined' && NS) {
+            NS.PROFILES = profiles;  // 走 setter
+            if (prefs.activeProfileId) {
+              NS.activeProfileId = prefs.activeProfileId;  // 走 setter
+            }
+          }
+
+          return {
+            migrated: true,
+            count: profiles.length,
+            warnings: warnings
+          };
+        };
+
+        // 辅助: v1 帧字段 → v2 数据字段 (兜底用)
+        NS._v1FrameFieldsToDataFields = function (v1Fields) {
+          if (!Array.isArray(v1Fields)) return [];
+          return v1Fields
+            .filter(function (f) { return f && f.type === 'data'; })
+            .map(function (f, i) {
+              return {
+                id: 'f-' + Date.now() + '-fb-' + i,
+                name: String(f.name || ('field-' + i)),
+                type: 'uint16',
+                byteOrder: f.byteOrder || 'BE',
+                scale: 1,
+                unit: '',
+                format: '0',
+                byteOffset: 0,
+                byteLen: 2
+              };
+            });
+        };
+
+        // 辅助: v1 type 字符串 → 字节数
+        NS._v1TypeToByteLen = function (type) {
+          const map = { u8: 1, i8: 1, u16: 2, i16: 2, u32: 4, i32: 4, float: 4, double: 8, int8: 1, int16: 2, int32: 4, uint8: 1, uint16: 2, uint32: 4, float32: 4 };
+          return map[type] || 2;
+        };
+
+        // --- 兼容性 getter (v1 字段名读访问) ---
+        NS._getProfileFields = function (profile) {
+          if (!profile) return [];
+          if (Array.isArray(profile.commands) && profile.commands[0] && Array.isArray(profile.commands[0].fields)) {
+            return profile.commands[0].fields;
+          }
+          return NS._v1FrameFieldsToDataFields(profile.fields);
+        };
+        NS._getCmdDataFieldNames = function (cmd) {
+          if (!cmd) return [];
+          if (Array.isArray(cmd.fields)) return cmd.fields.map(function (f) { return f.name; });
+          return Array.isArray(cmd.dataFields) ? cmd.dataFields : [];
+        };
+
+        // === v4.9 C1 段结束 ===========================================
 
         // --- Modal 控制 ---
         NS.openModal = function (name) {
@@ -19955,6 +20468,58 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         if (!snapshot) return;
         restoringLocalPrefs = true;
         try {
+          // v4.9 C1: 启动时 v1 → v2 迁移检测
+          if (snapshot._migrated !== 'v1-to-v2' && snapshot.version !== 2) {
+            if (typeof NS !== 'undefined' && NS && typeof NS._migrateV1ToV2 === 'function') {
+              try {
+                const result = NS._migrateV1ToV2(snapshot);
+                if (result && result.migrated && result.count > 0) {
+                  // 标记一次性 toast (NS.toast 在 line 13337 已定义,可能在 NS 后初始化,延迟调)
+                  if (typeof NS.toast === 'function') {
+                    const warnSuffix = (result.warnings && result.warnings.length > 0) ? ' (有 ' + result.warnings.length + ' 个警告,见操作历史)' : '';
+                    NS.toast('配置已自动升级到 v2(迁移了 ' + result.count + ' 个方案)' + warnSuffix, 'info', 5000);
+                  } else {
+                    window.__v49MigrationPendingToast = { count: result.count, warnings: result.warnings || [] };
+                  }
+                }
+              } catch (e) {
+                console.warn('[v4.9] 启动时 v1→v2 迁移失败', e);
+              }
+            }
+          }
+
+          // v4.9 C1: 加载 v2 profiles / 4 个新存储到 NS (走 setter / 直接赋值)
+          if (typeof NS !== 'undefined' && NS) {
+            if (Array.isArray(snapshot.profiles) && snapshot.profiles.length > 0) {
+              try { NS.PROFILES = snapshot.profiles; } catch (e) { console.warn('[v4.9] 加载 profiles 失败', e); }
+            }
+            if (snapshot.activeProfileId) {
+              try { NS.activeProfileId = snapshot.activeProfileId; } catch (e) { console.warn('[v4.9] 加载 activeProfileId 失败', e); }
+            }
+            // 4 个新存储
+            if (!NS._PROFILES_meta) NS._PROFILES_meta = { operationHistory: [], fieldPresets: [], importHistory: [], recycleBin: [] };
+            if (Array.isArray(snapshot.operationHistory)) NS._PROFILES_meta.operationHistory = snapshot.operationHistory;
+            if (Array.isArray(snapshot.fieldPresets)) NS._PROFILES_meta.fieldPresets = snapshot.fieldPresets;
+            if (Array.isArray(snapshot.importHistory)) NS._PROFILES_meta.importHistory = snapshot.importHistory;
+            if (Array.isArray(snapshot.recycleBin)) NS._PROFILES_meta.recycleBin = snapshot.recycleBin;
+            // 加载 v1 兼容字段 (供老代码读)
+            if (Array.isArray(snapshot.protocols) && snapshot.protocols.length > 0 && (!Array.isArray(NS.PROTOCOLS) || NS.PROTOCOLS.length === 0)) {
+              try { NS.PROTOCOLS = snapshot.protocols; } catch (e) {}
+            }
+            if (snapshot.activeProtoId && !NS.activeProtoId) {
+              try { NS.activeProtoId = snapshot.activeProtoId; } catch (e) {}
+            }
+            if (Array.isArray(snapshot.dataFields) && snapshot.dataFields.length > 0 && (!Array.isArray(NS.DATA_FIELDS) || NS.DATA_FIELDS.length === 0)) {
+              NS.DATA_FIELDS = snapshot.dataFields;
+            }
+            if (Array.isArray(snapshot.commands) && snapshot.commands.length > 0 && (!Array.isArray(NS.COMMANDS) || NS.COMMANDS.length === 0)) {
+              NS.COMMANDS = snapshot.commands;
+            }
+            if (Array.isArray(snapshot.cards) && snapshot.cards.length > 0 && (!Array.isArray(NS.CARDS) || NS.CARDS.length === 0)) {
+              NS.CARDS = snapshot.cards;
+            }
+          }
+
           state.theme = (snapshot.theme === 'system' || snapshot.theme === 'dark' || snapshot.theme === 'light') ? snapshot.theme : state.theme;
           state.layoutExpanded = Boolean(snapshot.layout?.expanded);
           state.ui.sidebarCollapsed = Boolean(snapshot.layout?.sidebarCollapsed);
@@ -20168,8 +20733,31 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         captureSettingsInputsFromRefs();
         captureSendContentInputsFromRefs();
         captureReceiveContentInputsFromRefs();
+        // v4.9 C1: 拿 v2 数据 (兜底空值,避免 NS 未初始化时崩)
+        const v2Profiles = (typeof NS !== 'undefined' && NS && Array.isArray(NS.PROFILES)) ? NS.PROFILES : [];
+        const v2ActiveId = (typeof NS !== 'undefined' && NS) ? (NS.activeProfileId || null) : null;
+        const meta = (typeof NS !== 'undefined' && NS && NS._PROFILES_meta) ? NS._PROFILES_meta : {
+          operationHistory: [], fieldPresets: [], importHistory: [], recycleBin: []
+        };
         return {
           appVersion: VERSION,
+          // v4.9 C1: v2 数据模型
+          version: 2,
+          _migrated: (typeof NS !== 'undefined' && NS && NS._PROFILES_meta) ? (NS._PROFILES_meta._migrated || null) : null,
+          profiles: v2Profiles,
+          activeProfileId: v2ActiveId,
+          // v4.9 C1: 4 个新存储 (Q4 锁定:不存大字节)
+          operationHistory: meta.operationHistory || [],
+          fieldPresets: meta.fieldPresets || [],
+          importHistory: meta.importHistory || [],
+          recycleBin: meta.recycleBin || [],
+          // v4.9 C1: 保留 v1 字段供老代码读 (NS.PROTOCOLS / NS.activeProtoId / DATA_FIELDS / COMMANDS 同步)
+          protocols: (typeof NS !== 'undefined' && NS && Array.isArray(NS.PROTOCOLS)) ? NS.PROTOCOLS : [],
+          activeProtoId: (typeof NS !== 'undefined' && NS) ? (NS.activeProtoId || null) : null,
+          dataFields: (typeof NS !== 'undefined' && NS && Array.isArray(NS.DATA_FIELDS)) ? NS.DATA_FIELDS : [],
+          commands: (typeof NS !== 'undefined' && NS && Array.isArray(NS.COMMANDS)) ? NS.COMMANDS : [],
+          cards: (typeof NS !== 'undefined' && NS && Array.isArray(NS.CARDS)) ? NS.CARDS : [],
+          // 原有字段
           receiveContentSchemaVersion: RECEIVE_CONTENT_SCHEMA_VERSION,
           savedAt: Date.now(),
           theme: state.theme,
@@ -20246,6 +20834,11 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           persistLocalPrefsNow();
         }, LOCAL_PREFS_DEBOUNCE_MS);
       }
+
+      // v4.9 C1: 暴露 scheduleLocalPrefsSave 给 NS._schedulePersist 调用
+      // 任何 NS 上的 helper (_recordOperation / _addFieldPreset / _addToRecycleBin)
+      // 修改 _PROFILES_meta 后调 NS._schedulePersist() 会走到这里
+      window.__serialWebSchedulePersist = scheduleLocalPrefsSave;
 
       function shouldPersistAfterEvent(event) {
         const target = event.target;
