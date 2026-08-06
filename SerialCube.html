@@ -7129,6 +7129,9 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-inp:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
 .v49-inp.wfull { width: 100%; }
 .v49-inp.mono { font-family: var(--font-mono); }
+.v49-inp.short { width: 80px; }
+/* diff col 内 input 紧凑 (沿用 2px 6px 旧版风格) */
+.v49-diff-col .v49-inp { padding: 2px 6px; font-size: 12px; }
 
     /* tbl - 表格 */
 .v49-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -7271,6 +7274,10 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-form-label { display: block; font-size: 12px; color: var(--text-soft); margin-bottom: 4px; font-weight: 500; }
 .v49-form-row { display: flex; gap: 8px; align-items: center; }
 .v49-form-row .v49-form-label { margin-bottom: 0; flex-shrink: 0; min-width: 80px; }
+
+    /* edit-profile (编辑方案 diff 视图) */
+.v49-edit-impact-list { max-height: 200px; overflow-y: auto; }
+.v49-edit-impact-empty { color: var(--text-soft); font-size: 11px; padding: 4px 0; }
 
     /* export (导出配置 modal) */
 .v49-export-cmd-list { max-height: 80px; overflow-y: auto; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 4px; padding: 4px; }
@@ -15225,41 +15232,43 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           const commands = profile.commands || [];
           const body = [
             // diff 视图
-            '<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:stretch;background:var(--card);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;">',
-            '  <div style="padding:10px 12px;font-size:12px;line-height:1.6;background:#fafbfc;border-right:1px solid var(--border);">',
-            '    <div style="font-size:10.5px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">原值</div>',
+            '<div class="v49-diff">',
+            '  <div class="v49-diff-col before">',
+            '    <h5>原值</h5>',
             '    <div>名称: <b>' + NS.escapeHtml(backup.name) + '</b></div>',
             '    <div>Kind: ' + NS.escapeHtml(backup.kind || '—') + '</div>',
             '    <div>CRC: ' + (backup.crc ? (backup.crc.algorithm + ' ' + backup.crc.initValue + ' ' + backup.crc.byteOrder) : '—') + '</div>',
-            '    <div>标签: ' + ((backup.tags || []).map(function (t) { return '<span style="background:var(--tag-bg);padding:1px 6px;border-radius:3px;font-size:11px;">' + NS.escapeHtml(t) + '</span>'; }).join(' ') || '—') + '</div>',
+            '    <div>标签: ' + ((backup.tags || []).map(function (t) { return '<span class="v49-tag">' + NS.escapeHtml(t) + '</span>'; }).join(' ') || '—') + '</div>',
             '  </div>',
-            '  <div style="display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--primary);">',
+            '  <div class="v49-diff-arrow">',
             '    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 8h10M9.5 4.5L13 8l-3.5 3.5"/></svg>',
             '  </div>',
-            '  <div style="padding:10px 12px;font-size:12px;line-height:1.6;">',
-            '    <div style="font-size:10.5px;font-weight:600;color:var(--success);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">新值 (编辑)</div>',
-            '    <div>名称: <input class="inp" id="v49-edit-name" value="' + NS.escapeHtml(profile.name) + '" style="width:100%;font-size:12px;padding:2px 6px;"></div>',
-            '    <div>Kind: <select class="inp" id="v49-edit-kind" style="font-size:12px;padding:2px 6px;">' + kindOpts + '</select></div>',
-            '    <div>CRC: <select class="inp" id="v49-edit-crc-algo" style="font-size:12px;padding:2px 6px;">' + crcOpts + '</select> <input class="inp mono" id="v49-edit-crc-init" value="' + NS.escapeHtml(crc.initValue) + '" style="width:80px;font-size:12px;padding:2px 6px;"> <select class="inp" id="v49-edit-crc-endian" style="font-size:12px;padding:2px 6px;"><option value="LE" ' + (crc.byteOrder === 'LE' ? 'selected' : '') + '>LE</option><option value="BE" ' + (crc.byteOrder === 'BE' ? 'selected' : '') + '>BE</option></select></div>',
-            '    <div>标签: <input class="inp" id="v49-edit-tags" value="' + NS.escapeHtml((profile.tags || []).join(',')) + '" placeholder="逗号分隔" style="width:100%;font-size:12px;padding:2px 6px;"></div>',
+            '  <div class="v49-diff-col after">',
+            '    <h5>新值 (编辑)</h5>',
+            '    <div>名称: <input class="v49-inp wfull" id="v49-edit-name" value="' + NS.escapeHtml(profile.name) + '"></div>',
+            '    <div>Kind: <select class="v49-inp" id="v49-edit-kind">' + kindOpts + '</select></div>',
+            '    <div>CRC: <select class="v49-inp" id="v49-edit-crc-algo">' + crcOpts + '</select> <input class="v49-inp mono short" id="v49-edit-crc-init" value="' + NS.escapeHtml(crc.initValue) + '"> <select class="v49-inp" id="v49-edit-crc-endian"><option value="LE" ' + (crc.byteOrder === 'LE' ? 'selected' : '') + '>LE</option><option value="BE" ' + (crc.byteOrder === 'BE' ? 'selected' : '') + '>BE</option></select></div>',
+            '    <div>标签: <input class="v49-inp wfull" id="v49-edit-tags" value="' + NS.escapeHtml((profile.tags || []).join(',')) + '" placeholder="逗号分隔"></div>',
             '  </div>',
             '</div>',
             // 影响列表
-            '<div style="background:var(--warn-soft);border:1px solid #fde68a;border-radius:6px;padding:10px 12px;font-size:12px;margin-bottom:12px;">',
-            '  <div style="font-weight:600;color:#92400e;margin-bottom:6px;">⚠ 影响 ' + commands.length + ' 个命令:</div>',
-            commands.length > 0 ? commands.map(function (c) {
-              return '<div style="padding:3px 0;display:flex;gap:6px;align-items:center;">' +
-                '<span style="background:var(--card);padding:1px 6px;border-radius:3px;font-size:11px;">0x' + (typeof c.cmdCode === 'number' ? c.cmdCode.toString(16).padStart(2, '0').toUpperCase() : '??') + '</span>' +
-                '<span>' + NS.escapeHtml(c.name || '未命名') + ' <span style="color:var(--text-3);font-size:11px;">' + ((c.fields || []).length) + ' 字段</span></span>' +
+            '<div class="v49-alert warn">',
+            '  <div class="v49-alert-title">⚠ 影响 ' + commands.length + ' 个命令</div>',
+            commands.length > 0 ? '<div class="v49-list v49-edit-impact-list">' + commands.map(function (c) {
+              return '<div class="v49-list-item v49-edit-impact-item">' +
+                '<span class="v49-tag">0x' + (typeof c.cmdCode === 'number' ? c.cmdCode.toString(16).padStart(2, '0').toUpperCase() : '??') + '</span>' +
+                '<span class="main">' + NS.escapeHtml(c.name || '未命名') + ' <span class="v49-tbl-sub">' + ((c.fields || []).length) + ' 字段</span></span>' +
                 '</div>';
-            }).join('') : '<div style="color:var(--text-3);font-size:11px;">无命令</div>',
+            }).join('') + '</div>' : '<div class="v49-edit-impact-empty">无命令</div>',
             '</div>',
-            // 警告
-            '<div style="background:#fafbfc;border:1px dashed var(--border-strong);border-radius:6px;padding:8px 12px;font-size:11.5px;color:var(--text-2);margin-bottom:12px;">',
-            '  <div style="font-weight:600;margin-bottom:4px;">⚠ 提示:</div>',
-            '  <div>• 改 kind 影响所有命令的帧布局</div>',
-            '  <div>• 改 CRC 算法/起始值影响所有命令的校验字节</div>',
-            '  <div>• 改 name/标签 不影响命令</div>',
+            // 提示
+            '<div class="v49-alert info">',
+            '  <div class="v49-alert-title">⚠ 提示</div>',
+            '  <ul>',
+            '    <li>改 kind 影响所有命令的帧布局</li>',
+            '    <li>改 CRC 算法/起始值影响所有命令的校验字节</li>',
+            '    <li>改 name/标签 不影响命令</li>',
+            '  </ul>',
             '</div>'
           ].join('');
           const footer = [
