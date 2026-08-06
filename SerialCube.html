@@ -7171,6 +7171,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-alert { padding: 10px 14px; font-size: 12px; border-radius: 6px; margin-bottom: 12px; border: 1px solid; }
 .v49-alert.warn { background: rgba(217, 119, 6, 0.06); border-color: rgba(217, 119, 6, 0.30); color: var(--text); }
 .v49-alert.warn .v49-alert-title { color: var(--warning); }
+.v49-alert.danger { background: rgba(224, 87, 94, 0.06); border-color: rgba(224, 87, 94, 0.30); color: var(--text); }
+.v49-alert.danger .v49-alert-title { color: var(--danger); }
 .v49-alert.info { background: var(--bg-subtle); border-color: var(--border-strong); border-style: dashed; color: var(--text); }
 .v49-alert-title { font-weight: 600; margin-bottom: 4px; }
 .v49-alert ul { margin: 4px 0 0; padding-left: 18px; }
@@ -7269,6 +7271,36 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-form-label { display: block; font-size: 12px; color: var(--text-soft); margin-bottom: 4px; font-weight: 500; }
 .v49-form-row { display: flex; gap: 8px; align-items: center; }
 .v49-form-row .v49-form-label { margin-bottom: 0; flex-shrink: 0; min-width: 80px; }
+
+    /* import (3 步导入配置 modal) */
+.v49-import-step-progress { display: flex; gap: 4px; margin-bottom: 12px; font-size: 11.5px; }
+.v49-import-step { flex: 1; padding: 6px 10px; border-radius: 4px; text-align: center; background: var(--bg-elevated); color: var(--text-soft); border: 1px solid var(--border); transition: background 0.15s, color 0.15s, border-color 0.15s; }
+.v49-import-step.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 500; }
+.v49-import-step.done { background: var(--bg-elevated); color: #16a34a; border-color: rgba(34, 197, 94, 0.40); }
+.v49-import-step-header { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 12px; color: var(--text); }
+.v49-import-step-header b { color: var(--accent); }
+.v49-import-file-input { font-size: 12px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-elevated); width: 100%; box-sizing: border-box; }
+.v49-import-dropzone { border: 2px dashed var(--border-strong); border-radius: 8px; padding: 24px; text-align: center; color: var(--text-soft); font-size: 12px; background: var(--bg-subtle); transition: background 0.15s, border-color 0.15s; }
+.v49-import-dropzone.drag-over { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.v49-import-paste { width: 100%; height: 80px; font-family: var(--font-mono); font-size: 11.5px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-elevated); resize: vertical; box-sizing: border-box; }
+.v49-import-summary { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 11.5px; }
+.v49-import-profile-list { max-height: 200px; overflow-y: auto; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 4px; padding: 6px; }
+.v49-import-profile-list.tall { max-height: 300px; }
+.v49-import-profile-item { padding: 4px 6px; font-size: 12px; }
+.v49-import-profile-item.empty { color: var(--text-soft); text-align: center; padding: 10px; }
+.v49-import-actions { display: flex; gap: 6px; margin-top: 10px; align-items: center; }
+.v49-import-actions .right { margin-left: auto; }
+.v49-import-conflict-row { padding: 6px 8px; border-bottom: 1px dashed var(--border); }
+.v49-import-conflict-row.unselected { opacity: 0.4; }
+.v49-import-conflict-label { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; }
+.v49-import-conflict-name { flex: 1; }
+.v49-import-radio-group { margin-top: 4px; margin-left: 20px; display: flex; gap: 5px; flex-wrap: wrap; font-size: 11px; }
+.v49-import-radio { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border: 1px solid var(--border); border-radius: 3px; cursor: pointer; background: var(--bg-elevated); transition: background 0.12s, border-color 0.12s, color 0.12s; }
+.v49-import-radio.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.v49-import-backup-cb { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 8px 10px; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 8px; cursor: pointer; }
+.v49-import-to-import { max-height: 120px; overflow-y: auto; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 4px; padding: 6px; margin-bottom: 10px; }
+.v49-import-to-import-item { padding: 3px 6px; font-size: 11.5px; }
+.v49-import-to-import-item .label { color: var(--text-soft); }
 
     /* list-row (列表行 - 方案/历史/回收站复用) */
 .v49-list { display: flex; flex-direction: column; gap: 8px; }
@@ -17016,29 +17048,32 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           function renderStep1() {
             if (parseError) {
               return [
-                '<div style="background:var(--danger-soft);color:var(--danger);padding:12px;border-radius:6px;font-size:12px;">',
-                '  <b>解析失败:</b> ' + NS.escapeHtml(parseError.message || parseError.error || '未知错误'),
+                '<div class="v49-alert danger">',
+                '  <div class="v49-alert-title">解析失败</div>',
+                '  ' + NS.escapeHtml(parseError.message || parseError.error || '未知错误'),
                 '</div>',
-                '<div style="margin-top:10px;display:flex;gap:6px;">',
-                '  <button class="v49-btn-sm" id="v49-import-retry" style="padding:4px 12px;background:var(--card);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">↻ 重试</button>',
+                '<div class="v49-import-actions">',
+                '  <button class="v49-btn ghost" id="v49-import-retry">↻ 重试</button>',
                 '</div>'
               ].join('');
             }
             if (!parsedJson) {
               return [
-                '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:10px;font-size:12px;">',
-                '  <b>第 1 步:选择文件</b> — 支持 v1 (老版 SerialCube) 和 v2 (v4.9+) JSON 配置。',
+                '<div class="v49-import-step-header"><b>第 1 步:选择文件</b> — 支持 v1 (老版 SerialCube) 和 v2 (v4.9+) JSON 配置。</div>',
+                '<div class="v49-form-field">',
+                '  <input type="file" id="v49-import-file" class="v49-import-file-input" accept=".json,application/json">',
                 '</div>',
-                '<div style="display:flex;flex-direction:column;gap:10px;">',
-                '  <input type="file" id="v49-import-file" accept=".json,application/json" style="font-size:12px;padding:6px;border:1px solid var(--border);border-radius:4px;background:var(--card);">',
-                '  <div style="font-size:11.5px;color:var(--text-3);">或拖拽 JSON 到此区域:</div>',
-                '  <div id="v49-import-drop" style="border:2px dashed var(--border-strong);border-radius:8px;padding:24px;text-align:center;color:var(--text-3);font-size:12px;background:#fafbfc;">⬇ 拖拽文件到此处</div>',
-                '  <div style="font-size:11.5px;color:var(--text-3);">或粘贴 JSON 内容:</div>',
-                '  <textarea id="v49-import-paste" placeholder="{\\"type\\": \\"SerialWebUserConfig\\", ..." style="width:100%;height:80px;font-family:var(--mono);font-size:11.5px;padding:6px;border:1px solid var(--border);border-radius:4px;background:var(--card);resize:vertical;box-sizing:border-box;"></textarea>',
-                '  <div style="display:flex;gap:6px;">',
-                '    <button class="v49-btn-sm" id="v49-import-parse" style="padding:4px 14px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;">解析</button>',
-                '    <button class="v49-btn-sm" id="v49-import-sample" style="padding:4px 14px;background:var(--card);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">载入示例</button>',
-                '  </div>',
+                '<div class="v49-form-field">',
+                '  <div class="v49-form-label">或拖拽 JSON 到此区域:</div>',
+                '  <div id="v49-import-drop" class="v49-import-dropzone">⬇ 拖拽文件到此处</div>',
+                '</div>',
+                '<div class="v49-form-field">',
+                '  <div class="v49-form-label">或粘贴 JSON 内容:</div>',
+                '  <textarea id="v49-import-paste" class="v49-import-paste" placeholder="{\\"type\\": \\"SerialWebUserConfig\\", ..."></textarea>',
+                '</div>',
+                '<div class="v49-import-actions">',
+                '  <button class="v49-btn primary" id="v49-import-parse">解析</button>',
+                '  <button class="v49-btn ghost" id="v49-import-sample">载入示例</button>',
                 '</div>'
               ].join('');
             }
@@ -17047,18 +17082,18 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             const totalCommands = profiles.reduce(function (s, p) { return s + (p.commands || []).length; }, 0);
             const totalFields = profiles.reduce(function (s, p) { return (p.commands || []).reduce(function (s2, c) { return s2 + (c.fields || []).length; }, 0) + s; }, 0);
             return [
-              '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px;font-size:11.5px;">',
+              '<div class="v49-import-summary">',
               '  <b>文件:</b> ' + NS.escapeHtml(filename) + ' · <b>格式:</b> v' + parsedVersion + ' ' + (parsedVersion === 1 ? '(将自动迁移到 v2)' : '(直接读取)') + ' · <b>方案:</b> ' + profiles.length + ' · <b>命令:</b> ' + totalCommands + ' · <b>字段:</b> ' + totalFields,
               '</div>',
-              '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:4px;">将导入的方案:</div>',
-              '<div style="max-height:200px;overflow-y:auto;background:#fafbfc;border:1px solid var(--border);border-radius:4px;padding:6px;">',
+              '<div class="v49-form-label">将导入的方案:</div>',
+              '<div class="v49-import-profile-list">',
               profiles.length > 0 ? profiles.map(function (p) {
-                return '<div style="padding:4px 6px;font-size:12px;"><b>' + NS.escapeHtml(p.name || '(无名)') + '</b> · ' + (p.kind || 'fixed-header') + ' · ' + (p.commands || []).length + ' 命令</div>';
-              }).join('') : '<div style="color:var(--text-3);font-size:12px;text-align:center;padding:10px;">文件中没有方案</div>',
+                return '<div class="v49-import-profile-item"><b>' + NS.escapeHtml(p.name || '(无名)') + '</b> · ' + (p.kind || 'fixed-header') + ' · ' + (p.commands || []).length + ' 命令</div>';
+              }).join('') : '<div class="v49-import-profile-item empty">文件中没有方案</div>',
               '</div>',
-              '<div style="margin-top:10px;display:flex;gap:6px;">',
-              '  <button class="v49-btn-sm" id="v49-import-retry" style="padding:4px 12px;background:var(--card);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">↻ 选其他文件</button>',
-              '  <button class="v49-btn-sm" id="v49-import-next" style="padding:4px 14px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;margin-left:auto;">下一步: 冲突处理 →</button>',
+              '<div class="v49-import-actions">',
+              '  <button class="v49-btn ghost" id="v49-import-retry">↻ 选其他文件</button>',
+              '  <button class="v49-btn primary right" id="v49-import-next">下一步: 冲突处理 →</button>',
               '</div>'
             ].join('');
           }
@@ -17076,30 +17111,28 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 if (!conflictResolutions[p.name]) conflictResolutions[p.name] = 'rename';
               });
             }
-            let html = '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px;font-size:11.5px;">';
-            html += '<b>第 2 步:冲突处理</b> — 勾选要导入的方案,重名选处理方式。';
-            html += '</div>';
+            let html = '<div class="v49-import-step-header"><b>第 2 步:冲突处理</b> — 勾选要导入的方案,重名选处理方式。</div>';
             // 潜在问题列表
             if (conflicts.length > 0) {
-              html += '<div style="background:var(--warn-soft);color:var(--warn);padding:8px 10px;border-radius:4px;margin-bottom:8px;font-size:11.5px;">⚠ 检测到 ' + conflicts.length + ' 个重名方案</div>';
+              html += '<div class="v49-alert warn"><div class="v49-alert-title">⚠ 检测到 ' + conflicts.length + ' 个重名方案</div>请选择重名处理方式:合并 / 替换 / 重命名 / 跳过。</div>';
             }
             // 方案列表 + 重名处理
             if (profiles.length > 0) {
-              html += '<div style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;padding:6px;">';
+              html += '<div class="v49-import-profile-list tall">';
               profiles.forEach(function (p) {
                 const isConflict = conflicts.indexOf(p) >= 0;
                 const isSelected = selectedProfileNames.indexOf(p.name) >= 0;
                 const action = conflictResolutions[p.name] || 'rename';
-                html += '<div style="padding:6px 8px;border-bottom:1px dashed var(--border);' + (isSelected ? '' : 'opacity:0.4;') + '">';
-                html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;">';
+                html += '<div class="v49-import-conflict-row' + (isSelected ? '' : ' unselected') + '">';
+                html += '<label class="v49-import-conflict-label">';
                 html += '<input type="checkbox" class="v49-import-cb" value="' + NS.escapeHtml(p.name) + '" ' + (isSelected ? 'checked' : '') + '>';
-                html += '<span style="flex:1;"><b>' + NS.escapeHtml(p.name) + '</b> ' + (isConflict ? '<span style="color:var(--warn);font-size:11px;">(重名)</span>' : '<span style="color:var(--success);font-size:11px;">(无冲突)</span>') + ' · ' + (p.kind || 'fixed-header') + ' · ' + (p.commands || []).length + ' 命令</span>';
+                html += '<span class="v49-import-conflict-name"><b>' + NS.escapeHtml(p.name) + '</b> ' + (isConflict ? '<span class="v49-tag warn dot">(重名)</span>' : '<span class="v49-tag success dot">(无冲突)</span>') + ' · ' + (p.kind || 'fixed-header') + ' · ' + (p.commands || []).length + ' 命令</span>';
                 html += '</label>';
                 if (isConflict) {
-                  html += '<div style="margin-top:4px;margin-left:20px;display:flex;gap:5px;flex-wrap:wrap;font-size:11px;">';
+                  html += '<div class="v49-import-radio-group">';
                   ['merge', 'replace', 'rename', 'skip'].forEach(function (act) {
                     const labels = { merge: '合并命令', replace: '替换方案', rename: '重命名', skip: '跳过' };
-                    html += '<label style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:' + (action === act ? 'var(--primary-soft)' : 'var(--card)') + ';">';
+                    html += '<label class="v49-import-radio' + (action === act ? ' active' : '') + '">';
                     html += '<input type="radio" name="v49-import-conflict-' + NS.escapeHtml(p.name) + '" value="' + act + '" ' + (action === act ? 'checked' : '') + '>' + labels[act];
                     html += '</label>';
                   });
@@ -17109,45 +17142,45 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               });
               html += '</div>';
             }
-            html += '<div style="margin-top:10px;display:flex;gap:6px;">';
-            html += '  <button class="v49-btn-sm" id="v49-import-back" style="padding:4px 12px;background:var(--card);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">← 上一步</button>';
-            html += '  <button class="v49-btn-sm" id="v49-import-next2" style="padding:4px 14px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;margin-left:auto;">下一步: 备份 + 写入 →</button>';
+            html += '<div class="v49-import-actions">';
+            html += '  <button class="v49-btn ghost" id="v49-import-back">← 上一步</button>';
+            html += '  <button class="v49-btn primary right" id="v49-import-next2">下一步: 备份 + 写入 →</button>';
             html += '</div>';
             return html;
           }
 
           function renderStep3() {
-            let html = '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px;font-size:11.5px;">';
-            html += '<b>第 3 步:备份 + 写入</b> — 确认后立即应用。建议先备份。';
-            html += '</div>';
-            html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;padding:8px;background:#fafbfc;border:1px solid var(--border);border-radius:4px;margin-bottom:8px;cursor:pointer;">';
+            let html = '<div class="v49-import-step-header"><b>第 3 步:备份 + 写入</b> — 确认后立即应用。建议先备份。</div>';
+            html += '<label class="v49-import-backup-cb">';
             html += '<input type="checkbox" id="v49-import-backup-cb" checked> <b>导入前先备份当前配置到操作历史</b> (默认勾, 可恢复)';
             html += '</label>';
             // 待导入清单
             const profiles = getImportedProfiles();
             const toImport = profiles.filter(function (p) { return selectedProfileNames.indexOf(p.name) >= 0; });
-            html += '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:4px;">将导入 (' + toImport.length + ' 个):</div>';
-            html += '<div style="max-height:120px;overflow-y:auto;background:#fafbfc;border:1px solid var(--border);border-radius:4px;padding:6px;margin-bottom:10px;">';
+            html += '<div class="v49-form-label">将导入 (' + toImport.length + ' 个):</div>';
+            html += '<div class="v49-import-to-import">';
             toImport.forEach(function (p) {
               const action = conflictResolutions[p.name];
               const actionLabel = action ? { merge: '合并', replace: '替换', rename: '重命名 (' + p.name + ' → ' + p.name + '_imported)', skip: '跳过' }[action] : '新增';
-              html += '<div style="padding:3px 6px;font-size:11.5px;"><b>' + NS.escapeHtml(p.name) + '</b> · <span style="color:var(--text-3);">' + actionLabel + '</span> · ' + (p.commands || []).length + ' 命令</div>';
+              html += '<div class="v49-import-to-import-item"><b>' + NS.escapeHtml(p.name) + '</b> · <span class="label">' + actionLabel + '</span> · ' + (p.commands || []).length + ' 命令</div>';
             });
             html += '</div>';
-            html += '<div style="display:flex;gap:6px;">';
-            html += '  <button class="v49-btn-sm" id="v49-import-back2" style="padding:4px 12px;background:var(--card);border:1px solid var(--border-strong);border-radius:4px;font-size:12px;cursor:pointer;">← 上一步</button>';
-            html += '  <button class="v49-btn-sm" id="v49-import-apply" style="padding:4px 16px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;margin-left:auto;">✓ 确认导入</button>';
+            html += '<div class="v49-import-actions">';
+            html += '  <button class="v49-btn ghost" id="v49-import-back2">← 上一步</button>';
+            html += '  <button class="v49-btn primary right" id="v49-import-apply">✓ 确认导入</button>';
             html += '</div>';
             return html;
           }
 
           function renderBody() {
             let stepHtml = '';
-            const stepIndicator = '<div style="display:flex;gap:4px;margin-bottom:12px;font-size:11.5px;">' +
+            const stepIndicator = '<div class="v49-import-step-progress">' +
               ['1 解析', '2 冲突', '3 备份+写入'].map(function (label, i) {
                 const idx = i + 1;
-                const isActive = idx === step;
-                return '<div style="flex:1;padding:5px 8px;border-radius:4px;text-align:center;background:' + (isActive ? 'var(--primary)' : 'var(--card)') + ';color:' + (isActive ? '#fff' : 'var(--text-2)') + ';border:1px solid ' + (isActive ? 'var(--primary)' : 'var(--border)') + ';">' + (isActive ? '● ' : '') + label + '</div>';
+                let cls = 'v49-import-step';
+                if (idx < step) cls += ' done';
+                else if (idx === step) cls += ' active';
+                return '<div class="' + cls + '">' + (idx === step ? '● ' : '') + label + '</div>';
               }).join('') + '</div>';
             if (step === 1) stepHtml = renderStep1();
             else if (step === 2) stepHtml = renderStep2();
@@ -17179,11 +17212,11 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               }
               const dropZone = document.getElementById('v49-import-drop');
               if (dropZone) {
-                dropZone.ondragover = function (e) { e.preventDefault(); dropZone.style.background = 'var(--primary-soft)'; };
-                dropZone.ondragleave = function () { dropZone.style.background = '#fafbfc'; };
+                dropZone.ondragover = function (e) { e.preventDefault(); dropZone.classList.add('drag-over'); };
+                dropZone.ondragleave = function () { dropZone.classList.remove('drag-over'); };
                 dropZone.ondrop = function (e) {
                   e.preventDefault();
-                  dropZone.style.background = '#fafbfc';
+                  dropZone.classList.remove('drag-over');
                   const f = e.dataTransfer.files && e.dataTransfer.files[0];
                   if (!f) return;
                   filename = f.name;
