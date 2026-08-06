@@ -6835,8 +6835,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .dashboard-host     .v49-search input::placeholder { color: var(--text-3); }
 .dashboard-host     .v49-search input:focus {
       outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 2px var(--primary-soft);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-soft);
     }
 .dashboard-host     .v49-search .v49-search-kbd {
       position: absolute;
@@ -6883,13 +6883,13 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       border-color: var(--border-strong);
     }
 .dashboard-host     .v49-btn.primary {
-      background: var(--primary);
+      background: var(--accent);
       color: #fff;
-      border-color: var(--primary);
+      border-color: var(--accent);
     }
 .dashboard-host     .v49-btn.primary:hover {
       filter: brightness(1.06);
-      border-color: var(--primary);
+      border-color: var(--accent);
     }
 .dashboard-host     .v49-btn.sm {
       height: 24px;
@@ -6920,9 +6920,9 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .dashboard-host     .v49-chip .num { opacity: 0.75; font-size: 10.5px; }
 .dashboard-host     .v49-chip:hover { border-color: var(--primary); }
 .dashboard-host     .v49-chip.active {
-      background: var(--primary);
+      background: var(--accent);
       color: #fff;
-      border-color: var(--primary);
+      border-color: var(--accent);
     }
 .dashboard-host     .v49-add-tag {
       margin-left: auto;
@@ -6931,9 +6931,9 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       cursor: pointer;
       padding: 2px 4px;
     }
-.dashboard-host     .v49-add-tag:hover { color: var(--primary); }
+.dashboard-host     .v49-add-tag:hover { color: var(--accent); }
 
-    /* v4.9.19: 空状态 (centered, 3 按钮 + 3 步骤 + 3 链接) */
+    /* v4.9.19: 空状态 (centered, 3 按钮 + 3 步骤虚线框 + 3 链接) */
 .dashboard-host     .v49-empty {
       text-align: center;
       padding: 60px 20px 40px;
@@ -6942,22 +6942,23 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .dashboard-host     .v49-empty .v49-empty-icon {
       width: 60px;
       height: 60px;
-      margin: 0 auto 14px;
-      background: var(--primary-soft);
+      margin: 0 auto 12px;
+      background: var(--accent-soft);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--primary);
+      color: var(--accent);
     }
+.dashboard-host     .v49-empty .v49-empty-icon svg { width: 28px; height: 28px; }
 .dashboard-host     .v49-empty h4 {
-      margin: 0 0 6px;
+      margin: 0 0 4px;
       font-size: 14px;
       color: var(--text);
       font-weight: 600;
     }
 .dashboard-host     .v49-empty p {
-      margin: 0 0 18px;
+      margin: 0 0 14px;
       font-size: 12px;
       color: var(--text-3);
     }
@@ -6967,25 +6968,27 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       justify-content: center;
     }
 .dashboard-host     .v49-empty-steps {
-      margin: 22px 0 18px;
-      display: flex;
-      gap: 18px;
-      justify-content: center;
-      align-items: flex-start;
+      display: inline-flex;
+      gap: 8px;
+      text-align: left;
+      margin-top: 12px;
+      background: var(--bg-subtle);
+      border: 1px dashed var(--border-strong);
+      border-radius: 8px;
+      padding: 12px 16px;
     }
 .dashboard-host     .v49-empty-step {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       align-items: flex-start;
-      text-align: left;
     }
 .dashboard-host     .v49-empty-step .n {
       flex-shrink: 0;
-      background: var(--primary);
+      background: var(--accent);
       color: #fff;
       border-radius: 50%;
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       font-size: 11px;
       font-weight: 600;
       display: inline-flex;
@@ -7007,7 +7010,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       margin-top: 8px;
     }
 .dashboard-host     .v49-empty-links a {
-      color: var(--primary);
+      color: var(--accent);
       font-size: 12px;
       margin: 0 8px;
       cursor: pointer;
@@ -14249,17 +14252,18 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             empty.className = 'v49-empty';
             empty.innerHTML = [
               '<div class="v49-empty-icon">',
-              '  <svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">',
-              '    <path d="M16 5 L26 9 L26 19 Q26 25 16 28 Q6 25 6 19 L6 9 Z"/>',
-              '    <path d="M11 16 L15 20 L21 12" stroke-width="2"/>',
+              '  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">',
+              '    <path d="M8 1.5L2 4.5v7L8 14.5l6-3v-7L8 1.5z"/>',
+              '    <path d="M2 4.5L8 7.5l6-3"/>',
+              '    <path d="M8 7.5v7"/>',
               '  </svg>',
               '</div>',
               '<h4>还没有协议方案</h4>',
               '<p>方案 = 一组共享协议规则 + 命令的集合。先建一个，5 分钟跑通第一个命令</p>',
               '<div class="v49-empty-buttons">',
               '  <button class="v49-btn primary" id="v49-btn-new-empty"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>新建方案</button>',
-              '  <button class="v49-btn" id="v49-btn-templates-empty">协议模板</button>',
-              '  <button class="v49-btn" id="v49-btn-import-empty">导入已有配置</button>',
+              '  <button class="v49-btn" id="v49-btn-templates-empty"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>从协议模板</button>',
+              '  <button class="v49-btn" id="v49-btn-import-empty"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M5 5l3-3 3 3M3 13h10"/></svg>导入已有配置</button>',
               '</div>',
               '<div class="v49-empty-steps">',
               '  <div class="v49-empty-step"><span class="n">1</span><div><div class="step-title">选协议类型</div><div class="step-sub">8 种 Modbus / TLV / 固定帧头…</div></div></div>',
@@ -14267,9 +14271,9 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               '  <div class="v49-empty-step"><span class="n">3</span><div><div class="step-title">加命令 + 字段</div><div class="step-sub">用预设或贴字节反向解析</div></div></div>',
               '</div>',
               '<div class="v49-empty-links">',
-              '  <a id="v49-link-tutorial">5 分钟教程</a>',
-              '  <a id="v49-link-video">视频演示</a>',
-              '  <a id="v49-link-community">社区示例</a>',
+              '  <a id="v49-link-tutorial">📖 5 分钟教程</a>',
+              '  <a id="v49-link-video">🎬 视频演示</a>',
+              '  <a id="v49-link-community">💬 社区示例</a>',
               '</div>'
             ].join('');
             bodyEl.appendChild(empty);
