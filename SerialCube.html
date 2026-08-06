@@ -7344,6 +7344,34 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       border: 1px solid var(--accent);
       border-radius: 6px;
     }
+
+    /* B-4 (2026-08-06): 元信息 inline 编辑 (替代 _showEditProfileDiff diff 视图) */
+.v49-meta-edit {
+      padding: 14px 16px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+.v49-meta-edit-head {
+      display: flex; align-items: center; gap: 8px;
+      padding-bottom: 10px; margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+.v49-meta-edit-title { font-size: 14px; font-weight: 600; flex: 1; }
+.v49-meta-edit-form { display: grid; grid-template-columns: 90px 1fr; gap: 8px 10px; align-items: center; font-size: 12px; }
+.v49-meta-edit-form > label { color: var(--text-soft); }
+.v49-meta-edit-form .v49-inp { width: 100%; }
+.v49-meta-edit-form textarea.v49-inp { resize: vertical; min-height: 32px; font-family: inherit; }
+.v49-meta-edit-crc-box {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+      padding: 8px 10px; background: var(--bg-subtle);
+      border: 1px solid var(--border); border-radius: 4px;
+    }
+.v49-meta-edit-tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-height: 30px; padding: 4px 6px; background: var(--bg-subtle); border: 1px solid var(--border-strong); border-radius: 4px; }
+.v49-meta-edit-tags .v49-tag { display: inline-flex; align-items: center; gap: 3px; }
+.v49-meta-edit-tags .v49-tag-del { cursor: pointer; opacity: 0.6; font-size: 13px; line-height: 1; }
+.v49-meta-edit-tags .v49-tag-del:hover { opacity: 1; color: var(--danger); }
 .v49-cmd-editor-head {
       display: flex;
       align-items: center;
@@ -14996,6 +15024,9 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           // 4. 空状态 (v4.9.19 重写 — 跟 v5 mockup 一致: 1 icon + 3 按钮 + 3 步骤 + 3 链接)
           if (allCount === 0) {
             tableWrap.style.display = 'none';
+            // 0 方案时 toolbar 5 按钮(协议模板/导出/历史/回收站)都无意义, 隐藏整条 toolbar
+            // 让空状态卡片(3 列 + 教程)成为唯一内容, 避免"协议模板"等按钮冗余点击
+            toolbar.style.display = 'none';
             const empty = document.createElement('div');
             empty.className = 'v49-empty';
             empty.innerHTML = [
@@ -15092,7 +15123,6 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 '<td>' + stats.referenceCount + ' 处</td>' +
                 '<td class="v49-tbl-muted">' + NS.escapeHtml(String(stats.lastModified)) + '</td>' +
                 '<td class="v49-tbl-actions">' +
-                '<button class="v49-btn sm" data-act="view">查看</button>' +
                 '<button class="v49-btn sm" data-act="edit">编辑</button>' +
                 '<button class="v49-btn sm" data-act="export">导出</button>' +
                 '<button class="v49-btn sm danger" data-act="delete">删除</button>' +
@@ -15107,12 +15137,13 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 if (!tr) return;
                 const pid = tr.dataset.profileId;
                 const act = btn.dataset.act;
-                if (act === 'view') {
-                  // C3a: 查看 → 调命令列表 modal
-                  NS._showProfileCommands(pid);
-                } else if (act === 'edit') {
-                  // C2b: 编辑 → 调 diff 视图
-                  NS._showEditProfileDiff(pid);
+                if (act === 'edit') {
+                  // 选 row + 切到元信息编辑模式 (B-4 inline)
+                  const profile = (NS.PROFILES || []).find(function (p) { return p.id === pid; });
+                  if (profile) {
+                    selectProfile(profile);
+                    enterMetaEditMode(profile);
+                  }
                 } else if (act === 'delete') {
                   // C2c: 3-tier 删除
                   NS._showDeleteConfirm('profile', pid);
@@ -15214,11 +15245,100 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             ].join('');
             // 详情区按钮 (改信息/导出/删除, 命令管理走 inline 下方)
             const editBtn = document.getElementById('v49-proto-detail-edit');
-            if (editBtn) editBtn.onclick = function () { NS._showEditProfileDiff(profileId); };
+            if (editBtn) editBtn.onclick = function () { enterMetaEditMode(profile); };
             const exportBtn = document.getElementById('v49-proto-detail-export');
             if (exportBtn) exportBtn.onclick = function () { NS._showExportConfig(profileId); };
             const deleteBtn = document.getElementById('v49-proto-detail-delete');
             if (deleteBtn) deleteBtn.onclick = function () { NS._showDeleteConfirm('profile', profileId); };
+
+            // B-4: 元信息 inline 编辑 (替代 _showEditProfileDiff diff 视图 — user 反馈 diff 看不懂)
+            function enterMetaEditMode(p) {
+              const dEl = document.getElementById('v49-proto-detail');
+              if (!dEl) return;
+              const crc = p.crc || { algorithm: 'CRC16-MODBUS', initValue: '0xFFFF', byteOrder: 'LE', range: 'no_header' };
+              const tagArr = Array.isArray(p.tags) ? p.tags.slice() : [];
+              dEl.innerHTML = [
+                '<div class="v49-meta-edit">',
+                '  <div class="v49-meta-edit-head">',
+                '    <div class="v49-meta-edit-title">编辑方案元信息: ' + NS.escapeHtml(p.name) + '</div>',
+                '    <button class="v49-btn sm" id="v49-meta-cancel">取消</button>',
+                '    <button class="v49-btn sm primary" id="v49-meta-save">保存</button>',
+                '  </div>',
+                '  <div class="v49-meta-edit-form">',
+                '    <label>方案名</label><input class="v49-inp" id="v49-meta-name" value="' + NS.escapeHtml(p.name || '') + '">',
+                '    <label>字节序</label>',
+                '    <select class="v49-inp" id="v49-meta-byteorder">',
+                '      <option value="BE"' + (p.byteOrder === 'BE' ? ' selected' : '') + '>BE (大端, 高位在前)</option>',
+                '      <option value="LE"' + (p.byteOrder === 'LE' || !p.byteOrder ? ' selected' : '') + '>LE (小端, 低位在前)</option>',
+                '    </select>',
+                '    <label>CRC</label>',
+                '    <div class="v49-meta-edit-crc-box">',
+                '      <input class="v49-inp" id="v49-meta-crc-algo" value="' + NS.escapeHtml(crc.algorithm || '') + '" placeholder="算法 (CRC16-MODBUS / checksum / none)">',
+                '      <input class="v49-inp" id="v49-meta-crc-init" value="' + NS.escapeHtml(crc.initValue || '') + '" placeholder="初始值 (0xFFFF)">',
+                '      <select class="v49-inp" id="v49-meta-crc-order">',
+                '        <option value="LE"' + (crc.byteOrder === 'LE' || !crc.byteOrder ? ' selected' : '') + '>CRC 字节序 LE</option>',
+                '        <option value="BE"' + (crc.byteOrder === 'BE' ? ' selected' : '') + '>CRC 字节序 BE</option>',
+                '      </select>',
+                '      <input class="v49-inp" id="v49-meta-crc-range" value="' + NS.escapeHtml(crc.range || 'no_header') + '" placeholder="范围 (no_header / full / data_only)">',
+                '    </div>',
+                '    <label>标签</label>',
+                '    <div class="v49-meta-edit-tags" id="v49-meta-tags"></div>',
+                '  </div>',
+                '</div>'
+              ].join('');
+
+              function renderTags() {
+                const tagsEl = document.getElementById('v49-meta-tags');
+                if (!tagsEl) return;
+                tagsEl.innerHTML = tagArr.map(function (t, i) {
+                  return '<span class="v49-tag primary">' + NS.escapeHtml(t) + '<span class="v49-tag-del" data-tag-idx="' + i + '" title="删除标签">×</span></span>';
+                }).join('') +
+                '<input class="v49-inp" id="v49-meta-tag-input" placeholder="+ 加标签后回车" style="border:none;outline:none;background:transparent;min-width:120px;font-size:12px;flex:1;">';
+                tagsEl.querySelectorAll('.v49-tag-del').forEach(function (d) {
+                  d.onclick = function () { tagArr.splice(parseInt(d.getAttribute('data-tag-idx'), 10), 1); renderTags(); };
+                });
+                const tagInput = document.getElementById('v49-meta-tag-input');
+                if (tagInput) {
+                  tagInput.onkeydown = function (e) {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const v = (tagInput.value || '').trim();
+                      if (v && tagArr.indexOf(v) < 0) { tagArr.push(v); renderTags(); }
+                      else { tagInput.value = ''; }
+                    }
+                  };
+                }
+              }
+              renderTags();
+
+              // 保存
+              const saveBtn = document.getElementById('v49-meta-save');
+              if (saveBtn) saveBtn.onclick = function () {
+                const newName = (document.getElementById('v49-meta-name').value || '').trim() || p.name;
+                const newByteOrder = document.getElementById('v49-meta-byteorder').value;
+                const newCrc = {
+                  algorithm: (document.getElementById('v49-meta-crc-algo').value || '').trim() || 'none',
+                  initValue: (document.getElementById('v49-meta-crc-init').value || '').trim() || '0xFFFF',
+                  byteOrder: document.getElementById('v49-meta-crc-order').value,
+                  range: (document.getElementById('v49-meta-crc-range').value || '').trim() || 'no_header'
+                };
+                p.name = newName;
+                p.byteOrder = newByteOrder;
+                p.crc = newCrc;
+                p.tags = tagArr;
+                p.updatedAt = new Date().toISOString();
+                if (typeof NS._recordOperation === 'function') {
+                  NS._recordOperation('edit-profile', p.id, '编辑方案: ' + newName);
+                }
+                if (typeof NS.toast === 'function') NS.toast('已保存: ' + newName, 'success');
+                if (typeof NS.renderProtoEditor === 'function') NS.renderProtoEditor();
+              };
+              // 取消
+              const cancelBtn = document.getElementById('v49-meta-cancel');
+              if (cancelBtn) cancelBtn.onclick = function () {
+                if (typeof NS.renderProtoEditor === 'function') NS.renderProtoEditor();
+              };
+            }
 
             // B-2: 命令列表 inline 渲染 + tab 切换 + 行选中
             let selectedCmdId = null;
