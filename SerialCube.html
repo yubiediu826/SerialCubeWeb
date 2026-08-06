@@ -7272,6 +7272,16 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-form-row { display: flex; gap: 8px; align-items: center; }
 .v49-form-row .v49-form-label { margin-bottom: 0; flex-shrink: 0; min-width: 80px; }
 
+    /* export (导出配置 modal) */
+.v49-export-cmd-list { max-height: 80px; overflow-y: auto; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 4px; padding: 4px; }
+.v49-export-cmd-list.hidden { display: none; }
+.v49-export-cmd-list label { display: flex; align-items: center; gap: 5px; padding: 3px 6px; font-size: 12px; cursor: pointer; }
+.v49-export-cmd-empty { color: var(--text-soft); font-size: 12px; padding: 6px; }
+.v49-export-filename { margin-bottom: 8px; font-size: 12px; color: var(--text); }
+.v49-export-filename code { background: var(--bg-subtle); padding: 2px 6px; border-radius: 3px; font-family: var(--font-mono); }
+.v49-export-preview-label { font-size: 11.5px; color: var(--text-soft); margin-bottom: 4px; }
+.v49-export-preview { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 4px; padding: 8px; font-size: 11px; font-family: var(--font-mono); max-height: 200px; overflow: auto; white-space: pre-wrap; word-break: break-all; margin: 0; }
+
     /* import-history (导入历史 modal - 复用 .v49-list-item + .v49-tag) */
 .v49-imp-hist-list { max-height: 400px; overflow-y: auto; }
 .v49-imp-hist-name { font-weight: 500; display: flex; align-items: center; gap: 6px; }
@@ -16908,10 +16918,10 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           function renderCommandOptions() {
             const p = profiles.find(function (x) { return x.id === selectedProfileId; });
             const cmds = p ? (p.commands || []) : [];
-            if (cmds.length === 0) return '<div style="color:var(--text-3);font-size:12px;padding:6px;">该方案没有命令</div>';
+            if (cmds.length === 0) return '<div class="v49-export-cmd-empty">该方案没有命令</div>';
             return cmds.map(function (c) {
               const checked = selectedCommandIds.indexOf(c.id) >= 0 ? 'checked' : '';
-              return '<label style="display:flex;align-items:center;gap:5px;padding:3px 6px;font-size:12px;cursor:pointer;"><input type="checkbox" class="v49-export-cmd-cb" value="' + NS.escapeHtml(c.id) + '" ' + checked + '>' + NS.escapeHtml(c.name) + ' (0x' + (c.cmdCode || 0).toString(16).padStart(2, '0').toUpperCase() + ')</label>';
+              return '<label><input type="checkbox" class="v49-export-cmd-cb" value="' + NS.escapeHtml(c.id) + '" ' + checked + '>' + NS.escapeHtml(c.name) + ' (0x' + (c.cmdCode || 0).toString(16).padStart(2, '0').toUpperCase() + ')</label>';
             }).join('');
           }
           function buildJson() {
@@ -16937,27 +16947,27 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           }
           function renderBody() {
             return [
-              '<div style="display:grid;grid-template-columns:110px 1fr;gap:8px 12px;align-items:center;font-size:12px;margin-bottom:12px;">',
+              '<div class="v49-form-grid-cmd">',
               '  <label>导出粒度</label>',
               '  <div>',
-              '    <label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><input type="radio" name="v49-export-gran" value="all" ' + (selectedGranularity === 'all' ? 'checked' : '') + '> 全部配置</label>',
-              '    <label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><input type="radio" name="v49-export-gran" value="profile" ' + (selectedGranularity === 'profile' ? 'checked' : '') + '> 选中方案</label>',
-              '    <label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><input type="radio" name="v49-export-gran" value="profile-with-deps" ' + (selectedGranularity === 'profile-with-deps' ? 'checked' : '') + '> 选中方案 + 依赖</label>',
-              '    <label style="display:inline-flex;align-items:center;gap:4px;"><input type="radio" name="v49-export-gran" value="profile-commands" ' + (selectedGranularity === 'profile-commands' ? 'checked' : '') + '> 选中方案 + 命令级</label>',
+              '    <label class="v49-inline-check" style="margin-right:10px;"><input type="radio" name="v49-export-gran" value="all" ' + (selectedGranularity === 'all' ? 'checked' : '') + '> 全部配置</label>',
+              '    <label class="v49-inline-check" style="margin-right:10px;"><input type="radio" name="v49-export-gran" value="profile" ' + (selectedGranularity === 'profile' ? 'checked' : '') + '> 选中方案</label>',
+              '    <label class="v49-inline-check" style="margin-right:10px;"><input type="radio" name="v49-export-gran" value="profile-with-deps" ' + (selectedGranularity === 'profile-with-deps' ? 'checked' : '') + '> 选中方案 + 依赖</label>',
+              '    <label class="v49-inline-check"><input type="radio" name="v49-export-gran" value="profile-commands" ' + (selectedGranularity === 'profile-commands' ? 'checked' : '') + '> 选中方案 + 命令级</label>',
               '  </div>',
               '  <label>目标方案</label>',
-              '  <select class="inp" id="v49-export-profile" ' + (selectedGranularity === 'all' ? 'disabled' : '') + '>' + renderProfileOptions() + '</select>',
+              '  <select class="v49-inp" id="v49-export-profile" ' + (selectedGranularity === 'all' ? 'disabled' : '') + '>' + renderProfileOptions() + '</select>',
               '  <label>命令多选</label>',
-              '  <div id="v49-export-cmds" style="max-height:80px;overflow-y:auto;background:#fafbfc;border:1px solid var(--border);border-radius:4px;padding:4px;' + (selectedGranularity === 'profile-commands' ? '' : 'display:none;') + '">' + renderCommandOptions() + '</div>',
+              '  <div id="v49-export-cmds" class="v49-export-cmd-list' + (selectedGranularity === 'profile-commands' ? '' : ' hidden') + '">' + renderCommandOptions() + '</div>',
               '</div>',
-              '<div style="margin-bottom:8px;font-size:12px;color:var(--text-2);"><b>文件名:</b> <code style="background:var(--card);padding:2px 6px;border-radius:3px;">' + NS.escapeHtml(buildFilename()) + '</code></div>',
-              '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:4px;">内容预览 (前 1000 字符):</div>',
-              '<pre id="v49-export-preview" style="background:#fafbfc;border:1px solid var(--border);border-radius:4px;padding:8px;font-size:11px;font-family:var(--mono);max-height:200px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:0;"></pre>'
+              '<div class="v49-export-filename"><b>文件名:</b> <code>' + NS.escapeHtml(buildFilename()) + '</code></div>',
+              '<div class="v49-export-preview-label">内容预览 (前 1000 字符):</div>',
+              '<pre id="v49-export-preview" class="v49-export-preview"></pre>'
             ].join('');
           }
           NS._showV49Modal('导出配置', renderBody(),
             '<button class="v49-btn" id="v49-export-cancel">取消</button>' +
-            '<button class="v49-btn" id="v49-export-copy" style="background:var(--card);color:var(--text);border:1px solid var(--border-strong);">⎘ 复制到剪贴板</button>' +
+            '<button class="v49-btn" id="v49-export-copy">⎘ 复制到剪贴板</button>' +
             '<button class="v49-btn primary" id="v49-export-download">↓ 下载 JSON</button>',
             function (modal) {
               function refresh() {
