@@ -7336,6 +7336,40 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       line-height: 1.5;
     }
 
+    /* v4 mockup 区域 3: 5 step 垂直流程 (替换原 v49-cmd-tabs tab 切换) */
+.v49-step {
+      display: block;
+      margin-bottom: 14px;
+      padding: 12px 14px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+.v49-step-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+.v49-step-badge {
+      background: var(--accent);
+      color: #fff;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      flex: 0 0 22px;
+    }
+.v49-step-title { font-weight: 600; font-size: 13px; }
+.v49-step-sub { color: var(--text-soft); font-size: 11.5px; }
+.v49-step-req { color: var(--danger); margin-left: 2px; }
+
     /* B-3 (2026-08-06): 命令 inline 编辑区 (选中命令后展开) */
 .v49-cmd-editor {
       margin-top: 14px;
@@ -17241,30 +17275,34 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           function renderBody() {
             recomputeOffsets();
             return [
-              // Tabs
-              '<div class="v49-cmd-tabs">',
-              '  <div class="v49-tab active" data-tab="basic">基础</div>',
-              '  <div class="v49-tab" data-tab="fields">字段 <span class="v49-tab-count">' + (command.fields || []).length + '</span></div>',
-              '  <div class="v49-tab" data-tab="preview">帧预览</div>',
-              '  <div class="v49-tab" data-tab="parse">反向解析</div>',
-              '  <div class="v49-tab" data-tab="bind">仪表盘绑定</div>',
-              '</div>',
-              // Section 1: 基础
-              '<div class="v49-cmd-section active" data-section="basic">',
+              // v4 mockup 区域 3: 5 step 垂直流程 (替换原 5 tab)
+              // Step 1: 命令基础
+              '<div class="v49-step">',
+              '  <div class="v49-step-header">',
+              '    <span class="v49-step-badge">1</span>',
+              '    <span class="v49-step-title">命令基础</span>',
+              '    <span class="v49-step-sub">· 名称 <span class="v49-step-req">*</span> / 方向 / cmd byte / 触发 / ack / 超时 / 重试</span>',
+              '  </div>',
               '  <div class="v49-form-grid-cmd">',
-              '    <label>命令名 <span class="v49-form-label-req">*</span></label><input class="v49-inp" id="v49-cmd-name" value="' + NS.escapeHtml(command.name || '') + '" placeholder="必填">',
-              '    <label>命令码 (hex)</label><input class="v49-inp mono" id="v49-cmd-cmdcode" value="0x' + (command.cmdCode || 0).toString(16).padStart(2, '0').toUpperCase() + '">',
+              '    <label>命令名 <span class="v49-form-label-req">*</span></label><input class="v49-inp" id="v49-cmd-name" value="' + NS.escapeHtml(command.name || '') + '" placeholder="必填 (例: 读取充电参数)">',
+              '    <label>方向</label><select class="v49-inp" id="v49-cmd-direction"><option value="rx" ' + (command.direction === 'rx' ? 'selected' : '') + '>RX (主→从)</option><option value="tx" ' + (command.direction === 'tx' ? 'selected' : '') + '>TX (从→主)</option><option value="both" ' + (command.direction === 'both' ? 'selected' : '') + '>双向</option></select>',
+              '    <label>cmd byte (hex)</label><input class="v49-inp mono" id="v49-cmd-cmdcode" value="0x' + (command.cmdCode || 0).toString(16).padStart(2, '0').toUpperCase() + '">',
+              '    <label>触发模式</label><select class="v49-inp" id="v49-cmd-trigger-mode"><option value="manual" ' + (command.trigger.mode === 'manual' ? 'selected' : '') + '>手动 (按热键)</option><option value="periodic" ' + (command.trigger.mode === 'periodic' ? 'selected' : '') + '>定时 (周期)</option><option value="pair" ' + (command.trigger.mode === 'pair' ? 'selected' : '') + '>配对 (触发 + 期望 ack)</option></select>',
+              '    <label>定时 (ms)</label><input class="v49-inp" type="number" id="v49-cmd-trigger-period" value="' + (command.trigger.periodMs || 0) + '" min="0">',
+              '    <label>手动热键</label><input class="v49-inp" id="v49-cmd-trigger-hotkey" value="' + NS.escapeHtml(command.trigger.manualHotkey || 'F5') + '" placeholder="F5">',
               '    <label>Ack 命令</label><select class="v49-inp" id="v49-cmd-ack"><option value="">无</option>' + (profile.commands || []).filter(function (c) { return c.id !== command.id; }).map(function (c) { return '<option value="' + c.id + '" ' + (command.ackCmd === c.id ? 'selected' : '') + '>' + NS.escapeHtml(c.name) + '</option>'; }).join('') + '</select>',
               '    <label>超时 (ms)</label><input class="v49-inp" type="number" id="v49-cmd-timeout" value="' + (command.timeoutMs || 30000) + '" min="100" max="60000">',
               '    <label>重试次数</label><input class="v49-inp" type="number" id="v49-cmd-retry" value="' + (command.retryCount || 3) + '" min="0" max="10">',
-              '    <label>触发模式</label><select class="v49-inp" id="v49-cmd-trigger-mode"><option value="manual" ' + (command.trigger.mode === 'manual' ? 'selected' : '') + '>手动</option><option value="periodic" ' + (command.trigger.mode === 'periodic' ? 'selected' : '') + '>定时</option></select>',
-              '    <label>定时 (ms)</label><input class="v49-inp" type="number" id="v49-cmd-trigger-period" value="' + (command.trigger.periodMs || 0) + '" min="0">',
-              '    <label>手动热键</label><input class="v49-inp" id="v49-cmd-trigger-hotkey" value="' + NS.escapeHtml(command.trigger.manualHotkey || 'F5') + '" placeholder="F5">',
               '    <label>连接后自动发</label><label class="v49-inline-check"><input type="checkbox" id="v49-cmd-trigger-onconnect" ' + (command.trigger.onConnect ? 'checked' : '') + '> 启用</label>',
               '  </div>',
               '</div>',
-              // Section 2: 字段定义
-              '<div class="v49-cmd-section" data-section="fields">',
+              // Section 2: 字段定义 → Step 2
+              '<div class="v49-step">',
+              '  <div class="v49-step-header">',
+              '    <span class="v49-step-badge">2</span>',
+              '    <span class="v49-step-title">数据字段定义 (本命令字段池)</span>',
+              '    <span class="v49-step-sub">· name / type / 字节序 per-field / scale / 单位 · 拖拽改顺序</span>',
+              '  </div>',
               // 9 预设
               '  <div class="v49-step1-section">',
               '    <div class="v49-step1-section-title">9 个嵌入式高频字段预设 (点一下自动填)</div>',
@@ -17287,9 +17325,13 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               '  </div>',
               renderUserPresets(),
               '</div>',
-              // Section 3: 帧预览 (T16)
-              '<div class="v49-cmd-section" data-section="preview">',
-              '  <div class="v49-step1-section"><b>帧预览</b> — 调 <code>NS.buildFrame(profile, command)</code> 拿字节流, 按段着色, 字段 sub-高亮。</div>',
+              // Section 3: 帧预览 (T16) → Step 3
+              '<div class="v49-step">',
+              '  <div class="v49-step-header">',
+              '    <span class="v49-step-badge">3</span>',
+              '    <span class="v49-step-title">帧预览 (buildFrame 实时)</span>',
+              '    <span class="v49-step-sub">· 按段着色, 字段 sub-高亮</span>',
+              '  </div>',
               '  <div id="v49-frame-preview" class="v49-frame-preview">' + NS._renderFramePreviewHtml(profile, command) + '</div>',
               '  <div class="v49-fields-actions">',
               '    <button class="v49-btn sm primary" id="v49-frame-refresh">↻ 重新构建</button>',
@@ -17298,9 +17340,13 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               '  </div>',
               '  <div id="v49-frame-roundtrip"></div>',
               '</div>',
-              // Section 4: 反向解析 (T17)
-              '<div class="v49-cmd-section" data-section="parse">',
-              '  <div class="v49-step1-section"><b>贴字节反向解析</b> — 支持 hex 字符串, 空格 / <code>0x</code> 前缀 / 逗号 / 换行都接受。500ms debounce 实时解析。</div>',
+              // Section 4: 反向解析 (T17) → Step 4
+              '<div class="v49-step">',
+              '  <div class="v49-step-header">',
+              '    <span class="v49-step-badge">4</span>',
+              '    <span class="v49-step-title">反向解析</span>',
+              '    <span class="v49-step-sub">· 贴字节反解 + 采纳</span>',
+              '  </div>',
               '  <textarea id="v49-parse-input" class="v49-parse-input" placeholder="AA 01 03 0A 0B 12 34 55"></textarea>',
               '  <div class="v49-fields-actions">',
               '    <button class="v49-btn sm" id="v49-parse-clear">清空</button>',
@@ -17308,9 +17354,13 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               '  </div>',
               '  <div id="v49-parse-result">' + NS._renderParseResultHtml(profile, command, null) + '</div>',
               '</div>',
-              // Section 5: 仪表盘绑定 (T18, Q3 锁定: 配置层)
-              '<div class="v49-cmd-section" data-section="bind">',
-              '  <div class="v49-step1-section"><b>仪表盘绑定 (配置层)</b> — 选卡片 + 选 1-N 字段 + 布局。Q3 锁定: 数据真实刷新留 v4.9.1, 此处只存配置 + 静态预览。</div>',
+              // Section 5: 仪表盘绑定 (T18, Q3 锁定: 配置层) → Step 5
+              '<div class="v49-step">',
+              '  <div class="v49-step-header">',
+              '    <span class="v49-step-badge">5</span>',
+              '    <span class="v49-step-title">仪表盘绑定 (1 卡片 = 1-N 字段)</span>',
+              '    <span class="v49-step-sub">· 实时预览</span>',
+              '  </div>',
               '  <div id="v49-bind-list">' + NS._renderDashboardBindingsHtml(profile, command) + '</div>',
               '</div>'
             ].join('');
