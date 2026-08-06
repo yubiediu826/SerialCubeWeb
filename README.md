@@ -4,7 +4,7 @@
 
 [![Online](https://img.shields.io/badge/在线版-立即使用-5672cd)](https://yubiediu826.github.io/SerialCubeWeb/)
 [![GitHub](https://img.shields.io/badge/GitHub-yubiediu826/SerialCubeWeb-3451b2)](https://github.com/yubiediu826/SerialCubeWeb)
-![Version](https://img.shields.io/badge/version-v5.1.6-67676c)
+![Version](https://img.shields.io/badge/version-v6.5-67676c)
 ![Browser](https://img.shields.io/badge/browser-Chromium-5672cd)
 ![License](https://img.shields.io/badge/license-MIT-3a5ccc)
 
