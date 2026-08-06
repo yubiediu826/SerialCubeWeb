@@ -15028,6 +15028,10 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             // 让空状态卡片(3 列 + 教程)成为唯一内容, 避免"协议模板"等按钮冗余点击
             toolbar.style.display = 'none';
             toolbar.setAttribute('hidden', '');
+            // 0 方案时 detailEl 显示"从上方选一个方案查看详情" 占大量空白, 隐藏
+            // 让空状态卡片(3 列 + 教程)成为唯一内容, 不留大块空 detail 区
+            detailEl.style.display = 'none';
+            detailEl.setAttribute('hidden', '');
             const empty = document.createElement('div');
             empty.className = 'v49-empty';
             empty.innerHTML = [
