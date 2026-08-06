@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>v4.9 命令驱动架构 — 预览 (v2)</title>
+<style>
+  :root {
+    --bg: #f6f6f7;
+    --bg-elevated: #ffffff;
+    --bg-panel: #ffffff;
+    --bg-panel-strong: #ffffff;
+    --bg-subtle: #f4f5f8;
+    --border: rgba(60,60,67,0.16);
+    --border-strong: rgba(60,60,67,0.24);
+    --accent: #5672cd;
+    --accent-strong: #3a5ccc;
+    --accent-soft: rgba(86,114,205,0.14);
+    --text: #3c3c43;
+    --text-soft: #67676c;
+    --success: #2c9a4a;
+    --warning: #d97706;
+    --danger: #e0575e;
+    --radius: 14px;
+    --radius-small: 10px;
+    --font-mono: "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+    --shadow-ambient: 0 18px 48px rgba(0,0,0,0.10);
+    --shadow-hover: 0 10px 30px rgba(0,0,0,0.07);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #e9eaee;
+    color: var(--text);
+    padding: 32px 24px;
+    line-height: 1.4;
+  }
+  .preview-header { text-align: center; margin-bottom: 24px; }
+  .preview-header h1 {
+    font-size: 24px; font-weight: 800; margin: 0 0 6px; color: var(--text);
+  }
+  .preview-header .subtitle { color: var(--text-soft); font-size: 13px; }
+  .preview-header .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+  .concept-card {
+    max-width: 1200px;
+    margin: 0 auto 24px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    box-shadow: var(--shadow-hover);
+  }
+  .concept-card h2 {
+    font-size: 13px; margin: 0 0 12px; color: var(--text-soft);
+    font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .concept-flow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .concept-step {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    padding: 10px 14px;
+    font-size: 12px;
+    min-width: 140px;
+  }
+  .concept-step .label {
+    font-size: 9px; color: var(--accent-strong);
+    font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase; margin-bottom: 4px;
+  }
+  .concept-step .text { color: var(--text); font-weight: 600; }
+  .concept-arrow { color: var(--text-soft); font-size: 14px; }
+  .concept-note {
+    font-size: 12px; color: var(--text-soft); line-height: 1.6;
+    padding: 10px 12px;
+    background: var(--bg-subtle);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+  }
+  .preview-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    max-width: 1800px;
+    margin: 0 auto 24px;
+  }
+  .preview-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-ambient);
+    overflow: hidden;
+  }
+  .preview-card .label {
+    padding: 10px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--text-soft);
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .preview-card .label.new { color: var(--accent-strong); background: var(--accent-soft); }
+  .preview-card .label .ver { font-family: var(--font-mono); font-size: 10px; opacity: 0.7; }
+  .preview-card.tall { min-height: 720px; }
+  .mock-window {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 12px;
+  }
+  .mock-topbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+  .mock-topbar .brand {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 10px;
+  }
+  .mock-topbar .title { color: var(--text-soft); font-size: 11px; margin-left: 4px; }
+  .mock-body { padding: 14px; }
+  .section-title {
+    font-size: 12px; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .section-title .num {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent-strong);
+    font-size: 10px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .section-title small { font-weight: 500; color: var(--text-soft); font-size: 10px; }
+
+  /* 方案分组 (隐式) */
+  .group-block {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .group-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: linear-gradient(to right, var(--accent-soft), transparent);
+    border-bottom: 1px solid var(--border);
+  }
+  .group-head .name {
+    font-size: 12px; font-weight: 700; color: var(--accent-strong);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .group-head .name .kind-tag {
+    font-family: var(--font-mono); font-size: 10px;
+    background: var(--accent); color: white;
+    padding: 1px 6px; border-radius: 3px;
+    font-weight: 700;
+  }
+  .group-head .count { font-size: 10px; color: var(--text-soft); font-weight: 500; }
+  .group-body { padding: 0; }
+  .group-body .empty {
+    padding: 14px; text-align: center; color: var(--text-soft);
+    font-size: 11px; font-style: italic;
+  }
+
+  /* 命令列表 */
+  .cmd-row {
+    display: grid;
+    grid-template-columns: 1.5fr 50px 60px 90px 1fr 40px;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    gap: 8px;
+  }
+  .cmd-row:last-child { border-bottom: none; }
+  .cmd-row:hover { background: var(--bg-subtle); }
+  .cmd-row .name { font-weight: 600; color: var(--text); font-family: var(--font-mono); }
+  .cmd-row .meta { color: var(--text-soft); font-size: 10px; }
+  .cmd-row .op { text-align: right; color: var(--text-soft); cursor: pointer; }
+  .cmd-tag {
+    display: inline-block;
+    padding: 1px 6px; border-radius: 999px;
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .cmd-tag.tx { background: rgba(86,114,205,0.14); color: var(--accent-strong); }
+  .cmd-tag.rx { background: rgba(44,154,74,0.14); color: var(--success); }
+  .cmd-tag.pair { background: rgba(217,119,6,0.14); color: var(--warning); }
+
+  /* 模态 modal */
+  .mock-modal-bg {
+    background: rgba(0,0,0,0.4);
+    padding: 30px 20px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .mock-modal {
+    background: var(--bg-elevated);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 720px;
+    box-shadow: var(--shadow-ambient);
+    overflow: hidden;
+  }
+  .mock-modal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mock-modal-title { font-size: 14px; font-weight: 700; }
+  .mock-modal-sub { font-size: 11px; color: var(--text-soft); font-weight: 500; }
+  .mock-section {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mock-section:last-child { border-bottom: none; }
+  .form-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px; flex-wrap: wrap;
+  }
+  .form-row label {
+    font-size: 11px; color: var(--text-soft);
+    font-weight: 600; min-width: 70px;
+  }
+  .form-input, .form-select {
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    font-size: 12px;
+    background: var(--bg-elevated);
+    color: var(--text);
+  }
+  .form-input.mono, .form-select.mono { font-family: var(--font-mono); }
+  .form-input:focus, .form-select:focus { border-color: var(--accent); outline: none; }
+  .form-hint {
+    font-size: 10px; color: var(--text-soft);
+    font-style: italic; margin-top: 4px;
+  }
+  .data-table {
+    width: 100%; border-collapse: collapse; font-size: 11px;
+  }
+  .data-table th {
+    text-align: left; padding: 6px 8px;
+    font-weight: 700; color: var(--text-soft);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-subtle);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .data-table td {
+    padding: 5px 6px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    color: var(--text);
+  }
+  .data-table tr.locked td { opacity: 0.5; }
+  .data-table tr:hover td { background: var(--bg-subtle); }
+  .data-table .field-type { color: var(--accent-strong); font-weight: 600; }
+  .data-table .datafield-name { color: var(--text); font-weight: 600; }
+  .scheme-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .scheme-pill .kind {
+    font-family: var(--font-mono); font-size: 9px;
+    background: var(--accent); color: white;
+    padding: 1px 5px; border-radius: 3px;
+  }
+  .scheme-pill.warning {
+    background: rgba(217,119,6,0.14);
+    color: var(--warning);
+  }
+  .scheme-pill.warning .kind { background: var(--warning); }
+  .modal-foot {
+    padding: 10px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid var(--border);
+    background: var(--bg-subtle);
+  }
+  .modal-foot .left { font-size: 11px; color: var(--text-soft); }
+  .modal-foot .right { display: flex; gap: 6px; }
+  .mock-btn {
+    padding: 5px 14px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    background: var(--bg-elevated);
+    color: var(--text); cursor: pointer; font-weight: 500;
+  }
+  .mock-btn.primary {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+  .mock-btn.danger {
+    background: transparent; color: var(--danger); border-color: var(--danger);
+  }
+
+  /* Note box */
+  .note {
+    max-width: 1200px; margin: 0 auto 24px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius-small);
+    padding: 14px 18px;
+    font-size: 12px; line-height: 1.6;
+  }
+  .note h2 { font-size: 13px; margin: 0 0 8px; color: var(--accent-strong); }
+  .note ul { margin: 0; padding: 0 0 0 20px; }
+  .note li { margin-bottom: 4px; }
+  .note code {
+    background: var(--bg-subtle); padding: 1px 5px;
+    border-radius: 3px; font-family: var(--font-mono);
+    font-size: 11px; color: var(--accent-strong);
+  }
+  .footer-link {
+    text-align: center; color: var(--text-soft);
+    font-size: 12px; margin-top: 32px;
+  }
+</style>
+</head>
+<body>
+
+<div class="preview-header">
+  <h1>SerialCube v4.9 命令驱动架构 <span class="tag">PROPOSAL v2</span></h1>
+  <div class="subtitle">方案 = 隐式分组 (按 kind+fields+CRC 自动归组) · 命令编辑器 = 一个 modal 全部搞定</div>
+</div>
+
+<!-- ====== 核心概念图 ====== -->
+<div class="concept-card">
+  <h2>核心思路 — 命令驱动,方案隐式</h2>
+  <div class="concept-flow">
+    <div class="concept-step">
+      <div class="label">STEP 1</div>
+      <div class="text">点 "+ 新建命令"</div>
+    </div>
+    <div class="concept-arrow">→</div>
+    <div class="concept-step" style="min-width: 200px;">
+      <div class="label">STEP 2</div>
+      <div class="text">命令编辑器 modal 弹出</div>
+    </div>
+    <div class="concept-arrow">→</div>
+    <div class="concept-step">
+      <div class="label">STEP 3</div>
+      <div class="text">填命令基础</div>
+    </div>
+    <div class="concept-arrow">→</div>
+    <div class="concept-step" style="min-width: 220px;">
+      <div class="label">STEP 4</div>
+      <div class="text">选协议类型 kind<br>+ 配 fields + CRC + dataFields</div>
+    </div>
+    <div class="concept-arrow">→</div>
+    <div class="concept-step" style="min-width: 200px;">
+      <div class="label">STEP 5</div>
+      <div class="text">保存 → 自动归入方案</div>
+    </div>
+  </div>
+  <div class="concept-note">
+    <b>方案不再独立编辑。</b>同 kind+fields+CRC 的命令自动归到同一方案 (隐式 group)。在命令列表 + 仪表盘都能看到方案分组 (灰色 header + 颜色条)。
+    想加第 2 个命令到 BMS TLV 方案?新建命令,选 kind=TLV,fields 自动套用 kind 7 模板(可微调),保存 → 自动归组。
+  </div>
+</div>
+
+<!-- ====== Mockup 1: 命令列表 (主视图) ====== -->
+<div class="preview-pair">
+  <div class="preview-card tall">
+    <div class="label new">
+      <span>主视图 — 命令列表 (按方案分组)</span>
+      <span class="ver">v4.9 v2</span>
+    </div>
+    <div class="mock-window">
+      <div class="mock-topbar">
+        <span class="brand">SC</span>
+        <span class="title">SerialCube · 命令编辑器 (设置 → 命令)</span>
+        <span style="margin-left: auto; font-size: 10px; color: var(--text-soft);">6 个命令 · 3 个方案</span>
+      </div>
+      <div class="mock-body">
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <div class="section-title" style="margin-bottom: 0;">
+            <span class="num">1</span>
+            命令列表 <small>· 按方案分组 · "+ 新建命令" 启动编辑器</small>
+          </div>
+          <button class="mock-btn primary">+ 新建命令</button>
+        </div>
+
+        <!-- 方案 A: BMS TLV -->
+        <div class="group-block">
+          <div class="group-head">
+            <div class="name">
+              <span class="kind-tag">kind 7 · tlv</span>
+              BMS TLV 方案
+            </div>
+            <span class="count">4 个命令</span>
+          </div>
+          <div class="group-body">
+            <div class="cmd-row">
+              <span class="name">读取 1# 电压</span>
+              <span class="cmd-tag tx">TX</span>
+              <span>0x01</span>
+              <span>手动</span>
+              <span class="meta">📊 卡片 1 · cell_1_v</span>
+              <span class="op">✎</span>
+            </div>
+            <div class="cmd-row">
+              <span class="name">读取 2# 电压</span>
+              <span class="cmd-tag tx">TX</span>
+              <span>0x02</span>
+              <span>手动</span>
+              <span class="meta">📊 卡片 2 · cell_2_v</span>
+              <span class="op">✎</span>
+            </div>
+            <div class="cmd-row">
+              <span class="name">1# ack</span>
+              <span class="cmd-tag rx">RX</span>
+              <span>0x81</span>
+              <span class="cmd-tag pair">PAIR</span>
+              <span class="meta">↔ pair(0x01) · 写 cell_1_v</span>
+              <span class="op">✎</span>
+            </div>
+            <div class="cmd-row">
+              <span class="name">2# ack</span>
+              <span class="cmd-tag rx">RX</span>
+              <span>0x82</span>
+              <span class="cmd-tag pair">PAIR</span>
+              <span class="meta">↔ pair(0x02) · 写 cell_2_v</span>
+              <span class="op">✎</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 方案 B: Modbus RTU -->
+        <div class="group-block">
+          <div class="group-head">
+            <div class="name">
+              <span class="kind-tag">kind 1 · raw</span>
+              Modbus RTU 方案
+            </div>
+            <span class="count">2 个命令</span>
+          </div>
+          <div class="group-body">
+            <div class="cmd-row">
+              <span class="name">读保持寄存器</span>
+              <span class="cmd-tag tx">TX</span>
+              <span>0x03</span>
+              <span>手动</span>
+              <span class="meta">📊 卡片 5 · reg_0</span>
+              <span class="op">✎</span>
+            </div>
+            <div class="cmd-row">
+              <span class="name">读保持寄存器 ack</span>
+              <span class="cmd-tag rx">RX</span>
+              <span>0x83</span>
+              <span class="cmd-tag pair">PAIR</span>
+              <span class="meta">↔ pair(0x03) · 写 reg_0</span>
+              <span class="op">✎</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 方案 C: 空方案提示 -->
+        <div class="group-block" style="opacity: 0.7;">
+          <div class="group-head" style="background: var(--bg-subtle);">
+            <div class="name" style="color: var(--text-soft);">
+              <span class="kind-tag" style="background: var(--text-soft);">kind 3 · addr-split</span>
+              自定义 addr-split 方案
+            </div>
+            <span class="count">0 个命令 · 等待添加</span>
+          </div>
+          <div class="group-body">
+            <div class="empty">此方案已配好协议定义,还没有命令。<br>
+              <button class="mock-btn" style="margin-top: 8px;">+ 在此方案下新建命令</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== Mockup 2: 新建命令 modal ====== -->
+  <div class="preview-card tall">
+    <div class="label new">
+      <span>新建命令 modal — 1 个界面全部搞定</span>
+      <span class="ver">v4.9 v2</span>
+    </div>
+    <div class="mock-window">
+      <div class="mock-topbar">
+        <span class="brand">SC</span>
+        <span class="title">SerialCube · 新建命令</span>
+      </div>
+      <div class="mock-modal-bg" style="padding: 16px;">
+        <div class="mock-modal">
+          <div class="mock-modal-head">
+            <div>
+              <div class="mock-modal-title">新建命令</div>
+              <div class="mock-modal-sub">命令基础 + 协议定义 + 数据字段,一次填完</div>
+            </div>
+            <button class="mock-btn">×</button>
+          </div>
+
+          <!-- Step 1: 命令基础 -->
+          <div class="mock-section">
+            <div class="section-title">
+              <span class="num">1</span>
+              命令基础 <small>· 名称 / 方向 / cmd byte / 触发</small>
+            </div>
+            <div class="form-row">
+              <label>命令名</label>
+              <input class="form-input" value="读取 3# 电压" style="width: 240px;">
+              <label>方向</label>
+              <select class="form-select" style="width: 80px;"><option>TX</option></select>
+              <label>cmd byte</label>
+              <input class="form-input mono" value="0x03" style="width: 60px;">
+              <label>触发</label>
+              <select class="form-select" style="width: 100px;"><option>手动</option></select>
+            </div>
+          </div>
+
+          <!-- Step 2: 协议定义 -->
+          <div class="mock-section">
+            <div class="section-title">
+              <span class="num">2</span>
+              协议定义 <small>· kind + fields + CRC,选 kind 自动套用模板</small>
+            </div>
+            <div class="form-row">
+              <label>协议类型</label>
+              <select class="form-select" style="width: 240px;">
+                <option>7 · Pure TLV (Type+Length+Value 循环)</option>
+              </select>
+              <span class="scheme-pill">
+                <span class="kind">7</span>
+                归入方案: BMS TLV (4 命令 · 已有)
+              </span>
+            </div>
+            <div class="form-hint">✓ 选了同 kind + 同 fields → 自动归入现有方案 (无重复)</div>
+
+            <div class="section-title" style="margin-top: 12px;">
+              <span class="num" style="width: 18px; height: 18px; font-size: 9px;">2a</span>
+              帧字段 <small>· 4 行 (TLV 模板, 3 行 locked)</small>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr><th>name</th><th>type</th><th>size</th><th>default</th></tr>
+              </thead>
+              <tbody>
+                <tr class="locked"><td>header</td><td class="field-type">header</td><td>1</td><td>0xAA</td></tr>
+                <tr class="locked"><td>tlv</td><td class="field-type">data</td><td>0</td><td>—</td></tr>
+                <tr><td>crc</td><td class="field-type">crc</td><td>2</td><td>auto</td></tr>
+                <tr class="locked"><td>tail</td><td class="field-type">tail</td><td>1</td><td>0x55</td></tr>
+              </tbody>
+            </table>
+
+            <div class="form-row" style="margin-top: 8px;">
+              <label>CRC 类型</label>
+              <select class="form-select" style="width: 160px;"><option>CRC-16 MODBUS</option></select>
+              <label>初始值</label>
+              <input class="form-input mono" value="0xFFFF" style="width: 80px;">
+            </div>
+          </div>
+
+          <!-- Step 3: 数据字段定义 -->
+          <div class="mock-section">
+            <div class="section-title">
+              <span class="num">3</span>
+              数据字段定义 <small>· 跨命令共享的字段池</small>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr><th>name</th><th>type</th><th>default</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="datafield-name">cell_1_v</td><td>u16</td><td>0x0000</td></tr>
+                <tr><td class="datafield-name">cell_2_v</td><td>u16</td><td>0x0000</td></tr>
+                <tr style="background: rgba(44,154,74,0.10);"><td class="datafield-name">cell_3_v ⭐ 新</td><td>u16</td><td>0x0000</td></tr>
+                <tr><td class="datafield-name">cell_4_v</td><td>u16</td><td>0x0000</td></tr>
+              </tbody>
+            </table>
+            <div class="form-hint">✓ 自动继承 BMS TLV 方案的字段池,新增字段同步给该方案所有命令</div>
+          </div>
+
+          <!-- Step 4: 仪表盘绑定 -->
+          <div class="mock-section">
+            <div class="section-title">
+              <span class="num">4</span>
+              仪表盘绑定 <small>· 显示/隐藏 + 字段映射</small>
+            </div>
+            <div class="form-row">
+              <label>仪表盘</label>
+              <select class="form-select" style="width: 200px;"><option>显示 (新建卡片)</option></select>
+              <label>映射字段</label>
+              <select class="form-select" style="width: 160px;"><option>cell_3_v</option></select>
+            </div>
+          </div>
+
+          <div class="modal-foot">
+            <div class="left">💡 自动归入 BMS TLV 方案 · 后续修改 fields/CRC 会同步给该方案所有命令</div>
+            <div class="right">
+              <button class="mock-btn">取消</button>
+              <button class="mock-btn primary">保存命令</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 现状对比: 改协议字段时的体验 ====== -->
+<div class="note">
+  <h2>改协议字段的工作流 (对比 v4.8c)</h2>
+  <ul>
+    <li><b>v4.8c 现状</b>: 改 BMS TLV 协议 → 只能改那个 tab,如果 cmd 引用了别的 protocol (BMS 1# 引用 BMS TLV, BMS 2# 引用 BMS TLV v2...),要逐个 cmd 跳回去重新选 protocol。</li>
+    <li><b>v4.9 v2 改进</b>: 选中"读取 1# 电压"命令 → 编辑 → 改 kind 7 fields → 保存 → 自动归到 BMS TLV 方案 → BMS TLV 方案下所有 4 个命令的 fields 同步更新。</li>
+    <li><b>真实场景</b>: 用户改 header 0xAA → 0xBB 一次 → BMS TLV 方案 4 个命令全部生效。</li>
+  </ul>
+</div>
+
+<div class="note">
+  <h2>数据模型 (隐式方案)</h2>
+  <ul>
+    <li><b>命令</b> = 名称 / 方向 / cmd byte / 触发 / 协议定义 (kind + fields + CRC) / 数据字段定义 / 仪表盘绑定</li>
+    <li><b>方案 (隐式)</b> = NS._getImplicitProfile(kind, fieldsHash, crcConfig) → 同 kind + 同 fields + 同 CRC 的命令归一组
+      <ul>
+        <li>不存独立 PROFILE 对象, 派生计算</li>
+        <li>命名 = "kind N · {kindName}"(自动) 或用户改名(存到 commands[0].profileName, 其他共享命令显示同组名)</li>
+      </ul>
+    </li>
+    <li><b>改协议字段</b> = 改任意一个命令的 kind/fields/CRC → 系统检测到"同组"命令 → 提示"将影响该方案 N 个命令,确认?"</li>
+    <li><b>数据迁移 (兼容 v1 user config)</b>: 启动时把 v1 protocols 转成 v2 commands, 每个 protocol 1 个 cmd,自动归组</li>
+  </ul>
+</div>
+
+<div class="note">
+  <h2>兼容性约束 (AGENTS.md §2 强制, 不动)</h2>
+  <ul>
+    <li><code>localStorage</code> keys: <code>serialweb:prefs</code> / <code>serialweb:version-modal-seen</code> / <code>wsl-*</code></li>
+    <li>配置 JSON type: <code>SerialWebUserConfig</code> v1 → v2 (加 <code>commands</code> 数组, 启动时 v1 → v2 自动迁移)</li>
+    <li><code>.timeline</code> 二进制 magic: <code>WSLBIN1</code> (不动)</li>
+    <li>API 路径: <code>/api/serialweb_page-view</code> (不动)</li>
+  </ul>
+</div>
+
+<div class="footer-link">
+  设计文档: <a href="#">待写</a> · 实施计划: <a href="#">待写</a> · 本预览 (v2): <code>docs/superpowers/previews/2026-08-06-cmd-driven-redesign-v2-mockup.html</code>
+  <br>v1 (方案独立) 预览: <code>docs/superpowers/previews/2026-08-06-profile-cmd-redesign-mockup.html</code>
+</div>
+
+</body>
+</html>
