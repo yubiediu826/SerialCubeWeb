@@ -7122,6 +7122,13 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-tbl td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
 .v49-tbl tr:hover td { background: var(--bg-subtle); }
 .v49-tbl tr.selected td { background: var(--accent-soft); }
+.v49-tbl-empty { text-align: center; padding: 32px 12px !important; color: var(--text-soft) !important; }
+.v49-tbl-muted { color: var(--text-soft); }
+.v49-tbl-sub { color: var(--text-soft); font-size: 11.5px; }
+.v49-tbl-actions { white-space: nowrap; }
+.v49-tbl-actions .v49-btn { margin-right: 4px; }
+.v49-tbl-actions .v49-btn:last-child { margin-right: 0; }
+.v49-btn.sm { padding: 2px 8px; font-size: 11.5px; height: auto; }
 
     /* stat - 统计卡 (主视图方案详情 4 统计卡用) */
 .v49-stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -14444,21 +14451,20 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             bodyEl.appendChild(filterBar);
           }
 
-          // 3. 方案列表表格
+          // 3. 方案列表表格 (B-FULL: 改 inline style → .v49-card / .v49-tbl class)
           const tableWrap = document.createElement('div');
-          tableWrap.className = 'v49-table-wrap';
-          tableWrap.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;';
+          tableWrap.className = 'v49-card v49-table-wrap';
           const table = document.createElement('table');
-          table.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px;';
+          table.className = 'v49-tbl';
           table.innerHTML = [
-            '<thead><tr style="text-align:left;background:#fafbfc;">',
-            '  <th style="padding:8px 12px;color:var(--text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--border);">名称</th>',
-            '  <th style="padding:8px 12px;color:var(--text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--border);">类型</th>',
-            '  <th style="padding:8px 12px;color:var(--text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--border);">标签</th>',
-            '  <th style="padding:8px 12px;color:var(--text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--border);">命令/字段</th>',
-            '  <th style="padding:8px 12px;color:var(--text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--border);">引用</th>',
-            '  <th style="padding:8px 12px;color:var(--text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--border);">最近修改</th>',
-            '  <th style="padding:8px 12px;color:var(--text-3);font-weight:500;font-size:11.5px;border-bottom:1px solid var(--border);width:160px;"></th>',
+            '<thead><tr>',
+            '  <th>名称</th>',
+            '  <th>类型</th>',
+            '  <th>标签</th>',
+            '  <th>命令/字段</th>',
+            '  <th>引用</th>',
+            '  <th>最近修改</th>',
+            '  <th class="v49-tbl-actions"></th>',
             '</tr></thead>',
             '<tbody id="v49-tbody"></tbody>'
           ].join('');
@@ -14542,7 +14548,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               });
             }
             if (list.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-3);">' +
+              tbody.innerHTML = '<tr><td colspan="7" class="v49-tbl-empty">' +
                 (searchQuery ? '没找到匹配 "' + NS.escapeHtml(searchQuery) + '" 的内容' : '没找到匹配 "' + NS.escapeHtml(filterTag) + '" 标签的方案') +
                 '</td></tr>';
               return;
@@ -14550,21 +14556,21 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             tbody.innerHTML = list.map(function (p) {
               const stats = NS._calcProfileStats(p);
               const tagsHtml = (p.tags || []).map(function (t) {
-                return '<span style="display:inline-block;background:var(--primary-soft);color:var(--primary);padding:1px 8px;border-radius:4px;font-size:11px;margin-right:4px;">' + NS.escapeHtml(t) + '</span>';
-              }).join('') || '<span style="color:var(--text-3)">—</span>';
+                return '<span class="v49-tag primary">' + NS.escapeHtml(t) + '</span>';
+              }).join('') || '<span class="v49-tag">—</span>';
               const kindLabel = (NS._KIND_TEMPLATES && NS._KIND_TEMPLATES[p.kind]) ? NS._KIND_TEMPLATES[p.kind].name : (p.kind || '—');
-              return '<tr data-profile-id="' + NS.escapeHtml(p.id) + '" style="border-bottom:1px solid var(--border);">' +
-                '<td style="padding:10px 12px;"><b>' + NS.escapeHtml(p.name) + '</b></td>' +
-                '<td style="padding:10px 12px;"><span style="display:inline-block;background:var(--tag-bg);color:var(--text-2);padding:1px 8px;border-radius:4px;font-size:11px;">' + NS.escapeHtml(kindLabel) + '</span></td>' +
-                '<td style="padding:10px 12px;">' + tagsHtml + '</td>' +
-                '<td style="padding:10px 12px;">' + stats.commandCount + ' <span style="color:var(--text-3)">/ ' + stats.fieldCount + ' 字段</span></td>' +
-                '<td style="padding:10px 12px;">' + stats.referenceCount + ' 处</td>' +
-                '<td style="padding:10px 12px;color:var(--text-2)">' + NS.escapeHtml(String(stats.lastModified)) + '</td>' +
-                '<td style="padding:10px 12px;white-space:nowrap;">' +
-                '<button class="v49-btn sm" data-act="view" style="padding:2px 8px;font-size:11.5px;margin-right:2px;">查看</button>' +
-                '<button class="v49-btn sm" data-act="edit" style="padding:2px 8px;font-size:11.5px;margin-right:2px;">编辑</button>' +
-                '<button class="v49-btn sm" data-act="export" style="padding:2px 8px;font-size:11.5px;margin-right:2px;">导出</button>' +
-                '<button class="v49-btn sm" data-act="delete" style="padding:2px 8px;font-size:11.5px;color:var(--danger);border-color:var(--danger);">删除</button>' +
+              return '<tr data-profile-id="' + NS.escapeHtml(p.id) + '">' +
+                '<td><b>' + NS.escapeHtml(p.name) + '</b></td>' +
+                '<td><span class="v49-tag">' + NS.escapeHtml(kindLabel) + '</span></td>' +
+                '<td>' + tagsHtml + '</td>' +
+                '<td>' + stats.commandCount + ' <span class="v49-tbl-sub">/ ' + stats.fieldCount + ' 字段</span></td>' +
+                '<td>' + stats.referenceCount + ' 处</td>' +
+                '<td class="v49-tbl-muted">' + NS.escapeHtml(String(stats.lastModified)) + '</td>' +
+                '<td class="v49-tbl-actions">' +
+                '<button class="v49-btn sm" data-act="view">查看</button>' +
+                '<button class="v49-btn sm" data-act="edit">编辑</button>' +
+                '<button class="v49-btn sm" data-act="export">导出</button>' +
+                '<button class="v49-btn sm danger" data-act="delete">删除</button>' +
                 '</td>' +
                 '</tr>';
             }).join('');
