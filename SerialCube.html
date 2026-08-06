@@ -7381,6 +7381,56 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-imp-hist-meta { color: var(--text-soft); font-size: 11px; margin-top: 2px; }
 .v49-imp-hist-meta .err { color: var(--danger); }
 
+    /* phase 4-2: 加载/错误态 — skeleton 骨架屏 (2026-08-06) */
+    @keyframes v49Shimmer {
+      0%   { background-position: -240px 0; }
+      100% { background-position: 240px 0; }
+    }
+    .v49-skeleton {
+      display: block;
+      background: linear-gradient(90deg,
+        var(--bg-subtle) 0%,
+        var(--border) 40%,
+        var(--bg-subtle) 80%);
+      background-size: 480px 100%;
+      background-repeat: no-repeat;
+      border-radius: 4px;
+      animation: v49Shimmer 1.2s linear infinite;
+    }
+    .v49-skeleton.text { height: 11px; margin: 4px 0; }
+    .v49-skeleton.text.short { width: 35%; }
+    .v49-skeleton.text.medium { width: 65%; }
+    .v49-skeleton.text.long { width: 92%; }
+    .v49-skeleton.title { height: 14px; width: 40%; margin: 6px 0 10px; }
+    .v49-skeleton.block { height: 60px; }
+    .v49-skeleton-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      background: var(--bg-elevated);
+    }
+    .v49-skeleton-row .v49-skeleton.text { margin: 0; flex: 1; }
+    .v49-skeleton-wrap {
+      padding: 8px 0;
+    }
+    .v49-skeleton-label {
+      color: var(--text-soft);
+      font-size: 11.5px;
+      margin: 6px 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .v49-skeleton-label .spinner {
+      width: 10px; height: 10px;
+      border: 1.5px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: card-action-spin 0.7s linear infinite;
+    }
+
     /* import (3 步导入配置 modal) */
 .v49-import-step-progress { display: flex; gap: 4px; margin-bottom: 12px; font-size: 11.5px; }
 .v49-import-step { flex: 1; padding: 6px 10px; border-radius: 4px; text-align: center; background: var(--bg-elevated); color: var(--text-soft); border: 1px solid var(--border); transition: background 0.15s, color 0.15s, border-color 0.15s; }
@@ -24873,7 +24923,11 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         try {
           localStorage.setItem(LOCAL_PREFS_KEY, JSON.stringify(buildLocalPrefsSnapshot()));
         } catch (error) {
-          console.warn('save local prefs failed', error);
+          // phase 4-2: localStorage 失败给用户可见提示 (quota 满 / 隐私模式)
+          const reason = (error && (error.name === 'QuotaExceededError' || error.code === 22))
+            ? '浏览器存储已满'
+            : ((error && error.message) || '未知错误');
+          try { if (typeof NS.toast === 'function') NS.toast('保存偏好失败:' + reason, 'danger', 4000); } catch (_) {}
         }
       }
 
