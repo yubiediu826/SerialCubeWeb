@@ -7275,6 +7275,29 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-form-row { display: flex; gap: 8px; align-items: center; }
 .v49-form-row .v49-form-label { margin-bottom: 0; flex-shrink: 0; min-width: 80px; }
 
+    /* dashboard-bindings (T18 仪表盘绑定 3 辅助函数) */
+.v49-bind-row { /* 兼容 .v49-list-item 复用,纯标记 */ }
+.v49-bind-del { /* 兼容 .v49-btn.danger.sm 复用,纯标记 */ }
+.v49-bind-preview-row { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 4px; padding: 8px; margin-bottom: 8px; margin-left: 14px; font-size: 11px; color: var(--text-soft); }
+.v49-bind-preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.v49-bind-preview-stack { display: flex; flex-direction: column; gap: 6px; }
+.v49-bind-preview-single { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; padding: 6px; text-align: center; }
+.v49-bind-preview-cell { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; padding: 6px; }
+.v49-bind-preview-name { font-size: 10px; color: var(--text-soft); }
+.v49-bind-preview-value { font-size: 14px; font-weight: 500; color: var(--text); }
+.v49-bind-preview-value.big { font-size: 16px; font-weight: 600; }
+.v49-bind-field-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
+.v49-bind-field { display: flex; align-items: center; gap: 5px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; cursor: pointer; background: var(--bg-elevated); transition: background 0.12s, border-color 0.12s, color 0.12s; }
+.v49-bind-field.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.v49-bind-field .name { flex: 1; }
+.v49-bind-field .type { color: var(--text-soft); }
+.v49-bind-field.active .type { color: var(--accent); }
+.v49-bind-layout-row { display: flex; gap: 6px; }
+.v49-bind-layout { display: flex; align-items: center; gap: 5px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; background: var(--bg-elevated); cursor: pointer; transition: background 0.12s, border-color 0.12s, color 0.12s; }
+.v49-bind-layout.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.v49-bind-layout.disabled { opacity: 0.4; cursor: not-allowed; }
+.v49-bind-preview-box { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 10px; }
+
     /* edit-profile (编辑方案 diff 视图) */
 .v49-edit-impact-list { max-height: 200px; overflow-y: auto; }
 .v49-edit-impact-empty { color: var(--text-soft); font-size: 11px; padding: 4px 0; }
@@ -16079,14 +16102,13 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           // 卡片下拉
           const cardOpts = cards.map(function (c) { return '<option value="' + NS.escapeHtml(c.id) + '">' + NS.escapeHtml(c.title) + ' (' + NS.escapeHtml(c.type) + ')</option>'; }).join('');
           if (cards.length === 0) {
-            return '<div style="background:var(--warn-soft);color:var(--warn);padding:14px;border-radius:6px;font-size:12px;text-align:center;">⚠ 还没有仪表盘卡片, 请先到仪表盘页面创建卡片 (Q3 配置层只做绑定, 数据真实生效留 v4.9.1)</div>';
+            return '<div class="v49-alert warn" style="text-align:center;">⚠ 还没有仪表盘卡片, 请先到仪表盘页面创建卡片 (Q3 配置层只做绑定, 数据真实生效留 v4.9.1)</div>';
           }
           let html = '';
           if (bindings.length === 0) {
-            html += '<div style="background:#fafbfc;border:1px dashed var(--border-strong);border-radius:6px;padding:18px;text-align:center;color:var(--text-3);font-size:12px;margin-bottom:10px;">' +
-              '还没有绑定。点下方按钮把当前命令的字段绑定到仪表盘卡片 →</div>';
+            html += '<div class="v49-alert info" style="text-align:center;">还没有绑定。点下方按钮把当前命令的字段绑定到仪表盘卡片 →</div>';
           } else {
-            html += '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:6px;">已绑定 (' + bindings.length + '):</div>';
+            html += '<div class="v49-form-label">已绑定 (' + bindings.length + '):</div>';
             for (let i = 0; i < bindings.length; i++) {
               const b = bindings[i];
               const card = cards.find(function (c) { return c.id === b.cardId; });
@@ -16094,22 +16116,23 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 const f = (command.fields || []).find(function (x) { return x.id === fid; });
                 return f ? f.name : fid;
               }).join(', ') || '(无字段)';
-              html += '<div class="v49-bind-row" data-bind-idx="' + i + '" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:4px;background:var(--card);font-size:12px;">' +
-                '<div style="flex:1;">' +
-                  '<div style="font-weight:500;">' + (card ? NS.escapeHtml(card.title) : '已删除卡片') + ' <span style="background:var(--tag-bg);color:var(--text-2);padding:1px 6px;border-radius:3px;font-size:11px;margin-left:4px;">' + NS.escapeHtml(b.layout) + '</span></div>' +
-                  '<div style="color:var(--text-3);font-size:11px;margin-top:2px;">字段: ' + NS.escapeHtml(fieldNames) + '</div>' +
+              html += '<div class="v49-list-item v49-bind-row" data-bind-idx="' + i + '">' +
+                '<div class="main">' +
+                  '<div><b>' + (card ? NS.escapeHtml(card.title) : '已删除卡片') + '</b> <span class="v49-tag">' + NS.escapeHtml(b.layout) + '</span></div>' +
+                  '<div class="v49-tbl-sub">字段: ' + NS.escapeHtml(fieldNames) + '</div>' +
                 '</div>' +
-                '<button class="v49-bind-del" data-idx="' + i + '" title="解绑" style="background:transparent;border:1px solid var(--danger);color:var(--danger);padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer;">解绑</button>' +
+                '<div class="actions">' +
+                '<button class="v49-bind-del v49-btn sm danger" data-idx="' + i + '" title="解绑">解绑</button>' +
+                '</div>' +
                 '</div>';
               // 静态预览
-              html += '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:4px;padding:8px;margin-bottom:8px;margin-left:14px;font-size:11px;color:var(--text-3);">' +
-                '<b>预览 (' + NS.escapeHtml(b.layout) + '):</b> ' +
+              html += '<div class="v49-bind-preview-row"><b>预览 (' + NS.escapeHtml(b.layout) + '):</b> ' +
                 NS._renderBindingPreviewHtml(b, command) +
                 '</div>';
             }
           }
           // 添加按钮
-          html += '<button id="v49-bind-add" style="padding:5px 14px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;margin-top:4px;">+ 绑定到仪表盘卡片</button>';
+          html += '<button id="v49-bind-add" class="v49-btn primary sm" style="margin-top:4px;">+ 绑定到仪表盘卡片</button>';
           return html;
         };
 
@@ -16121,34 +16144,22 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           }).filter(function (x) { return !!x; });
           if (fields.length === 0) return '<span style="color:var(--danger);">(无字段)</span>';
           const layout = binding.layout || '1x1';
-          let inner = '';
+          const cell = function (f, big) {
+            return '<div class="v49-bind-preview-cell">' +
+              '<div class="v49-bind-preview-name">' + NS.escapeHtml(f.name) + '</div>' +
+              '<div class="v49-bind-preview-value' + (big ? ' big' : '') + '">— ' + (f.unit || '') + '</div>' +
+              '</div>';
+          };
           if (layout === '2x1') {
             // 2 列 1 行
-            inner = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">' +
-              fields.map(function (f) {
-                return '<div style="background:var(--card);border:1px solid var(--border);border-radius:4px;padding:6px;">' +
-                  '<div style="font-size:10px;color:var(--text-3);">' + NS.escapeHtml(f.name) + '</div>' +
-                  '<div style="font-size:14px;font-weight:500;color:var(--text);">— ' + (f.unit || '') + '</div>' +
-                  '</div>';
-              }).join('') + '</div>';
+            return '<div class="v49-bind-preview-grid">' + fields.map(function (f) { return cell(f, false); }).join('') + '</div>';
           } else if (layout === '1x2') {
             // 1 列 2 行
-            inner = '<div style="display:flex;flex-direction:column;gap:6px;">' +
-              fields.map(function (f) {
-                return '<div style="background:var(--card);border:1px solid var(--border);border-radius:4px;padding:6px;">' +
-                  '<div style="font-size:10px;color:var(--text-3);">' + NS.escapeHtml(f.name) + '</div>' +
-                  '<div style="font-size:14px;font-weight:500;color:var(--text);">— ' + (f.unit || '') + '</div>' +
-                  '</div>';
-              }).join('') + '</div>';
+            return '<div class="v49-bind-preview-stack">' + fields.map(function (f) { return cell(f, false); }).join('') + '</div>';
           } else {
             // 1x1: 只取第一个
-            const f = fields[0];
-            inner = '<div style="background:var(--card);border:1px solid var(--border);border-radius:4px;padding:6px;text-align:center;">' +
-              '<div style="font-size:10px;color:var(--text-3);">' + NS.escapeHtml(f.name) + '</div>' +
-              '<div style="font-size:16px;font-weight:600;color:var(--text);">— ' + (f.unit || '') + '</div>' +
-              '</div>';
+            return '<div class="v49-bind-preview-single">' + cell(fields[0], true) + '</div>';
           }
-          return inner;
         };
 
         // --- C3b T18: 弹出添加绑定 modal (子 modal) ---
@@ -16171,9 +16182,10 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           }
           function renderFieldCheckboxes() {
             return fields.map(function (f) {
-              return '<label style="display:flex;align-items:center;gap:5px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;cursor:pointer;background:' + (selectedFieldIds.indexOf(f.id) >= 0 ? 'var(--primary-soft)' : 'var(--card)') + ';">' +
-                '<input type="checkbox" class="v49-bind-field-cb" value="' + NS.escapeHtml(f.id) + '" ' + (selectedFieldIds.indexOf(f.id) >= 0 ? 'checked' : '') + '>' +
-                '<span style="flex:1;">' + NS.escapeHtml(f.name) + ' <span style="color:var(--text-3);">(' + NS.escapeHtml(f.type) + ')</span></span>' +
+              const isActive = selectedFieldIds.indexOf(f.id) >= 0;
+              return '<label class="v49-bind-field' + (isActive ? ' active' : '') + '">' +
+                '<input type="checkbox" class="v49-bind-field-cb" value="' + NS.escapeHtml(f.id) + '" ' + (isActive ? 'checked' : '') + '>' +
+                '<span class="name">' + NS.escapeHtml(f.name) + ' <span class="type">(' + NS.escapeHtml(f.type) + ')</span></span>' +
                 '</label>';
             }).join('');
           }
@@ -16184,8 +16196,12 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               { val: '1x1', label: '1×1 (单值)', available: true }
             ];
             return layouts.map(function (l) {
-              return '<label style="display:flex;align-items:center;gap:5px;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;cursor:' + (l.available ? 'pointer' : 'not-allowed') + ';opacity:' + (l.available ? '1' : '0.4') + ';background:' + (selectedLayout === l.val ? 'var(--primary-soft)' : 'var(--card)') + ';">' +
-                '<input type="radio" class="v49-bind-layout-rb" name="v49-bind-layout" value="' + l.val + '" ' + (selectedLayout === l.val ? 'checked' : '') + (l.available ? '' : ' disabled') + '>' +
+              const isActive = selectedLayout === l.val;
+              let cls = 'v49-bind-layout';
+              if (isActive) cls += ' active';
+              if (!l.available) cls += ' disabled';
+              return '<label class="' + cls + '">' +
+                '<input type="radio" class="v49-bind-layout-rb" name="v49-bind-layout" value="' + l.val + '" ' + (isActive ? 'checked' : '') + (l.available ? '' : ' disabled') + '>' +
                 NS.escapeHtml(l.label) + '</label>';
             }).join('');
           }
@@ -16195,19 +16211,19 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           }
           function renderBody() {
             return [
-              '<div style="display:grid;grid-template-columns:110px 1fr;gap:8px 10px;align-items:center;font-size:12px;margin-bottom:12px;">',
-              '  <label>选卡片 <span style="color:var(--danger)">*</span></label><select class="inp" id="v49-bind-card">' + renderCardOptions() + '</select>',
+              '<div class="v49-form-grid-cmd">',
+              '  <label>选卡片 <span class="v49-form-label-req">*</span></label><select class="v49-inp" id="v49-bind-card">' + renderCardOptions() + '</select>',
               '</div>',
-              '<div style="margin-bottom:12px;">',
-              '  <div style="font-size:12px;font-weight:500;margin-bottom:5px;">选字段 (多选):</div>',
-              '  <div id="v49-bind-fields" style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;">' + renderFieldCheckboxes() + '</div>',
+              '<div class="v49-form-field">',
+              '  <div class="v49-form-label">选字段 (多选):</div>',
+              '  <div id="v49-bind-fields" class="v49-bind-field-grid">' + renderFieldCheckboxes() + '</div>',
               '</div>',
-              '<div style="margin-bottom:12px;">',
-              '  <div style="font-size:12px;font-weight:500;margin-bottom:5px;">布局 (1 字段只能用 1×1):</div>',
-              '  <div id="v49-bind-layouts" style="display:flex;gap:6px;">' + renderLayoutOptions() + '</div>',
+              '<div class="v49-form-field">',
+              '  <div class="v49-form-label">布局 (1 字段只能用 1×1):</div>',
+              '  <div id="v49-bind-layouts" class="v49-bind-layout-row">' + renderLayoutOptions() + '</div>',
               '</div>',
-              '<div style="background:#fafbfc;border:1px solid var(--border);border-radius:6px;padding:10px;">',
-              '  <div style="font-size:11.5px;color:var(--text-3);margin-bottom:6px;">静态预览 (Q3 锁定: 数据不真刷新, v4.9.1 接仪表盘数据源):</div>',
+              '<div class="v49-bind-preview-box">',
+              '  <div class="v49-form-label">静态预览 (Q3 锁定: 数据不真刷新, v4.9.1 接仪表盘数据源)</div>',
               '  <div id="v49-bind-preview">' + renderPreview() + '</div>',
               '</div>'
             ].join('');
