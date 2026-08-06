@@ -14328,9 +14328,11 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           bodyEl.appendChild(toolbar);
 
           // 2. 标签筛选条 (v4.9.21: 0 方案时整条隐藏, 避免"全部 0 / + 新建标签"突兀空着)
+          // v4.9.21.3: filterBar 提到 outer scope, 0 方案时为 null (避免后续 if 块外访问 ReferenceError)
+          let filterBar = null;
           const tags = NS._getAllTags();
           if (allCount > 0) {
-            const filterBar = document.createElement('div');
+            filterBar = document.createElement('div');
             filterBar.className = 'v49-filter-bar';
             let chipsHtml = '<span class="v49-chip active" data-tag="">全部 <span class="num">' + allCount + '</span></span>';
             tags.forEach(function (t) {
@@ -14505,6 +14507,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               const q = e.target.value;
               clearTimeout(searchTimer);
               searchTimer = setTimeout(function () {
+                if (!filterBar) { renderTable('', q); return; }
                 const activeChip = filterBar.querySelector('.v49-chip.active');
                 const filterTag = activeChip ? activeChip.dataset.tag : '';
                 renderTable(filterTag, q);
@@ -14519,17 +14522,19 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             });
           }
 
-          // 7. 绑定标签 chip
-          filterBar.querySelectorAll('.v49-chip').forEach(function (chip) {
-            chip.onclick = function () {
-              filterBar.querySelectorAll('.v49-chip').forEach(function (c) {
-                c.classList.remove('active');
-              });
-              chip.classList.add('active');
-              const q = searchInput ? searchInput.value : '';
-              renderTable(chip.dataset.tag, q);
-            };
-          });
+          // 7. 绑定标签 chip (v4.9.21.3: 0 方案时 filterBar 为 null, 整条跳过避免 ReferenceError 中断后续 bindAction)
+          if (filterBar) {
+            filterBar.querySelectorAll('.v49-chip').forEach(function (chip) {
+              chip.onclick = function () {
+                filterBar.querySelectorAll('.v49-chip').forEach(function (c) {
+                  c.classList.remove('active');
+                });
+                chip.classList.add('active');
+                const q = searchInput ? searchInput.value : '';
+                renderTable(chip.dataset.tag, q);
+              };
+            });
+          }
 
           // 7b. 绑定 "+ 新建标签" muted 链接
           const addTagLinkEl = document.getElementById('v49-add-tag-link');
