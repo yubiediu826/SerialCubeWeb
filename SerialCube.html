@@ -6184,7 +6184,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       position: fixed; inset: 0;
       background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(2px);
-      display: none; z-index: 100;
+      display: none; z-index: 250;  /* v4.9.21: 提到 250, 盖住 toast (z 200) 和告警浮层, 防止告警遮 modal */
     }
 .dashboard-host     .modal-backdrop.open { display: block; }
 .dashboard-host     .modal {
@@ -6198,7 +6198,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       box-shadow: var(--shadow-ambient);
       display: none;
       flex-direction: column;
-      z-index: 101;
+      z-index: 251;  /* v4.9.21: 配套提到 251 */
       overflow: hidden;
     }
     /* v6.5: 重要弹窗(卡片详情/协议编辑器/卡片配置/告警配置等)始终居中显示 —
@@ -6983,7 +6983,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
     }
 .dashboard-host     .v49-add-tag:hover { color: var(--accent); }
 
-    /* v4.9.21: 空状态 (3 步骤 + 3 按钮 一一对应, 步骤在上, 按钮在下) */
+    /* v4.9.21: 空状态 (antd Steps 风格: 3 个垂直小卡片并排居中, 每张: 序号 + 标题 + 描述 + 按钮) */
 .dashboard-host     .v49-empty {
       display: flex;
       flex-direction: column;
@@ -7011,59 +7011,59 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       text-align: center;
     }
 .dashboard-host     .v49-empty p {
-      margin: 0 0 18px;
+      margin: 0 0 22px;
       font-size: 12px;
       color: var(--text-3);
       text-align: center;
     }
 .dashboard-host     .v49-empty-rows {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
       width: 100%;
-      max-width: 460px;
+      max-width: 720px;
     }
-.dashboard-host     .v49-empty-row {
+.dashboard-host     .v49-empty-card {
       display: flex;
       flex-direction: column;
-      gap: 6px;
       align-items: center;
+      text-align: center;
+      gap: 6px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 14px 16px;
+      min-height: 168px;
     }
-.dashboard-host     .v49-empty-step {
-      display: flex;
-      gap: 8px;
-      align-items: flex-start;
-      text-align: left;
-    }
-.dashboard-host     .v49-empty-step .n {
-      flex-shrink: 0;
+.dashboard-host     .v49-empty-card-num {
+      width: 30px; height: 30px;
       background: var(--accent);
       color: #fff;
       border-radius: 50%;
-      width: 18px;
-      height: 18px;
-      font-size: 11px;
-      font-weight: 600;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin-top: 1px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 4px;
     }
-.dashboard-host     .v49-empty-step .step-title {
-      font-size: 12.5px;
+.dashboard-host     .v49-empty-card-title {
+      font-size: 13px;
       font-weight: 600;
       color: var(--text);
     }
-.dashboard-host     .v49-empty-step .step-sub {
-      font-size: 11px;
+.dashboard-host     .v49-empty-card-sub {
+      font-size: 11.5px;
       color: var(--text-3);
-      margin-top: 1px;
+      line-height: 1.5;
+      min-height: 32px;
     }
-.dashboard-host     .v49-empty-row-action {
-      margin-left: 26px;
+.dashboard-host     .v49-empty-card .v49-btn {
+      margin-top: auto;
+      align-self: stretch;
     }
 .dashboard-host     .v49-empty-links {
-      margin-top: 14px;
+      margin-top: 16px;
       display: flex;
       gap: 4px;
       align-items: center;
@@ -7080,6 +7080,10 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
     }
 .dashboard-host     .v49-empty-links a:hover { text-decoration: underline; }
 .dashboard-host     .v49-empty-links .sep { color: var(--text-3); }
+    /* v4.9.21: 极窄屏 (≤480, 移动/小窗) 3 列回退单列, 避免卡太挤 */
+@media (max-width: 480px) {
+.dashboard-host     .v49-empty-rows { grid-template-columns: 1fr; max-width: 360px; }
+}
 
     /* v4.9.4: Pair trigger modal (0x10/0x11 共用) - 字段行 + 数字 stepper + 字节预览框 */
 .dashboard-host     #dh-pair-trigger-fields {
@@ -14238,15 +14242,65 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           const bodyEl = document.getElementById('dh-proto-body');
           if (!bodyEl) return;
 
-          // tabs 改为只显示标题 (老 tabs 在新主视图不需要)
+          // tabs 区域清空 (v4.9.21: 不再展示开发自嗨文案, 整体布局更干净)
           if (tabsEl) {
-            tabsEl.innerHTML = '<span style="color:var(--text-3);font-size:12px;padding:8px 12px;">v4.9 方案编辑器 (v2 格式 · 12 块 UX 改进)</span>';
+            tabsEl.innerHTML = '';
+            tabsEl.style.display = 'none';
           }
           bodyEl.innerHTML = '';
           bodyEl.style.padding = '12px';
 
           const profiles = NS.PROFILES || [];
           const allCount = profiles.length;
+
+          // v4.9.21: 适配 modal 头尾到方案编辑器语义
+          //   - header 副标题改成"协议方案库 · 命令 / 字段 / 仪表盘绑定"
+          //   - 0 方案时空状态独占, footer 只保留"关闭"; 恢复默认协议/应用协议 改放 toolbar
+          //   - 有方案时 footer 恢复成老版 3 按钮
+          const modalEl = document.getElementById('dh-proto-modal');
+          const subtitleEl = modalEl && modalEl.querySelector('.modal-subtitle');
+          const footerEl = modalEl && modalEl.querySelector('.modal-footer');
+          if (subtitleEl) {
+            subtitleEl.textContent = allCount === 0
+              ? '协议方案库 · 一处管理协议 + 命令 + 字段'
+              : '协议方案库 · ' + allCount + ' 个方案 · 命令 / 字段 / 仪表盘绑定';
+          }
+          if (footerEl) {
+            if (allCount === 0) {
+              // 空状态: footer 只保留关闭, 恢复默认协议/应用协议挪到 toolbar
+              footerEl.innerHTML = '<button class="toolbar-btn" data-close="dh-proto">关闭</button>';
+              footerEl.style.justifyContent = 'flex-end';
+            } else {
+              // 有方案: 恢复老 footer 布局
+              footerEl.innerHTML = [
+                '<button class="toolbar-btn" data-close="dh-proto">关闭</button>',
+                '<span class="spacer"></span>',
+                '<button class="toolbar-btn" id="dh-proto-reset"><svg viewBox="0 0 16 16" class="icon-svg" style="width:12px;height:12px;vertical-align:-2px;margin-right:3px;"><path d="M13 8 A5 5 0 1 1 8 3 L11 3 M11 1 L11 5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>恢复默认协议</button>',
+                '<button class="toolbar-btn primary" id="dh-proto-apply"><svg viewBox="0 0 16 16" class="icon-svg" style="width:12px;height:12px;vertical-align:-2px;margin-right:3px;"><path d="M3 8.5 L6.5 12 L13 4.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>应用协议</button>'
+              ].join('');
+              footerEl.style.justifyContent = 'space-between';
+              // 重绑 footer 内部事件 (新生成的 dom 节点, 老的 data-close 委托需要重新扫描)
+              const newCloseBtns = footerEl.querySelectorAll('[data-close]');
+              newCloseBtns.forEach(function (b) {
+                b.addEventListener('click', function () { NS.closeModal(b.getAttribute('data-close')); });
+              });
+              const resetBtn = footerEl.querySelector('#dh-proto-reset');
+              if (resetBtn) resetBtn.addEventListener('click', function () {
+                if (confirm('确定要恢复默认协议? 所有自定义方案将丢失')) {
+                  NS.PROFILES = NS._defaultProfiles();
+                  NS._schedulePersist();
+                  NS.renderProtoEditor();
+                  NS.toast('已恢复默认协议', 'info');
+                }
+              });
+              const applyBtn = footerEl.querySelector('#dh-proto-apply');
+              if (applyBtn) applyBtn.addEventListener('click', function () {
+                NS._schedulePersist();
+                NS.toast('协议已应用', 'success');
+                NS.closeModal('dh-proto');
+              });
+            }
+          }
 
           // 1. 顶部工具栏 (v4.9.19 重写 — 搜索框占主, actions 紧凑)
           const toolbar = document.createElement('div');
@@ -14265,27 +14319,32 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             '  <button class="v49-btn" id="v49-btn-export" title="导出配置 (4 粒度)"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M5 8l3 3 3-3M3 14h10"/></svg>导出</button>',
             '  <button class="v49-btn" id="v49-btn-history" title="操作历史 (30 天)"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 3v3h3M8 5v3l2 1.5"/></svg>历史</button>',
             '  <button class="v49-btn" id="v49-btn-recycle" title="回收站 (30 天)"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h10M6 4V2.5h4V4M5 4l.5 9h5L11 4M6.5 7v4M9.5 7v4"/></svg>回收站</button>',
-            '  <button class="v49-btn primary" id="v49-btn-new"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>新建方案</button>',
+            // v4.9.21: 有方案时才显示 toolbar "+ 新建方案" 主按钮, 0 方案时空状态卡片已有 CTA, 工具栏重复了
+            (allCount > 0
+              ? '  <button class="v49-btn primary" id="v49-btn-new"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>新建方案</button>'
+              : ''),
             '</div>'
           ].join('');
           bodyEl.appendChild(toolbar);
 
-          // 2. 标签筛选条 (v4.9.19 重写 — 标签 chips + 末尾 muted 链接 "+ 新建标签")
+          // 2. 标签筛选条 (v4.9.21: 0 方案时整条隐藏, 避免"全部 0 / + 新建标签"突兀空着)
           const tags = NS._getAllTags();
-          const filterBar = document.createElement('div');
-          filterBar.className = 'v49-filter-bar';
-          let chipsHtml = '<span class="v49-chip active" data-tag="">全部 <span class="num">' + allCount + '</span></span>';
-          tags.forEach(function (t) {
-            chipsHtml += '<span class="v49-chip" data-tag="' + NS.escapeHtml(t.name) + '">' + NS.escapeHtml(t.name) + ' <span class="num">' + t.count + '</span></span>';
-          });
-          filterBar.innerHTML = chipsHtml;
-          // 末尾追加 "+ 新建标签" muted 链接 (margin-left:auto 推到最右)
-          const addTagLink = document.createElement('span');
-          addTagLink.className = 'v49-add-tag';
-          addTagLink.id = 'v49-add-tag-link';
-          addTagLink.textContent = '+ 新建标签';
-          filterBar.appendChild(addTagLink);
-          bodyEl.appendChild(filterBar);
+          if (allCount > 0) {
+            const filterBar = document.createElement('div');
+            filterBar.className = 'v49-filter-bar';
+            let chipsHtml = '<span class="v49-chip active" data-tag="">全部 <span class="num">' + allCount + '</span></span>';
+            tags.forEach(function (t) {
+              chipsHtml += '<span class="v49-chip" data-tag="' + NS.escapeHtml(t.name) + '">' + NS.escapeHtml(t.name) + ' <span class="num">' + t.count + '</span></span>';
+            });
+            filterBar.innerHTML = chipsHtml;
+            // 末尾追加 "+ 新建标签" muted 链接 (margin-left:auto 推到最右)
+            const addTagLink = document.createElement('span');
+            addTagLink.className = 'v49-add-tag';
+            addTagLink.id = 'v49-add-tag-link';
+            addTagLink.textContent = '+ 新建标签';
+            filterBar.appendChild(addTagLink);
+            bodyEl.appendChild(filterBar);
+          }
 
           // 3. 方案列表表格
           const tableWrap = document.createElement('div');
@@ -14323,21 +14382,30 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               '</div>',
               '<h4>还没有协议方案</h4>',
               '<p>方案 = 一组共享协议规则 + 命令的集合。先建一个，5 分钟跑通第一个命令</p>',
+              // v4.9.21 重写: 3 列横向卡片布局 (antd Steps 风格)
+              //   - 3 个垂直小卡片并排居中, 每个卡: 大序号 + 标题 + 描述 + 按钮
+              //   - 替代之前纵向 step + 按钮的啰嗦排版
               '<div class="v49-empty-rows">',
-              // row 1: 选协议类型 → 新建方案
-              '  <div class="v49-empty-row">',
-              '    <div class="v49-empty-step"><span class="n">1</span><div><div class="step-title">选协议类型</div><div class="step-sub">8 种 Modbus / TLV / 固定帧头…</div></div></div>',
-              '    <div class="v49-empty-row-action"><button class="v49-btn primary" id="v49-btn-new-empty"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>新建方案</button></div>',
+              // card 1: 选协议类型 → 新建方案
+              '  <div class="v49-empty-card">',
+              '    <div class="v49-empty-card-num">1</div>',
+              '    <div class="v49-empty-card-title">选协议类型</div>',
+              '    <div class="v49-empty-card-sub">8 种 Modbus / TLV / 固定帧头…</div>',
+              '    <button class="v49-btn" id="v49-btn-new-empty"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>新建方案</button>',
               '  </div>',
-              // row 2: 配 CRC → 从协议模板
-              '  <div class="v49-empty-row">',
-              '    <div class="v49-empty-step"><span class="n">2</span><div><div class="step-title">配 CRC</div><div class="step-sub">8 种 CRC 算法 + 起始值</div></div></div>',
-              '    <div class="v49-empty-row-action"><button class="v49-btn" id="v49-btn-templates-empty"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>从协议模板</button></div>',
+              // card 2: 配 CRC → 从协议模板
+              '  <div class="v49-empty-card">',
+              '    <div class="v49-empty-card-num">2</div>',
+              '    <div class="v49-empty-card-title">配 CRC</div>',
+              '    <div class="v49-empty-card-sub">8 种 CRC 算法 + 起始值</div>',
+              '    <button class="v49-btn" id="v49-btn-templates-empty"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>从协议模板</button>',
               '  </div>',
-              // row 3: 加命令 + 字段 → 导入已有配置
-              '  <div class="v49-empty-row">',
-              '    <div class="v49-empty-step"><span class="n">3</span><div><div class="step-title">加命令 + 字段</div><div class="step-sub">用预设或贴字节反向解析</div></div></div>',
-              '    <div class="v49-empty-row-action"><button class="v49-btn" id="v49-btn-import-empty"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M5 5l3-3 3 3M3 13h10"/></svg>导入已有配置</button></div>',
+              // card 3: 加命令 + 字段 → 导入已有配置
+              '  <div class="v49-empty-card">',
+              '    <div class="v49-empty-card-num">3</div>',
+              '    <div class="v49-empty-card-title">加命令 + 字段</div>',
+              '    <div class="v49-empty-card-sub">用预设或贴字节反向解析</div>',
+              '    <button class="v49-btn" id="v49-btn-import-empty"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M5 5l3-3 3 3M3 13h10"/></svg>导入已有配置</button>',
               '  </div>',
               '</div>',
               '<div class="v49-empty-links">',
