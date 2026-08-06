@@ -6806,6 +6806,215 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       padding: 6px 8px;
     }
 
+    /* v4.9.19: 方案编辑器主视图 (profile list) 样式 */
+.dashboard-host     .v49-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 4px 10px;
+      flex-wrap: wrap;
+    }
+.dashboard-host     .v49-search {
+      position: relative;
+      flex: 1 1 240px;
+      min-width: 180px;
+      max-width: 360px;
+    }
+.dashboard-host     .v49-search input {
+      width: 100%;
+      height: 30px;
+      padding: 0 56px 0 30px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card);
+      font-size: 12.5px;
+      color: var(--text);
+      font-family: var(--font-ui);
+      box-sizing: border-box;
+    }
+.dashboard-host     .v49-search input::placeholder { color: var(--text-3); }
+.dashboard-host     .v49-search input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-soft);
+    }
+.dashboard-host     .v49-search .v49-search-kbd {
+      position: absolute;
+      right: 8px; top: 50%;
+      transform: translateY(-50%);
+      background: var(--tag-bg);
+      color: var(--text-3);
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      pointer-events: none;
+    }
+.dashboard-host     .v49-search .v49-search-icon {
+      position: absolute;
+      left: 9px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-3);
+    }
+.dashboard-host     .v49-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-left: auto;
+    }
+.dashboard-host     .v49-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: 30px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card);
+      color: var(--text);
+      font-size: 12px;
+      cursor: pointer;
+      font-family: var(--font-ui);
+      white-space: nowrap;
+      transition: background .12s, border-color .12s;
+    }
+.dashboard-host     .v49-btn:hover {
+      background: var(--bg-soft, #f7f8fa);
+      border-color: var(--border-strong);
+    }
+.dashboard-host     .v49-btn.primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+.dashboard-host     .v49-btn.primary:hover {
+      filter: brightness(1.06);
+      border-color: var(--primary);
+    }
+.dashboard-host     .v49-btn.sm {
+      height: 24px;
+      padding: 0 8px;
+      font-size: 11.5px;
+      border-radius: 4px;
+    }
+.dashboard-host     .v49-filter-bar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 0 4px;
+    }
+.dashboard-host     .v49-chip {
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-strong);
+      background: var(--card);
+      font-size: 11.5px;
+      color: var(--text-2);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+.dashboard-host     .v49-chip .num { opacity: 0.75; font-size: 10.5px; }
+.dashboard-host     .v49-chip:hover { border-color: var(--primary); }
+.dashboard-host     .v49-chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+.dashboard-host     .v49-add-tag {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--text-3);
+      cursor: pointer;
+      padding: 2px 4px;
+    }
+.dashboard-host     .v49-add-tag:hover { color: var(--primary); }
+
+    /* v4.9.19: 空状态 (centered, 3 按钮 + 3 步骤 + 3 链接) */
+.dashboard-host     .v49-empty {
+      text-align: center;
+      padding: 60px 20px 40px;
+      color: var(--text-3);
+    }
+.dashboard-host     .v49-empty .v49-empty-icon {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 14px;
+      background: var(--primary-soft);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+.dashboard-host     .v49-empty h4 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      color: var(--text);
+      font-weight: 600;
+    }
+.dashboard-host     .v49-empty p {
+      margin: 0 0 18px;
+      font-size: 12px;
+      color: var(--text-3);
+    }
+.dashboard-host     .v49-empty-buttons {
+      display: inline-flex;
+      gap: 8px;
+      justify-content: center;
+    }
+.dashboard-host     .v49-empty-steps {
+      margin: 22px 0 18px;
+      display: flex;
+      gap: 18px;
+      justify-content: center;
+      align-items: flex-start;
+    }
+.dashboard-host     .v49-empty-step {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      text-align: left;
+    }
+.dashboard-host     .v49-empty-step .n {
+      flex-shrink: 0;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+.dashboard-host     .v49-empty-step .step-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+    }
+.dashboard-host     .v49-empty-step .step-sub {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 2px;
+    }
+.dashboard-host     .v49-empty-links {
+      margin-top: 8px;
+    }
+.dashboard-host     .v49-empty-links a {
+      color: var(--primary);
+      font-size: 12px;
+      margin: 0 8px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+.dashboard-host     .v49-empty-links a:hover { text-decoration: underline; }
+
     /* v4.9.4: Pair trigger modal (0x10/0x11 共用) - 字段行 + 数字 stepper + 字节预览框 */
 .dashboard-host     #dh-pair-trigger-fields {
       display: flex; flex-direction: column; gap: 12px;
@@ -7792,8 +8001,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             <span class="modal-title">协议编辑器</span>
             <span class="modal-subtitle">TLV 帧结构 · 字段 / 大小端 / 数据段 / 帧预览</span>
             <span style="flex: 1;"></span>
-            <button class="toolbar-btn" id="dh-proto-import">⎘ 导入 JSON</button>
-            <button class="toolbar-btn" id="dh-proto-export">↓ 导出 JSON</button>
+            <!-- v4.9: 导入/导出搬到了主视图 toolbar,modal head 不再放 -->
           </div>
           <div class="proto-tabs" id="dh-proto-tabs"></div>
           <div class="modal-body" style="padding: 0;">
@@ -13974,21 +14182,21 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           const profiles = NS.PROFILES || [];
           const allCount = profiles.length;
 
-          // 1. 顶部工具栏
+          // 1. 顶部工具栏 (v4.9.19 重写 — 搜索框占主, actions 紧凑)
           const toolbar = document.createElement('div');
           toolbar.className = 'v49-toolbar';
           toolbar.innerHTML = [
             '<div class="v49-search">',
-            '  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-3);">',
+            '  <svg class="v49-search-icon" viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4">',
             '    <circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round" stroke-width="1.6"/>',
             '  </svg>',
-            '  <input id="v49-search-input" placeholder="搜索方案名/命令/字段/标签 (Ctrl+F)">',
-            '  <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--tag-bg);color:var(--text-3);border-radius:3px;padding:1px 5px;font-size:10px;font-family:monospace;">Ctrl F</span>',
+            '  <input id="v49-search-input" placeholder="搜索方案名 / 字段名 / 标签">',
+            '  <span class="v49-search-kbd">Ctrl F</span>',
             '</div>',
             '<div class="v49-actions">',
-            '  <button class="v49-btn" id="v49-btn-templates"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>协议模板</button>',
-            '  <button class="v49-btn" id="v49-btn-import"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M5 5l3-3 3 3M3 13h10"/></svg>导入</button>',
-            '  <button class="v49-btn" id="v49-btn-export"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M5 8l3 3 3-3M3 14h10"/></svg>导出</button>',
+            '  <button class="v49-btn" id="v49-btn-templates" title="从协议模板新建"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>协议模板</button>',
+            '  <button class="v49-btn" id="v49-btn-import" title="导入配置 (v1/v2 JSON)"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M5 5l3-3 3 3M3 13h10"/></svg>导入</button>',
+            '  <button class="v49-btn" id="v49-btn-export" title="导出配置 (4 粒度)"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M5 8l3 3 3-3M3 14h10"/></svg>导出</button>',
             '  <button class="v49-btn" id="v49-btn-history" title="操作历史 (30 天)"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 3v3h3M8 5v3l2 1.5"/></svg>历史</button>',
             '  <button class="v49-btn" id="v49-btn-recycle" title="回收站 (30 天)"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h10M6 4V2.5h4V4M5 4l.5 9h5L11 4M6.5 7v4M9.5 7v4"/></svg>回收站</button>',
             '  <button class="v49-btn primary" id="v49-btn-new"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>新建方案</button>',
@@ -13996,26 +14204,26 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           ].join('');
           bodyEl.appendChild(toolbar);
 
-          // 2. 标签筛选条
+          // 2. 标签筛选条 (v4.9.19 重写 — 标签 chips + 末尾 muted 链接 "+ 新建标签")
           const tags = NS._getAllTags();
           const filterBar = document.createElement('div');
           filterBar.className = 'v49-filter-bar';
-          filterBar.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;padding:0 4px;';
-          let chipsHtml = '<span class="v49-chip active" data-tag="" style="' +
-            'padding:3px 10px;border-radius:999px;border:1px solid var(--border-strong);background:var(--primary);color:#fff;font-size:11.5px;cursor:pointer;">' +
-            '全部 <span style="opacity:0.85;margin-left:3px;font-size:10.5px;">' + allCount + '</span></span>';
+          let chipsHtml = '<span class="v49-chip active" data-tag="">全部 <span class="num">' + allCount + '</span></span>';
           tags.forEach(function (t) {
-            chipsHtml += '<span class="v49-chip" data-tag="' + NS.escapeHtml(t.name) + '" style="' +
-              'padding:3px 10px;border-radius:999px;border:1px solid var(--border-strong);background:var(--card);font-size:11.5px;color:var(--text-2);cursor:pointer;">' +
-              NS.escapeHtml(t.name) + ' <span style="opacity:0.75;margin-left:3px;font-size:10.5px;">' + t.count + '</span></span>';
+            chipsHtml += '<span class="v49-chip" data-tag="' + NS.escapeHtml(t.name) + '">' + NS.escapeHtml(t.name) + ' <span class="num">' + t.count + '</span></span>';
           });
-          chipsHtml += '<span class="v49-chip add" data-tag="__add__" style="' +
-            'padding:3px 10px;border-radius:999px;border:1px dashed var(--border-strong);background:transparent;font-size:11.5px;color:var(--text-3);cursor:pointer;">+ 新建标签</span>';
           filterBar.innerHTML = chipsHtml;
+          // 末尾追加 "+ 新建标签" muted 链接 (margin-left:auto 推到最右)
+          const addTagLink = document.createElement('span');
+          addTagLink.className = 'v49-add-tag';
+          addTagLink.id = 'v49-add-tag-link';
+          addTagLink.textContent = '+ 新建标签';
+          filterBar.appendChild(addTagLink);
           bodyEl.appendChild(filterBar);
 
           // 3. 方案列表表格
           const tableWrap = document.createElement('div');
+          tableWrap.className = 'v49-table-wrap';
           tableWrap.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;';
           const table = document.createElement('table');
           table.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px;';
@@ -14034,31 +14242,34 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           tableWrap.appendChild(table);
           bodyEl.appendChild(tableWrap);
 
-          // 4. 空状态
+          // 4. 空状态 (v4.9.19 重写 — 跟 v5 mockup 一致: 1 icon + 3 按钮 + 3 步骤 + 3 链接)
           if (allCount === 0) {
             tableWrap.style.display = 'none';
             const empty = document.createElement('div');
-            empty.style.cssText = 'text-align:center;padding:60px 20px;color:var(--text-3);';
+            empty.className = 'v49-empty';
             empty.innerHTML = [
-              '<div style="width:60px;height:60px;margin:0 auto 12px;background:var(--primary-soft);border-radius:50%;display:flex;align-items:center;justify-content:center;">',
-              '  <svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.4" style="color:var(--primary)">',
-              '    <path d="M6 8 L26 8 L26 26 L6 26 Z" stroke-linejoin="round"/><path d="M6 8 L16 16 L26 8" stroke-linejoin="round"/><path d="M11 12 L11 22 M21 12 L21 22" stroke-width="0.8"/>',
+              '<div class="v49-empty-icon">',
+              '  <svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">',
+              '    <path d="M16 5 L26 9 L26 19 Q26 25 16 28 Q6 25 6 19 L6 9 Z"/>',
+              '    <path d="M11 16 L15 20 L21 12" stroke-width="2"/>',
               '  </svg>',
               '</div>',
-              '<h4 style="margin:0 0 4px;font-size:14px;color:var(--text);">还没有协议方案</h4>',
-              '<p style="margin:0 0 14px;font-size:12px;">方案 = 一组共享协议规则 + 命令的集合。先建一个,5 分钟跑通第一个命令</p>',
-              '<div style="display:inline-flex;gap:8px;">',
-              '  <button class="v49-btn primary" id="v49-btn-new-empty">+ 新建方案</button>',
+              '<h4>还没有协议方案</h4>',
+              '<p>方案 = 一组共享协议规则 + 命令的集合。先建一个，5 分钟跑通第一个命令</p>',
+              '<div class="v49-empty-buttons">',
+              '  <button class="v49-btn primary" id="v49-btn-new-empty"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>新建方案</button>',
               '  <button class="v49-btn" id="v49-btn-templates-empty">协议模板</button>',
               '  <button class="v49-btn" id="v49-btn-import-empty">导入已有配置</button>',
               '</div>',
-              '<div style="margin-top:18px;display:inline-flex;gap:8px;text-align:left;background:#fafbfc;border:1px dashed var(--border-strong);border-radius:8px;padding:12px 16px;">',
-              '  <div style="background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>',
-              '  <div style="font-size:12px;"><b>选协议类型</b><div style="color:var(--text-3);font-size:11px;margin-top:2px;">8 种 Modbus / TLV / 固定帧头...</div></div>',
-              '  <div style="background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:18px;">2</div>',
-              '  <div style="font-size:12px;"><b>配 CRC</b><div style="color:var(--text-3);font-size:11px;margin-top:2px;">8 种算法 + 起始值</div></div>',
-              '  <div style="background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:18px;">3</div>',
-              '  <div style="font-size:12px;"><b>加命令 + 字段</b><div style="color:var(--text-3);font-size:11px;margin-top:2px;">用预设或贴字节反向解析</div></div>',
+              '<div class="v49-empty-steps">',
+              '  <div class="v49-empty-step"><span class="n">1</span><div><div class="step-title">选协议类型</div><div class="step-sub">8 种 Modbus / TLV / 固定帧头…</div></div></div>',
+              '  <div class="v49-empty-step"><span class="n">2</span><div><div class="step-title">配 CRC</div><div class="step-sub">8 种 CRC 算法 + 起始值</div></div></div>',
+              '  <div class="v49-empty-step"><span class="n">3</span><div><div class="step-title">加命令 + 字段</div><div class="step-sub">用预设或贴字节反向解析</div></div></div>',
+              '</div>',
+              '<div class="v49-empty-links">',
+              '  <a id="v49-link-tutorial">5 分钟教程</a>',
+              '  <a id="v49-link-video">视频演示</a>',
+              '  <a id="v49-link-community">社区示例</a>',
               '</div>'
             ].join('');
             bodyEl.appendChild(empty);
@@ -14167,30 +14378,43 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           // 7. 绑定标签 chip
           filterBar.querySelectorAll('.v49-chip').forEach(function (chip) {
             chip.onclick = function () {
-              if (chip.classList.contains('add')) {
-                const tag = window.prompt('新标签名 (1-16 字符):');
-                if (tag && tag.length >= 1 && tag.length <= 16) {
-                  if (NS.activeProfileId) {
-                    NS._addProfileTag(NS.activeProfileId, tag);
-                    NS.renderProtoEditor();
-                  } else {
-                    NS.toast('先在列表里选一个方案 (点查看)', 'warn');
-                  }
-                }
-                return;
-              }
               filterBar.querySelectorAll('.v49-chip').forEach(function (c) {
                 c.classList.remove('active');
-                c.style.background = 'var(--card)';
-                c.style.color = 'var(--text-2)';
               });
               chip.classList.add('active');
-              chip.style.background = 'var(--primary)';
-              chip.style.color = '#fff';
               const q = searchInput ? searchInput.value : '';
               renderTable(chip.dataset.tag, q);
             };
           });
+
+          // 7b. 绑定 "+ 新建标签" muted 链接
+          const addTagLinkEl = document.getElementById('v49-add-tag-link');
+          if (addTagLinkEl) {
+            addTagLinkEl.onclick = function () {
+              const tag = window.prompt('新标签名 (1-16 字符):');
+              if (!tag) return;
+              const trimmed = String(tag).trim();
+              if (trimmed.length < 1 || trimmed.length > 16) {
+                NS.toast('标签名 1-16 字符', 'warn');
+                return;
+              }
+              if (NS.activeProfileId) {
+                NS._addProfileTag(NS.activeProfileId, trimmed);
+                NS.renderProtoEditor();
+              } else {
+                NS.toast('先在列表里选一个方案 (点查看)', 'warn');
+              }
+            };
+          }
+
+          // 7c. 绑定空状态底部 3 链接
+          function bindLink(id, msg) {
+            const el = document.getElementById(id);
+            if (el) el.onclick = function () { NS.toast(msg, 'info'); };
+          }
+          bindLink('v49-link-tutorial', '5 分钟教程 — 待 v4.9.1 写文档');
+          bindLink('v49-link-video', '视频演示 — 待 v4.9.1 录屏');
+          bindLink('v49-link-community', '社区示例 — 接入 GitHub Discussions');
 
           // 8. 绑定顶部按钮
           function bindAction(id, fn) {
@@ -14206,10 +14430,6 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           bindAction('v49-btn-history', function () { NS._showOperationHistory(); });
           bindAction('v49-btn-recycle', function () { NS._showRecycleBin(); });
           // C4a 实现的按钮 (T24 导出 / T25 导入 / T27 导入历史)
-          function bindPlaceholder(id, msg) {
-            const btn = document.getElementById(id);
-            if (btn) btn.onclick = function () { NS.toast(msg + ' — 留 C4 实现 (T24/T25)', 'info'); };
-          }
           bindAction('v49-btn-import', function () { NS._showImportConfig(); });
           bindAction('v49-btn-export', function () { NS._showExportConfig(); });
           bindAction('v49-btn-import-empty', function () { NS._showImportConfig(); });
