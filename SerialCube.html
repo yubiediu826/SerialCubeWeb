@@ -7193,6 +7193,148 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .v49-proto-stat-label { font-size: 11px; color: var(--text-soft); margin-top: 4px; }
 .v49-proto-tabs-placeholder { margin-top: 16px; padding: 14px 16px; background: var(--bg-subtle); border: 1px dashed var(--border-strong); border-radius: 6px; color: var(--text-soft); font-size: 12px; text-align: center; }
 .v49-tbl-empty { text-align: center; padding: 32px 12px !important; color: var(--text-soft) !important; }
+
+    /* B-2 (2026-08-06): 协议编辑器主区 tabs 框架 (命令/字段/仪表盘绑定/帧预览) */
+.v49-proto-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-top: 16px;
+      margin-bottom: 12px;
+      gap: 2px;
+      overflow-x: auto;
+    }
+.v49-proto-tab {
+      padding: 8px 14px;
+      font-size: 12.5px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      color: var(--text-soft);
+      white-space: nowrap;
+      transition: border-color 0.15s, color 0.15s;
+    }
+.v49-proto-tab:hover { color: var(--text); }
+.v49-proto-tab.active {
+      border-bottom-color: var(--accent);
+      color: var(--accent);
+      font-weight: 500;
+    }
+.v49-proto-tab-count {
+      background: var(--bg-subtle);
+      color: var(--text-soft);
+      font-size: 10.5px;
+      padding: 0 5px;
+      border-radius: 8px;
+      margin-left: 4px;
+    }
+.v49-proto-tab.active .v49-proto-tab-count {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+.v49-proto-tab-section { display: none; }
+.v49-proto-tab-section.active { display: block; animation: v49FadeIn 0.15s ease-out; }
+.v49-proto-tab-placeholder {
+      padding: 28px 16px;
+      background: var(--bg-subtle);
+      border: 1px dashed var(--border-strong);
+      border-radius: 6px;
+      color: var(--text-soft);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    /* B-2: 命令列表 inline (tabs 第一个 tab 内容) */
+.v49-cmd-list-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+.v49-cmd-list-toolbar .v49-inp { flex: 1 1 200px; min-width: 140px; }
+.v49-cmd-list-filters { display: flex; gap: 4px; flex-wrap: wrap; }
+.v49-cmd-list-filters .v49-chip {
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text-soft);
+      font-size: 11px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+.v49-cmd-list-filters .v49-chip:hover { border-color: var(--accent); }
+.v49-cmd-list-filters .v49-chip.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+.v49-cmd-list { display: flex; flex-direction: column; gap: 4px; }
+.v49-cmd-list-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-elevated);
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+    }
+.v49-cmd-list-row:hover { background: var(--bg-subtle); border-color: var(--border-strong); }
+.v49-cmd-list-row.active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+.v49-cmd-list-row .cmd-drag {
+      color: var(--text-soft);
+      font-size: 13px;
+      cursor: grab;
+      flex: 0 0 16px;
+      text-align: center;
+    }
+.v49-cmd-list-row .cmd-code {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      flex: 0 0 50px;
+      text-align: center;
+    }
+.v49-cmd-list-row .cmd-name {
+      flex: 1;
+      font-weight: 500;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+.v49-cmd-list-row .cmd-meta {
+      color: var(--text-soft);
+      font-size: 11px;
+      flex: 0 0 auto;
+    }
+.v49-cmd-list-row .cmd-row-actions { display: flex; gap: 4px; flex: 0 0 auto; }
+
+    /* B-2: 命令列表 0 命令空状态 CTA */
+.v49-cmd-list-empty {
+      text-align: center;
+      padding: 40px 20px;
+      background: var(--bg-subtle);
+      border: 1px dashed var(--border-strong);
+      border-radius: 8px;
+    }
+.v49-cmd-list-empty .empty-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+.v49-cmd-list-empty .empty-sub {
+      font-size: 12px;
+      color: var(--text-soft);
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
 .v49-tbl-muted { color: var(--text-soft); }
 .v49-tbl-sub { color: var(--text-soft); font-size: 11.5px; }
 .v49-tbl-actions { white-space: nowrap; }
@@ -7344,6 +7486,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 
     /* dashboard-bindings (T18 仪表盘绑定 3 辅助函数) */
 .v49-bind-row { /* 兼容 .v49-list-item 复用,纯标记 */ }
+.v49-bind-list { display: flex; flex-direction: column; gap: 6px; }
 .v49-bind-del { /* 兼容 .v49-btn.danger.sm 复用,纯标记 */ }
 .v49-bind-preview-row { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 4px; padding: 8px; margin-bottom: 8px; margin-left: 14px; font-size: 11px; color: var(--text-soft); }
 .v49-bind-preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -14954,12 +15097,14 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             const crcLabel = crc.algorithm + ' ' + crc.initValue + ' ' + crc.byteOrder + ' · 范围: ' + crc.range;
             const detailEl = document.getElementById('v49-proto-detail');
             if (!detailEl) return;
+            const profileId = profile.id;
+            const commands = Array.isArray(profile.commands) ? profile.commands : [];
+            const totalBindings = commands.reduce(function (s, c) { return s + ((c.dashboardBindings || []).length); }, 0);
             detailEl.innerHTML = [
               '<div class="v49-proto-detail-head">',
               '  <div class="v49-proto-detail-name">' + NS.escapeHtml(profile.name) + '</div>',
               '  <span class="v49-tag">' + NS.escapeHtml(kindLabel) + '</span>',
               '  <div class="v49-proto-detail-actions">',
-              '    <button class="v49-btn primary sm" id="v49-proto-detail-commands">管理命令 (B-2 接)</button>',
               '    <button class="v49-btn sm" id="v49-proto-detail-edit">改信息</button>',
               '    <button class="v49-btn sm" id="v49-proto-detail-export">导出</button>',
               '    <button class="v49-btn sm danger" id="v49-proto-detail-delete">删除</button>',
@@ -14977,20 +15122,176 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               '  <div class="v49-proto-stat"><div class="v49-proto-stat-num">' + stats.commandCount + '</div><div class="v49-proto-stat-label">命令</div></div>',
               '  <div class="v49-proto-stat"><div class="v49-proto-stat-num">' + stats.fieldCount + '</div><div class="v49-proto-stat-label">字段</div></div>',
               '  <div class="v49-proto-stat"><div class="v49-proto-stat-num">' + stats.referenceCount + '</div><div class="v49-proto-stat-label">被引用</div></div>',
-              '  <div class="v49-proto-stat"><div class="v49-proto-stat-num">' + (Array.isArray(profile.dashboardBindings) ? profile.dashboardBindings.length : 0) + '</div><div class="v49-proto-stat-label">仪表盘绑定</div></div>',
+              '  <div class="v49-proto-stat"><div class="v49-proto-stat-num">' + totalBindings + '</div><div class="v49-proto-stat-label">仪表盘绑定</div></div>',
               '</div>',
-              // B-2/B-3 占位: 命令/字段/绑定 tabs
-              '<div class="v49-proto-tabs-placeholder">⚙ 命令列表 / 字段 / 仪表盘绑定 tabs 留 B-2 接入, 当前点上方"管理命令"走原 modal 流程</div>'
+              // B-2: 详情区下方 4 tabs (命令/字段/仪表盘绑定/帧预览)
+              '<div class="v49-proto-tabs" data-active-tab="commands">',
+              '  <div class="v49-proto-tab active" data-tab="commands">命令 <span class="v49-proto-tab-count">' + commands.length + '</span></div>',
+              '  <div class="v49-proto-tab" data-tab="fields">字段 <span class="v49-proto-tab-count">' + stats.fieldCount + '</span></div>',
+              '  <div class="v49-proto-tab" data-tab="bindings">仪表盘绑定 <span class="v49-proto-tab-count">' + totalBindings + '</span></div>',
+              '  <div class="v49-proto-tab" data-tab="frame">帧预览</div>',
+              '</div>',
+              // tab-section: 命令 (B-2 核心 — 列表 inline)
+              '<div class="v49-proto-tab-section active" data-tab-section="commands">',
+              '  <div class="v49-cmd-list-toolbar">',
+              '    <input class="v49-inp" id="v49-cmd-list-search" placeholder="搜索命令名 / cmdCode" />',
+              '    <div class="v49-cmd-list-filters" id="v49-cmd-list-filters">',
+              '      <span class="v49-chip active" data-filter="">全部</span>',
+              '      <span class="v49-chip" data-filter="periodic">周期</span>',
+              '      <span class="v49-chip" data-filter="manual">手动</span>',
+              '    </div>',
+              '    <button class="v49-btn sm primary" id="v49-cmd-list-new">+ 新建命令</button>',
+              '  </div>',
+              '  <div id="v49-cmd-list" class="v49-cmd-list"></div>',
+              '</div>',
+              // tab-section: 字段 (B-3 占位)
+              '<div class="v49-proto-tab-section" data-tab-section="fields">',
+              '  <div class="v49-proto-tab-placeholder">字段 tab — B-3 接入 (选中命令后展示字段列表, 可编辑)</div>',
+              '</div>',
+              // tab-section: 仪表盘绑定 (B-2 概览)
+              '<div class="v49-proto-tab-section" data-tab-section="bindings">',
+              '  <div id="v49-proto-bindings"></div>',
+              '</div>',
+              // tab-section: 帧预览 (B-3 占位)
+              '<div class="v49-proto-tab-section" data-tab-section="frame">',
+              '  <div class="v49-proto-tab-placeholder">帧预览 tab — B-3 接入 (选中命令后展示 hex 帧 + 字段标注)</div>',
+              '</div>'
             ].join('');
-            // 详情区 4 按钮接旧 modal (B-1 阶段保持兼容)
-            const commandsBtn = document.getElementById('v49-proto-detail-commands');
-            if (commandsBtn) commandsBtn.onclick = function () { NS._showProfileCommands(profile.id); };
+            // 详情区按钮 (改信息/导出/删除, 命令管理走 inline 下方)
             const editBtn = document.getElementById('v49-proto-detail-edit');
-            if (editBtn) editBtn.onclick = function () { NS._showEditProfileDiff(profile.id); };
+            if (editBtn) editBtn.onclick = function () { NS._showEditProfileDiff(profileId); };
             const exportBtn = document.getElementById('v49-proto-detail-export');
-            if (exportBtn) exportBtn.onclick = function () { NS._showExportConfig(profile.id); };
+            if (exportBtn) exportBtn.onclick = function () { NS._showExportConfig(profileId); };
             const deleteBtn = document.getElementById('v49-proto-detail-delete');
-            if (deleteBtn) deleteBtn.onclick = function () { NS._showDeleteConfirm('profile', profile.id); };
+            if (deleteBtn) deleteBtn.onclick = function () { NS._showDeleteConfirm('profile', profileId); };
+
+            // B-2: 命令列表 inline 渲染 + tab 切换 + 行选中
+            let selectedCmdId = null;
+            function renderCmdList(searchQuery, filterMode) {
+              const listEl = document.getElementById('v49-cmd-list');
+              if (!listEl) return;
+              const q = (searchQuery || '').trim().toLowerCase();
+              const filtered = commands.filter(function (c) {
+                if (filterMode === 'periodic' && c.trigger !== 'periodic') return false;
+                if (filterMode === 'manual' && c.trigger === 'periodic') return false;
+                if (q) {
+                  const name = (c.name || '').toLowerCase();
+                  const code = ('0x' + (c.cmdCode || 0).toString(16)).toLowerCase();
+                  if (name.indexOf(q) < 0 && code.indexOf(q) < 0) return false;
+                }
+                return true;
+              });
+              if (filtered.length === 0) {
+                listEl.innerHTML = [
+                  '<div class="v49-cmd-list-empty">',
+                  '  <div class="empty-title">' + (commands.length === 0 ? '还没有命令' : '没有匹配的命令') + '</div>',
+                  '  <div class="empty-sub">' + (commands.length === 0 ? '点击下方按钮添加第一个命令, 也可以从协议模板或导入已有配置开始' : '试试切换筛选条件或清空搜索') + '</div>',
+                  (commands.length === 0 ? '<button class="v49-btn primary" id="v49-cmd-list-new-empty">+ 新建命令</button>' : ''),
+                  '</div>'
+                ].join('');
+                const newBtn = document.getElementById('v49-cmd-list-new-empty');
+                if (newBtn) newBtn.onclick = function () { NS._renderCommandModal(profileId, null); };
+                return;
+              }
+              listEl.innerHTML = filtered.map(function (c) {
+                const code = '0x' + (Number(c.cmdCode) || 0).toString(16).toUpperCase().padStart(2, '0');
+                const trigger = c.trigger === 'periodic'
+                  ? '周期 ' + (c.intervalMs || 1000) + 'ms'
+                  : '手动 ' + (c.shortcut ? 'F' + c.shortcut : '按钮');
+                const isActive = (c.id === selectedCmdId);
+                return [
+                  '<div class="v49-cmd-list-row' + (isActive ? ' active' : '') + '" data-cmd-id="' + NS.escapeHtml(c.id) + '">',
+                  '  <span class="cmd-drag">⠿</span>',
+                  '  <span class="v49-tag primary cmd-code">' + code + '</span>',
+                  '  <span class="cmd-name">' + NS.escapeHtml(c.name || '未命名命令') + '</span>',
+                  '  <span class="cmd-meta">' + (c.fields || []).length + ' 字段</span>',
+                  '  <span class="cmd-meta">' + NS.escapeHtml(trigger) + '</span>',
+                  '  <div class="cmd-row-actions">',
+                  '    <button class="v49-btn sm" data-action="edit" data-cmd-id="' + NS.escapeHtml(c.id) + '">编辑</button>',
+                  '    <button class="v49-btn sm danger" data-action="delete" data-cmd-id="' + NS.escapeHtml(c.id) + '">删除</button>',
+                  '  </div>',
+                  '</div>'
+                ].join('');
+              }).join('');
+              // 行点击 → 选中 (B-3 接入编辑区)
+              listEl.querySelectorAll('.v49-cmd-list-row').forEach(function (row) {
+                row.onclick = function (e) {
+                  if (e.target && e.target.closest('button[data-action]')) return;
+                  const cid = row.getAttribute('data-cmd-id');
+                  if (cid) {
+                    selectedCmdId = cid;
+                    listEl.querySelectorAll('.v49-cmd-list-row').forEach(function (r) { r.classList.toggle('active', r.getAttribute('data-cmd-id') === cid); });
+                  }
+                };
+              });
+              // 行内 编辑/删除 按钮 → 暂走旧 modal (B-3 接入 inline)
+              listEl.querySelectorAll('button[data-action="edit"]').forEach(function (b) {
+                b.onclick = function (e) { e.stopPropagation(); NS._renderCommandModal(profileId, b.getAttribute('data-cmd-id')); };
+              });
+              listEl.querySelectorAll('button[data-action="delete"]').forEach(function (b) {
+                b.onclick = function (e) { e.stopPropagation(); NS._showDeleteConfirm('command', b.getAttribute('data-cmd-id'), profileId); };
+              });
+            }
+            renderCmdList('', '');
+
+            // 搜索
+            const searchBox = document.getElementById('v49-cmd-list-search');
+            if (searchBox) {
+              let t = null;
+              searchBox.oninput = function (e) {
+                clearTimeout(t);
+                const q = e.target.value;
+                t = setTimeout(function () {
+                  const activeChip = document.querySelector('#v49-cmd-list-filters .v49-chip.active');
+                  renderCmdList(q, activeChip ? activeChip.getAttribute('data-filter') : '');
+                }, 120);
+              };
+            }
+            // 过滤
+            document.querySelectorAll('#v49-cmd-list-filters .v49-chip').forEach(function (chip) {
+              chip.onclick = function () {
+                document.querySelectorAll('#v49-cmd-list-filters .v49-chip').forEach(function (c) { c.classList.remove('active'); });
+                chip.classList.add('active');
+                const q = searchBox ? searchBox.value : '';
+                renderCmdList(q, chip.getAttribute('data-filter'));
+              };
+            });
+            // 新建命令 → 暂走旧 modal (B-3 接入 inline)
+            const newCmdBtn = document.getElementById('v49-cmd-list-new');
+            if (newCmdBtn) newCmdBtn.onclick = function () { NS._renderCommandModal(profileId, null); };
+
+            // 仪表盘绑定 tab 概览
+            const bindEl = document.getElementById('v49-proto-bindings');
+            if (bindEl) {
+              if (commands.length === 0) {
+                bindEl.innerHTML = '<div class="v49-proto-tab-placeholder">还没有命令, 暂无绑定可显示</div>';
+              } else {
+                const allBinds = [];
+                commands.forEach(function (c) {
+                  (c.dashboardBindings || []).forEach(function (b) {
+                    allBinds.push({ commandName: c.name, cmdId: c.id, cardId: b.cardId, field: b.field, title: b.title, range: b.range, unit: b.unit });
+                  });
+                });
+                if (allBinds.length === 0) {
+                  bindEl.innerHTML = '<div class="v49-proto-tab-placeholder">还没有仪表盘绑定 — 进入"命令" tab 选中命令后, 暂用旧 modal (B-3) 添加绑定</div>';
+                } else {
+                  bindEl.innerHTML = '<div class="v49-bind-list">' + allBinds.map(function (b) {
+                    return '<div class="v49-bind-row"><div class="v49-bind-row-main"><b>' + NS.escapeHtml(b.commandName) + '</b> → ' + NS.escapeHtml(b.field || '—') + ' <span class="v49-tag">' + NS.escapeHtml(b.title || '—') + '</span></div></div>';
+                  }).join('') + '</div>';
+                }
+              }
+            }
+
+            // B-2: 4 tabs 切换
+            detailEl.querySelectorAll('.v49-proto-tab').forEach(function (tab) {
+              tab.onclick = function () {
+                const target = tab.getAttribute('data-tab');
+                detailEl.querySelectorAll('.v49-proto-tab').forEach(function (t) { t.classList.toggle('active', t === tab); });
+                detailEl.querySelectorAll('.v49-proto-tab-section').forEach(function (s) { s.classList.toggle('active', s.getAttribute('data-tab-section') === target); });
+                const tabsEl = detailEl.querySelector('.v49-proto-tabs');
+                if (tabsEl) tabsEl.setAttribute('data-active-tab', target);
+              };
+            });
           }
 
           // 初次渲染
