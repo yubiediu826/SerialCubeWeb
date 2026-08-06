@@ -7335,6 +7335,60 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       margin-bottom: 14px;
       line-height: 1.5;
     }
+
+    /* B-3 (2026-08-06): 命令 inline 编辑区 (选中命令后展开) */
+.v49-cmd-editor {
+      margin-top: 14px;
+      padding: 14px 16px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+    }
+.v49-cmd-editor-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+.v49-cmd-editor-title { font-size: 14px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v49-cmd-editor-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+.v49-cmd-editor-form { display: grid; grid-template-columns: 90px 1fr; gap: 8px 10px; align-items: center; font-size: 12px; }
+.v49-cmd-editor-form > label { color: var(--text-soft); }
+.v49-cmd-editor-form .v49-inp { width: 100%; }
+.v49-cmd-editor-form textarea.v49-inp { resize: vertical; min-height: 36px; font-family: inherit; }
+.v49-cmd-editor-trigger-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.v49-cmd-editor-trigger-row label { display: inline-flex; align-items: center; gap: 4px; color: var(--text); cursor: pointer; }
+.v49-cmd-editor-trigger-row input[type="number"] { width: 90px; }
+.v49-cmd-editor-fields { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.v49-cmd-editor-fields-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; font-weight: 600; }
+.v49-cmd-editor-fields-head .count { color: var(--text-soft); font-weight: 400; }
+.v49-cmd-editor-fields-head .spacer { flex: 1; }
+.v49-cmd-editor-field-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+.v49-cmd-editor-field-row .forder { color: var(--text-soft); font-family: var(--font-mono); font-size: 11px; flex: 0 0 22px; text-align: center; }
+.v49-cmd-editor-field-row .fname { flex: 1; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v49-cmd-editor-field-row .ftype { color: var(--text-soft); font-family: var(--font-mono); font-size: 11px; flex: 0 0 60px; }
+.v49-cmd-editor-field-row .fbytes { color: var(--text-soft); font-family: var(--font-mono); font-size: 11px; flex: 0 0 50px; text-align: center; }
+.v49-cmd-editor-empty {
+      padding: 18px 16px;
+      text-align: center;
+      color: var(--text-soft);
+      font-size: 12px;
+      background: var(--bg-subtle);
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+    }
 .v49-tbl-muted { color: var(--text-soft); }
 .v49-tbl-sub { color: var(--text-soft); font-size: 11.5px; }
 .v49-tbl-actions { white-space: nowrap; }
@@ -15143,6 +15197,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               '    <button class="v49-btn sm primary" id="v49-cmd-list-new">+ 新建命令</button>',
               '  </div>',
               '  <div id="v49-cmd-list" class="v49-cmd-list"></div>',
+              '  <div id="v49-cmd-editor" class="v49-cmd-editor"></div>',
               '</div>',
               // tab-section: 字段 (B-3 占位)
               '<div class="v49-proto-tab-section" data-tab-section="fields">',
@@ -15221,6 +15276,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                   if (cid) {
                     selectedCmdId = cid;
                     listEl.querySelectorAll('.v49-cmd-list-row').forEach(function (r) { r.classList.toggle('active', r.getAttribute('data-cmd-id') === cid); });
+                    renderCmdEditor();
                   }
                 };
               });
@@ -15232,7 +15288,124 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 b.onclick = function (e) { e.stopPropagation(); NS._showDeleteConfirm('command', b.getAttribute('data-cmd-id'), profileId); };
               });
             }
+            // B-3: 选中命令后 inline 编辑区 (基础 + 字段)
+            function renderCmdEditor() {
+              const editorEl = document.getElementById('v49-cmd-editor');
+              if (!editorEl) return;
+              if (!selectedCmdId) {
+                editorEl.innerHTML = '<div class="v49-cmd-editor-empty">↑ 选中上面一个命令开始编辑 (基础信息 + 字段), 或点右上"+ 新建命令"</div>';
+                return;
+              }
+              const cmd = commands.find(function (c) { return c.id === selectedCmdId; });
+              if (!cmd) { editorEl.innerHTML = ''; return; }
+              const isPeriodic = cmd.trigger === 'periodic';
+              const codeHex = '0x' + (Number(cmd.cmdCode) || 0).toString(16).toUpperCase().padStart(2, '0');
+              const fieldArr = Array.isArray(cmd.fields) ? cmd.fields : [];
+              editorEl.innerHTML = [
+                '<div class="v49-cmd-editor-head">',
+                '  <div class="v49-cmd-editor-title">编辑: ' + NS.escapeHtml(cmd.name || '未命名') + '</div>',
+                '  <div class="v49-cmd-editor-actions">',
+                '    <button class="v49-btn sm" id="v49-cmd-editor-advanced">高级编辑 →</button>',
+                '    <button class="v49-btn sm primary" id="v49-cmd-editor-save">保存</button>',
+                '  </div>',
+                '</div>',
+                '<div class="v49-cmd-editor-form">',
+                '  <label>命令名</label><input class="v49-inp" id="v49-cmd-editor-name" value="' + NS.escapeHtml(cmd.name || '') + '">',
+                '  <label>cmdCode</label><input class="v49-inp" id="v49-cmd-editor-code" value="' + codeHex + '" style="font-family: var(--font-mono);" placeholder="0x00">',
+                '  <label>描述</label><textarea class="v49-inp" id="v49-cmd-editor-desc" rows="2">' + NS.escapeHtml(cmd.desc || cmd.description || '') + '</textarea>',
+                '  <label>触发器</label>',
+                '  <div class="v49-cmd-editor-trigger-row">',
+                '    <label><input type="radio" name="v49-cmd-editor-trigger" value="manual" ' + (!isPeriodic ? 'checked' : '') + '>手动</label>',
+                '    <label><input type="radio" name="v49-cmd-editor-trigger" value="periodic" ' + (isPeriodic ? 'checked' : '') + '>周期</label>',
+                '    <label>间隔 ms:</label><input type="number" class="v49-inp" id="v49-cmd-editor-interval" value="' + (cmd.intervalMs || 1000) + '" min="50" step="50">',
+                '  </div>',
+                '</div>',
+                '<div class="v49-cmd-editor-fields">',
+                '  <div class="v49-cmd-editor-fields-head">',
+                '    字段 <span class="count">(' + fieldArr.length + ')</span>',
+                '    <span class="spacer"></span>',
+                '    <button class="v49-btn sm" id="v49-cmd-editor-add-field">+ 加字段</button>',
+                '  </div>',
+                fieldArr.length === 0
+                  ? '<div class="v49-cmd-editor-empty">还没有字段, 点上方"+ 加字段"或用"高级编辑 →"添加</div>'
+                  : fieldArr.map(function (f, i) {
+                      return [
+                        '<div class="v49-cmd-editor-field-row" data-field-id="' + NS.escapeHtml(f.id || '') + '">',
+                        '  <span class="forder">' + (i + 1) + '</span>',
+                        '  <span class="fname">' + NS.escapeHtml(f.name || '(未命名)') + '</span>',
+                        '  <span class="ftype">' + NS.escapeHtml(f.type || '?') + '</span>',
+                        '  <span class="fbytes">' + (f.byteLength || '?') + 'B</span>',
+                        '  <button class="v49-btn sm danger" data-action="del-field" data-field-id="' + NS.escapeHtml(f.id || '') + '">删除</button>',
+                        '</div>'
+                      ].join('');
+                    }).join(''),
+                '</div>'
+              ].join('');
+
+              // 高级编辑 → 旧 modal (B-3 简化版, 高级字段设置走 modal)
+              const advBtn = document.getElementById('v49-cmd-editor-advanced');
+              if (advBtn) advBtn.onclick = function () { NS._renderCommandModal(profileId, selectedCmdId); };
+
+              // 保存: 写 cmd 引用 + 记录操作历史 + toast + 重渲染
+              const saveBtn = document.getElementById('v49-cmd-editor-save');
+              if (saveBtn) saveBtn.onclick = function () {
+                const newName = (document.getElementById('v49-cmd-editor-name').value || '').trim() || '未命名命令';
+                const codeStr = (document.getElementById('v49-cmd-editor-code').value || '').trim();
+                const codeNum = parseInt(codeStr.replace(/^0x/i, ''), 16);
+                const newDesc = document.getElementById('v49-cmd-editor-desc').value || '';
+                const newTrigger = (document.querySelector('input[name="v49-cmd-editor-trigger"]:checked') || {}).value || 'manual';
+                const newInterval = parseInt(document.getElementById('v49-cmd-editor-interval').value, 10) || 1000;
+                cmd.name = newName;
+                if (!isNaN(codeNum)) cmd.cmdCode = codeNum;
+                cmd.desc = newDesc;
+                cmd.description = newDesc;
+                cmd.trigger = newTrigger;
+                cmd.intervalMs = newInterval;
+                cmd.updatedAt = new Date().toISOString();
+                profile.updatedAt = cmd.updatedAt;
+                if (typeof NS._recordOperation === 'function') {
+                  NS._recordOperation('edit-command', cmd.id, '编辑命令: ' + newName);
+                }
+                if (typeof NS.toast === 'function') NS.toast('已保存: ' + newName, 'success');
+                if (typeof NS.renderProtoEditor === 'function') NS.renderProtoEditor();
+              };
+
+              // 加字段
+              const addFieldBtn = document.getElementById('v49-cmd-editor-add-field');
+              if (addFieldBtn) addFieldBtn.onclick = function () {
+                if (!Array.isArray(cmd.fields)) cmd.fields = [];
+                cmd.fields.push({
+                  id: 'f-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                  name: '新字段', type: 'uint8', byteOrder: 'BE', byteLength: 1, signed: false
+                });
+                cmd.updatedAt = new Date().toISOString();
+                profile.updatedAt = cmd.updatedAt;
+                renderCmdEditor();
+                if (typeof NS._recordOperation === 'function') {
+                  NS._recordOperation('add-field', cmd.fields[cmd.fields.length - 1].id, '在 ' + cmd.name + ' 加字段');
+                }
+              };
+
+              // 删字段
+              editorEl.querySelectorAll('button[data-action="del-field"]').forEach(function (b) {
+                b.onclick = function () {
+                  const fid = b.getAttribute('data-field-id');
+                  if (!fid) return;
+                  const before = (cmd.fields || []).length;
+                  cmd.fields = (cmd.fields || []).filter(function (f) { return f.id !== fid; });
+                  if (cmd.fields.length !== before) {
+                    cmd.updatedAt = new Date().toISOString();
+                    profile.updatedAt = cmd.updatedAt;
+                    if (typeof NS._recordOperation === 'function') {
+                      NS._recordOperation('delete-field', fid, '从 ' + cmd.name + ' 删字段');
+                    }
+                    renderCmdEditor();
+                  }
+                };
+              });
+            }
             renderCmdList('', '');
+            renderCmdEditor();
 
             // 搜索
             const searchBox = document.getElementById('v49-cmd-list-search');
