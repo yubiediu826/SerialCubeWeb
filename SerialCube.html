@@ -6725,6 +6725,87 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .dashboard-host     .frame-meta .meta-item .meta-key { font-weight: 700; }
 .dashboard-host     .frame-meta .meta-item .meta-val { color: var(--text); margin-left: 4px; }
 
+    /* v4.8d: 协议编辑器 "贴字节" 输入区 + 解析结果样式 */
+.dashboard-host     .proto-parse-section {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-subtle);
+    }
+.dashboard-host     .proto-parse-title {
+      font-size: 11px;
+      color: var(--text-soft);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+.dashboard-host     .proto-parse-textarea {
+      width: 100%;
+      min-height: 60px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--bg);
+      color: var(--text);
+      resize: vertical;
+      box-sizing: border-box;
+    }
+.dashboard-host     .proto-parse-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-soft);
+    }
+.dashboard-host     .proto-parse-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+.dashboard-host     .proto-parse-actions button {
+      padding: 4px 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 12px;
+      cursor: pointer;
+    }
+.dashboard-host     .proto-parse-actions .btn-parse {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+.dashboard-host     .proto-parse-actions .btn-parse:hover {
+      background: var(--accent-strong);
+    }
+.dashboard-host     .proto-parse-result {
+      margin-top: 8px;
+      max-height: 240px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+.dashboard-host     .parse-row {
+      display: flex;
+      gap: 8px;
+      padding: 3px 6px;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+    }
+.dashboard-host     .parse-row:last-child { border-bottom: none; }
+.dashboard-host     .parse-row .parse-name { font-weight: 700; min-width: 70px; color: var(--text); }
+.dashboard-host     .parse-row .parse-type { min-width: 60px; color: var(--text-soft); font-size: 10px; text-transform: uppercase; }
+.dashboard-host     .parse-row .parse-bytes { min-width: 120px; color: var(--accent-strong); }
+.dashboard-host     .parse-row .parse-value { color: var(--text); flex: 1; }
+.dashboard-host     .parse-row.error {
+      color: var(--danger);
+      font-weight: 700;
+      background: rgba(224, 87, 94, 0.08);
+      border-radius: 3px;
+      padding: 6px 8px;
+    }
+
     /* v4.9.4: Pair trigger modal (0x10/0x11 共用) - 字段行 + 数字 stepper + 字节预览框 */
 .dashboard-host     #dh-pair-trigger-fields {
       display: flex; flex-direction: column; gap: 12px;
@@ -10116,6 +10197,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 
         // === UI 状态 ===
         NS.activeProtoId = NS.PROTOCOLS[0].id;
+        NS._lastParseResult = null;  // v4.8d: 协议编辑器 "贴字节" 解析结果临时状态 (session-only, 不持久化)
         NS.selectedCmd = 'all';
         NS.cardLayout = 'card';
         NS._tickHandle = null;
@@ -11847,6 +11929,257 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           return { bytes: sections.flatMap((s) => s.bytes), sections };
         };
 
+        // --- v4.8d: _parseFrameXxx (跟 _buildFrameXxx 严格对称, 8 kind 通用 parseFrame) ---
+        // 帧布局按 protocol.fields 遍历, size 决定段长, 不校验 CRC (D3: 跟 v4.9.6 一致)
+
+        // --- _parseFrameFixedHeader: kind 0 ---
+        // 帧布局: header(1) + cmd(1) + length(1) + data(N) + crc(2) + tail(1) = 7+N
+        NS._parseFrameFixedHeader = function (bytes, protocol) {
+            if (!bytes || !protocol) return { error: 'NO_PROTOCOL', fields: {}, sections: [] };
+            if (bytes.length < 7) return { error: 'TOO_SHORT', fields: {}, sections: [] };
+            const sections = [];
+            let off = 0;
+            for (const f of protocol.fields) {
+                const segBytes = bytes.slice(off, off + f.size);
+                let value = null;
+                if (f.type === 'header' || f.type === 'addr' || f.type === 'tail' || f.type === 'cmd' || f.type === 'length') {
+                    value = segBytes[0] !== undefined ? segBytes[0] : null;
+                } else if (f.type === 'data') {
+                    value = segBytes;
+                } else if (f.type === 'crc') {
+                    value = segBytes.length >= 2 ? (segBytes[0] | (segBytes[1] << 8)) : null;
+                }
+                sections.push({ type: f.type, name: f.name, bytes: segBytes, value });
+                off += f.size;
+            }
+            const fields = {};
+            sections.forEach((s) => { if (s.value !== null) fields[s.name] = s.value; });
+            return { fields, sections };
+        };
+
+        // --- _parseFrameRaw: kind 1 ---
+        // 帧布局: header(1, MB=0x5A/CB=0x55) + cmd(1) + length(1) + data(N) + crc(2) + tail(1) = 7+N
+        NS._parseFrameRaw = function (bytes, protocol) {
+            if (!bytes || !protocol) return { error: 'NO_PROTOCOL', fields: {}, sections: [] };
+            if (bytes.length < 7) return { error: 'TOO_SHORT', fields: {}, sections: [] };
+            const sections = [];
+            let off = 0;
+            for (const f of protocol.fields) {
+                const segBytes = bytes.slice(off, off + f.size);
+                let value = null;
+                if (f.type === 'header' || f.type === 'addr' || f.type === 'tail' || f.type === 'cmd' || f.type === 'length') {
+                    value = segBytes[0] !== undefined ? segBytes[0] : null;
+                } else if (f.type === 'data') {
+                    value = segBytes;
+                } else if (f.type === 'crc') {
+                    value = segBytes.length >= 2 ? (segBytes[0] | (segBytes[1] << 8)) : null;
+                }
+                sections.push({ type: f.type, name: f.name, bytes: segBytes, value });
+                off += f.size;
+            }
+            const fields = {};
+            sections.forEach((s) => { if (s.value !== null) fields[s.name] = s.value; });
+            return { fields, sections };
+        };
+
+        // --- _parseFrameCmdSplit: kind 2 ---
+        // 帧布局: header(1, 0xAA) + cmd(1, bit7 方向) + length(1) + data(N) + crc(2) + tail(1) = 7+N
+        NS._parseFrameCmdSplit = function (bytes, protocol) {
+            if (!bytes || !protocol) return { error: 'NO_PROTOCOL', fields: {}, sections: [] };
+            if (bytes.length < 7) return { error: 'TOO_SHORT', fields: {}, sections: [] };
+            const sections = [];
+            let off = 0;
+            for (const f of protocol.fields) {
+                const segBytes = bytes.slice(off, off + f.size);
+                let value = null;
+                if (f.type === 'header' || f.type === 'addr' || f.type === 'tail' || f.type === 'cmd' || f.type === 'length') {
+                    value = segBytes[0] !== undefined ? segBytes[0] : null;
+                } else if (f.type === 'data') {
+                    value = segBytes;
+                } else if (f.type === 'crc') {
+                    value = segBytes.length >= 2 ? (segBytes[0] | (segBytes[1] << 8)) : null;
+                }
+                sections.push({ type: f.type, name: f.name, bytes: segBytes, value });
+                off += f.size;
+            }
+            const fields = {};
+            sections.forEach((s) => { if (s.value !== null) fields[s.name] = s.value; });
+            return { fields, sections };
+        };
+
+        // --- _parseFrameAddrSplit: kind 3 ---
+        // 帧布局: header(1) + srcAddr(1) + dstAddr(1) + cmd(1) + length(1) + data(N) + crc(2) + tail(1) = 9+N
+        NS._parseFrameAddrSplit = function (bytes, protocol) {
+            if (!bytes || !protocol) return { error: 'NO_PROTOCOL', fields: {}, sections: [] };
+            if (bytes.length < 9) return { error: 'TOO_SHORT', fields: {}, sections: [] };
+            const sections = [];
+            let off = 0;
+            for (const f of protocol.fields) {
+                const segBytes = bytes.slice(off, off + f.size);
+                let value = null;
+                if (f.type === 'header' || f.type === 'srcAddr' || f.type === 'dstAddr' || f.type === 'addr' || f.type === 'tail' || f.type === 'cmd' || f.type === 'length') {
+                    value = segBytes[0] !== undefined ? segBytes[0] : null;
+                } else if (f.type === 'data') {
+                    value = segBytes;
+                } else if (f.type === 'crc') {
+                    value = segBytes.length >= 2 ? (segBytes[0] | (segBytes[1] << 8)) : null;
+                }
+                sections.push({ type: f.type, name: f.name, bytes: segBytes, value });
+                off += f.size;
+            }
+            const fields = {};
+            sections.forEach((s) => { if (s.value !== null) fields[s.name] = s.value; });
+            return { fields, sections };
+        };
+
+        // --- _parseFrameCtrlBit7: kind 4 ---
+        // 帧布局: header(1) + ctrl(1, bit7 方向) + cmd(1) + length(1) + data(N) + crc(2) + tail(1) = 8+N
+        NS._parseFrameCtrlBit7 = function (bytes, protocol) {
+            if (!bytes || !protocol) return { error: 'NO_PROTOCOL', fields: {}, sections: [] };
+            if (bytes.length < 8) return { error: 'TOO_SHORT', fields: {}, sections: [] };
+            const sections = [];
+            let off = 0;
+            for (const f of protocol.fields) {
+                const segBytes = bytes.slice(off, off + f.size);
+                let value = null;
+                if (f.type === 'header' || f.type === 'ctrl' || f.type === 'addr' || f.type === 'tail' || f.type === 'cmd' || f.type === 'length') {
+                    value = segBytes[0] !== undefined ? segBytes[0] : null;
+                } else if (f.type === 'data') {
+                    value = segBytes;
+                } else if (f.type === 'crc') {
+                    value = segBytes.length >= 2 ? (segBytes[0] | (segBytes[1] << 8)) : null;
+                }
+                sections.push({ type: f.type, name: f.name, bytes: segBytes, value });
+                off += f.size;
+            }
+            const fields = {};
+            sections.forEach((s) => { if (s.value !== null) fields[s.name] = s.value; });
+            return { fields, sections };
+        };
+
+        // --- _parseFrameTypeHighBit: kind 5 ---
+        // 帧布局: header(1) + type(1, bit7 方向) + cmd(1) + length(1) + data(N) + crc(2) + tail(1) = 8+N
+        NS._parseFrameTypeHighBit = function (bytes, protocol) {
+            if (!bytes || !protocol) return { error: 'NO_PROTOCOL', fields: {}, sections: [] };
+            if (bytes.length < 8) return { error: 'TOO_SHORT', fields: {}, sections: [] };
+            const sections = [];
+            let off = 0;
+            for (const f of protocol.fields) {
+                const segBytes = bytes.slice(off, off + f.size);
+                let value = null;
+                if (f.type === 'header' || f.type === 'type' || f.type === 'addr' || f.type === 'tail' || f.type === 'cmd' || f.type === 'length') {
+                    value = segBytes[0] !== undefined ? segBytes[0] : null;
+                } else if (f.type === 'data') {
+                    value = segBytes;
+                } else if (f.type === 'crc') {
+                    value = segBytes.length >= 2 ? (segBytes[0] | (segBytes[1] << 8)) : null;
+                }
+                sections.push({ type: f.type, name: f.name, bytes: segBytes, value });
+                off += f.size;
+            }
+            const fields = {};
+            sections.forEach((s) => { if (s.value !== null) fields[s.name] = s.value; });
+            return { fields, sections };
+        };
+
+        // --- _parseFrameMsgidMixed: kind 6 ---
+        // 帧布局: msgID(2, packed 15+7+8) + length(1) + data(N) + crc(2) + tail(1) = 6+N (无 header)
+        NS._parseFrameMsgidMixed = function (bytes, protocol) {
+            if (!bytes || !protocol) return { error: 'NO_PROTOCOL', fields: {}, sections: [] };
+            if (bytes.length < 6) return { error: 'TOO_SHORT', fields: {}, sections: [] };
+            const sections = [];
+            let off = 0;
+            for (const f of protocol.fields) {
+                const segBytes = bytes.slice(off, off + f.size);
+                let value = null;
+                if (f.type === 'msgID') {
+                    value = segBytes.length >= 2 ? ((segBytes[0] << 8) | segBytes[1]) : null;
+                } else if (f.type === 'length' || f.type === 'tail' || f.type === 'cmd') {
+                    value = segBytes[0] !== undefined ? segBytes[0] : null;
+                } else if (f.type === 'data') {
+                    value = segBytes;
+                } else if (f.type === 'crc') {
+                    value = segBytes.length >= 2 ? (segBytes[0] | (segBytes[1] << 8)) : null;
+                }
+                sections.push({ type: f.type, name: f.name, bytes: segBytes, value });
+                off += f.size;
+            }
+            const fields = {};
+            sections.forEach((s) => { if (s.value !== null) fields[s.name] = s.value; });
+            return { fields, sections };
+        };
+
+        // --- _parseFrameTlv: kind 7 (循环 TLV 段, D4) ---
+        // 幀布局: header(1) + tlv 循环 (每段 type+length+value) + crc(2) + tail(1) = 5 + ΣTLV 段
+        //   cmd.tlvs 数组提供 TLV 段 type 标签 (如 [{name: 'voltage'}, {name: 'current'}])
+        NS._parseFrameTlv = function (bytes, protocol, cmd) {
+            if (!bytes || !protocol) return { error: 'NO_PROTOCOL', fields: {}, sections: [] };
+            if (bytes.length < 5) return { error: 'TOO_SHORT', fields: {}, sections: [] };
+            const sections = [];
+            let off = 0;
+            const tlvs = (cmd && cmd.tlvs) || [];
+            for (const f of protocol.fields) {
+                if (f.type === 'header' || f.type === 'crc' || f.type === 'tail') {
+                    const segBytes = bytes.slice(off, off + f.size);
+                    let value = null;
+                    if (f.type === 'crc' && segBytes.length >= 2) {
+                        value = (segBytes[0] | (segBytes[1] << 8));
+                    } else if (segBytes[0] !== undefined) {
+                        value = segBytes[0];
+                    }
+                    sections.push({ type: f.type, name: f.name, bytes: segBytes, value });
+                    off += f.size;
+                } else if (f.type === 'data' && f.name === 'tlv') {
+                    // 循环 TLV 段: 1B type + 1B length + N B value
+                    let tlvIdx = 0;
+                    while (off + 2 <= bytes.length) {
+                        const tlvType = bytes[off];
+                        const tlvLen = bytes[off + 1];
+                        if (off + 2 + tlvLen > bytes.length) {
+                            sections.push({ type: 'tlv-error', name: `tlv[${tlvIdx}]-overflow`, bytes: bytes.slice(off), value: null, error: 'TLV_OVERFLOW' });
+                            break;
+                        }
+                        const tlvValue = bytes.slice(off + 2, off + 2 + tlvLen);
+                        const tlvMeta = tlvs[tlvIdx] || {};
+                        const tlvLabel = tlvMeta.name || `TLV ${tlvType.toString(16).toUpperCase().padStart(2, '0')}`;
+                        sections.push({
+                            type: 'tlv', name: `tlv[${tlvIdx}]`,
+                            bytes: bytes.slice(off, off + 2 + tlvLen),
+                            value: { type: tlvType, length: tlvLen, value: Array.from(tlvValue), label: tlvLabel }
+                        });
+                        off += 2 + tlvLen;
+                        tlvIdx += 1;
+                    }
+                }
+            }
+            const fields = {};
+            sections.forEach((s) => { if (s.value !== null && s.type !== 'tlv') fields[s.name] = s.value; });
+            return { fields, sections };
+        };
+
+        // --- NS.parseFrame dispatcher (跟 NS.buildFrame 严格对称) ---
+        //   bytes: Uint8Array
+        //   protocol: PROTOCOL 对象 (含 kind, fields, ...)
+        //   [cmd]: COMMANDS 对象 (TLV kind 需要, parse TLV 段循环)
+        //   返 { fields, sections } 或 { error, ... }
+        NS.parseFrame = function (bytes, protocol, cmd) {
+            if (!bytes || bytes.length === 0) return { error: 'EMPTY_BYTES', fields: {}, sections: [] };
+            if (!protocol) return { error: 'NO_PROTOCOL', fields: {}, sections: [] };
+            const kind = protocol.kind || 'fixed-header';
+            if (!NS._KIND_TEMPLATES[kind]) return { error: 'UNKNOWN_KIND', kind, fields: {}, sections: [] };
+            switch (kind) {
+                case 'fixed-header':  return NS._parseFrameFixedHeader(bytes, protocol);
+                case 'raw':           return NS._parseFrameRaw(bytes, protocol);
+                case 'cmd-split':     return NS._parseFrameCmdSplit(bytes, protocol);
+                case 'addr-split':    return NS._parseFrameAddrSplit(bytes, protocol);
+                case 'ctrl-bit7':     return NS._parseFrameCtrlBit7(bytes, protocol);
+                case 'type-high-bit': return NS._parseFrameTypeHighBit(bytes, protocol);
+                case 'msgid-mixed':   return NS._parseFrameMsgidMixed(bytes, protocol);
+                case 'tlv':           return NS._parseFrameTlv(bytes, protocol, cmd);
+            }
+            return { error: 'UNKNOWN_KIND', kind, fields: {}, sections: [] };
+        };
+
         // --- v4.9.3: TX trigger 状态空间 (Task 3) ---
         // 开 UI 前的"地基": 字段 hint + bytes 解码 + ack 解析 + waiter 状态 + handler
         // 不接任何 modal / 按钮 / toast — Task 4-5 才接 UI
@@ -11885,25 +12218,60 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           }
         };
 
+        // v4.8d: hex 字符串归一化: 支持空格/0x 前缀/逗号/混合格式
+        //   "AA 01 02"  /  "0xAA 0x01 0x02"  /  "170,1,2"  /  "0xAA, 01, 0x02"
+        //   错误格式 (非 hex 字符) 返 null
+        NS._parseHexString = function (str) {
+            if (typeof str !== 'string') return null;
+            // 1. 归一化: 去 0x 前缀 + 去逗号 + 拆 token
+            const cleaned = str.replace(/0x/gi, '').replace(/,/g, ' ').trim();
+            if (!cleaned) return null;
+            const tokens = cleaned.split(/\s+/).filter((t) => t.length > 0);
+            // 2. 验每个 token 是合法 hex
+            for (const t of tokens) {
+                if (!/^[0-9a-fA-F]+$/.test(t)) return null;
+            }
+            // 3. 转 Uint8Array
+            const out = new Uint8Array(tokens.length);
+            for (let i = 0; i < tokens.length; i += 1) {
+                out[i] = parseInt(tokens[i], 16) & 0xFF;
+            }
+            return out;
+        };
+
         // 简单 ack bytes 解析 (按 ackCmd.dataFields 顺序切, 跳过 header/addr/cmd/length/crc/tail)
-        // 仅 kind 0 fixed-header 协议; 完整 parseFrame 留后续 sub-2 重构
+        // v4.8d 改: 内部用 NS.parseFrame 通用 dispatcher (kind 0 行为兼容, 现状 2 协议 BMS/Modbus 走 kind 0)
         //   bytes 布局 (proto_bms kind=0): header(0xAA=1) + addr(1) + cmd(1) + length(1) + data(N) + crc(2) + tail(0x55=1) = 7 + N
         //   v4.9.7 修: 旧注释漏写 addr 字节, 现已对齐实际帧布局
         //   返 { fieldName: number } — 直接整数值, 不做单位换算 (跟现状 encodeDataFields 一致)
+        //   kind 7 tlv: TLV 段循环解析, data 来自合并的 TLV 段 value.value
         NS._parseAckFields = function (ackCmd, bytes, protoId) {
           const out = {};
-          if (!ackCmd || !bytes || bytes.length < 7) return out;  // v4.9.7 修: 最小帧 = 7 字节 (含 addr)
+          if (!ackCmd || !bytes || bytes.length < 5) return out;
           const proto = NS.PROTOCOLS.find((p) => p.id === protoId);
-          const protoEndian = (proto && proto.byteOrder) || 'BE';
-          const dataLen = bytes.length - 7;
-          const data = bytes.slice(4, 4 + dataLen);
+          if (!proto) return out;
+          const result = NS.parseFrame(bytes, proto, ackCmd);
+          if (result.error) return out;
+          // 找 data section: kind 7 tlv 找 tlv sections 合并, 其他 kind 找 type='data'
+          let dataBytes = null;
+          if (proto.kind === 'tlv') {
+            const tlvSections = result.sections.filter((s) => s.type === 'tlv' && s.value);
+            const merged = [];
+            tlvSections.forEach((s) => { s.value.value.forEach((b) => merged.push(b)); });
+            dataBytes = new Uint8Array(merged);
+          } else {
+            const dataSection = result.sections.find((s) => s.type === 'data');
+            if (dataSection) dataBytes = dataSection.bytes;
+          }
+          if (!dataBytes || !dataBytes.length) return out;
+          const protoEndian = proto.byteOrder || 'BE';
           let off = 0;
           for (const fname of (ackCmd.dataFields || [])) {
             const df = NS.DATA_FIELDS.find((f) => f.name === fname);
             if (!df) continue;
             const size = NS._FIELD_BYTE_SIZE[df.type] || 2;
-            if (off + size > data.length) break;
-            const slice = data.slice(off, off + size);
+            if (off + size > dataBytes.length) break;
+            const slice = dataBytes.slice(off, off + size);
             out[fname] = NS._bytesToNumber(slice, df.byteOrder || protoEndian, df.type);
             off += size;
           }
@@ -11952,36 +12320,39 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           return true;
         };
 
-        // v4.9.6: 真串口 RX 接入 — 扫描 0xAA...0x55 帧, 识别 0x90/0x91 ack 后调用 _triggerAckHandler
-        //   仅识别 proto_bms kind=0 fixed-header 帧布局 (sub-3 不动其他 kind, 留 sub-2 parseFrame 通用化)
-        //   帧布局: header(0xAA) + addr(0x01) + cmd(0x90/0x91) + length(N) + data(N) + crc(2) + tail(0x55) = 7+N bytes
-        //   CRC 暂不校验 (设备可能回 OK 但 CRC 误差, 影响业务; v4.9.6 只识别帧边界)
+        // v4.8d: 真串口 RX 接入 — 遍历 NS.PROTOCOLS, 按 protocol.kind 决定 frame layout, 调 NS.parseFrame 识别
+        //   现状 2 协议 (BMS / Modbus) 走 kind 0 fixed-header, 行为兼容 v4.9.6 路径
+        //   headerByte 来自 protocol.fields 中 header 字段的 default (不再 hardcoded 0xAA)
+        //   CRC 不校验 (D3: 跟 v4.9.6 一致)
         //   同 cmd 已 pending 时多次 ack: 由 _triggerAckHandler 内 waiter.delete 幂等保护
         NS.tryDispatchAckFrames = function (bytes) {
-          if (!bytes || bytes.length < 7) return false;
-          // 滑动窗口扫描 0xAA 起始字节
-          let i = 0;
+          if (!bytes || bytes.length < 5) return false;
           let handled = false;
-          while (i < bytes.length - 6) {
-            if (bytes[i] !== 0xAA) { i += 1; continue; }
-            // 至少需要 7 字节 (header+addr+cmd+length+crc_lo+crc_hi+tail) 才能算最小帧
-            const cmd = bytes[i + 2];
-            if (cmd !== 0x90 && cmd !== 0x91) { i += 1; continue; }
-            const length = bytes[i + 3];
-            const totalLen = 4 + length + 2 + 1; // header+addr+cmd+length + data + crc + tail = 7 + N
-            if (i + totalLen > bytes.length) { i += 1; continue; } // 帧不完整, 继续扫
-            const tail = bytes[i + totalLen - 1];
-            if (tail !== 0x55) { i += 1; continue; } // 边界不对齐, 继续扫
-            // 提取完整帧, 喂给 _triggerAckHandler
-            const frame = bytes.slice(i, i + totalLen);
-            NS._triggerAckHandler(cmd, frame);
-            handled = true;
-            i += totalLen; // 跳到下一帧起点
+          for (const proto of NS.PROTOCOLS) {
+            const headerField = proto.fields.find((f) => f.type === 'header');
+            if (!headerField) continue;
+            const headerByte = NS.parseHexOr0(headerField.default) & 0xFF;
+            let i = 0;
+            while (i < bytes.length) {
+              if (bytes[i] !== headerByte) { i += 1; continue; }
+              const remaining = bytes.slice(i);
+              const cmd = NS.COMMANDS.find((c) => c.protocolId === proto.id);
+              const result = NS.parseFrame(remaining, proto, cmd);
+              if (result.error) { i += 1; continue; }
+              const cmdSection = result.sections.find((s) => s.type === 'cmd');
+              if (!cmdSection || cmdSection.value == null) { i += 1; continue; }
+              const cmdByte = cmdSection.value;
+              NS._triggerAckHandler(cmdByte, remaining);
+              handled = true;
+              // 跳到下一帧起点 (按 sections 总字节数, 避免死循环)
+              const frameLen = result.sections.reduce((sum, s) => sum + (s.bytes ? s.bytes.length : 0), 0);
+              i += frameLen || 1;
+            }
           }
           return handled;
         };
 
-        // v4.9.8: ASCII 帧解析分支 — 兼容设备发 ASCII 命令/响应格式
+        // v4.8d: ASCII 帧解析分支 — 兼容设备发 ASCII 命令/响应格式
         //   实际设备 (或 com51 模拟脚本) 回的是 ASCII 字符串, 跟 binary proto_bms kind=0 帧布局一一对应
         //   ASCII 帧: "170,1,16,4,0,56,0,0,157,11,85\r\n" (11 数字 = 7+N=11, N=4 跟 0x10/0x11 dataSize 一致)
         //     数字  #1 = 0xAA=170 (header 验证)
@@ -11989,9 +12360,10 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         //     数字  #3 = cmd byte (0x10/0x11 Control cmd 或 0x90/0x91 Ack cmd)
         //     数字  #4 = length (N bytes data)
         //     数字  #5..4+N = data bytes (1 字节 1 数字, 大端)
-        //     数字  #4+N+1..+2 = CRC bytes (暂不校验, 留 v4.8.x+)
+        //     数字  #4+N+1..+2 = CRC bytes (暂不校验, 跟 v4.9.6 一致)
         //     数字  #7+N = 0x55=85 (tail 验证)
-        //   解析后转译成 binary 11 字节喂给 _triggerAckHandler, 跟 binary 路径统一处理
+        //   v4.8d 改: ASCII 数字转 binary bytes → 调通用 tryDispatchAckFrames (跟 binary 路径统一)
+        //   cmd byte 0x10/0x11 → 0x90/0x91 映射保留 (设备发 control cmd 期望 ack 0x90/0x91 响应)
         NS.tryDispatchAsciiAckFrames = function (bytes) {
           if (!bytes || bytes.length < 5) return false;
           // 1. bytes → ASCII string (UTF-8 严格解码, 非 UTF-8 拒绝)
@@ -12012,35 +12384,31 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           if (nums.some((n) => isNaN(n))) return false;  // 任一不是数字, 不是 ASCII 帧
           // 4. 验 header (0xAA=170) + tail (0x55=85)
           if (nums[0] !== 0xAA || nums[nums.length - 1] !== 0x55) return false;
-          // 5. 提取 cmd + length
-          const cmdByte = nums[2];
+          // 5. cmd byte 映射 (0x10/0x11 → 0x90/0x91 ack cmd; 0x90/0x91 直用)
+          let ackCmd = nums[2];
+          if (ackCmd === 0x10) ackCmd = 0x90;
+          else if (ackCmd === 0x11) ackCmd = 0x91;
+          if (ackCmd !== 0x90 && ackCmd !== 0x91) return false;  // 不认的 cmd byte
+          // 6. data 字节
           const length = nums[3];
           // 数字总长 = 7 + N (header+addr+cmd+len + N data + crc_hi+crc_lo + tail)
           if (nums.length !== 7 + length) return false;
-          // 6. cmd byte 映射 (0x10/0x11 → 0x90/0x91 ack cmd; 0x90/0x91 直用)
-          let ackCmd;
-          if (cmdByte === 0x10) ackCmd = 0x90;
-          else if (cmdByte === 0x11) ackCmd = 0x91;
-          else if (cmdByte === 0x90 || cmdByte === 0x91) ackCmd = cmdByte;
-          else return false;  // 不认的 cmd byte
-          // 7. data 字节
           const dataBytes = [];
           for (let i = 4; i < 4 + length; i++) {
             dataBytes.push(nums[i] & 0xFF);
           }
-          // 8. 构造 binary bytes (喂给 _triggerAckHandler, 它期望 7+N binary)
+          // 7. 构造 binary bytes (喂给 tryDispatchAckFrames, 它内部调 _triggerAckHandler)
           const binaryBytes = [
             0xAA,
             nums[1] & 0xFF,
             ackCmd,
             length,
             ...dataBytes,
-            0, 0,  // CRC 2 字节 (CRC 暂不校验, 留 v4.8.x+)
+            0, 0,  // CRC 2 字节 (CRC 暂不校验, 跟 v4.9.6 一致)
             0x55
           ];
-          // 9. 调 _triggerAckHandler (binary 路径, 写 currentVals + trendData + resolve waiter)
-          NS._triggerAckHandler(ackCmd, binaryBytes);
-          return true;
+          // 8. 调通用 tryDispatchAckFrames (binary 路径, 写 currentVals + trendData + resolve waiter)
+          return NS.tryDispatchAckFrames(new Uint8Array(binaryBytes));
         };
 
         // --- v4.9.4: Pair trigger modal (0x10/0x11 共用) ---
@@ -12342,6 +12710,23 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 </div>
               </div>
             </div>
+            <div class="proto-section">
+              <div class="proto-section-head">
+                <div class="proto-section-title">
+                  <span class="num">5</span>
+                  <span>反向解析 (parseFrame 验证)</span>
+                </div>
+              </div>
+              <div class="proto-parse-section">
+                <div class="proto-parse-title">贴字节 (hex, 支持空格/0x/, 分隔):</div>
+                <textarea class="proto-parse-textarea" placeholder="例如: AA 01 02 0A 0B 0C XX XX 55" rows="3"></textarea>
+                <div class="proto-parse-actions">
+                  <button class="btn-parse">解析</button>
+                  <button class="btn-parse-clear">清空</button>
+                </div>
+                <div class="proto-parse-result" id="proto-parse-result"></div>
+              </div>
+            </div>
           `;
           NS._renderFieldList(proto, frame, previewCmd);
           NS._renderDataFieldList();
@@ -12409,6 +12794,58 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             NS.DATA_FIELDS.push({ name: 'new_field_' + (NS.DATA_FIELDS.length + 1), type: 'u16', default: '0x0000' });
             NS._renderDataFieldList();
           };
+          // v4.8d: 协议编辑器 "贴字节" 解析按钮 + 清空按钮事件
+          const parseBtn = bodyEl.querySelector('.btn-parse');
+          const parseClearBtn = bodyEl.querySelector('.btn-parse-clear');
+          const parseResultEl = bodyEl.querySelector('.proto-parse-result');
+          const parseTextareaEl = bodyEl.querySelector('.proto-parse-textarea');
+          if (parseBtn && parseResultEl && parseTextareaEl) {
+            parseBtn.addEventListener('click', () => {
+              const text = parseTextareaEl.value.trim();
+              if (!text) {
+                parseResultEl.innerHTML = '<div class="parse-row error">字节不能为空</div>';
+                NS._lastParseResult = null;
+                return;
+              }
+              const bytes = NS._parseHexString(text);
+              if (!bytes) {
+                parseResultEl.innerHTML = '<div class="parse-row error">字节格式错误 (含非 hex 字符)</div>';
+                NS._lastParseResult = null;
+                return;
+              }
+              const cmd = NS.COMMANDS.find((c) => c.protocolId === proto.id) || NS.COMMANDS[0];
+              const result = NS.parseFrame(bytes, proto, cmd);
+              NS._lastParseResult = { bytes, ...result, ts: Date.now() };
+              if (result.error) {
+                const minBytes = (proto.kind === 'addr-split') ? 9 : ((proto.kind === 'ctrl-bit7' || proto.kind === 'type-high-bit') ? 8 : (proto.kind === 'msgid-mixed') ? 6 : (proto.kind === 'tlv') ? 5 : 7);
+                parseResultEl.innerHTML = `<div class="parse-row error">${result.error}${result.error === 'TOO_SHORT' ? ` (字节数 ${bytes.length}, 至少需要 ${minBytes})` : ''}</div>`;
+                return;
+              }
+              // 渲染 sections
+              const rows = result.sections.map((s) => {
+                const hex = s.bytes ? Array.from(s.bytes).map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ') : '';
+                let valStr;
+                if (s.type === 'tlv' && s.value) {
+                  valStr = `type: 0x${s.value.type.toString(16).padStart(2, '0').toUpperCase()}, length: ${s.value.length}, value: ${s.value.value.map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ')} (${s.value.label})`;
+                } else if (typeof s.value === 'number') {
+                  valStr = `0x${s.value.toString(16).toUpperCase()} (${s.value})`;
+                } else if (s.value instanceof Uint8Array) {
+                  valStr = `[${Array.from(s.value).map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ')}] (${s.value.length}B)`;
+                } else {
+                  valStr = '—';
+                }
+                return `<div class="parse-row"><span class="parse-name">${NS.escapeHtml(s.name)}</span><span class="parse-type">${s.type}</span><span class="parse-bytes">${hex}</span><span class="parse-value">${valStr}</span></div>`;
+              });
+              parseResultEl.innerHTML = rows.join('');
+            });
+          }
+          if (parseClearBtn && parseResultEl && parseTextareaEl) {
+            parseClearBtn.addEventListener('click', () => {
+              parseTextareaEl.value = '';
+              parseResultEl.innerHTML = '';
+              NS._lastParseResult = null;
+            });
+          }
         };
 
         NS._renderFieldList = function (proto, frame, previewCmd) {
