@@ -89,7 +89,7 @@ agent-browser snapshot -i --json    # 4. 每次页面变都重 snapshot（ref �
 
 | Skill | 来源 | 用途 |
 |-------|------|------|
-| **serialcube-workflow** | 本项目自建 | **入口 SOP**：5 问决策树 + 6 步触发链 + 3 个变体（主链 / 小改 / bug / 部署）；当用户在 SerialCube 项目内做改动时必触发 |
+| **serialcube-workflow** | 本项目自建 | **入口 SOP**：5 问决策树 + 7 步主链 + 3 个变体（小改 / bug / 部署）；当用户在 SerialCube 项目内做改动时必触发 |
 
 ### ⑨ 端到端验证（替代单 HTML 项目的测试）
 
