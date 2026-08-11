@@ -1,0 +1,52 @@
+# 操作系统
+Thumbs.db
+.DS_Store
+desktop.ini
+ehthumbs.db
+Desktop.ini
+
+# 编辑器 / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node.js (避免误提交)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# 浏览器 / 工具
+screenshots/
+*.log
+
+# 临时文件
+*.tmp
+*.bak
+*.orig
+*.rej
+.cache/
+
+# 仓库相关（不提交上游整包，.minimax/skills/ 是单独维护的精简版）
+.minimax/repos/
+.minimax/.cache/
+
+# 但保留 .minimax/skills/ 下的所有 skill
+!.minimax/skills/
+!.minimax/skills/**/
+
+# 环境变量 / 凭据
+.env
+.env.local
+*.pem
+*.key
