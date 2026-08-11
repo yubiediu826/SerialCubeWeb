@@ -1,10 +1,11 @@
 # SerialCube v1.0.0 — Release Handover
 
-> **Tag:** `v1.0.0` (annotated, `git rev-parse v1.0.0`)
-> **Release commit:** `8570dc0` (HEAD at tag)
+> **Tag:** `v1.0.0` (annotated, `git rev-parse v1.0.0` = `cf118dc`)
+> **Release commit:** `d286d93` (HEAD at tag, `perf(skills): 精简 ui-ux-pro-max + agent-browser 描述`)
 > **Release date:** 2026-08-11
 > **Code version:** `SerialCube.html const VERSION = '1.0.0'`
 > **Author:** Mavis (with user M.\*)
+> **Commit message language:** 中文 (per user requirement)
 
 ## 这是什么
 
@@ -38,20 +39,22 @@
 
 **11 个上游**: using-superpowers / brainstorming / grill-me / writing-plans / TDD / taste / ui-ux-pro-max / design-system / agent-browser / requesting-code-review / verification-before-completion
 
-## Commit 链路 (9 个, 从 0 到 1)
+## Commit 链路 (13 个, 全部中文 message, 从 0 到 1)
 
 ```
-8570dc0  perf(skills): trim descriptions + add routing table        (HEAD at v1.0.0)
-f008bd8  docs(skills): refresh README (11→15 skills, 7→11 stages)
-f733c0f  docs(skills): add stage 11 (version-management)
-a24147d  feat(skills): add version-management skill
-2f65f8b  chore(release): collapse 1.0.1+1.0.0 → 1.0.0
-83b4239  docs(skills): fix 6→7 step count
-e46ac49  docs(skills): integrate workflow/e2e/deploy
-85e346b  feat(deploy): add GitHub Pages deploy checklist
-aa3d977  feat(e2e): add 6-scenario E2E validation
-f113767  feat(workflow): add serialcube-workflow SOP
-8af70f1  chore: initial baseline commit
+ad91097  chore: 初始化基线提交
+f9fd4c2  feat(workflow): 新增 serialcube-workflow 项目级 SOP (决策树 + 触发链)
+3da65d1  feat(e2e): 新增 6 场景端到端验证 (基于 agent-browser)
+9989672  feat(deploy): 新增 GitHub Pages 部署清单 (5 件事 + 烟雾测试)
+97750d1  docs(skills): 整合 workflow/e2e/deploy 到 README (3 新阶段 + 2 反模式 + 3 触发链)
+8311b80  docs(skills): 修正 workflow 描述中的步数 6→7
+25036d2  chore(release): 合并 1.0.1 + 1.0.0 changelog 为单一 1.0.0 版本, 同步 VERSION 常量
+23bbb8b  feat(skills): 新增 version-management skill (3 条规则 + bump 脚本 + 政策/模板参考)
+e2b4bce  docs(skills): 在 README 增加 ⑪ 阶段 (version-management) 与触发链行
+2c80c99  docs(skills): 刷新 README — 11→15 skill, 7→11 阶段, 修正过时文件树, 补充更新/反模式章节
+443398e  perf(skills): 拆分 taste SKILL.md 并差异化自建 skill 描述
+d286d93  perf(skills): 精简 ui-ux-pro-max + agent-browser 描述, 增加 README 路由表   ← v1.0.0
+3221ceb  docs(handover): 新增 v1.0.0 发布说明
 ```
 
 **净增**: 12 个新文件 (4 skill 目录), 7 个文件改, 约 +3500 行代码
@@ -66,7 +69,7 @@ f113767  feat(workflow): add serialcube-workflow SOP
 
 | 项 | 状态 | 后续 |
 |----|------|------|
-| GitHub Pages 部署 | **未 push** (本机连不上 github.com, 用户手动) | 用户跑 `git push -u origin main --force` |
+| GitHub Pages 部署 | **未 push** (本机连不上 github.com, 用户手动) | 用户跑 `git push -u origin main --force --tags` |
 | 部署后烟雾测试 | **未跑** | 部署后跑 `serialcube-e2e` 场景 01 + 04 |
 | `using-git-worktrees` skill | 未装 (单文件项目用不到) | 多任务并行时再装 |
 | `protocol-copilot` skill | 计划存档 (`docs/superpowers/plans/2026-08-11-serial-protocol-copilot.md`) | 等协议层工作量大时再做 |
@@ -74,7 +77,7 @@ f113767  feat(workflow): add serialcube-workflow SOP
 
 ## 下一步 (3 件事)
 
-1. **用户手动 push** — `git push -u origin main --force --tags` (因为远端冲突)
+1. **用户手动 push** — `git push -u origin main --force --tags` (要解决远端冲突, 建议先看 README §"更新" 章节的 push 提示)
 2. **部署后跑 e2e** — 打开 https://yubiediu826.github.io/SerialCubeWeb/ 跑 `serialcube-e2e` 场景 01 (应用加载) + 04 (协议编辑器)
 3. **CI smoke check** — 看 GitHub Pages 是否 1-2 分钟内生效
 
@@ -85,6 +88,18 @@ f113767  feat(workflow): add serialcube-workflow SOP
 - `bump-version.ps1 -Level major` → 1.0.0 → 2.0.0 (破坏性)
 
 VERSION 三处同步: SerialCube.html const VERSION / HTML changelog 段 / (可选) git tag
+
+## Commit Message 规范 (项目级)
+
+所有 commit 必须用**中文**（用户硬性要求）。Conventional Commits 格式保留:
+
+```
+<type>(<scope>): <subject>      ← subject 中文
+<空行>
+<body>                            ← body 可中可英, 建议中文
+```
+
+type ∈ {feat, fix, docs, chore, perf, refactor, test}
 
 ## 文件清单 (本 release 影响)
 
