@@ -113,6 +113,38 @@ agent-browser snapshot -i --json    # 4. 每次页面变都重 snapshot（ref �
 
 ---
 
+## 触发路由速查表（用户说辞 → skill）
+
+> Mavis / Claude Code 用**纯语义匹配 description**，所以撞词会导致 AI 误触发。下面这张表告诉你：用户**这么说** → **应该**触发哪个 skill。如果发现表里漏了某个用户说辞，去改对应 skill 的 description 字段。
+
+| 用户说辞 | 触发 skill | 走完整流程 |
+|---------|-----------|-----------|
+| 「在 SerialCube 里加 / 改 / 调 X」 | `serialcube-workflow` | 5 问决策树 → brainstorming/grill-me/TDD |
+| 「设计新组件 / 创建功能 / 改行为」 | `brainstorming` | 9 步设计清单 |
+| 「拷问 / 追问 / 这需求清楚吗」 | `grill-me` | 单句追问 |
+| 「写计划 / 复杂任务拆解」 | `writing-plans` | 2-5 分钟粒度计划 |
+| 「写测试 / TDD / 先失败再实现」 | `test-driven-development` | Red-Green-Refactor |
+| 「改 UI / 换风格 / 反模板」 | `taste` | → ui-ux-pro-max + design-system |
+| 「配色 / 字体 / 选 UI 库 / chart 类型」 | `ui-ux-pro-max` | search data/ |
+| 「设计 token / CSS 变量 / 间距系统」 | `design-system` | 三层 token |
+| 「跑一下 / 验证没改坏 / 跑 e2e」 | `serialcube-e2e` | 6 场景 |
+| 「部署 / 推 GitHub Pages / 上线 / 冒烟」 | `deploy-checklist` | 5 件事 |
+| 「commit / push / bump / 改一行 / 修 bug」 | `version-management` | bump-version.ps1 + ask_user |
+| 「打开网页 / 点击按钮 / 填表 / 截图 / scrape」 | `agent-browser` | open → snapshot → click @eN |
+| 「完成前验证 / 跑测试 / 检查 OK 没」 | `verification-before-completion` | 完工清单 |
+| 「重大改动前审查 / 5 个 agent 并行」 | `requesting-code-review` | 5 维审查 |
+
+**撞词高危区**（容易同时触发 2+）：
+
+| 关键词 | 区分 |
+|--------|------|
+| "改 / 代码" | `serialcube-workflow` 是**入口**，触发后会路由到 `version-management` 或 `brainstorming`；不要让 4 个自建 skill 同时触发 |
+| "部署 / 上线" | `deploy-checklist`（GitHub Pages 部署）vs `version-management`（标版本号）— **deploy 不说"发版"**，**version 不说"部署"** |
+| "验证" | `serialcube-e2e`（跑 6 场景）vs `verification-before-completion`（完工清单）— e2e 是**测试**，verification 是**完工确认** |
+| "改 UI" | `taste`（反模板审计）vs `design-system`（token 化）vs `ui-ux-pro-max`（查数据）— 三件套，依次走 |
+
+---
+
 ## 怎么用
 
 按开发顺序触发（自然语言即可，skill 自动激活）：

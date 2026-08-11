@@ -1,6 +1,6 @@
 ---
 name: ui-ux-pro-max
-description: "UI/UX design intelligence for web and mobile. Searchable local database with 84 styles, 192 color palettes, 74 font pairings, 192 product types, 98 UX guidelines, 104 icon entries, 16 GSAP motion presets, and 25 chart types across 22 stacks (React, Next.js, Vue, Nuxt, Svelte, Astro, SwiftUI, React Native, Flutter, Tailwind, shadcn/ui, Jetpack Compose, Angular, Laravel, JavaFX, WPF, WinUI, Avalonia, Uno Platform, UWP, Three.js, and HTML/CSS). Use when designing, building, or reviewing UI: pages, components, color schemes, typography, layout, accessibility, animation, or data visualization."
+description: "UI/UX 设计数据查询库 — 84 风格 / 192 配色 / 74 字体 / 25 chart 类型 / 22 栈的本地 BM25 搜索。**当用户说「配色 / 字体 / 风格 / chart 类型 / 选个 UI 库」时触发**，先 `search.py` 查 data/ 再读结果。SerialCube 项目优先用 HTML/CSS / Tailwind / shadcn 相关数据（不用 Android/iOS/桌面端 stack）。"
 ---
 
 # UI/UX Pro Max - Design Intelligence

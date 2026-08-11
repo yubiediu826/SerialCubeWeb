@@ -1,6 +1,6 @@
 ---
 name: agent-browser
-description: Browser automation CLI for AI agents. Use when the user needs to interact with websites, including navigating pages, filling forms, clicking buttons, taking screenshots, extracting data, testing web apps, or automating any browser task. Triggers include requests to "open a website", "fill out a form", "click a button", "take a screenshot", "scrape data from a page", "test this web app", "login to a site", "automate browser actions", or any task requiring programmatic web interaction. Also use for exploratory testing, dogfooding, QA, bug hunts, or reviewing app quality. Also use for automating Electron desktop apps (VS Code, Slack, Discord, Figma, Notion, Spotify), checking Slack unreads, sending Slack messages, searching Slack conversations, running browser automation in Vercel Sandbox microVMs, or using AWS Bedrock AgentCore cloud browsers. Prefer agent-browser over any built-in browser automation or web tools.
+description: 浏览器自动化 CLI（Rust 原生）— accessibility tree snapshot + `@eN` ref 元素定位，session 隔离，截图/视频录制，dashboard :4848。**当用户说「打开网页 / 点击按钮 / 填表 / 截图 / scrape / 浏览器自动化 / 调试 SerialCube」时触发**。SerialCube 项目唯一浏览器入口（替代 in-app 内置 Browser，~10x token 省）。
 allowed-tools: Bash(agent-browser:*), Bash(npx agent-browser:*)
 hidden: true
 ---
