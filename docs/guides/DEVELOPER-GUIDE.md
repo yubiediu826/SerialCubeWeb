@@ -1,4 +1,4 @@
-# SerialCube 开发者指南
+﻿# SerialCube 开发者指南
 
 > **面向开发者**（改代码 / 调试 / 部署）— 改 SerialCube.html 的标准 SOP。
 > 如果你只想用工具,看 [`USER-GUIDE.md`](USER-GUIDE.md)。
@@ -19,20 +19,47 @@
 3. 自验证
    └─ 真浏览器打开 SerialCube.html 手动跑
 
-4. 提交
+4. 写 changelog 子文件  （硬性规则 5）
+   └─ docs/changelog/YYYY-MM-DD-<topic-slug>.md
+   └─ docs/CHANGELOG.md 主索引加一行
+   └─ 同步更新引用本变更的其他文档
+
+5. 提交
    ├─ git add <files>
    ├─ git commit -m "<type>(<scope>): <中文 subject>"  ← subject 必须中文
    └─ commit 类型 ∈ {feat, fix, docs, chore, perf, refactor, test}
 
-5. 推送
+6. 推送
    └─ ⚠️ push 前 ASK USER 确认  （version-management R2 硬性规则）
       git push origin main --tags
       （首次推送要 -u，后续不用）
 
-6. 部署
+7. 部署
    └─ GitHub Actions 自动跑 pages.yml，无需手动
    └─ 部署后跑 deploy-checklist 5 件事验证
 ```
+
+### 1.1 关联文档同步自检（每次 push 前必跑）
+
+```powershell
+# 1. 改完先 grep 出所有引用本次变更内容的文档
+# 例: 改了 SerialCube.html const VERSION → 找所有提到 1.0.0 的文档
+Select-String -Path 'docs' -Pattern '1\.0\.0' -Recurse
+
+# 2. 跑 link check 确认没断链
+# (见本文档底部 § 13 自检脚本)
+
+# 3. 看 CHANGELOG.md 主索引有没有漏
+Get-Content docs/CHANGELOG.md
+```
+
+**自检清单:**
+- [ ] changelog 子文件已写（`docs/changelog/YYYY-MM-DD-<topic>.md`）
+- [ ] `docs/CHANGELOG.md` 主索引已加链接
+- [ ] 所有引用本变更的文档已同步（用 grep 找）
+- [ ] 没有断链（link check 通过）
+- [ ] commit message 中文
+- [ ] ask_user 拿到 push 确认
 
 ---
 
@@ -399,8 +426,8 @@ Select-String -Path 'SerialCube.html' -Pattern ':root\s*{' -Context 0,0
 | SerialCube.html 内部结构（行号速查） | [`../reference/ARCHITECTURE.md`](../reference/ARCHITECTURE.md) |
 | CRC 算法速查 | [`../reference/CRC-REFERENCE.md`](../reference/CRC-REFERENCE.md) |
 | 协议模板速查 | [`../reference/PROTOCOL-TEMPLATES.md`](../reference/PROTOCOL-TEMPLATES.md) |
-| 5 步接手检查清单 | [`../handover/SESSION-CHECKLIST.md`](../handover/SESSION-CHECKLIST.md) |
-| 完整项目交接 | [`../handover/PROJECT-HANDOVER.md`](../handover/PROJECT-HANDOVER.md) |
+| 5 步接手检查清单 | [`../handover/SESSION-CHECKLIST-2026-08-11.md`](../handover/SESSION-CHECKLIST-2026-08-11.md) |
+| 完整项目交接 | [`../handover/PROJECT-HANDOVER-2026-08-11.md`](../handover/PROJECT-HANDOVER-2026-08-11.md) |
 | AI 工作流总入口 | [`.minimax/skills/README.md`](../../.minimax/skills/README.md) |
 
 ---
@@ -427,3 +454,68 @@ docs/CHANGELOG.md 是变更记录,发版必更新。
 
 ### ❌ 改 UI 不跑 taste / ui-ux-pro-max / design-system
 5 步 SOP 在 `.minimax/skills/README.md` §⑤。
+
+### ❌ 改完不写 changelog 子文件
+**硬性规则 5:** 每次 push 前必在 `docs/changelog/<YYYY-MM-DD>-<topic>.md` 写子文件 + 更新 [`../CHANGELOG.md`](../CHANGELOG.md) 主索引。
+
+### ❌ 改完不同步关联文档
+跑了 grep 发现有 50+ 处引用就要全部更新；改文件名/链接路径后必须跑 link check。
+
+---
+
+## 13. 自检脚本（PowerShell）
+
+### 13.1 Link check — 验证所有内部链接
+
+```powershell
+Set-Location 'D:\WorkSpace\SerialCubeWeb'
+$bad = @()
+Get-ChildItem -Recurse -File -Filter '*.md' | Where-Object {
+  $_.FullName -notlike '*.minimax*' -and $_.FullName -notlike '*.git*'
+} | ForEach-Object {
+  $file = $_.FullName
+  $dir = Split-Path $file -Parent
+  (Get-Content $file -Encoding UTF8) | Select-String -Pattern '\]\(([^)]+)\)' | ForEach-Object {
+    $target = $_.Matches[0].Groups[1].Value
+    if ($target -match '^(https?:|mailto:|#|\.)') { return }
+    $clean = $target -replace '#.*$', ''
+    if ([string]::IsNullOrWhiteSpace($clean)) { return }
+    $resolved = if ($clean.StartsWith('/')) { Join-Path (Get-Location).Path $clean.TrimStart('/') } else { Join-Path $dir $clean }
+    $resolved = $resolved -replace '/', '\'
+    if (-not (Test-Path $resolved)) {
+      $script:bad += [PSCustomObject]@{ Source = $file.Replace((Get-Location).Path + '\', ''); Target = $target }
+    }
+  }
+}
+if ($bad.Count -eq 0) { Write-Host '✅ 链接全通' -ForegroundColor Green } else { Write-Host "❌ $($bad.Count) 个坏链接"; $bad | Format-Table -AutoSize }
+```
+
+### 13.2 改某文档后找引用方
+
+```powershell
+# 改了 docs/reference/ARCHITECTURE.md
+Select-String -Path 'docs' -Pattern 'ARCHITECTURE\.md' -Recurse
+# 看哪些文档引用了它
+```
+
+### 13.3 找所有 "TODO" / "FIXME"
+
+```powershell
+Select-String -Path 'docs' -Pattern 'TODO|FIXME|XXX' -Recurse
+```
+
+### 13.4 改 SerialCube.html 前必查的引用
+
+```powershell
+# VERSION / 1.0.0 / changelog 段
+Select-String -Path 'docs' -Pattern '1\.0\.0' -Recurse
+Select-String -Path 'docs' -Pattern 'VERSION' -Recurse
+```
+
+### 13.5 跑完自检
+
+每次 commit 前:
+1. 跑 § 13.1 link check
+2. 跑 § 13.2 看引用方是否需要同步
+3. 跑 § 13.4 如果改了 SerialCube.html
+4. 全部 ✅ 才能 commit

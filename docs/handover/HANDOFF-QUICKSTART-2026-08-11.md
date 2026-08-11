@@ -1,4 +1,4 @@
-# SerialCube 30 秒快速接手卡
+﻿# SerialCube 30 秒快速接手卡
 
 > **这是每个新 agent / 新窗口第一份必读文档。** 30 秒读完,马上知道「这是什么、现在什么状态、下一步怎么走」。
 
@@ -23,7 +23,7 @@
 
 ---
 
-## 📌 4 条硬性规则（不可破）
+## 📌 5 条硬性规则（不可破）
 
 | # | 规则 | 原因 | 违反后果 |
 |---|------|------|----------|
@@ -31,6 +31,7 @@
 | 2 | **Push 前 ask_user** | 不可逆操作 | 误推到 main / force push 灾难 |
 | 3 | **VERSION 三处同步** | `SerialCube.html const VERSION` / HTML changelog 段 / Git tag | 版本号混乱 |
 | 4 | **改 SerialCube.html 前跑 bump-version** | 自动同步 VERSION + changelog 段 | 漏 changelog / 漏 tag |
+| 5 | **每次 push 前必写 changelog 子文件** | `docs/changelog/YYYY-MM-DD-<topic>.md` + 更新主索引 [`CHANGELOG.md`](../CHANGELOG.md) | 变更追溯断裂 |
 
 ---
 
@@ -38,9 +39,9 @@
 
 | 找什么 | 去哪里 |
 |--------|--------|
-| 完整项目交接 | [`PROJECT-HANDOVER.md`](PROJECT-HANDOVER.md) |
-| v1.0.0 发布说明 | [`release-v1.0.0.md`](release-v1.0.0.md) |
-| 5 步接手检查清单 | [`SESSION-CHECKLIST.md`](SESSION-CHECKLIST.md) |
+| 完整项目交接 | [`PROJECT-HANDOVER-2026-08-11.md`](PROJECT-HANDOVER-2026-08-11.md) |
+| v1.0.0 发布说明 | [`release-v1.0.0-2026-08-11.md`](release-v1.0.0-2026-08-11.md) |
+| 5 步接手检查清单 | [`SESSION-CHECKLIST-2026-08-11.md`](SESSION-CHECKLIST-2026-08-11.md) |
 | 工具怎么用（用户视角） | [`../guides/USER-GUIDE.md`](../guides/USER-GUIDE.md) |
 | 改代码 / 部署 SOP | [`../guides/DEVELOPER-GUIDE.md`](../guides/DEVELOPER-GUIDE.md) |
 | Agent 接手标准动作 | [`../guides/AGENT-START-HERE.md`](../guides/AGENT-START-HERE.md) |
@@ -122,5 +123,5 @@ agent-browser click @e3
 
 1. **读完本文件**（30 秒,你现在在做）
 2. **激活 `using-superpowers` skill**（自动发现其他 skill）
-3. **5 步检查清单**: [`SESSION-CHECKLIST.md`](SESSION-CHECKLIST.md)
+3. **5 步检查清单**: [`SESSION-CHECKLIST-2026-08-11.md`](SESSION-CHECKLIST-2026-08-11.md)
 4. 干活去吧 🚀

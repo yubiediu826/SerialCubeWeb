@@ -1,4 +1,4 @@
-# SerialCube
+﻿# SerialCube
 
 > 单文件 Web 串口调试工具 — 面向 BMS / EMS / PCS 协议调试
 
@@ -15,7 +15,7 @@
 | **只想用工具调试串口** | <https://yubiediu826.github.io/SerialCubeWeb/SerialCube.html> → 开 mock 模式直接玩 |
 | **GitHub 访客 / 评估项目** | [§ 功能列表](#能做什么) → [§ 快速开始](#快速开始) → [§ 技术栈](#技术栈) |
 | **本机开发者 / 改代码** | [docs/guides/DEVELOPER-GUIDE.md](docs/guides/DEVELOPER-GUIDE.md) |
-| **AI Agent 接手** | [docs/handover/HANDOFF-QUICKSTART.md](docs/handover/HANDOFF-QUICKSTART.md) |
+| **AI Agent 接手** | [docs/handover/HANDOFF-QUICKSTART-2026-08-11.md](docs/handover/HANDOFF-QUICKSTART-2026-08-11.md) |
 | **想了解工具的每个功能怎么用** | [docs/guides/USER-GUIDE.md](docs/guides/USER-GUIDE.md) |
 | **想看完整文档导航** | [docs/README.md](docs/README.md) |
 
@@ -64,13 +64,13 @@ cd SerialCubeWeb
 
 | 你想了解 | 去看哪里 |
 |----------|----------|
-| 30 秒快速接手（agent 必看） | [docs/handover/HANDOFF-QUICKSTART.md](docs/handover/HANDOFF-QUICKSTART.md) |
+| 30 秒快速接手（agent 必看） | [docs/handover/HANDOFF-QUICKSTART-2026-08-11.md](docs/handover/HANDOFF-QUICKSTART-2026-08-11.md) |
 | 完整文档地图（30s/2min/5min 分层） | [docs/README.md](docs/README.md) |
 | 工具用途 / 功能 / 怎么用 | [docs/guides/USER-GUIDE.md](docs/guides/USER-GUIDE.md) |
 | 改代码 / 调试 / 部署 SOP | [docs/guides/DEVELOPER-GUIDE.md](docs/guides/DEVELOPER-GUIDE.md) |
 | AI Agent 接手标准动作 | [docs/guides/AGENT-START-HERE.md](docs/guides/AGENT-START-HERE.md) |
-| 项目当前状态 / 关键决策 | [docs/handover/PROJECT-HANDOVER.md](docs/handover/PROJECT-HANDOVER.md) |
-| v1.0.0 发布说明 | [docs/handover/release-v1.0.0.md](docs/handover/release-v1.0.0.md) |
+| 项目当前状态 / 关键决策 | [docs/handover/PROJECT-HANDOVER-2026-08-11.md](docs/handover/PROJECT-HANDOVER-2026-08-11.md) |
+| v1.0.0 发布说明 | [docs/handover/release-v1.0.0-2026-08-11.md](docs/handover/release-v1.0.0-2026-08-11.md) |
 | 变更记录 | [docs/CHANGELOG.md](docs/CHANGELOG.md) |
 | 本地备份策略 | [docs/backup/BACKUP.md](docs/backup/BACKUP.md) |
 | SerialCube.html 内部结构 | [docs/reference/ARCHITECTURE.md](docs/reference/ARCHITECTURE.md) |

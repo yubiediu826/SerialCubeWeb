@@ -1,4 +1,4 @@
-# 每次开新窗口 — 5 步检查清单
+﻿# 每次开新窗口 — 5 步检查清单
 
 > **每次开一个新的 agent 会话 / 工作窗口,按这个清单走一遍。** 避免「接手了但不知道接手了什么」。
 
@@ -34,7 +34,7 @@ git tag -l | Select-Object -Last 3
 
 ## 1️⃣ 第 1 步（30 秒）— 读 30 秒卡
 
-打开 [`HANDOFF-QUICKSTART.md`](HANDOFF-QUICKSTART.md),扫一眼:
+打开 [`HANDOFF-QUICKSTART-2026-08-11.md`](HANDOFF-QUICKSTART-2026-08-11.md),扫一眼:
 
 - ✅ 项目是单 HTML 串口调试工具
 - ✅ 当前版本 v1.0.0
@@ -46,7 +46,7 @@ git tag -l | Select-Object -Last 3
 
 ## 2️⃣ 第 2 步（1 分钟）— 读完整交接
 
-打开 [`PROJECT-HANDOVER.md`](PROJECT-HANDOVER.md),重点看:
+打开 [`PROJECT-HANDOVER-2026-08-11.md`](PROJECT-HANDOVER-2026-08-11.md),重点看:
 
 - § 2 当前状态（v1.0.0 快照）
 - § 3 架构 / 文件结构
@@ -244,8 +244,8 @@ curl -I https://github.com
 Session Start Checklist
 ─────────────────────
 □ 0. Set-Location + git status
-□ 1. 读 HANDOFF-QUICKSTART.md (30s)
-□ 2. 读 PROJECT-HANDOVER.md (2min)
+□ 1. 读 HANDOFF-QUICKSTART-2026-08-11.md (30s)
+□ 2. 读 PROJECT-HANDOVER-2026-08-11.md (2min)
 □ 3. 激活 using-superpowers + 任务相关 skill
 □ 4. git config / 工具链 / VERSION 确认
 □ 5. agent-browser 跑 SerialCube.html 冒烟

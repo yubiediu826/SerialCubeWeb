@@ -1,4 +1,4 @@
-# SerialCube v1.0.0 — Release Handover
+﻿# SerialCube v1.0.0 — Release Handover
 
 > **Tag:** `v1.0.0` (annotated, `git rev-parse v1.0.0` = `cf118dc`)
 > **Release commit:** `d286d93` (HEAD at tag, `perf(skills): 精简 ui-ux-pro-max + agent-browser 描述`)
@@ -112,7 +112,7 @@ type ∈ {feat, fix, docs, chore, perf, refactor, test}
   .minimax/skills/taste/references/core.md    (82KB, 按需)
   .gitignore
   docs/superpowers/plans/                     (2 计划存档)
-  docs/handover/release-v1.0.0.md             (本文件)
+  docs/handover/release-v1.0.0-2026-08-11.md             (本文件)
 
 改:
   SerialCube.html                             (VERSION 1.0.1→1.0.0, 合并 changelog)

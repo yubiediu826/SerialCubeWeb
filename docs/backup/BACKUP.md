@@ -1,4 +1,4 @@
-# SerialCube 本地备份策略
+﻿# SerialCube 本地备份策略
 
 > **目标:** 工作区意外丢失时（硬盘坏 / 误删 / 误 git reset）能从本地备份恢复。
 > **策略:** 自动化 GitHub 推送 + 本地周期性手动/外部工具备份（重要里程碑前必做）。
@@ -243,7 +243,7 @@ git clone E:\Backup\SerialCubeWeb-v1.0.0.bundle SerialCubeWeb
 
 ## 🔗 相关文档
 
-- [`HANDOFF-QUICKSTART.md`](../handover/HANDOFF-QUICKSTART.md) — 30 秒接手卡
-- [`SESSION-CHECKLIST.md`](../handover/SESSION-CHECKLIST.md) — 每次开新窗口 5 步
+- [`HANDOFF-QUICKSTART-2026-08-11.md`](../handover/HANDOFF-QUICKSTART-2026-08-11.md) — 30 秒接手卡
+- [`SESSION-CHECKLIST-2026-08-11.md`](../handover/SESSION-CHECKLIST-2026-08-11.md) — 每次开新窗口 5 步
 - [`../README.md`](../README.md) — 文档中心
 - [`.gitignore`](../../.gitignore) — 排除规则

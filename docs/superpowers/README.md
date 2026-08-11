@@ -1,4 +1,4 @@
-# docs/superpowers/ — 实施计划存档
+﻿# docs/superpowers/ — 实施计划存档
 
 > **本目录是 SerialCube 项目的"历史档案馆"** — 记录重要实施决策的执行计划（含未执行的）。
 
@@ -99,8 +99,8 @@ docs/superpowers/
 ## 相关文档
 
 - [完整文档中心](../README.md)
-- [30 秒接手卡](../handover/HANDOFF-QUICKSTART.md)
-- [完整项目交接](../handover/PROJECT-HANDOVER.md)
-- [v1.0.0 发布说明](../handover/release-v1.0.0.md)
+- [30 秒接手卡](../handover/HANDOFF-QUICKSTART-2026-08-11.md)
+- [完整项目交接](../handover/PROJECT-HANDOVER-2026-08-11.md)
+- [v1.0.0 发布说明](../handover/release-v1.0.0-2026-08-11.md)
 - [变更记录](../CHANGELOG.md)
 - [AI 工作流总入口](../../.minimax/skills/README.md)

@@ -1,4 +1,4 @@
-# AI Agent 接手标准动作
+﻿# AI Agent 接手标准动作
 
 > **这是给所有 agent 的 SOP**（不只是 Mavis）— 进窗口 → 理解 → 干活 → 交付。
 
@@ -6,11 +6,11 @@
 
 ## 1. 进窗口 5 分钟
 
-按 [`../handover/SESSION-CHECKLIST.md`](../handover/SESSION-CHECKLIST.md) 走 5 步:
+按 [`../handover/SESSION-CHECKLIST-2026-08-11.md`](../handover/SESSION-CHECKLIST-2026-08-11.md) 走 5 步:
 
 1. **0️⃣ git 状态** — 工作区干净 / 在正确 commit
-2. **1️⃣ 30 秒卡** — [`../handover/HANDOFF-QUICKSTART.md`](../handover/HANDOFF-QUICKSTART.md)
-3. **2️⃣ 完整交接** — [`../handover/PROJECT-HANDOVER.md`](../handover/PROJECT-HANDOVER.md)
+2. **1️⃣ 30 秒卡** — [`../handover/HANDOFF-QUICKSTART-2026-08-11.md`](../handover/HANDOFF-QUICKSTART-2026-08-11.md)
+3. **2️⃣ 完整交接** — [`../handover/PROJECT-HANDOVER-2026-08-11.md`](../handover/PROJECT-HANDOVER-2026-08-11.md)
 4. **3️⃣ 激活 skill** — `using-superpowers` + 任务相关
 5. **4️⃣ 环境确认** — git config / 工具链 / VERSION
 6. **5️⃣ 冒烟测试** — `agent-browser` 跑 SerialCube.html
@@ -83,7 +83,7 @@ agent-browser click @eN
 ```
 接收任务
   ↓
-读 SESSION-CHECKLIST 5 步
+读 SESSION-CHECKLIST-2026-08-11.md 5 步
   ↓
 激活 skill(s)
   ↓
@@ -92,6 +92,14 @@ agent-browser click @eN
 改代码
   ↓
 agent-browser 跑相关 e2e 场景
+  ↓
+写 docs/changelog/<YYYY-MM-DD>-<topic-slug>.md  ← 硬性规则 5
+  ↓
+更新 docs/CHANGELOG.md 主索引（加一行链接）
+  ↓
+同步更新引用本变更的其他文档
+  ↓
+跑 link check 验证没断链
   ↓
 git add + commit (中文)
   ↓
@@ -102,8 +110,6 @@ git push origin main --tags
 等 GitHub Actions 部署完
   ↓
 跑 deploy-checklist 5 件事验证
-  ↓
-更新 docs/CHANGELOG.md
   ↓
 交付
 ```
@@ -254,10 +260,38 @@ agent-browser install    # 重新下载
 - [ ] e2e 相关场景通过
 - [ ] console 无错
 - [ ] 中文 commit message
-- [ ] docs/CHANGELOG.md 更新（如适用）
-- [ ] docs/handover/release-vX.Y.Z.md 更新（如发版）
+- [ ] **写 `docs/changelog/<YYYY-MM-DD>-<topic>.md` 子文件**（硬性规则 5）
+- [ ] `docs/CHANGELOG.md` 主索引加一行链接
+- [ ] 同步更新引用本变更的其他文档（关联文档自检）
+- [ ] link check 通过，没断链
+- [ ] docs/handover/release-vX.Y.Z-YYYY-MM-DD.md 更新（如发版）
+- [ ] docs/handover/PROJECT-HANDOVER-YYYY-MM-DD.md 更新（如反映项目状态变化）
 - [ ] push 前 ask_user 拿到确认
 - [ ] 部署后 smoke（如部署）
+
+### 7.4 关联文档同步自检（每次 commit 前必跑）
+
+```powershell
+# 1. 列出本次改动的文件
+git diff --name-only --staged
+
+# 2. 对每个改动的 .md 文件, grep 哪些其他文档引用了它
+# 例: 改了 docs/reference/ARCHITECTURE.md
+Select-String -Path 'docs' -Pattern 'ARCHITECTURE' -Recurse
+
+# 3. 跑 link check
+# 见 DEVELOPER-GUIDE.md § 13 自检脚本
+```
+
+**自检表:**
+
+| 改了什么 | 必查 |
+|----------|------|
+| `SerialCube.html const VERSION` | `docs/CHANGELOG.md` + `docs/handover/PROJECT-HANDOVER-*.md` + `docs/handover/release-vX.Y.Z-*.md` |
+| `docs/CHANGELOG.md`（主索引） | 引用本文件的文档（README / handover / guides） |
+| `docs/handover/*-YYYY-MM-DD.md` | 引用本文件的文档 |
+| 任何文件名改动 | 所有 grep 引用处 |
+| 任何链接路径改动 | link check 必过 |
 
 ---
 
@@ -265,9 +299,9 @@ agent-browser install    # 重新下载
 
 | 我想了解 | 去看 |
 |----------|------|
-| 30 秒接手卡 | [`../handover/HANDOFF-QUICKSTART.md`](../handover/HANDOFF-QUICKSTART.md) |
-| 完整项目交接 | [`../handover/PROJECT-HANDOVER.md`](../handover/PROJECT-HANDOVER.md) |
-| 5 步检查清单 | [`../handover/SESSION-CHECKLIST.md`](../handover/SESSION-CHECKLIST.md) |
+| 30 秒接手卡 | [`../handover/HANDOFF-QUICKSTART-2026-08-11.md`](../handover/HANDOFF-QUICKSTART-2026-08-11.md) |
+| 完整项目交接 | [`../handover/PROJECT-HANDOVER-2026-08-11.md`](../handover/PROJECT-HANDOVER-2026-08-11.md) |
+| 5 步检查清单 | [`../handover/SESSION-CHECKLIST-2026-08-11.md`](../handover/SESSION-CHECKLIST-2026-08-11.md) |
 | 工具怎么用 | [`USER-GUIDE.md`](USER-GUIDE.md) |
 | 改代码 SOP | [`DEVELOPER-GUIDE.md`](DEVELOPER-GUIDE.md) |
 | 完整文档地图 | [`../README.md`](../README.md) |

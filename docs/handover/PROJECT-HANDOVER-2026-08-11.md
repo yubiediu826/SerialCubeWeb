@@ -1,4 +1,4 @@
-# SerialCube — 项目交接文档
+﻿# SerialCube — 项目交接文档
 
 > **本项目：** 单 HTML 串口调试工具
 > **当前版本：** v1.0.0（已发布，GitHub Pages 已部署）
@@ -61,7 +61,7 @@
 | `protocol-copilot` skill | ❌ | 计划存档 [`docs/superpowers/plans/2026-08-11-serial-protocol-copilot.md`](../superpowers/plans/2026-08-11-serial-protocol-copilot.md)，等协议层工作量大时再做 |
 | `release-management` skill | ❌ | 1.0.1 / 1.1.0 累积时再做 |
 | 根 `README.md` | ✅ | 本次完成 |
-| `PROJECT-HANDOVER.md` | ✅ | 本次完成 |
+| `PROJECT-HANDOVER-2026-08-11.md` | ✅ | 本次完成 |
 
 ### 🐛 已知问题
 
@@ -107,8 +107,8 @@ D:\WorkSpace\SerialCubeWeb\
 │
 ├── docs/
 │   ├── handover/                # 交接文档（本目录）
-│   │   ├── PROJECT-HANDOVER.md  # 项目总览（本文件）
-│   │   └── release-v1.0.0.md    # v1.0.0 发布说明
+│   │   ├── PROJECT-HANDOVER-2026-08-11.md  # 项目总览（本文件）
+│   │   └── release-v1.0.0-2026-08-11.md    # v1.0.0 发布说明
 │   └── superpowers/
 │       └── plans/               # 历史实施计划
 │           ├── 2026-08-11-serialcube-dev-workflow.md    # 已执行
@@ -147,7 +147,7 @@ D:\WorkSpace\SerialCubeWeb\
 
 1. **读本文件** — 了解项目全貌
 2. **读 [`.minimax/skills/README.md`](../../.minimax/skills/README.md)** — 了解 11 阶段工作流
-3. **读 [`docs/handover/release-v1.0.0.md`](release-v1.0.0.md)** — 了解上一个发布点
+3. **读 [`docs/handover/release-v1.0.0-2026-08-11.md`](release-v1.0.0-2026-08-11.md)** — 了解上一个发布点
 4. **激活 `using-superpowers` skill** — 自动发现其他 skill
 
 ### 5.2 改代码的标准流程
@@ -188,7 +188,7 @@ D:\WorkSpace\SerialCubeWeb\
    ├─ 脚本自动加 changelog 段
    └─ 脚本不动 git tag（tag 手动打）
 
-3. 写 docs/handover/release-vX.Y.Z.md（参考 release-v1.0.0.md）
+3. 写 docs/handover/release-vX.Y.Z.md（参考 release-v1.0.0-2026-08-11.md）
 
 4. git add + commit
    git commit -m "chore(release): 发布 vX.Y.Z"
@@ -307,7 +307,7 @@ Add-Type -AssemblyName Microsoft.VisualBasic
 
 ### 仓库内
 - [根 README](../../README.md) — GitHub 首页文档
-- [v1.0.0 发布说明](release-v1.0.0.md) — 版本快照
+- [v1.0.0 发布说明](release-v1.0.0-2026-08-11.md) — 版本快照
 - [AI 工作流主文档](../../.minimax/skills/README.md) — 11 阶段 SOP
 - [实施计划存档](../superpowers/plans/) — 历史决策追溯
 
@@ -334,7 +334,7 @@ Add-Type -AssemblyName Microsoft.VisualBasic
 - [ ] 知道 4 条硬性规则（commit 中文 / push ask / VERSION 三处 / bump 前置）
 - [ ] 知道 `bump-version.ps1` 在哪、怎么用
 - [ ] 知道 `agent-browser` 怎么用（替换 in-app Browser）
-- [ ] 知道 v1.0.0 是什么版本（在 release-v1.0.0.md 看完整 release notes）
+- [ ] 知道 v1.0.0 是什么版本（在 release-v1.0.0-2026-08-11.md 看完整 release notes）
 - [ ] 知道去哪里看历史计划（`docs/superpowers/plans/`）
 
 **未完成的项目没在你列表里？** → 大概率在 P0/P1/P2 列表里，或者问用户。
