@@ -103,6 +103,12 @@ agent-browser snapshot -i --json    # 4. 每次页面变都重 snapshot（ref �
 |-------|------|------|
 | **deploy-checklist** | 本项目自建 | **GitHub Pages 部署前 5 件事**：console 无错 / 6 个 e2e 场景过 / index.html 重定向 / 资源外链可达 / 版本号同步；部署后烟雾测试 |
 
+### ⑪ 版本管理（commit / push 前必跑）
+
+| Skill | 来源 | 用途 |
+|-------|------|------|
+| **version-management** | 本项目自建 | **3 条硬性规则**：不允许直接 commit SerialCube.html（必须先 bump）/ push 前必须 ask_user 确认 / VERSION + changelog + Git tag 三处同步；`scripts/bump-version.ps1` 自动改 VERSION 常量和 changelog 段 |
+
 ---
 
 ## 怎么用
@@ -114,6 +120,7 @@ agent-browser snapshot -i --json    # 4. 每次页面变都重 snapshot（ref �
 | 「在 SerialCube 里加 / 改 / 调 X」 | `serialcube-workflow` (决策树 5 问) → 走对应 skill 链 |
 | 「改完跑一下 / 验证没破其他」 | `serialcube-e2e` 6 个场景 → 截图存档 |
 | 「要发版了 / 推 GitHub Pages」 | `deploy-checklist` 5 件事 → `git push` → 部署后烟雾测试 |
+| 「改完代码准备 commit / push」 | `version-management` → 跑 `bump-version.ps1` → 审 diff → commit → push 前 `ask_user` |
 | 「我要加一个波形监控面板」 | `using-superpowers` → `brainstorming`（9 步设计）→ `writing-plans`（落成 2-5 分钟步骤） |
 | 「小需求快搞」 | `using-superpowers` → `grill-me`（一句话追问）→ 直接开写 |
 | 「写个新模块的代码」 | `writing-plans` → `test-driven-development`（先写失败测试）→ `requesting-code-review` |
