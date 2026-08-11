@@ -36,6 +36,7 @@ screenshots/
 *.orig
 *.rej
 .cache/
+.tmp/                  # 工作区临时目录 (脚本/测试/cleanup backup)
 
 # 仓库相关（不提交上游整包，.minimax/skills/ 是单独维护的精简版）
 .minimax/repos/
