@@ -8042,24 +8042,19 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
-            <strong>1.0.1 版本 · 26/8/11</strong>
-            <ul>
-              <li>修复: 仪表盘深色模式下卡片边框不明显, 跟浅色背景混在一起无法区分。</li>
-              <li>修复: 仪表盘深色模式下卡片数字 (电压 / 电流 / SOC 等) 看着不清楚, 对比度从 1.2:1 提到 13:1。</li>
-              <li>修复: 设置面板"通知"按钮在深色模式下跟兄弟按钮颜色不一致, 统一 border + background。</li>
-              <li>修复: 设置面板"主题"下拉按钮高度比配置按钮高出一截, 跟配置按钮对齐 (44px → 28px)。</li>
-              <li>修复: 卡片详情弹窗 (图表 / 日志) 在深色模式下背景是硬编码白色, 切换 token。</li>
-              <li>修复: GitHub Pages 部署偶发卡 Queued 1.5h, 改用 ref + run_id 独立 concurrency group。</li>
-            </ul>
-          </div>
-          <div class="version-release">
-            <strong>1.0.0 版本 · 26/8/10</strong>
+            <strong>1.0.0 版本 · 26/8/11</strong>
             <ul>
               <li>首个正式版本。串口监视、设备连接管理、图形解析、时间线系统、预设发送、协议编辑器等核心功能集成。</li>
               <li>仪表盘 widget (大数字 + 范围条 + sparkline + 状态角标)，响应式 4/6/8 列布局。</li>
               <li>卡片详情弹窗: 折线 / 柱状 / 面积 / 散点图 + 7 列日志表 + 全局时间范围 + 缩放工具栏。</li>
               <li>浅色 / 深色双主题, 跟随系统或手动切换, modal / panel 统一实色背景。</li>
               <li>告警 toast 浮层 + 右上角"通知"历史按钮, 单条删除 / 清空。</li>
+              <li>修复: 仪表盘深色模式下卡片边框不明显, 跟浅色背景混在一起无法区分。</li>
+              <li>修复: 仪表盘深色模式下卡片数字 (电压 / 电流 / SOC 等) 看着不清楚, 对比度从 1.2:1 提到 13:1。</li>
+              <li>修复: 设置面板"通知"按钮在深色模式下跟兄弟按钮颜色不一致, 统一 border + background。</li>
+              <li>修复: 设置面板"主题"下拉按钮高度比配置按钮高出一截, 跟配置按钮对齐 (44px → 28px)。</li>
+              <li>修复: 卡片详情弹窗 (图表 / 日志) 在深色模式下背景是硬编码白色, 切换 token。</li>
+              <li>修复: GitHub Pages 部署偶发卡 Queued 1.5h, 改用 ref + run_id 独立 concurrency group。</li>
             </ul>
           </div>
         </div>
@@ -8070,7 +8065,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 
   <script>
     (() => {
-      const VERSION = '1.0.1';  // 同步 README/PRODUCT/About 弹窗版本号
+      const VERSION = '1.0.0';  // 同步 README/PRODUCT/About 弹窗版本号
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
