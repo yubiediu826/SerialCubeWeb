@@ -1,6 +1,6 @@
 ---
 name: deploy-checklist
-description: SerialCube 项目 GitHub Pages 部署前 5 件事硬性检查（console 无错 / 6 个 e2e 场景通过 / index.html 重定向正常 / 资源外链可访问 / 版本号同步）+ 部署后烟雾测试。**当用户说「部署 / 发布 / 推 GitHub Pages / 上线」时必触发**。
+description: SerialCube GitHub Pages 部署前 5 件事硬性检查（console 无错 / 6 个 e2e 场景通过 / index.html 重定向 / 资源外链可达 / 版本号同步）+ 部署后烟雾测试。**当用户说「部署 / 推 GitHub Pages / 上线 / 部署后冒烟」时触发**。
 ---
 
 # SerialCube Deploy Checklist

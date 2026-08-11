@@ -1,6 +1,6 @@
 ---
 name: serialcube-e2e
-description: SerialCube 项目端到端验证 — 用 agent-browser 跑 6 个核心场景（应用加载 / 串口连接 / 发送接收 mock / 协议编辑器 / 解析模式切换 / 主题切换），替代单 HTML 项目无测试框架的「测试」环节。**当用户说「验证一下 SerialCube 没改坏 / 跑 e2e / 部署前自检 / 改完跑一遍场景」时触发**。
+description: SerialCube 端到端验证 — 用 agent-browser 跑 6 个核心场景（应用加载 / 串口连接 / 发送接收 mock / 协议编辑器 / 解析模式切换 / 主题切换），替代单 HTML 项目无测试框架的「测试」环节。**当用户说「验证 / 跑 e2e / 改完跑一遍 / 改没改坏」时触发**。
 ---
 
 # SerialCube E2E 验证

@@ -1,6 +1,6 @@
 ---
 name: serialcube-workflow
-description: SerialCube 单 HTML 串口调试工具项目的开发工作流入口。包含 6 步触发链 + 5 个决策问题，串起现有 11 个 skill 并补 2 个缺失环节（e2e 验证 + 部署清单）。**当用户说「在 SerialCube 里加 X / 改 Y / 调 Z / 排查 bug / 部署」时必触发**。
+description: SerialCube 项目总入口 — 5 问决策树决定走 brainstorming / grill-me / 直接开写 / TDD。**当用户说「在 SerialCube 里加 X / 改 Y / 调 Z / 排查 bug」时触发**（仅路由，不替代子 skill）。
 ---
 
 # SerialCube Project Workflow

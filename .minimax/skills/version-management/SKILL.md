@@ -1,6 +1,6 @@
 ---
 name: version-management
-description: SerialCube 项目版本管理 — 每次 commit/push 前必须 bump 版本号, 自动同步 SerialCube.html 的 VERSION 常量 + changelog 段。**当用户说「改一行代码 / 加新功能 / 修 bug / 推版本 / bump version / 发版 / commit 代码 / push 代码」时必触发**。
+description: SerialCube 版本号 + changelog 同步守门员 — 改 SerialCube.html 前必跑 `bump-version.ps1` 自动同步 VERSION 常量 + changelog 段。**当用户说「commit / push / bump version / 改一行代码 / 加新功能 / 修 bug」时必触发**（push 前还要问用户）。
 ---
 
 # SerialCube Version Management
