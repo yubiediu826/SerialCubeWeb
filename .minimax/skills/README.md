@@ -85,6 +85,24 @@ agent-browser snapshot -i --json    # 4. 每次页面变都重 snapshot（ref �
 | **requesting-code-review** | obra/superpowers | **5 个 Agent 并行审查**：安全/性能/正确性/风格/测试；置信度评分；Critical 立即修、Important 推进前修、Minor 延后 |
 | **verification-before-completion** | obra/superpowers | **完工前清单**：没有验证证据不声称完成；必须运行命令 + 确认输出 |
 
+### ⑧ 项目级 SOP（串起 11 个 skill）
+
+| Skill | 来源 | 用途 |
+|-------|------|------|
+| **serialcube-workflow** | 本项目自建 | **入口 SOP**：5 问决策树 + 6 步触发链 + 3 个变体（主链 / 小改 / bug / 部署）；当用户在 SerialCube 项目内做改动时必触发 |
+
+### ⑨ 端到端验证（替代单 HTML 项目的测试）
+
+| Skill | 来源 | 用途 |
+|-------|------|------|
+| **serialcube-e2e** | 本项目自建 | **6 个核心场景**：应用加载 / 串口连接 / 发送接收 mock / 协议编辑器 / 解析模式切换 / 主题切换；用 agent-browser 跑，替代 TDD 在单 HTML 项目跑不通的「测试」环节 |
+
+### ⑩ 部署清单（GitHub Pages）
+
+| Skill | 来源 | 用途 |
+|-------|------|------|
+| **deploy-checklist** | 本项目自建 | **GitHub Pages 部署前 5 件事**：console 无错 / 6 个 e2e 场景过 / index.html 重定向 / 资源外链可达 / 版本号同步；部署后烟雾测试 |
+
 ---
 
 ## 怎么用
@@ -93,6 +111,9 @@ agent-browser snapshot -i --json    # 4. 每次页面变都重 snapshot（ref �
 
 | 任务 | 触发链 |
 |------|--------|
+| 「在 SerialCube 里加 / 改 / 调 X」 | `serialcube-workflow` (决策树 5 问) → 走对应 skill 链 |
+| 「改完跑一下 / 验证没破其他」 | `serialcube-e2e` 6 个场景 → 截图存档 |
+| 「要发版了 / 推 GitHub Pages」 | `deploy-checklist` 5 件事 → `git push` → 部署后烟雾测试 |
 | 「我要加一个波形监控面板」 | `using-superpowers` → `brainstorming`（9 步设计）→ `writing-plans`（落成 2-5 分钟步骤） |
 | 「小需求快搞」 | `using-superpowers` → `grill-me`（一句话追问）→ 直接开写 |
 | 「写个新模块的代码」 | `writing-plans` → `test-driven-development`（先写失败测试）→ `requesting-code-review` |
@@ -189,6 +210,8 @@ npm install -g agent-browser@latest
 - ❌ **local skill 与 global skill 重复** — global 里的整包 clone 与 `.minimax/skills/` 会让 Mavis 扫到两份（即便 name 去重，扫描时间也翻倍）
 - ❌ **用 TDD 跑探索性 prototype** — Red-Green-Refactor 对"先跑起来再说"的需求太重；这种时候直接 `grill-me` 写小函数即可
 - ❌ **走 in-app 内置 Browser 调 SerialCube** — token 消耗大、selector 字符串脆弱。**永远用 `agent-browser`**（Rust CLI + `@eN` ref，10x 速度差）
+- ❌ **改 SerialCube.html 不跑 e2e 验证** — 942KB 单文件改一处可能破其他；改完必跑 `serialcube-e2e` 6 个场景，否则不算改完
+- ❌ **跳过 deploy-checklist 直接 push** — GitHub Pages 自动部署后回滚麻烦，5 件事全过才能 push 到 main
 
 ---
 
