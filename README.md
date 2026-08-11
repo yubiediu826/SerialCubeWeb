@@ -65,18 +65,21 @@ cd SerialCubeWeb
 | 你想了解 | 去看哪里 |
 |----------|----------|
 | 30 秒快速接手（agent 必看） | [docs/handover/HANDOFF-QUICKSTART-2026-08-11.md](docs/handover/HANDOFF-QUICKSTART-2026-08-11.md) |
+| 每次开新窗口 5 步检查 | [docs/handover/SESSION-CHECKLIST-2026-08-11.md](docs/handover/SESSION-CHECKLIST-2026-08-11.md) |
 | 完整文档地图（30s/2min/5min 分层） | [docs/README.md](docs/README.md) |
 | 工具用途 / 功能 / 怎么用 | [docs/guides/USER-GUIDE.md](docs/guides/USER-GUIDE.md) |
 | 改代码 / 调试 / 部署 SOP | [docs/guides/DEVELOPER-GUIDE.md](docs/guides/DEVELOPER-GUIDE.md) |
 | AI Agent 接手标准动作 | [docs/guides/AGENT-START-HERE.md](docs/guides/AGENT-START-HERE.md) |
 | 项目当前状态 / 关键决策 | [docs/handover/PROJECT-HANDOVER-2026-08-11.md](docs/handover/PROJECT-HANDOVER-2026-08-11.md) |
 | v1.0.0 发布说明 | [docs/handover/release-v1.0.0-2026-08-11.md](docs/handover/release-v1.0.0-2026-08-11.md) |
-| 变更记录 | [docs/CHANGELOG.md](docs/CHANGELOG.md) |
+| 变更记录（主索引） | [docs/CHANGELOG.md](docs/CHANGELOG.md) |
+| 每次 push 的子 changelog | [docs/changelog/](docs/changelog/README.md) |
 | 本地备份策略 | [docs/backup/BACKUP.md](docs/backup/BACKUP.md) |
 | SerialCube.html 内部结构 | [docs/reference/ARCHITECTURE.md](docs/reference/ARCHITECTURE.md) |
 | 5 种 CRC 算法速查 | [docs/reference/CRC-REFERENCE.md](docs/reference/CRC-REFERENCE.md) |
 | 协议模板速查 | [docs/reference/PROTOCOL-TEMPLATES.md](docs/reference/PROTOCOL-TEMPLATES.md) |
 | 完整开发工作流 / skill 工具集 | [`.minimax/skills/README.md`](.minimax/skills/README.md) |
+| 实施计划存档索引 | [docs/superpowers/README.md](docs/superpowers/README.md) |
 | 历史实施计划 | [docs/superpowers/plans/](docs/superpowers/plans/) |
 
 ---
@@ -99,6 +102,8 @@ cd SerialCubeWeb
 - **push 前必须确认**（`version-management` R2 规则，避免 force push 误操作）
 - **VERSION 三处同步**：`SerialCube.html const VERSION` / HTML changelog 段 / Git tag
 - **改 `SerialCube.html` 前先跑** `bump-version.ps1 -Level <patch|minor|major>`
+- **每次 push 前必写 changelog 子文件**：`docs/changelog/YYYY-MM-DD-<topic>.md` + 更新主索引 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)
+- **更新完必跑 link check + 同步关联文档**（见 [docs/guides/DEVELOPER-GUIDE.md](docs/guides/DEVELOPER-GUIDE.md) § 13 自检脚本）
 
 ---
 
