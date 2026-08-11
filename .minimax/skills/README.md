@@ -10,9 +10,11 @@
 
 ---
 
-## 已安装（11 个 skill，全在 `.minimax/skills/` 下独立文件夹）
+## 已安装（15 个 skill = 11 上游 + 4 本项目自建）
 
-按 Pro-Max 工作流 7 阶段分组：
+> 全部独立文件夹在 `.minimax/skills/` 下，零依赖、纯本地。Mavis / Claude Code / Cursor / 兼容 harness 自动加载。
+
+按 Pro-Max 工作流 11 阶段分组：
 
 ### ① 入口（每次会话开始自动激活）
 
@@ -133,8 +135,10 @@ agent-browser snapshot -i --json    # 4. 每次页面变都重 snapshot（ref �
 
 **项目级串联**（与 SerialCube 现有文档配合）：
 - `docs/handover/` — 项目历史 / 交接
+- `docs/superpowers/plans/` — 实施计划存档（含 protocol-copilot 等未执行 plan）
 - `.minimax/skills/` — 本工作流工具集（你正在看）
-- `SerialCube.html` / `index.html` — 主代码
+- `SerialCube.html` / `index.html` — 主代码（942KB 单文件）
+- `git` — 工作区已是 git 仓库（9 commit，main 分支；待 push 到 GitHub）
 - `agent-browser` — 浏览器调试 CLI（**唯一浏览器入口**）
 
 ---
@@ -142,52 +146,159 @@ agent-browser snapshot -i --json    # 4. 每次页面变都重 snapshot（ref �
 ## 文件结构
 
 ```
-.minimax/skills/                     ← 你在这里
-├── README.md                         ← 本文件
-├── brainstorming/                    ← ② 需求（obra）
-├── using-superpowers/                ← ① 入口（obra）
-├── writing-plans/                    ← ③ 架构（obra）
-├── test-driven-development/          ← ④ 测试（obra）
-├── requesting-code-review/           ← ⑦ review（obra）
-├── verification-before-completion/   ← ⑦ 验收（obra）
-├── grill-me/                         ← ② 拷问（mattpocock）
-├── taste/                            ← ⑤ 审美（taste-skill）
-├── ui-ux-pro-max/                    ← ⑤ 规范（nextlevelbuilder）
-├── design-system/                    ← ⑤ token（impeccable 衍生）
-└── agent-browser/                    ← ⑥ 浏览器（vercel-labs, Rust CLI）
-    ├── SKILL.md                      (3.3 KB, 薄 stub — Mavis 入口)
-    ├── core.md                       (29 KB,  完整 workflow)
-    └── references/                   (10 个详细参考, 82 KB)
+.minimax/skills/                              ← 你在这里
+├── README.md                                  ← 本文件
+│
+# ① 入口
+├── using-superpowers/                         obra/superpowers
+│
+# ② 需求
+├── brainstorming/                             obra/superpowers
+├── grill-me/                                  mattpocock/skills
+│
+# ③ 架构
+├── writing-plans/                             obra/superpowers
+│
+# ④ 测试
+├── test-driven-development/                   obra/superpowers
+│
+# ⑤ 视觉
+├── taste/                                     taste-skill
+├── ui-ux-pro-max/                             nextlevelbuilder
+├── design-system/                             impeccable 衍生
+│
+# ⑥ 浏览器
+└── agent-browser/                             vercel-labs (Rust CLI)
+    ├── SKILL.md                               (薄 stub — Mavis 入口)
+    ├── core.md                                (完整 workflow)
+    └── references/                            (10 个详细参考)
 
-.minimax/repos/                       ← 源仓库（升级用，git clone 保留）
-├── superpowers/                      ← obra/superpowers
-├── mattpocock-skills/                ← mattpocock/skills
-└── agent-browser/                    ← vercel-labs/agent-browser（CLI 仓库）
+# ⑦ 收尾 — 在上面的 ①-⑥ 之外, 见上文 §⑦
+# requesting-code-review/                      obra/superpowers
+# verification-before-completion/              obra/superpowers
+```
+
+> 上面的 ASCII 树只列**原始 7 阶段**(①-⑥) 的目录, 因为后面的 agent-browser/ 有子文件, 树太长不直观。**所有 15 个 skill 目录都平铺在 `.minimax/skills/` 下, 命名即入口, 见上文 §①-⑪。**
+
+### 全部 15 个 skill 一览
+
+| 阶段 | Skill | 类型 |
+|------|-------|------|
+| ① | using-superpowers | 上游 (obra) |
+| ② | brainstorming | 上游 (obra) |
+| ② | grill-me | 上游 (mattpocock) |
+| ③ | writing-plans | 上游 (obra) |
+| ④ | test-driven-development | 上游 (obra) |
+| ⑤ | taste | 上游 (taste-skill) |
+| ⑤ | ui-ux-pro-max | 上游 (nextlevelbuilder) |
+| ⑤ | design-system | 上游 (impeccable 衍生) |
+| ⑥ | agent-browser | 上游 (vercel-labs) |
+| ⑦ | requesting-code-review | 上游 (obra) |
+| ⑦ | verification-before-completion | 上游 (obra) |
+| ⑧ | **serialcube-workflow** | **本项目自建** |
+| ⑨ | **serialcube-e2e** | **本项目自建** |
+| ⑩ | **deploy-checklist** | **本项目自建** |
+| ⑪ | **version-management** | **本项目自建** |
+
+### 4 个本项目自建 skill 内部结构
+
+**⑧ serialcube-workflow/**
+```
+serialcube-workflow/
+├── SKILL.md
+├── README.md
+└── references/
+    ├── decision-tree.md                       5 问决策树
+    └── trigger-chains.md                      7 步主链 + 3 变体
+```
+
+**⑨ serialcube-e2e/**
+```
+serialcube-e2e/
+├── SKILL.md
+├── README.md
+├── scenarios/                                 6 个 .md 场景
+│   ├── 01-app-loads.md
+│   ├── 02-connect-disconnect.md
+│   ├── 03-send-receive.md
+│   ├── 04-protocol-editor.md
+│   ├── 05-parser-mode-switch.md
+│   └── 06-theme-toggle.md
+└── scripts/run-scenarios.ps1                  AI 跑场景的脚手架
+```
+
+**⑩ deploy-checklist/**
+```
+deploy-checklist/
+├── SKILL.md
+├── README.md
+└── references/github-pages-checklist.md       5 件事 + 烟雾测试
+```
+
+**⑪ version-management/**
+```
+version-management/
+├── SKILL.md
+├── README.md
+├── scripts/bump-version.ps1                   自动 bump 脚本
+└── references/
+    ├── version-policy.md                      major/minor/patch 决策树
+    └── changelog-template.md                  5 类 changelog 格式
 ```
 
 > **关于 taste / ui-ux-pro-max / design-system**：原本是 global `C:\Users\Administrator\.minimax\skills\` 下的整包 clone（含仓库结构 + scripts/ + data/）。**没有外部引用** — 实际可用的 `SKILL.md` 已复制到本目录独立文件夹里。
 >
 > **关于 agent-browser**：skill 文件 + CLI 仓库都在本工作区。CLI 已 `npm install -g` 装到 `%APPDATA%\npm\agent-browser`（`%APPDATA%\npm` 是 `npm config get prefix` 报的位置，**全局 npm root**），**不是**装到本工作区。Chrome/Chromium 在首次 `agent-browser install` 时下载到 CLI 自管目录（不在 `.minimax/` 内）。
+>
+> **关于 4 个本项目自建 skill**（⑧⑨⑩⑪）：见上文 §⑧-⑪ 描述。共同特征 — 零依赖、PowerShell 5.1 兼容、SKILL.md 都用统一 YAML frontmatter 格式。
 
 ---
 
 ## 更新
 
+### 上游 skill 升级（obra / mattpocock / vercel-labs）
+
+每个上游 skill 文件夹下都有自己的 `SKILL.md`，**直接 git pull 该 skill 仓库**即可：
+
 ```powershell
-# 1) 拉上游新版本
-cd D:\WorkSpace\SerialCubeWeb\.minimax\repos\superpowers; git pull
-cd D:\WorkSpace\SerialCubeWeb\.minimax\repos\mattpocock-skills; git pull
-cd D:\WorkSpace\SerialCubeWeb\.minimax\repos\agent-browser; git pull
+# 入口 / 需求 / 架构 / 测试 / 收尾（obra/superpowers 5 个）
+Set-Location 'C:\Users\Administrator\.minimax\skills\using-superpowers'
+git pull   # 或重新 git clone https://github.com/obra/superpowers
 
-# 2) 重新复制到 .minimax/skills/（覆盖）
-#    （沿用之前安装时用过的 Copy-Item 脚本；brainstorming 跳嵌套子目录）
+# 拷问（mattpocock）
+Set-Location 'C:\Users\Administrator\.minimax\skills\grill-me'
+git pull
 
-# 3) taste / ui-ux-pro-max / design-system 来自 global 整包
-#    若 global 整包更新，需要重新从 C:\Users\Administrator\.minimax\skills\ 复制
+# 浏览器 CLI（vercel-labs）
+Set-Location 'C:\Users\Administrator\.minimax\skills\agent-browser'
+git pull
+```
 
-# 4) agent-browser CLI 升级（要新版本直接拉新 npm）
+> 之前的 `.minimax/repos/` 升级流（`cd .minimax/repos/superpowers; git pull` + Copy-Item）**已废弃** —— `.minimax/repos/` 目录不存在，每个 skill 文件夹本身就是独立 git 仓库或快照。
+
+### 视觉类 3 个 skill（taste / ui-ux-pro-max / design-system）
+
+这 3 个**没有上游 git 仓库**，是从 global `C:\Users\Administrator\.minimax\skills\` 复制过来的快照。要升级时：
+
+```powershell
+# 1. 在 global 目录更新（手动或重 clone 上游）
+Set-Location 'C:\Users\Administrator\.minimax\skills\taste'
+# ... 更新后
+
+# 2. 复制到本工作区
+Copy-Item -Recurse -Force 'C:\Users\Administrator\.minimax\skills\taste' 'D:\WorkSpace\SerialCubeWeb\.minimax\skills\taste'
+# 对 ui-ux-pro-max / design-system 同样
+```
+
+### agent-browser CLI 升级
+
+```powershell
 npm install -g agent-browser@latest
 ```
+
+### 本项目自建 4 个 skill（⑧⑨⑩⑪）
+
+不需要外部升级，跟 SerialCube 主代码一起 git 管理。改完直接 commit 即可。
 
 ---
 
@@ -219,6 +330,8 @@ npm install -g agent-browser@latest
 - ❌ **走 in-app 内置 Browser 调 SerialCube** — token 消耗大、selector 字符串脆弱。**永远用 `agent-browser`**（Rust CLI + `@eN` ref，10x 速度差）
 - ❌ **改 SerialCube.html 不跑 e2e 验证** — 942KB 单文件改一处可能破其他；改完必跑 `serialcube-e2e` 6 个场景，否则不算改完
 - ❌ **跳过 deploy-checklist 直接 push** — GitHub Pages 自动部署后回滚麻烦，5 件事全过才能 push 到 main
+- ❌ **改 SerialCube.html 不跑 bump-version.ps1** — VERSION 常量 + changelog + Git tag 三处会不同步；走 `version-management` skill 而不是直接 `git commit -m "fix: xxx"`
+- ❌ **git push 前不 ask_user 确认** — push 是不可逆发布动作；改完先 `deploy-checklist` 5 件事全过，再用 `ask_user` 拿到用户确认再 push
 
 ---
 
