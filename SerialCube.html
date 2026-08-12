@@ -5837,6 +5837,43 @@
       align-content: flex-start;
       gap: 10px;
     }
+    /* v1.2: 协议条 (单协议聚焦) + 未连接占位 + 调试面板 */
+    .dashboard-host     .dash-proto-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; margin: 0 14px 12px;
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: var(--radius-small);
+    }
+    .dashboard-host     .dash-proto-bar .dash-meta { font-size: 12px; color: var(--text-soft); }
+    .dashboard-host     .dash-proto-bar .pill { font-size: 11px; }
+    .dashboard-host     .dash-empty {
+      text-align: center; padding: 48px 24px;
+      border: 2px dashed var(--border); border-radius: var(--radius);
+      background: var(--bg-panel); margin: 14px;
+    }
+    .dashboard-host     .dash-empty svg { margin: 0 auto 12px; display: block; }
+    .dashboard-host     .dash-empty .empty-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .dashboard-host     .dash-empty .empty-desc { font-size: 12px; color: var(--text-soft); margin-bottom: 16px; }
+    .dashboard-host     .debug-panel {
+      position: fixed; bottom: 16px; right: 16px; z-index: 100;
+    }
+    .dashboard-host     .debug-toggle {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      cursor: pointer; font-size: 18px;
+      box-shadow: var(--shadow-soft);
+      transition: all 0.12s;
+    }
+    .dashboard-host     .debug-toggle:hover { background: var(--bg-panel); }
+    .dashboard-host     .debug-body {
+      position: absolute; bottom: 50px; right: 0;
+      width: 280px; background: var(--bg-elevated);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 14px; box-shadow: var(--shadow-modal);
+    }
+    .dashboard-host     .debug-section { padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .dashboard-host     .debug-section:last-child { border-bottom: none; }
+    .dashboard-host     .debug-status { font-size: 11px; color: var(--text-soft); margin-top: 4px; }
     /* 卡片固定 220px 宽, 容器 flex 自动换行; 不再 grid 拉伸 — 解决
        "1 card 拉满整行" + "5 card 时各占 1/8 宽" 两种宽度不一致问题 */
     .dashboard-host     .card-grid-area > .card-default,
@@ -7546,10 +7583,52 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                   <span id="dh-toggle-edit-label">编辑模式</span>
                 </button>
               </div>
+              <!-- v1.2: 协议条 (单协议聚焦) -->
+              <div class="dash-proto-bar" id="dh-dash-proto-bar">
+                <span class="pill bms" id="dh-dash-proto-pill">● 当前协议</span>
+                <span class="dash-meta" id="dh-dash-proto-name">—</span>
+                <div style="flex: 1;"></div>
+                <span class="dash-meta" id="dh-dash-proto-port">未连接</span>
+                <button class="tbtn" id="dh-dash-proto-switch" style="display: none;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                  </svg>
+                  切换协议
+                </button>
+              </div>
               <div class="command-panel" id="dh-command-panel">
                 <span class="cmd-chip-label">命令:</span>
               </div>
+              <!-- v1.2: 未连接占位 (默认显示, 连上串口后隐藏) -->
+              <div class="dash-empty" id="dh-dash-empty" style="display: none;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-soft)" stroke-width="1.2">
+                  <path d="M4 8 L4 16 C4 17.1 4.9 18 6 18 L18 18 C19.1 18 20 17.1 20 16 L20 8 C20 6.9 19.1 6 18 6 L6 6 C4.9 6 4 6.9 4 8 Z"/>
+                  <line x1="7" y1="9" x2="7" y2="9.01"/><line x1="11" y1="9" x2="11" y2="9.01"/><line x1="15" y1="9" x2="15" y2="9.01"/>
+                  <line x1="9" y1="11" x2="9" y2="11.01"/><line x1="13" y1="11" x2="13" y2="11.01"/>
+                  <line x1="7" y1="15" x2="7" y2="15.01"/><line x1="11" y1="15" x2="11" y2="15.01"/><line x1="15" y1="15" x2="15" y2="15.01"/>
+                  <line x1="17" y1="13" x2="17" y2="13.01"/>
+                  <rect x="10" y="3" width="4" height="3" stroke="var(--text-soft)" fill="none"/>
+                </svg>
+                <div class="empty-title">未连接串口</div>
+                <div class="empty-desc">连接后选择协议, 仪表盘会显示该协议的卡片</div>
+                <button class="tbtn primary" id="dh-dash-choose-port">选择串口</button>
+              </div>
               <div class="card-grid-area" id="dh-card-grid"></div>
+              <!-- v1.2: 调试面板 (v1.3 真实模拟占位) -->
+              <div class="debug-panel" id="dh-debug-panel">
+                <button id="dh-debug-toggle" class="debug-toggle" title="调试面板 (v1.3 待实现)">⚙</button>
+                <div id="dh-debug-body" class="debug-body" style="display: none;">
+                  <h4 style="margin: 0 0 8px; font-size: 13px; display: flex; align-items: center; gap: 6px;">调试面板 <span class="pill info">v1.3 待实现</span></h4>
+                  <div class="debug-section">
+                    <strong style="font-size: 12px;">主从连接 (BroadcastChannel)</strong>
+                    <div class="debug-status">v1.3 实装</div>
+                  </div>
+                  <div class="debug-section">
+                    <strong style="font-size: 12px;">数据注入 (Mutator)</strong>
+                    <div class="debug-status">v1.3 实装</div>
+                  </div>
+                </div>
+              </div>
             </main>
           </div>
         </div>
@@ -9979,7 +10058,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         NS.allCommands = function () { return (NS.PROTOCOLS || []).flatMap(function (p) { return p.commands || []; }); };
         // v1.2: 告警独立规则 + 当前激活协议 (单协议聚焦, 串口绑定)
         NS.ALERTS = NS.ALERTS || [];
-        NS.activeProtoId = NS.activeProtoId || (NS.PROTOCOLS[0] && NS.PROTOCOLS[0].id) || null;
+        // 默认 null, 等用户连接串口 + 选协议后才设 (按 spec §4.1)
+        NS.activeProtoId = NS.activeProtoId || null;
         NS._debugPanelCollapsed = true;  // 调试面板默认折叠 (v1.3 真实模拟占位)
 
         // 数据类型库 (Phase 2 Step 1.2): type → 字节数 + 默认字节序映射
@@ -10021,7 +10101,9 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         ];
 
         // === UI 状态 ===
-        NS.activeProtoId = NS.PROTOCOLS[0].id;
+        // v1.2: activeProtoId 默认 null, 等用户连接串口 + 选协议后才设
+        // (按 spec §4.1, 物理事实: 串口 1 对 1, 未连接不显示任何协议卡片)
+        NS.activeProtoId = null;
         NS.selectedCmd = 'all';
         NS.cardLayout = 'card';
         NS._tickHandle = null;
@@ -10060,7 +10142,12 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             'charge_v_set': 56.0, 'charge_i_set': 0, 'discharge_v_set': 0  // set 字段初始 0, 等用户触发 0x10/0x11
           };
           const now = Date.now();
-          NS.allCommands().forEach((cmd) => {
+          // v1.2: 单协议聚焦 - 只 init 当前激活协议的命令, 避免多协议混用
+          const activeCmds = NS.allCommands().filter((cmd) => {
+            if (!NS.activeProtoId) return true;  // 未激活时全 init (兼容老逻辑)
+            return cmd.protocol === NS.activeProtoId || !cmd.protocol;
+          });
+          activeCmds.forEach((cmd) => {
             cmd.dataFields.forEach((df) => {
               const field = df.name;
               NS.currentVals[field] = (field in initVals) ? initVals[field] : 0;
@@ -10423,7 +10510,14 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           const el = document.getElementById('dh-card-grid');
           if (!el) return;
           el.innerHTML = '';
-          const filtered = NS.CARDS.filter((c) => NS.selectedCmd === 'all' || NS.matchCard(c, NS.selectedCmd));
+          // v1.2: 单协议聚焦 - 未连接 (activeProtoId=null) 不渲染卡片, 占位已显示
+          if (!NS.activeProtoId) {
+            el.style.display = 'none';
+            return;
+          }
+          el.style.display = '';
+          const protocolFiltered = NS.CARDS.filter((c) => c.protocol === NS.activeProtoId || !c.protocol);
+          const filtered = protocolFiltered.filter((c) => NS.selectedCmd === 'all' || NS.matchCard(c, NS.selectedCmd));
           // 全部命令时按 cmd 分组
           if (NS.selectedCmd === 'all') {
             const groups = new Map();
@@ -11281,6 +11375,56 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           // 替换为完整命令面板 + 卡片网格 (兼容 调用点)
           NS.renderCommandPanel();
           NS.renderCardGrid();
+          // v1.2: 单协议聚焦 - 更新协议条 + 未连接占位显隐
+          NS.updateDashboardProtoBar();
+        };
+
+        // v1.2: 协议条 + 未连接占位 状态更新
+        //   activeProtoId 设了 + 串口已连: 显示协议条 + 卡片
+        //   activeProtoId null (未连接): 显示未连接占位, 卡片区隐藏
+        NS.updateDashboardProtoBar = function () {
+          const bar = document.getElementById('dh-dash-proto-bar');
+          const empty = document.getElementById('dh-dash-empty');
+          const pill = document.getElementById('dh-dash-proto-pill');
+          const name = document.getElementById('dh-dash-proto-name');
+          const port = document.getElementById('dh-dash-proto-port');
+          const cardGrid = document.getElementById('dh-card-grid');
+          const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
+          if (NS.activeProtoId && proto) {
+            // 已激活协议: 显示协议条 + 卡片
+            if (bar) bar.style.display = 'flex';
+            if (empty) empty.style.display = 'none';
+            if (cardGrid) cardGrid.style.display = '';
+            if (name) name.textContent = (proto.name || proto.id) + ' (' + proto.id + ')';
+            if (port) port.textContent = NS._serialConnected ? '已连接' : '未连接';
+            // pill 颜色根据协议 kind/id
+            if (pill) {
+              const kind = (proto.id || '').replace('proto_', '').toUpperCase();
+              pill.className = 'pill ' + (kind === 'BMS' ? 'bms' : kind === 'EMS' ? 'ems' : kind === 'PCS' ? 'pcs' : 'info');
+              pill.textContent = '● 当前协议';
+            }
+          } else {
+            // 未激活: 显示未连接占位
+            if (bar) bar.style.display = 'flex';
+            if (empty) empty.style.display = 'block';
+            if (cardGrid) cardGrid.style.display = 'none';
+            if (name) name.textContent = '—';
+            if (port) port.textContent = '未连接';
+            if (pill) { pill.className = 'pill unused'; pill.textContent = '○ 未激活'; }
+          }
+        };
+
+        // v1.2: 切换协议按钮 (在协议条右侧, 弹 openSelectProtocolModal)
+        NS._bindProtoBarEvents = function () {
+          const switchBtn = document.getElementById('dh-dash-proto-switch');
+          if (switchBtn) switchBtn.onclick = () => {
+            if (typeof NS.openSelectProtocolModal === 'function') NS.openSelectProtocolModal();
+          };
+          const choosePortBtn = document.getElementById('dh-dash-choose-port');
+          if (choosePortBtn) choosePortBtn.onclick = () => {
+            if (typeof NS._openConnectModal === 'function') NS._openConnectModal();
+            else if (refs && refs.connectBtn) refs.connectBtn.click();
+          };
         };
 
         // === 控制: start / stop ===
@@ -11293,6 +11437,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             NS.initMockData();
             NS.renderKpiCards();
             NS.attachModalHandlers();
+            // v1.2: 协议条 + 调试面板事件
+            NS._bindProtoBarEvents();
             // 单一挂载点: 扫描所有 [data-svg] 元素渲染 inline SVG
             if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', NS_renderIcons); } else { NS_renderIcons(); }
           }
@@ -13539,6 +13685,27 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 
         NS.attachModalHandlers = function () {
           const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+          // v1.2: 调试面板 toggle
+          const debugToggle = document.getElementById('dh-debug-toggle');
+          if (debugToggle) debugToggle.onclick = (e) => {
+            e.stopPropagation();
+            const body = document.getElementById('dh-debug-body');
+            if (body) {
+              body.style.display = body.style.display === 'none' ? 'block' : 'none';
+              NS._debugPanelCollapsed = body.style.display === 'none';
+            }
+          };
+          // 点击其他区域关闭调试面板
+          document.addEventListener('click', (e) => {
+            const panel = document.getElementById('dh-debug-panel');
+            if (panel && !panel.contains(e.target)) {
+              const body = document.getElementById('dh-debug-body');
+              if (body && body.style.display !== 'none') {
+                body.style.display = 'none';
+                NS._debugPanelCollapsed = true;
+              }
+            }
+          });
           // toolbar 按钮 (配置中心 + 引导 - 4 个旧 modal 按钮已删, 留 Task 9+ 接 openConfigCenter / startGuidedTour)
           // 关闭按钮 (data-close="dh-xxx")
           document.querySelectorAll('[data-close]').forEach((btn) => {
