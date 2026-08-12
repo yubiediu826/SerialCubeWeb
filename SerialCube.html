@@ -6978,6 +6978,40 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .dashboard-host     .cc-field-table tbody tr:hover { background: var(--bg-subtle); }
 .dashboard-host     .cc-field-table tbody tr:last-child td { border-bottom: none; }
 
+/* v1.2: 配置中心 Tab 1-4 表格视图 (Task 5/6/8/9) — .table 通用表 */
+.dashboard-host     .table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dashboard-host     .table-wrap { overflow-x: auto; }
+.dashboard-host     .table.min-wide { min-width: 720px; }   /* tab 1 协议表格 10 列, 窄屏横向滚 */
+.dashboard-host     .table th { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); background: var(--bg-subtle); font-weight: 600; color: var(--text-soft); white-space: nowrap; }
+.dashboard-host     .table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.dashboard-host     .table tbody tr:hover { background: var(--bg-subtle); }
+.dashboard-host     .table tbody tr:last-child td { border-bottom: none; }
+.dashboard-host     .table code { background: var(--bg-subtle); padding: 1px 5px; border-radius: 3px; font-size: 11px; color: var(--text); }
+
+/* v1.2: 状态徽章 pill (Task 5 协议/状态) */
+.dashboard-host     .pill { display: inline-block; padding: 2px 8px; border-radius: 9px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.dashboard-host     .pill.used { background: var(--accent-soft); color: var(--accent); }
+.dashboard-host     .pill.unused { background: var(--bg-subtle); color: var(--text-soft); }
+.dashboard-host     .pill.bms { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+.dashboard-host     .pill.ems { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.dashboard-host     .pill.pcs { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.dashboard-host     .pill.info { background: var(--accent-soft); color: var(--accent); }
+.dashboard-host     .pill.warn { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.dashboard-host     .pill.danger { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+body.theme-dark     .pill.bms { background: rgba(96, 165, 250, 0.18); color: #93c5fd; }
+body.theme-dark     .pill.ems { background: rgba(52, 211, 153, 0.18); color: #6ee7b7; }
+body.theme-dark     .pill.pcs { background: rgba(251, 191, 36, 0.18); color: #fcd34d; }
+body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color: #fca5a5; }
+
+/* v1.2: 行操作按钮 (Task 5/6/8 编辑/复制/删除) */
+.dashboard-host     .row-action { width: 24px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text-soft); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; margin-right: 2px; transition: all 0.12s; }
+.dashboard-host     .row-action:hover { background: var(--bg-subtle); color: var(--text); }
+.dashboard-host     .row-action.accent { color: var(--accent); border-color: var(--accent-soft); }
+.dashboard-host     .row-action.accent:hover { background: var(--accent-soft); }
+.dashboard-host     .row-action.danger { color: var(--text-soft); }
+.dashboard-host     .row-action.danger:hover { color: #ef4444; border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.06); }
+.dashboard-host     .row-action svg { width: 14px; height: 14px; }
+
     /* 新建命令 modal (dh-new-command) */
 .dashboard-host     .new-cmd-form { display: flex; flex-direction: column; gap: 16px; }
 .dashboard-host     .new-cmd-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
@@ -13113,48 +13147,44 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         //   - 新建: 复用 NS.openNewProtocolWizard (3 步向导, Task 7)
         //   - 导入: 读 JSON 文件, push 未重名协议到 NS.PROTOCOLS
         //   - 编辑: 设 activeProtoId + 复用 dh-proto 协议编辑器
+        // v1.2 (Task 5): 重做为表格视图, 列出全部协议 + 状态徽章 + 行操作 (编辑/复制/删除)
         NS._configCenterTabRenderers.protocols = function () {
           const pane = document.querySelector('#dh-config-center-body [data-tab-content="protocols"]');
           if (!pane) return;
-          const sel = NS._ccSelectedProtoId || (NS.PROTOCOLS[0] && NS.PROTOCOLS[0].id);
-          const proto = NS.PROTOCOLS.find((p) => p.id === sel);
-          const rows = (proto && proto.fields) ? proto.fields.map((f, i) =>
-            '<tr data-field-index="' + i + '">' +
-            '<td><span style="color: var(--text-soft); font-size: 11px;">' + (i + 1) + '</span></td>' +
-            '<td><code style="background: var(--bg-subtle); padding: 2px 6px; border-radius: 3px; font-size: 11px;">' + NS.escapeHtml(f.type) + '</code></td>' +
-            '<td>' + NS.escapeHtml(f.name) + '</td>' +
-            '<td style="text-align: center;">' + (f.size || 0) + '</td>' +
-            '<td style="text-align: center;">' + (f.byteOrder || '—') + '</td>' +
-            '<td><code style="font-size: 11px;">' + NS.escapeHtml(f.default || '—') + '</code></td>' +
-            '</tr>'
-          ).join('') : '';
-          const protoOptions = NS.PROTOCOLS.map((p) =>
-            '<option value="' + NS.escapeHtml(p.id) + '"' + (p.id === sel ? ' selected' : '') + '>' + NS.escapeHtml(p.name || p.id) + ' (' + NS.escapeHtml(p.kind) + ')</option>'
-          ).join('');
-          pane.innerHTML = '<div style="margin-bottom: 14px; display: flex; gap: 8px; align-items: center;">' +
-            '<label style="font-size: 12px; color: var(--text-soft);">当前协议:</label>' +
-            '<select id="dh-cc-proto-select" style="padding: 5px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px; flex: 1; max-width: 360px;">' + protoOptions + '</select>' +
-            '<button class="toolbar-btn primary" id="dh-cc-proto-new" data-svg="plus" data-svg-size="14"><span>新建协议</span></button>' +
-            '<button class="toolbar-btn" id="dh-cc-proto-import" data-svg="upload" data-svg-size="14"><span>导入 JSON</span></button>' +
-            '<button class="toolbar-btn" id="dh-cc-proto-edit" data-svg="pencil" data-svg-size="14"><span>编辑</span></button>' +
+          const rows = NS.PROTOCOLS.map((p) => {
+            const isActive = p.id === NS.activeProtoId;
+            const cmdCount = (p.commands || []).length;
+            const cardCount = (NS.CARDS || []).filter((c) => c.protocol === p.id).length;
+            const kindClass = (p.id || '').replace('proto_', '').toLowerCase();
+            return '<tr data-proto-row="' + NS.escapeHtml(p.id) + '">' +
+              '<td><span class="pill ' + (isActive ? 'used' : 'unused') + '">' + (isActive ? '● 使用中' : '未使用') + '</span></td>' +
+              '<td><code>' + NS.escapeHtml(p.id) + '</code></td>' +
+              '<td><span class="pill ' + kindClass + '" style="margin-right: 6px;">' + NS.escapeHtml((p.id || '').replace('proto_', '').toUpperCase()) + '</span><strong>' + NS.escapeHtml(p.name || p.id) + '</strong></td>' +
+              '<td style="color: var(--text-soft);">' + NS.escapeHtml(p.kind || '—') + '</td>' +
+              '<td style="text-align: right;">' + (p.fields || []).length + '</td>' +
+              '<td style="text-align: right;">' + cmdCount + '</td>' +
+              '<td style="text-align: right;">' + cardCount + '</td>' +
+              '<td style="color: var(--text-soft);">' + NS.escapeHtml(p.byteOrder || '—') + '</td>' +
+              '<td style="color: var(--text-soft);">' + NS.escapeHtml(p.crcType || '—') + '</td>' +
+              '<td style="text-align: right; white-space: nowrap;">' +
+                '<button class="row-action accent" data-proto-edit="' + NS.escapeHtml(p.id) + '" title="编辑协议"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' +
+                '<button class="row-action" data-proto-dup="' + NS.escapeHtml(p.id) + '" title="复制协议"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>' +
+                '<button class="row-action danger" data-proto-del="' + NS.escapeHtml(p.id) + '" title="删除协议"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>' +
+              '</td>' +
+              '</tr>';
+          }).join('');
+          pane.innerHTML = '<div class="toolbar" style="margin-bottom: 12px;">' +
+            '<span style="font-size: 12px; color: var(--text-soft);">共 ' + NS.PROTOCOLS.length + ' 个协议</span>' +
+            '<div style="flex: 1;"></div>' +
+            '<button class="tbtn primary" id="dh-cc-proto-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg> 新建协议</button>' +
+            '<button class="tbtn" id="dh-cc-proto-import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg> 导入 JSON</button>' +
             '</div>' +
-            '<div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">' +
-            '<table class="cc-field-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">' +
-            '<thead><tr style="background: var(--bg-subtle);"><th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">#</th><th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">类型</th><th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">名字</th><th style="padding: 8px 12px; text-align: center; border-bottom: 1px solid var(--border);">字节</th><th style="padding: 8px 12px; text-align: center; border-bottom: 1px solid var(--border);">序</th><th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">默认</th></tr></thead>' +
-            '<tbody>' + (rows || '<tr><td colspan="6" style="padding: 20px; text-align: center; color: var(--text-soft);">该协议没有字段</td></tr>') + '</tbody>' +
-            '</table></div>' +
-            '<div style="margin-top: 12px; font-size: 11px; color: var(--text-soft);">' +
-            '共 ' + NS.PROTOCOLS.length + ' 个协议 · 当前 "' + (proto ? (proto.name || proto.id) : '无') + '" ' + ((proto && proto.fields) ? proto.fields.length : 0) + ' 个字段' +
-            '</div>';
-          // data-svg 按钮图标渲染
-          if (typeof NS_renderIcons === 'function') NS_renderIcons();
-          // bind 协议 select change
-          const select = document.getElementById('dh-cc-proto-select');
-          if (select) select.onchange = () => {
-            NS._ccSelectedProtoId = select.value;
-            NS._configCenterTabRenderers.protocols();  // 重渲染
-          };
-          // bind 新建 → 复用 3 步向导 (v1.1.1 modal-stack: 不再关闭外层, 由 openModal 栈接管)
+            '<div class="table-wrap" style="border: 1px solid var(--border); border-radius: 6px;">' +
+            '<table class="table min-wide">' +
+            '<thead><tr>' +
+            '<th>状态</th><th>ID</th><th>显示名</th><th>类型</th><th style="text-align: right;">字段</th><th style="text-align: right;">命令</th><th style="text-align: right;">关联卡片</th><th>字节序</th><th>CRC</th><th></th>' +
+            '</tr></thead><tbody>' + (rows || '<tr><td colspan="10" style="padding: 20px; text-align: center; color: var(--text-soft);">没有协议, 点右上 "新建协议" 开始</td></tr>') + '</tbody></table></div>';
+          // bind 新建 → 复用 3 步向导
           const newBtn = document.getElementById('dh-cc-proto-new');
           if (newBtn) newBtn.onclick = () => {
             NS.openNewProtocolWizard();
@@ -13191,14 +13221,40 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             };
             input.click();
           };
-          // bind 编辑 → 复用 dh-proto 协议编辑器 (v1.1.1 modal-stack: 不再关闭外层)
-          const editBtn = document.getElementById('dh-cc-proto-edit');
-          if (editBtn) editBtn.onclick = () => {
-            if (proto) {
-              NS.activeProtoId = proto.id;
-              NS.openModal('dh-proto');
-            }
-          };
+          // bind 编辑 (行) → 打开 dh-proto 协议编辑器
+          document.querySelectorAll('[data-proto-edit]').forEach((b) => b.onclick = () => {
+            const id = b.getAttribute('data-proto-edit');
+            const p = NS.PROTOCOLS.find((x) => x.id === id);
+            if (!p) return;
+            NS.activeProtoId = p.id;
+            NS.openModal('dh-proto');
+          });
+          // bind 复制 (行) → 浅拷贝 + 新 ID
+          document.querySelectorAll('[data-proto-dup]').forEach((b) => b.onclick = () => {
+            const srcId = b.getAttribute('data-proto-dup');
+            const src = NS.PROTOCOLS.find((x) => x.id === srcId);
+            if (!src) return;
+            const newId = srcId + '_copy_' + Date.now().toString(36);
+            const newProto = JSON.parse(JSON.stringify(src));
+            newProto.id = newId;
+            newProto.name = (src.name || src.id) + ' (副本)';
+            newProto.commands = newProto.commands || [];
+            NS.PROTOCOLS.push(newProto);
+            NS.toast && NS.toast('已复制协议: ' + newId, 'success');
+            NS._configCenterTabRenderers.protocols();
+          });
+          // bind 删除 (行) → 简单 confirm + 切到非被删协议 (Task 11 级联 confirm 留待后续)
+          document.querySelectorAll('[data-proto-del]').forEach((b) => b.onclick = () => {
+            const delId = b.getAttribute('data-proto-del');
+            if (!confirm('确认删除协议 ' + delId + '? 关联的卡片/命令不会被自动删, 后续会接入级联引用清单。')) return;
+            NS.PROTOCOLS = NS.PROTOCOLS.filter((p) => p.id !== delId);
+            if (NS.activeProtoId === delId) NS.activeProtoId = NS.PROTOCOLS[0] ? NS.PROTOCOLS[0].id : null;
+            NS._configCenterTabRenderers.protocols();
+            if (typeof NS._configCenterTabRenderers.commands === 'function') NS._configCenterTabRenderers.commands();
+            if (typeof NS._configCenterTabRenderers.cards === 'function') NS._configCenterTabRenderers.cards();
+            NS.updateDashboardProtoBar && NS.updateDashboardProtoBar();
+            NS.toast && NS.toast('已删除协议 ' + delId, 'success');
+          });
         };
 
         // === 配置中心 Tab 2: 命令 (Task 11) ===
