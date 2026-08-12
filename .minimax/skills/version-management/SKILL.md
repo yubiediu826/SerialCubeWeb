@@ -16,7 +16,7 @@ SerialCube 项目的**版本号 / changelog 同步守门员**。当你改完代�
 
 > 这条 skill 跟 `serialcube-workflow` 是**正交关系**: workflow 管「怎么改」, version-management 管「改完怎么发版」。
 
-## 硬性规则 (3 条, 违反任何一条视为事故)
+## 硬性规则 (4 条 + R4.2 子项, 违反任何一条视为事故)
 
 ### R1 — 不允许直接 commit SerialCube.html 的代码改动
 
@@ -50,7 +50,61 @@ SerialCube 项目的**版本号 / changelog 同步守门员**。当你改完代�
 - **脚本不自动打 tag** — tag 是里程碑, 由人类在 push 成功后再决定
 - 但脚本会在最后**提示** `git tag vX.Y.Z` 这一步
 
-## 工作流 (6 步)
+### R4 — 版本变更后必须更新 README (防断档) 🆕
+
+```
+❌ bump-version → 只改 SerialCube.html → push → 文档断档 (README 还写 v1.0.0)
+✅ bump-version → 改 SerialCube.html + 更新根 README + 更新 docs/README + 更新 CHANGELOG
+   → 跑 check-readme-sync.ps1 全过 → push
+```
+
+- **背景**: 之前 v1.1.0 → v1.1.1 时, README 仍写 v1.0.0, 文档与代码脱节
+- **强制检查脚本**: `scripts/check-readme-sync.ps1` (本 skill 提供)
+- **检查项** (4 项硬性 + 1 项警告):
+  1. 根 `README.md` 提当前 VERSION
+  2. `docs/README.md` 提当前 VERSION
+  3. `docs/CHANGELOG.md` 索引列当前 VERSION
+  4. `docs/handover/release-vX.Y.Z-*.md` 或 `docs/changelog/*-vX.Y.Z-*.md` 至少 1 个含当前 VERSION
+  5. (WARN) 旧 VERSION 引用是否需要清理
+- **运行时机**: bump-version.ps1 之后, commit 之前
+- **失败处理**: 修复 README 后重跑, 4 项必须全过
+
+```powershell
+# bump 后必跑 (R4 强制)
+pwsh -File .minimax/skills/version-management/scripts/check-readme-sync.ps1
+# 期望输出: [OK] All README sync checks passed for vX.Y.Z
+```
+
+### R4.2 — 临时文件 + 无用脚本清理 (防垃圾堆积) 🆕
+
+```
+❌ bump-version → 留着 debug-*.js / .tmp-* / preview-v1.html / COMMIT_MSG.txt → commit 进去
+✅ bump-version → 跑 check-cleanup.ps1 → 0 issues → push
+```
+
+- **背景**: 工作区长期积累临时文件 (debug / tmp / bak / orig / 临时 commit msg / preview 中间稿 / 已废 verify 脚本)
+- **强制检查脚本**: `scripts/check-cleanup.ps1` (本 skill 提供)
+- **检测规则** (默认 fail, 详见脚本):
+  - 工作区根 `debug-*.js` / `debug-*.py` / `test-*.js` / `verify-changes.js` / `report-task*.md` / `COMMIT_MSG.txt` / `commit-msg.txt` / `.tmp-*` → fail
+  - 全局递归 `*.tmp` / `*.bak` / `*.orig` / `*.rej` (虽然 .gitignore 已忽略, 但本地残留仍提示) → fail
+  - `docs/handover/*-CHECKLIST-*.md` (实施期 checklist, 已完结) → fail
+  - `docs/verify/verify-task6.js` (已被 baseline 取代) → fail
+  - `docs/design/*-preview-v[0-9]+.html` (中间稿, 保留 vN+1+ final) → warn
+- **运行时机**: bump-version.ps1 之后, commit 之前 (与 R4 一起跑)
+- **失败处理**:
+  - 手动删除/移动
+  - 或加 `-AutoArchive` 自动归档到 `.minimax/archive/cleanup-YYYY-MM-DD/`
+- **配合 R4**: bump 后必跑两脚本, 都过才能 commit
+
+```powershell
+# bump 后必跑 (R4.2 强制, 配合 R4)
+pwsh -File .minimax/skills/version-management/scripts/check-cleanup.ps1
+# 期望输出: [OK] No temp files or unused scripts found
+# 或: 跑 -AutoArchive 自动归档
+pwsh -File .minimax/skills/version-management/scripts/check-cleanup.ps1 -AutoArchive
+```
+
+## 工作流 (6 步 + R4 同步检查)
 
 ```
 [1] 评估改动规模
@@ -64,9 +118,13 @@ SerialCube 项目的**版本号 / changelog 同步守门员**。当你改完代�
    ↓  新增 changelog 段
 [5] 输 y 确认, 脚本改 SerialCube.html
    ↓
-[6] 自己 git add + git commit + (push 前 ask_user)
+[6] 🆕 跑 scripts/check-readme-sync.ps1 (R4 防断档, 4 项硬性检查全过)
+   ↓  失败时: 修 README → 重跑
+[6.5] 🆕 跑 scripts/check-cleanup.ps1 (R4.2 防垃圾堆积, 0 issues 才能 commit)
+   ↓  失败时: 删/移, 或加 -AutoArchive
+[7] 自己 git add + git commit + (push 前 ask_user)
    ↓
-[7] (可选) git tag v1.0.1 + git push --tags
+[8] (可选) git tag v1.0.1 + git push --tags
 ```
 
 ### 命令模板
@@ -143,6 +201,8 @@ serialcube-workflow
 
 - ❌ 直接 `git commit -m "fix: xxx" SerialCube.html` 跳过 bump
 - ❌ bump 后不审 diff 就 commit (脚本改了啥你要知道)
+- ❌ **bump 后不跑 check-readme-sync.ps1, 推完发现 README 写的是 v1.0.0** 🆕
+- ❌ **bump 后不跑 check-cleanup.ps1, 临时文件 + preview 中间稿混进 commit** 🆕
 - ❌ push 前不 ask_user, 直接 `git push origin main`
 - ❌ 多个改动攒一起 bump, 一次 minor 包 10 个 patch
 - ❌ bump 了 SerialCube.html 但忘了 commit, 推到一半发现 diff 不见
@@ -153,3 +213,5 @@ serialcube-workflow
 - [references/version-policy.md](./references/version-policy.md) — major / minor / patch 决策树
 - [references/changelog-template.md](./references/changelog-template.md) — 5 类 changelog 段格式
 - [scripts/bump-version.ps1](./scripts/bump-version.ps1) — 自动 bump 脚本 (PowerShell 5.1 兼容)
+- [scripts/check-readme-sync.ps1](./scripts/check-readme-sync.ps1) — README 同步检查 (R4 防断档) 🆕
+- [scripts/check-cleanup.ps1](./scripts/check-cleanup.ps1) — 临时文件清理检查 (R4.2 防垃圾) 🆕

@@ -7,10 +7,11 @@
 ## 🚀 30 秒读完这一段就够开始干活了
 
 **项目:** 单 HTML 文件的 Web 串口调试工具（BMS / EMS / PCS 协议调试方向）
-**主文件:** `SerialCube.html`（942KB / 21,168 行,所有代码内嵌）
-**当前版本:** `v1.0.0`（`SerialCube.html const VERSION = '1.0.0'`）
+**主文件:** `SerialCube.html`（981KB / 21,168 行,所有代码内嵌）
+**当前版本:** `v1.1.0`（`SerialCube.html const VERSION = '1.1.0'`）— 协议多命令 + 配置中心 v2 + 漫游引导 + 9 kind (含 Custom)
 **在线访问:** <https://yubiediu826.github.io/SerialCubeWeb/SerialCube.html>
 **代码仓库:** <https://github.com/yubiediu826/SerialCubeWeb>
+**最近 release:** [`release-v1.1.0-2026-08-12.md`](release-v1.1.0-2026-08-12.md) | 发版后会话交接 [`HANDOFF-POST-V1.1.0-2026-08-12.md`](HANDOFF-POST-V1.1.0-2026-08-12.md)
 
 **改代码 5 步:**
 1. 跑 `.minimax/skills/version-management/scripts/bump-version.ps1 -Level <patch|minor|major>`（version-management R1 硬性规则）

@@ -1,9 +1,12 @@
 ﻿# SerialCube — 项目交接文档
 
 > **本项目：** 单 HTML 串口调试工具
-> **当前版本：** v1.0.0（已发布，GitHub Pages 已部署）
-> **最后更新：** 2026-08-11
+> **当前版本：** v1.1.0（已发布,GitHub Pages 已部署,2026-08-12）
+> **最近更新：** 2026-08-12(v1.1.0 上线同步版本号 + 加 v1.1.0 章节)
+> **原最后更新：** 2026-08-11(v1.0.0 时内容)
 > **作者：** Mavis (M3) + 用户 M.*
+
+> **⚠️ v1.1.0 状态:** 协议多命令 + 5 tab 一站式配置中心 + 4 步漫游引导 + Lucide 全图标。详见 [`HANDOFF-POST-V1.1.0-2026-08-12.md`](HANDOFF-POST-V1.1.0-2026-08-12.md) 和 [`release-v1.1.0-2026-08-12.md`](release-v1.1.0-2026-08-12.md)。本文件保留 v1.0.0 章节作为历史快照。
 
 ---
 
@@ -11,8 +14,9 @@
 
 - **是什么：** 单 HTML 文件的 Web 串口调试工具，BMS/EMS/PCS 协议调试方向
 - **在哪用：** <https://yubiediu826.github.io/SerialCubeWeb/SerialCube.html>
-- **核心文件：** `SerialCube.html`（942KB，所有代码在内）
+- **核心文件：** `SerialCube.html`（981KB，所有代码在内）
 - **怎么改：** 改 HTML → 跑 `bump-version.ps1` → 中文 commit → ask 后 push → Pages 自动部署
+- **当前版本：** v1.1.0（数据模型重构：协议自包含 N 条命令 + 字段归命令）
 - **AI 工作流：** `.minimax/skills/` 15 个 skill，完整 SOP 看 [`.minimax/skills/README.md`](../../.minimax/skills/README.md)
 
 ---

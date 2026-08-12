@@ -1,0 +1,14 @@
+{
+  "version": "v1.1.1",
+  "recorded_at": "2026-08-12",
+  "scenarios": {
+    "01": { "status": "pass", "verified_at": "2026-08-12", "note": "应用加载, console.error 0" },
+    "02": { "status": "pass", "verified_at": "2026-08-12", "note": "连接/断开 mock UI" },
+    "03": { "status": "pass", "verified_at": "2026-08-12", "note": "发送/接收 mock" },
+    "04": { "status": "pass", "verified_at": "2026-08-12", "note": "协议编辑器 (modal stack 重构后 OK)" },
+    "05": { "status": "pass", "verified_at": "2026-08-12", "note": "解析模式切换" },
+    "06": { "status": "pass", "verified_at": "2026-08-12", "note": "主题切换 (segmented 进 system-menu 后 OK)" }
+  },
+  "fail": [],
+  "next_baseline_when": "v1.1.2 or any change in SerialCube.html main file"
+}

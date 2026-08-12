@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>SerialCube v1.1.1 修复方案预览 v3 — 主题进系统菜单</title>
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --bg-panel: #ffffff;
+    --bg-elev: #f0f2f7;
+    --bg-elevated: #ffffff;
+    --surface-1: #ffffff;
+    --surface-2: #f3f4f6;
+    --text: #1f2937;
+    --text-soft: #4b5563;
+    --text-mute: #9ca3af;
+    --border: #e5e7eb;
+    --border-strong: #d1d5db;
+    --accent: #5672cd;
+    --accent-soft: rgba(86, 114, 205, 0.12);
+    --accent-strong: #3a5ccc;
+    --danger: #e0575e;
+    --success: #22c55e;
+    --warn: #d97706;
+    --shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    --shadow-lg: 0 12px 40px rgba(15, 23, 42, 0.18);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .page { max-width: 1400px; margin: 0 auto; padding: 40px 32px 80px; }
+  .page-header { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .page-header h1 { margin: 0 0 8px; font-size: 28px; font-weight: 700; }
+  .page-header .subtitle { color: var(--text-soft); font-size: 14px; }
+  .page-header .meta { margin-top: 12px; display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; }
+  .pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-weight: 600; font-size: 11px; }
+  .pill-problem { background: rgba(224, 87, 94, 0.1); color: var(--danger); }
+  .pill-fix { background: rgba(86, 114, 205, 0.1); color: var(--accent); }
+  .pill-info { background: rgba(34, 197, 94, 0.1); color: var(--success); }
+
+  .section { margin-bottom: 48px; }
+  .section-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; }
+  .section-num { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--accent); color: white; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+  .section-title { font-size: 20px; font-weight: 700; margin: 0; }
+  .section-sub { color: var(--text-soft); font-size: 13px; }
+  .section-body { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  .panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .panel-head { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg-elev); }
+  .panel-head h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+  .panel-body { padding: 20px; }
+  .label { font-size: 11px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 8px; }
+  .annotation { font-size: 12px; color: var(--text-soft); margin-top: 12px; padding: 10px 12px; background: var(--accent-soft); border-radius: 6px; border-left: 3px solid var(--accent); }
+  .annotation strong { color: var(--accent); }
+  .annotation code { font-family: ui-monospace, monospace; background: white; padding: 1px 6px; border-radius: 3px; font-size: 11px; color: var(--text-soft); }
+
+  /* ===== System menu ===== */
+  .sysmenu-stage {
+    position: relative;
+    background: linear-gradient(135deg, #f6f7fb 0%, #e5e7eb 100%);
+    border-radius: 8px;
+    padding: 80px 24px 24px;
+    min-height: 380px;
+  }
+  .topbar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 40px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-soft);
+  }
+  .topbar .logo { font-weight: 700; color: var(--text); }
+  .topbar .spacer { flex: 1; }
+  .topbar .notif { font-size: 11px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-elev); }
+  .topbar .menu-btn {
+    padding: 4px 8px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-elev);
+    border-radius: 4px;
+    color: var(--text-soft);
+    cursor: pointer;
+  }
+
+  /* The actual system menu (floating) */
+  .sysmenu {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 320px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+  .sysmenu .top-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .sysmenu .version-btn {
+    font-size: 12px;
+    color: var(--text);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
+  .sysmenu .version-btn .v { font-weight: 700; }
+  .sysmenu .online-chip {
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .sysmenu .row {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .sysmenu .row .label { color: var(--text-soft); font-size: 11px; flex-shrink: 0; }
+  .sysmenu .row .spacer { flex: 1; }
+  .sysmenu .divider { height: 1px; background: var(--border); margin: 4px 0; }
+  .sysmenu .link-row { display: flex; gap: 12px; padding: 8px 12px; font-size: 11px; }
+  .sysmenu .link-row a { color: var(--accent); text-decoration: none; }
+  .sysmenu .link-row a:hover { text-decoration: underline; }
+  .sysmenu .download-line {
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--text-soft);
+    text-decoration: none;
+    display: block;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Theme segmented (new) */
+  .theme-seg {
+    display: inline-flex;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 2px;
+    background: var(--bg-elev);
+    gap: 2px;
+  }
+  .theme-seg button {
+    padding: 3px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-soft);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .theme-seg button.active {
+    background: var(--bg-panel);
+    color: var(--text);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .theme-seg button svg { width: 11px; height: 11px; stroke-width: 1.6; }
+
+  .config-btn {
+    padding: 4px 8px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--text-soft);
+    cursor: pointer;
+  }
+  .config-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+  .red-arrow {
+    position: absolute;
+    color: var(--danger);
+    font-size: 11px;
+    font-weight: 600;
+    z-index: 10;
+  }
+  .red-arrow-right { right: 24px; top: 50px; }
+  .red-arrow-down { right: 12px; top: 230px; }
+
+  /* ===== Modal ===== */
+  .modal-shell { background: var(--bg-panel); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-lg); border: 1px solid var(--border); }
+  .modal-header { display: flex; align-items: center; gap: 8px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+  .modal-header .title { font-size: 15px; font-weight: 700; }
+  .modal-header .sub { font-size: 11px; color: var(--text-mute); }
+  .modal-header .close { margin-left: auto; width: 24px; height: 24px; border: none; background: transparent; color: var(--text-soft); cursor: pointer; border-radius: 4px; }
+  .modal-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--bg-elev); padding: 0 8px; }
+  .modal-tab {
+    padding: 10px 16px; border: none; background: transparent;
+    font-size: 13px; font-weight: 500; color: var(--text-soft);
+    cursor: pointer; border-bottom: 2px solid transparent;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .modal-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--bg-panel); }
+  .modal-tab svg { width: 14px; height: 14px; stroke-width: 1.5; }
+  .modal-tab .badge { background: var(--accent-soft); color: var(--accent); border-radius: 9px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
+  .modal-body { padding: 24px; min-height: 280px; }
+  .modal-footer { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--border); background: var(--bg-elev); }
+  .modal-footer .spacer { flex: 1; }
+  .modal-footer button {
+    padding: 6px 12px; border: 1px solid var(--border-strong);
+    background: var(--bg-panel); color: var(--text-soft);
+    border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;
+  }
+  .modal-footer button.primary { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* ===== Toolbar ===== */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--bg-elev);
+    border-radius: 8px;
+    flex-wrap: wrap;
+  }
+  .tb-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border: 1px solid var(--border-strong);
+    border-radius: 6px; background: var(--bg-panel);
+    color: var(--text-soft); font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all 0.12s;
+  }
+  .tb-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .tb-btn svg { width: 14px; height: 14px; stroke-width: 1.5; }
+  .tb-btn.active { background: var(--accent); color: white; border-color: var(--accent); position: relative; }
+  .tb-btn.active::before {
+    content: ''; position: absolute; top: -2px; left: -2px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 0 2px var(--bg-elev);
+  }
+  .tb-divider { width: 1px; height: 18px; background: var(--border-strong); margin: 0 4px; }
+  .tb-spacer { flex: 1; }
+  .tb-status { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-soft); font-weight: 600; }
+  .tb-status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2); }
+  .layout-toggle { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 6px; overflow: hidden; }
+  .layout-toggle button {
+    padding: 5px 10px; background: var(--bg-panel);
+    border: none; font-size: 11px; font-weight: 500;
+    color: var(--text-soft); cursor: pointer;
+  }
+  .layout-toggle button.active { background: var(--accent); color: white; }
+  .stroke-line { text-decoration: line-through; color: var(--text-mute); }
+
+  /* ===== Card ===== */
+  .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 12px; }
+  .card { position: relative; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; min-height: 100px; }
+  .card.edit { border-color: var(--accent); outline: 1px dashed var(--accent); outline-offset: -3px; }
+  .card .title { font-size: 12px; font-weight: 600; color: var(--text-soft); }
+  .card .value { font-size: 22px; font-weight: 700; margin-top: 4px; font-family: ui-monospace, monospace; }
+  .card .unit { font-size: 11px; color: var(--text-mute); }
+  .card-actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; z-index: 6; }
+  .card-action {
+    width: 20px; height: 20px; border: 1px solid var(--border);
+    background: var(--bg-panel); border-radius: 4px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--text-soft); cursor: pointer;
+  }
+  .card-action:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .card-action.del:hover { border-color: var(--danger); color: var(--danger); background: rgba(224, 87, 94, 0.1); }
+  .card-action svg { width: 11px; height: 11px; stroke-width: 1.6; }
+  .missing-tag { position: absolute; top: 6px; right: 6px; font-size: 10px; color: var(--danger); font-style: italic; }
+
+  /* ===== Modal stack ===== */
+  .stack-stage { position: relative; background: linear-gradient(135deg, #f6f7fb 0%, #e5e7eb 100%); border-radius: 8px; padding: 24px; min-height: 380px; overflow: hidden; }
+  .stack-modal { position: absolute; border-radius: 10px; box-shadow: var(--shadow-lg); background: var(--bg-modal); overflow: hidden; border: 1px solid var(--border); }
+  .stack-modal .l1 { background: var(--bg-elev); padding: 10px 14px; font-size: 12px; font-weight: 700; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .stack-modal .l2 { padding: 16px; }
+  .stack-modal .ztag { font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-mute); }
+  .stack-modal-cc { inset: 16px; z-index: 100; }
+  .stack-modal-wiz { top: 56px; left: 56px; right: 56px; bottom: 56px; z-index: 120; }
+  .stack-arrow { position: absolute; left: 50%; transform: translateX(-50%); z-index: 200; padding: 6px 14px; border-radius: 999px; font-size: 11px; font-weight: 600; box-shadow: var(--shadow); }
+  .stack-arrow.ok { background: var(--success); color: white; top: 8px; }
+  .stack-arrow.bad { background: var(--danger); color: white; top: 8px; }
+
+  /* Code */
+  .code { font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace; background: #1f2937; color: #e5e7eb; padding: 12px 14px; border-radius: 6px; font-size: 12px; line-height: 1.6; overflow-x: auto; }
+  .code .k { color: #f472b6; }
+  .code .s { color: #86efac; }
+  .code .c { color: #6b7280; font-style: italic; }
+  .code .n { color: #fbbf24; }
+  .code .v { color: #93c5fd; }
+  .code .d { color: #fca5a5; text-decoration: line-through; }
+  .code .a { color: #86efac; font-weight: 600; }
+
+  /* Steps */
+  .steps { padding-left: 0; list-style: none; counter-reset: step; margin: 0; }
+  .steps li { counter-increment: step; padding: 6px 0 6px 28px; position: relative; font-size: 13px; }
+  .steps li::before { content: counter(step); position: absolute; left: 0; top: 6px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: white; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+  .steps li strong { color: var(--accent); }
+
+  .compare-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .compare-col { border-radius: 8px; padding: 12px; }
+  .compare-col.bad { background: rgba(224, 87, 94, 0.04); border: 1px solid rgba(224, 87, 94, 0.2); }
+  .compare-col.good { background: rgba(34, 197, 94, 0.04); border: 1px solid rgba(34, 197, 94, 0.2); }
+  .compare-col.warn { background: rgba(217, 119, 6, 0.04); border: 1px solid rgba(217, 119, 6, 0.2); }
+  .compare-col .col-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .col.bad .col-title { color: var(--danger); }
+  .col.good .col-title { color: var(--success); }
+  .col.warn .col-title { color: var(--warn); }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="page-header">
+  <h1>SerialCube v1.1.1 — 修复方案预览 <span style="color: var(--accent); font-size: 18px;">v3 (主题进系统菜单)</span></h1>
+  <div class="subtitle">基于用户截图 + 反馈:主题配置加到现有系统菜单(右上角 3 横线),不动主体结构</div>
+  <div class="meta">
+    <span class="pill pill-problem">🔴 4 个问题</span>
+    <span class="pill pill-fix">🛠 4 个修复点</span>
+    <span class="pill pill-info">📦 预计 ~100 行</span>
+    <span class="pill pill-info">🆕 主题 segmented 进主系统菜单</span>
+    <span class="pill pill-info">🔄 配置中心 → 协议配置</span>
+  </div>
+</div>
+
+<!-- ============ Section 1 - System Menu ============ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">1</span>
+    <div>
+      <h2 class="section-title">主题配置:加到系统菜单(右上角 ⚙)</h2>
+      <div class="section-sub">用户截图:系统菜单按钮在 topbar 右上角(3 横线),当前内容只有"关于/访问在线/配置/GitHub/反馈",主题 JS 在但 UI 没暴露</div>
+    </div>
+  </div>
+
+  <div class="section-body">
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>当前 (v1.1.0)</h3>
+        <span class="pill pill-problem">主题无 UI</span>
+      </div>
+      <div class="panel-body">
+        <div class="sysmenu-stage">
+          <div class="topbar">
+            <span class="logo">SerialCube</span>
+            <span class="spacer"></span>
+            <span class="notif">🔔 20</span>
+            <button class="menu-btn">
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 4 H14 M2 8 H14 M2 12 H14"/></svg>
+            </button>
+          </div>
+
+          <div class="sysmenu" style="position: absolute; top: 50px; right: 24px;">
+            <div class="top-line">
+              <button class="version-btn"><span class="v">关于 v1.1.0</span></button>
+              <span class="online-chip">当前在线最新</span>
+            </div>
+            <div class="row">
+              <span class="label">配置：</span>
+              <span class="spacer"></span>
+              <button class="config-btn">复制配置</button>
+              <button class="config-btn">粘贴导入</button>
+              <button class="config-btn">清空配置</button>
+            </div>
+            <div class="link-row">
+              <a href="#">GitHub 项目</a>
+              <a href="#">问题反馈</a>
+            </div>
+            <a href="#" class="download-line">下载离线版到本地</a>
+          </div>
+        </div>
+        <div class="annotation">
+          <strong>Bug 根因:</strong>
+          ① <code>state.theme</code> (light/dark/system) + <code>applyTheme()</code> + <code>handleThemeChange()</code> + <code>refs.themeGroup</code>/<code>refs.themeOpts</code> 全部在 JS 里(行 9268-9290)
+          ② <strong>主 system-menu 完全没有主题入口</strong>
+          ③ 仪表盘内部有 <code>dh-menu-theme</code> 按钮(行 7508)但 <strong>TODO 注释明示 click handler 未接</strong>(行 7507),形同虚设
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>修复后 (v1.1.1)</h3>
+        <span class="pill pill-fix">+ 主题 segmented</span>
+      </div>
+      <div class="panel-body">
+        <div class="sysmenu-stage">
+          <div class="topbar">
+            <span class="logo">SerialCube</span>
+            <span class="spacer"></span>
+            <span class="notif">🔔 20</span>
+            <button class="menu-btn">
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 4 H14 M2 8 H14 M2 12 H14"/></svg>
+            </button>
+          </div>
+
+          <div class="sysmenu" style="position: absolute; top: 50px; right: 24px;">
+            <div class="top-line">
+              <button class="version-btn"><span class="v">关于 v1.1.1</span></button>
+              <span class="online-chip">当前在线最新</span>
+            </div>
+
+            <div class="row" style="background: rgba(86, 114, 205, 0.04);">
+              <span class="label">主题：</span>
+              <span class="spacer"></span>
+              <div class="theme-seg">
+                <button>
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M3 3l1.5 1.5M11.5 11.5L13 13M1 8h2M13 8h2M3 13l1.5-1.5M11.5 4.5L13 3"/></svg>
+                  浅色
+                </button>
+                <button>
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="M14 9.5A6.5 6.5 0 0 1 6.5 2 6.5 6.5 0 1 0 14 9.5z"/></svg>
+                  深色
+                </button>
+                <button class="active">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"><rect x="2" y="3" width="12" height="9" rx="1"/><path d="M5 13h6M8 12v1"/></svg>
+                  跟随
+                </button>
+              </div>
+            </div>
+
+            <div class="row">
+              <span class="label">配置：</span>
+              <span class="spacer"></span>
+              <button class="config-btn">复制配置</button>
+              <button class="config-btn">粘贴导入</button>
+              <button class="config-btn">清空配置</button>
+            </div>
+            <div class="link-row">
+              <a href="#">GitHub 项目</a>
+              <a href="#">问题反馈</a>
+            </div>
+            <a href="#" class="download-line">下载离线版到本地</a>
+          </div>
+        </div>
+        <div class="annotation">
+          <strong>修复要点:</strong>
+          ① 主题 segmented 加在"关于"和"配置"之间(主题是显示偏好,放配置上面更合理)
+          ② 调用已有 <code>handleThemeChange('light'/'dark'/'system')</code>(行 9305),无需新写主题逻辑
+          ③ <code>refs.themeOpts</code> 已支持 <code>is-active</code> 状态切换(行 9285-9287),直接复用
+          ④ "跟随系统"显示当前 OS 主题(<code>browserThemeQuery.matches</code>)
+          ⑤ 同时清理仪表盘内部 <code>dh-menu-theme</code> 死按钮(行 7508)
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ Section 1.5 - Code ============ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">1.5</span>
+    <div>
+      <h2 class="section-title">主题 segmented 关键代码</h2>
+      <div class="section-sub">HTML 插入 + handler 绑定(主题逻辑复用已有 <code>handleThemeChange</code>)</div>
+    </div>
+  </div>
+
+  <div class="section-body" style="grid-template-columns: 1fr 1fr;">
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>system-menu HTML (新增主题行)</h3>
+      </div>
+      <div class="panel-body">
+        <div class="code">
+<span class="c">// SerialCube.html 行 7031 后插入 (config-menu-row 之前)</span>
+&lt;div class=<span class="s">"menu-config-line"</span>&gt;
+  &lt;span class=<span class="s">"menu-config-label"</span>&gt;主题:&lt;/span&gt;
+  &lt;div class=<span class="s">"theme-seg"</span> id=<span class="s">"sys-theme-seg"</span>&gt;
+    &lt;button data-theme=<span class="s">"light"</span> title=<span class="s">"浅色主题"</span>&gt;
+      &lt;svg ...&gt;...&lt;/svg&gt; 浅色
+    &lt;/button&gt;
+    &lt;button data-theme=<span class="s">"dark"</span> title=<span class="s">"深色主题"</span>&gt;
+      &lt;svg ...&gt;...&lt;/svg&gt; 深色
+    &lt;/button&gt;
+    &lt;button data-theme=<span class="s">"system"</span> title=<span class="s">"跟随系统"</span>&gt;
+      &lt;svg ...&gt;...&lt;/svg&gt; 跟随
+    &lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+<span class="c">// 同时清理仪表盘内部 dh-system-menu 死按钮 (行 7508)</span>
+<span class="d">&lt;div class="menu-row" id="dh-menu-theme"&gt;切换深色 / 浅色&lt;/div&gt;</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>JS handler (复用 handleThemeChange)</h3>
+      </div>
+      <div class="panel-body">
+        <div class="code">
+<span class="c">// 在 system-menu 初始化时(已有的 NS.init / attachModalHandlers 区域附近)</span>
+<span class="k">const</span> themeSeg = <span class="v">document</span>.getElementById(<span class="s">'sys-theme-seg'</span>);
+<span class="k">if</span> (themeSeg) {
+  <span class="c">// 初始化 active 态 (state.theme 已有)</span>
+  themeSeg.querySelectorAll(<span class="s">'button[data-theme]'</span>).forEach((btn) =&gt; {
+    btn.classList.toggle(<span class="s">'active'</span>, btn.dataset.theme === <span class="v">state</span>.theme);
+    btn.addEventListener(<span class="s">'click'</span>, () =&gt; {
+      <span class="v">handleThemeChange</span>(btn.dataset.theme);  <span class="c">// 复用已有</span>
+      themeSeg.querySelectorAll(<span class="s">'button[data-theme]'</span>).forEach((b) =&gt;
+        b.classList.toggle(<span class="s">'active'</span>, b === btn)
+      );
+    });
+  });
+}
+
+<span class="c">// 同步:系统主题变化时,如果当前是 'system' 模式,自动更新 active 态</span>
+<span class="v">browserThemeQuery</span>.addEventListener?.(<span class="s">'change'</span>, () =&gt; {
+  <span class="k">if</span> (<span class="v">state</span>.theme === <span class="s">'system'</span>) {
+    <span class="c">// 系统主题变了,seg 状态不变(还是 'system'),无需更新</span>
+  }
+});
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ Section 2 - 配置中心 → 协议配置 ============ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">2</span>
+    <div>
+      <h2 class="section-title">配置中心 → 协议配置 (改名)</h2>
+      <div class="section-sub">用户反馈:"配置中心"应改为"协议配置"</div>
+    </div>
+  </div>
+
+  <div class="section-body">
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>当前 (v1.1.0) — modal 标题</h3>
+        <span class="pill pill-problem">名字过宽</span>
+      </div>
+      <div class="panel-body">
+        <div class="modal-shell">
+          <div class="modal-header">
+            <button class="close">
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4 L12 12 M12 4 L4 12"/></svg>
+            </button>
+            <span class="title">配置中心</span>
+            <span class="sub">协议 / 命令 / 卡片 / 告警 / 导入导出</span>
+            <span style="flex: 1;"></span>
+            <button class="tb-btn" style="padding: 4px 10px; font-size: 11px;">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10L11 1l3 3-9 9H2z"/></svg>
+              开始引导
+            </button>
+          </div>
+          <div class="modal-tabs">
+            <button class="modal-tab active">协议</button>
+            <button class="modal-tab">命令 <span class="badge">3</span></button>
+            <button class="modal-tab">卡片 <span class="badge">5</span></button>
+            <button class="modal-tab">告警 <span class="badge">2</span></button>
+            <button class="modal-tab">导入/导出</button>
+          </div>
+          <div class="modal-body">
+            <div style="color: var(--text-mute); font-size: 12px; text-align: center; padding: 40px 0;">
+              [协议列表内容]
+            </div>
+          </div>
+        </div>
+        <div class="annotation">
+          <strong>问题:</strong>"配置中心" + 副标题"协议 / 命令 / 卡片 / 告警 / 导入导出" 太宽,核心是协议层,名字误导。
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>修复后 (v1.1.1) — "协议配置"</h3>
+        <span class="pill pill-fix">改名 + 副标题简化</span>
+      </div>
+      <div class="panel-body">
+        <div class="modal-shell">
+          <div class="modal-header">
+            <button class="close">
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4 L12 12 M12 4 L4 12"/></svg>
+            </button>
+            <span class="title">协议配置</span>
+            <span class="sub">协议 / 命令 / 字段 / 导入导出</span>
+            <span style="flex: 1;"></span>
+            <button class="tb-btn" style="padding: 4px 10px; font-size: 11px;">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M8 3v10"/></svg>
+              新建协议
+            </button>
+          </div>
+          <div class="modal-tabs">
+            <button class="modal-tab active">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h12M2 9h12M2 5h12"/></svg>
+              协议
+            </button>
+            <button class="modal-tab">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v12l4-3h6a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg>
+              命令 <span class="badge">3</span>
+            </button>
+            <button class="modal-tab">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="12" height="5" rx="1"/></svg>
+              卡片 <span class="badge">5</span>
+            </button>
+            <button class="modal-tab">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2 L14.5 13.5 H1.5 Z"/><path d="M8 6 V9.5 M8 11.5 V12.5"/></svg>
+              告警 <span class="badge">2</span>
+            </button>
+            <button class="modal-tab">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M7 4l4 4-4 4M13 4l-4 4 4 4"/></svg>
+              导入/导出
+            </button>
+          </div>
+          <div class="modal-body">
+            <div style="color: var(--text-mute); font-size: 12px; text-align: center; padding: 40px 0;">
+              [协议列表内容]
+            </div>
+          </div>
+        </div>
+        <div class="annotation">
+          <strong>修改要点:</strong>
+          ① 标题 "配置中心" → "<strong>协议配置</strong>"(用户指定)
+          ② 副标题简化: "协议 / 命令 / 卡片 / 告警 / 导入导出" → "协议 / 命令 / 字段 / 导入导出"
+          ③ 头部 "开始引导" 按钮 → "新建协议"(引导从工具栏删)
+          ④ 每个 tab 加 Lucide 图标(视觉一致)
+          ⑤ modal id <code>dh-config-center</code> <strong>保留</strong>(显示文字改,id 改影响范围大)
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ Section 3 - 编辑模式 ============ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">3</span>
+    <div>
+      <h2 class="section-title">编辑模式:按钮 active 态 + 卡片右上角图标</h2>
+      <div class="section-sub">问题:active 视觉无反馈;卡片角标没显示</div>
+    </div>
+  </div>
+
+  <div class="section-body">
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>当前 (v1.1.0) — 工具栏</h3>
+        <span class="pill pill-problem">无视觉反馈</span>
+      </div>
+      <div class="panel-body">
+        <div class="toolbar">
+          <button class="tb-btn">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h12M2 9h12M2 5h12"/></svg>
+            配置中心
+          </button>
+          <button class="tb-btn" style="color: var(--danger);">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10L11 1l3 3-9 9H2z"/></svg>
+            <span class="stroke-line">引导</span>
+          </button>
+          <span class="tb-divider"></span>
+          <span class="tb-status"><span class="dot"></span>实时 800ms</span>
+          <span class="tb-spacer"></span>
+          <div class="layout-toggle">
+            <button class="active">趋势</button>
+            <button>列表</button>
+          </div>
+          <button class="tb-btn" style="opacity: 0.5;">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2l3 3-8 8H3v-3z"/></svg>
+            编辑模式
+          </button>
+        </div>
+        <div class="annotation">
+          active 视觉无反馈,按钮点了之后看起来没变化(JS 加了 <code>class="active"</code> 但 CSS specificity 不够)。
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>修复后 (v1.1.1)</h3>
+        <span class="pill pill-fix">active 态加强</span>
+      </div>
+      <div class="panel-body">
+        <div class="toolbar">
+          <button class="tb-btn">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h12M2 9h12M2 5h12"/></svg>
+            协议配置
+          </button>
+          <span class="tb-divider"></span>
+          <span class="tb-status"><span class="dot"></span>实时 800ms</span>
+          <span class="tb-spacer"></span>
+          <div class="layout-toggle">
+            <button class="active">趋势</button>
+            <button>列表</button>
+          </div>
+          <button class="tb-btn active">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2l3 3-8 8H3v-3z"/></svg>
+            编辑中
+          </button>
+        </div>
+        <div class="annotation">
+          ① "配置中心" → "协议配置"<br>
+          ② 删 🎓 引导按钮<br>
+          ③ active 态加重:背景填充 + 绿点 + 文字变 "编辑中"
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="height: 24px;"></div>
+
+  <div class="section-body">
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>当前 (v1.1.0) — 卡片角标缺失</h3>
+      </div>
+      <div class="panel-body">
+        <div class="card-grid">
+          <div class="card edit">
+            <div class="title">电压</div>
+            <div class="value">48.2 <span class="unit">V</span></div>
+            <div class="missing-tag">(无图标)</div>
+          </div>
+          <div class="card edit">
+            <div class="title">电流</div>
+            <div class="value">12.4 <span class="unit">A</span></div>
+            <div class="missing-tag">(无图标)</div>
+          </div>
+          <div class="card edit">
+            <div class="title">SOC</div>
+            <div class="value">85 <span class="unit">%</span></div>
+            <div class="missing-tag">(无图标)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>修复后 (v1.1.1) — 角标可见</h3>
+        <span class="pill pill-fix">3 类型全覆盖</span>
+      </div>
+      <div class="panel-body">
+        <div class="card-grid">
+          <div class="card edit">
+            <div class="title">电压</div>
+            <div class="value">48.2 <span class="unit">V</span></div>
+            <div class="card-actions">
+              <button class="card-action" title="编辑">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg>
+              </button>
+              <button class="card-action del" title="删除">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4 H13 M5 4 V3 H11 V4 M6 7 V12 M10 7 V12 M4 4 L5 13 H11 L12 4"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card edit">
+            <div class="title">电流</div>
+            <div class="value">12.4 <span class="unit">A</span></div>
+            <div class="card-actions">
+              <button class="card-action" title="编辑">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg>
+              </button>
+              <button class="card-action del" title="删除">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4 H13 M5 4 V3 H11 V4 M6 7 V12 M10 7 V12 M4 4 L5 13 H11 L12 4"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card edit">
+            <div class="title">SOC</div>
+            <div class="value">85 <span class="unit">%</span></div>
+            <div class="card-actions">
+              <button class="card-action" title="编辑">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg>
+              </button>
+              <button class="card-action del" title="删除">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4 H13 M5 4 V3 H11 V4 M6 7 V12 M10 7 V12 M4 4 L5 13 H11 L12 4"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="annotation">
+          ① 卡片 action 16px → 20px,加 1px 边 + 浅底<br>
+          ② pair/trend/list 三类卡片渲染对齐<br>
+          ③ hover 区域可见(accent 边 + 浅底)<br>
+          ④ 编辑模式下卡外圈虚线提示(已存在)
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ Section 4 - Modal Stack ============ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">4</span>
+    <div>
+      <h2 class="section-title">Modal Stack:协议配置弹窗不再互关</h2>
+      <div class="section-sub">问题:协议配置点"新建协议/编辑/新建命令"时,代码先 closeModal 再开新 modal,关闭回到仪表盘</div>
+    </div>
+  </div>
+
+  <div class="section-body">
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>当前 (v1.1.0) — 单层覆盖</h3>
+        <span class="pill pill-problem">关闭回到仪表盘</span>
+      </div>
+      <div class="panel-body">
+        <div class="stack-stage" style="height: 320px;">
+          <div class="stack-modal stack-modal-cc" style="opacity: 0.35;">
+            <div class="l1"><span>协议配置 (z=100)</span><span class="ztag">已关闭</span></div>
+            <div class="l2">
+              <div class="modal-tabs" style="border: 1px solid var(--border); border-radius: 6px;">
+                <button class="modal-tab active">协议</button><button class="modal-tab">命令</button>
+              </div>
+              <div style="height: 80px; background: var(--bg-elev); border-radius: 6px; margin-top: 8px; display: flex; align-items: center; justify-content: center; color: var(--text-mute); font-size: 11px;">[协议内容 — 被关闭]</div>
+            </div>
+          </div>
+          <div class="stack-modal stack-modal-wiz">
+            <div class="l1"><span>新建协议 · 第 1 步 (z=120)</span><span class="ztag">当前可见</span></div>
+            <div class="l2">
+              <div style="font-size: 11px; color: var(--text-mute); padding: 40px; text-align: center;">[3 步向导内容]</div>
+            </div>
+          </div>
+          <div class="stack-arrow bad">❌ 关闭新建协议 → 回到仪表盘(协议已先关)</div>
+        </div>
+        <div class="annotation">
+          <strong>Bug 根因 (SerialCube.html:12824/12863/12934):</strong><br>
+          <code>NS.closeModal('dh-config-center'); NS.openNewProtocolWizard();</code>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>修复后 (v1.1.1) — 栈式叠加</h3>
+        <span class="pill pill-fix">3 步回到协议配置</span>
+      </div>
+      <div class="panel-body">
+        <div class="stack-stage" style="height: 360px;">
+          <div class="stack-modal stack-modal-cc" style="z-index: 100;">
+            <div class="l1"><span>协议配置 (z=100,栈底)</span><span class="ztag">保留在栈中</span></div>
+            <div class="l2">
+              <div class="modal-tabs" style="border: 1px solid var(--border); border-radius: 6px;">
+                <button class="modal-tab active">协议</button><button class="modal-tab">命令</button>
+              </div>
+              <div style="height: 60px; background: var(--bg-elev); border-radius: 6px; margin-top: 8px; display: flex; align-items: center; justify-content: center; color: var(--text-mute); font-size: 11px;">[协议内容 — 半透明可见,等待回到此处]</div>
+            </div>
+          </div>
+          <div class="stack-modal stack-modal-wiz" style="z-index: 120;">
+            <div class="l1"><span>新建协议 · 第 1 步 (z=120,栈顶)</span><span class="ztag">当前可见</span></div>
+            <div class="l2">
+              <div style="font-size: 11px; color: var(--text-mute); padding: 40px; text-align: center;">[3 步向导内容]</div>
+            </div>
+          </div>
+          <div class="stack-arrow ok">✅ 关闭新建协议 → 自动回到协议配置(栈底)</div>
+        </div>
+        <div class="annotation">
+          <strong>实现方案:</strong>
+          ① <code>NS._modalStack = []</code>,openModal push,closeModal 弹栈
+          ② z-index 动态 <code>1000 + stack.length * 20</code>
+          ③ 协议配置 4 处 <code>NS.closeModal('dh-config-center')</code> 删除
+          ④ Esc 键只关栈顶 modal
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="height: 24px;"></div>
+
+  <div class="section-body" style="grid-template-columns: 1fr 1fr;">
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>openModal / closeModal 重构</h3>
+      </div>
+      <div class="panel-body">
+        <div class="code">
+<span class="c">// 全局 modal 栈</span>
+<span class="v">NS</span>._modalStack = [];
+
+<span class="v">NS</span>.openModal = <span class="k">function</span>(name) {
+  <span class="k">const</span> baseZ = <span class="n">1000</span>;
+  <span class="k">const</span> z = baseZ + <span class="v">NS</span>._modalStack.length * <span class="n">20</span>;
+  <span class="k">const</span> bd = <span class="v">document</span>.getElementById(name + <span class="s">'-backdrop'</span>);
+  <span class="k">const</span> md = <span class="v">document</span>.getElementById(name + <span class="s">'-modal'</span>);
+  <span class="k">if</span> (bd) { bd.style.zIndex = z; bd.classList.add(<span class="s">'open'</span>); }
+  <span class="k">if</span> (md) { md.style.zIndex = z + <span class="n">1</span>; md.classList.add(<span class="s">'open'</span>); }
+  <span class="v">NS</span>._modalStack.push(name);
+  <span class="k">if</span> (name === <span class="s">'dh-proto'</span>) <span class="v">NS</span>.renderProtoEditor();
+};
+
+<span class="v">NS</span>.closeModal = <span class="k">function</span>(name) {
+  <span class="k">const</span> bd = <span class="v">document</span>.getElementById(name + <span class="s">'-backdrop'</span>);
+  <span class="k">const</span> md = <span class="v">document</span>.getElementById(name + <span class="s">'-modal'</span>);
+  <span class="k">if</span> (bd) bd.classList.remove(<span class="s">'open'</span>);
+  <span class="k">if</span> (md) md.classList.remove(<span class="s">'open'</span>);
+  <span class="k">const</span> idx = <span class="v">NS</span>._modalStack.lastIndexOf(name);
+  <span class="k">if</span> (idx &gt;= <span class="n">0</span>) <span class="v">NS</span>._modalStack.splice(idx, <span class="n">1</span>);
+};
+
+<span class="c">// Esc 键只关栈顶</span>
+<span class="v">document</span>.addEventListener(<span class="s">'keydown'</span>, (e) =&gt; {
+  <span class="k">if</span> (e.key === <span class="s">'Escape'</span> &amp;&amp; <span class="v">NS</span>._modalStack.length &gt; <span class="n">0</span>) {
+    <span class="k">const</span> top = <span class="v">NS</span>._modalStack[<span class="v">NS</span>._modalStack.length - <span class="n">1</span>];
+    <span class="v">NS</span>.closeModal(top);
+  }
+});
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>协议配置 4 处 closeModal 删除</h3>
+      </div>
+      <div class="panel-body">
+        <div class="code">
+<span class="c">// 位置 1:协议 tab 新建按钮 (行 12822)</span>
+<span class="k">if</span> (newBtn) newBtn.onclick = () =&gt; {
+  <span class="d">NS.closeModal('dh-config-center');</span>
+  <span class="v">NS</span>.openNewProtocolWizard();
+};
+
+<span class="c">// 位置 2:协议 tab 编辑按钮 (行 12861)</span>
+<span class="k">if</span> (editBtn) editBtn.onclick = () =&gt; {
+  <span class="k">if</span> (proto) {
+    <span class="d">NS.closeModal('dh-config-center');</span>
+    <span class="v">NS</span>.activeProtoId = proto.id;
+    <span class="v">NS</span>.openModal(<span class="s">'dh-proto'</span>);
+  }
+};
+
+<span class="c">// 位置 3:命令 tab 新建命令 (行 12932)</span>
+<span class="k">if</span> (newBtn) newBtn.onclick = () =&gt; {
+  <span class="k">if</span> (!proto) { <span class="v">NS</span>.toast(<span class="s">'请先选一个协议'</span>, <span class="s">'warn'</span>); <span class="k">return</span>; }
+  <span class="d">NS.closeModal('dh-config-center');</span>
+  <span class="v">NS</span>.openNewCommandModal(proto.id);
+};
+
+<span class="c">// 位置 4:协议配置内引导 (行 13612)</span>
+bind(<span class="s">'dh-config-center-tour'</span>, () =&gt; {
+  <span class="d">NS.closeModal('dh-config-center');</span>
+  <span class="v">NS</span>.startGuidedTour &amp;&amp; <span class="v">NS</span>.startGuidedTour();
+});
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ Section 5 - Summary ============ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">∑</span>
+    <div>
+      <h2 class="section-title">修复总览</h2>
+      <div class="section-sub">4 个修复点 + 实施顺序 + 风险</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-body">
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+        <div style="text-align: center; padding: 14px; background: var(--accent-soft); border-radius: 8px;">
+          <div style="font-size: 24px; font-weight: 700; color: var(--accent);">~100</div>
+          <div style="font-size: 11px; color: var(--text-soft); margin-top: 4px;">行代码变更</div>
+        </div>
+        <div style="text-align: center; padding: 14px; background: var(--accent-soft); border-radius: 8px;">
+          <div style="font-size: 24px; font-weight: 700; color: var(--accent);">4</div>
+          <div style="font-size: 11px; color: var(--text-soft); margin-top: 4px;">个修复点</div>
+        </div>
+        <div style="text-align: center; padding: 14px; background: var(--accent-soft); border-radius: 8px;">
+          <div style="font-size: 24px; font-weight: 700; color: var(--accent);">0</div>
+          <div style="font-size: 11px; color: var(--text-soft); margin-top: 4px;">新 modal</div>
+        </div>
+        <div style="text-align: center; padding: 14px; background: var(--accent-soft); border-radius: 8px;">
+          <div style="font-size: 24px; font-weight: 700; color: var(--accent);">v1.1.1</div>
+          <div style="font-size: 11px; color: var(--text-soft); margin-top: 4px;">patch bump</div>
+        </div>
+      </div>
+
+      <h4 style="margin: 0 0 12px;">修复清单</h4>
+      <div class="compare-row" style="grid-template-columns: 1fr 1fr;">
+        <div class="compare-col good">
+          <div class="col-title">✅ 修复 1:主题 → 系统菜单 segmented</div>
+          <div style="font-size: 12px; color: var(--text-soft); line-height: 1.7;">
+            ① 主 system-menu(topbar 右上角 3 横线)加主题 segmented(浅色/深色/跟随)<br>
+            ② 位置:在"关于"和"配置"之间<br>
+            ③ 复用已有 <code>handleThemeChange()</code> 和 <code>refs.themeOpts.is-active</code><br>
+            ④ 清理仪表盘内部 <code>dh-menu-theme</code> 死按钮<br>
+            ⑤ <strong>不动主体结构</strong>,不动 logo 区域,不动工具栏
+          </div>
+        </div>
+        <div class="compare-col good">
+          <div class="col-title">✅ 修复 2:配置中心 → 协议配置 (改名)</div>
+          <div style="font-size: 12px; color: var(--text-soft); line-height: 1.7;">
+            ① 标题 "配置中心" → "<strong>协议配置</strong>"(用户指定)<br>
+            ② 副标题 "协议 / 命令 / 卡片 / 告警 / 导入导出" → "协议 / 命令 / 字段 / 导入导出"<br>
+            ③ 头部 "开始引导" 按钮 → "新建协议"<br>
+            ④ modal id <code>dh-config-center</code> 保留(显示文字改即可)
+          </div>
+        </div>
+        <div class="compare-col good">
+          <div class="col-title">✅ 修复 3:编辑模式 + 卡片角标</div>
+          <div style="font-size: 12px; color: var(--text-soft); line-height: 1.7;">
+            ① <code>.toolbar-btn.active</code> 加 <code>!important</code>+绿点+文字变"编辑中"<br>
+            ② 卡片 <code>.card-action</code> 16px→20px 加底边,3 类型渲染对齐<br>
+            ③ hover 区域可见(accent 边 + 浅底)<br>
+            ④ 编辑模式外圈虚线提示(已存在)
+          </div>
+        </div>
+        <div class="compare-col good">
+          <div class="col-title">✅ 修复 4:Modal Stack</div>
+          <div style="font-size: 12px; color: var(--text-soft); line-height: 1.7;">
+            ① <code>NS._modalStack = []</code> + openModal push / closeModal 弹栈<br>
+            ② z-index 动态 <code>1000 + stack.length * 20</code><br>
+            ③ 协议配置 4 处 <code>NS.closeModal('dh-config-center')</code> 删除<br>
+            ④ Esc 键只关栈顶 modal
+          </div>
+        </div>
+      </div>
+
+      <h4 style="margin: 24px 0 12px;">实施顺序 (推荐)</h4>
+      <ol class="steps">
+        <li><strong>修复 4 (Modal stack)</strong> — 核心,先做这个把所有弹窗体验理顺</li>
+        <li><strong>修复 2 (协议配置 modal 改名)</strong> — 显示文字改,不动 id,影响小</li>
+        <li><strong>修复 1 (主题 segmented)</strong> — 复用已有 JS,加 HTML + handler 即可</li>
+        <li><strong>修复 3 (编辑模式视觉)</strong> — 纯 CSS + 一行 JS</li>
+        <li><strong>verify</strong> — 6 个 e2e 场景 + modal stack + 主题切换场景,console.error = 0</li>
+        <li><strong>commit + push</strong> — 中文 commit,写 changelog,ask_user 确认 push</li>
+      </ol>
+
+      <h4 style="margin: 24px 0 12px;">风险评估</h4>
+      <div class="compare-row">
+        <div class="compare-col good">
+          <div class="col-title">🟢 低风险</div>
+          <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: var(--text-soft);">
+            <li>协议配置 modal 改名只改显示文字,id 保留</li>
+            <li>编辑模式 CSS 改动加 <code>!important</code>,只强化不退化</li>
+            <li>主题 segmented 复用已有 <code>handleThemeChange</code>,新写 0 行业务逻辑</li>
+            <li>主体结构不动,只补 system-menu 缺的主题行</li>
+          </ul>
+        </div>
+        <div class="compare-col warn">
+          <div class="col-title" style="color: var(--warn);">🟡 中风险</div>
+          <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: var(--text-soft);">
+            <li>openModal/closeModal 是全局函数,改 z-index 逻辑需要 5 个 modal 全验证</li>
+            <li>system-menu HTML 插入新行要确认不影响 3 横线按钮的 click 关闭逻辑</li>
+            <li>主题切换时 <code>refs.themeOpts.is-active</code> 同步逻辑需跟 system-menu 的 segmented 同步(避免双 segmented active 不一致)</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

@@ -4,7 +4,22 @@
 
 **在线访问：** <https://yubiediu826.github.io/SerialCubeWeb/SerialCube.html>
 
-单 HTML 文件，零安装、零后端、零依赖。Web Serial API 直连真实串口，内置 mock 模式，**协议编辑器**支持 TLV 帧结构 + 5 种 CRC 校验，图形仪表盘 + 时间线系统 + 双主题 + 告警面板一应俱全。
+单 HTML 文件，零安装、零后端、零依赖。Web Serial API 直连真实串口，内置 mock 模式，**协议编辑器**支持 9 种帧 kind（含 Custom）+ 5 种 CRC 校验，图形仪表盘 + 时间线系统 + 主题切换 + 告警面板一应俱全。
+
+---
+
+## 🚀 最新版本 v1.1.1 (2026-08-12)
+
+4 个用户反馈修复 — 主题切换入口迁到主系统菜单、配置中心改名为协议配置、编辑模式视觉强化、Modal stack 嵌套修复。
+
+| 修复 | 说明 |
+|------|------|
+| 主题 segmented 进 system-menu | topbar 右上角 3 横线菜单加浅/深/跟随 3 档切换，0 行业务逻辑新增 |
+| "配置中心" → "协议配置" | 用户指定改名，副标题简化，头部"开始引导"按钮改"新建协议" |
+| 编辑模式 + 卡片角标 | active 态加 `!important` + 绿点，文字态切换；卡片 action 16→20px + hover 强化 |
+| Modal stack 嵌套 | `NS._modalStack` 栈式叠加，协议配置 4 处 closeModal 删除，Esc 键只关栈顶 |
+
+详细：[`docs/changelog/2026-08-12-v1.1.1-fixes.md`](docs/changelog/2026-08-12-v1.1.1-fixes.md) · [`docs/handover/HANDOFF-V1.1.1-FIXES-2026-08-12.md`](docs/handover/HANDOFF-V1.1.1-FIXES-2026-08-12.md)
 
 ---
 
@@ -27,10 +42,27 @@
 - 📊 **图形解析** — 仪表盘 widget（大数字 + sparkline + 状态角标）+ 折线/柱状/面积/散点弹窗
 - ⏱ **时间线系统** — 卡片式 + 全局范围选择 + 缩放工具栏
 - 📤 **预设发送** — 3 种扩展：自动触发 / 条件触发 / 预设组
-- 🧩 **协议编辑器** — TLV 帧结构，2 个内置协议模板（BMS TLV v1 / Modbus RTU），5 种 CRC 校验
+- 🧩 **协议编辑器** — 9 种帧 kind（含 Custom），2 个内置协议模板（BMS TLV v1 / Modbus RTU），5 种 CRC 校验
 - 🔍 **解析协议** — 文本 / 十六进制 双模式
-- 🎨 **双主题** — 浅色 / 深色 / 跟随系统，modal / panel 统一实色
+- 🎨 **主题切换** — 浅色 / 深色 / 跟随系统（v1.1.1 入口在系统菜单 segmented）
 - 🔔 **告警** — toast 浮层 + 通知历史
+
+---
+
+## 🛠 开发工具（v1.1.1 新增）
+
+| 工具 | 路径 | 作用 |
+|------|------|------|
+| **preflight.ps1** | `.minimax/skills/serialcube-workflow/preflight.ps1` | 改 SerialCube.html 前必跑 — 9 项健康检查（agent-browser / git / PS 5.1 陷阱 / 代理端口） |
+| **select-scenarios.ps1** | `.minimax/skills/serialcube-e2e/scripts/select-scenarios.ps1` | 按改动文件自动选要跑的 e2e 场景（6 场景不每次全跑） |
+| **subagent 4 段 report** | `.minimax/skills/serialcube-workflow/references/subagent-template.md` | subagent 必须输出 REPORT-CHANGED/VERIFIED/NEXT/HEARTBEAT 4 段，防 aborted 失联 |
+| **bump-version.ps1** | `.minimax/skills/version-management/scripts/bump-version.ps1` | 自动同步 VERSION + changelog 段（修改 SerialCube.html 前必跑） |
+
+跑 preflight：
+
+```powershell
+pwsh -File .minimax/skills/serialcube-workflow/preflight.ps1
+```
 
 ---
 
@@ -65,13 +97,16 @@ cd SerialCubeWeb
 | 你想了解 | 去看哪里 |
 |----------|----------|
 | 30 秒快速接手（agent 必看） | [docs/handover/HANDOFF-QUICKSTART-2026-08-11.md](docs/handover/HANDOFF-QUICKSTART-2026-08-11.md) |
-| 每次开新窗口 5 步检查 | [docs/handover/SESSION-CHECKLIST-2026-08-11.md](docs/handover/SESSION-CHECKLIST-2026-08-11.md) |
 | 完整文档地图（30s/2min/5min 分层） | [docs/README.md](docs/README.md) |
 | 工具用途 / 功能 / 怎么用 | [docs/guides/USER-GUIDE.md](docs/guides/USER-GUIDE.md) |
 | 改代码 / 调试 / 部署 SOP | [docs/guides/DEVELOPER-GUIDE.md](docs/guides/DEVELOPER-GUIDE.md) |
 | AI Agent 接手标准动作 | [docs/guides/AGENT-START-HERE.md](docs/guides/AGENT-START-HERE.md) |
 | 项目当前状态 / 关键决策 | [docs/handover/PROJECT-HANDOVER-2026-08-11.md](docs/handover/PROJECT-HANDOVER-2026-08-11.md) |
-| v1.0.0 发布说明 | [docs/handover/release-v1.0.0-2026-08-11.md](docs/handover/release-v1.0.0-2026-08-11.md) |
+| v1.1.1 修复交接 | [docs/handover/HANDOFF-V1.1.1-FIXES-2026-08-12.md](docs/handover/HANDOFF-V1.1.1-FIXES-2026-08-12.md) |
+| v1.1.0 协议多命令交接 | [docs/handover/HANDOFF-PROTOCOL-MULTI-COMMAND-2026-08-12.md](docs/handover/HANDOFF-PROTOCOL-MULTI-COMMAND-2026-08-12.md) |
+| v1.1.0 release notes | [docs/handover/release-v1.1.0-2026-08-12.md](docs/handover/release-v1.1.0-2026-08-12.md) |
+| v1.0.0 release notes | [docs/handover/release-v1.0.0-2026-08-11.md](docs/handover/release-v1.0.0-2026-08-11.md) |
+| v1.1.1 changelog | [docs/changelog/2026-08-12-v1.1.1-fixes.md](docs/changelog/2026-08-12-v1.1.1-fixes.md) |
 | 变更记录（主索引） | [docs/CHANGELOG.md](docs/CHANGELOG.md) |
 | 每次 push 的子 changelog | [docs/changelog/](docs/changelog/README.md) |
 | 本地备份策略 | [docs/backup/BACKUP.md](docs/backup/BACKUP.md) |
@@ -79,30 +114,30 @@ cd SerialCubeWeb
 | 5 种 CRC 算法速查 | [docs/reference/CRC-REFERENCE.md](docs/reference/CRC-REFERENCE.md) |
 | 协议模板速查 | [docs/reference/PROTOCOL-TEMPLATES.md](docs/reference/PROTOCOL-TEMPLATES.md) |
 | 完整开发工作流 / skill 工具集 | [`.minimax/skills/README.md`](.minimax/skills/README.md) |
-| 实施计划存档索引 | [docs/superpowers/README.md](docs/superpowers/README.md) |
-| 历史实施计划 | [docs/superpowers/plans/](docs/superpowers/plans/) |
 
 ---
 
-## 开发流程（5 问决策树）
+## 开发流程（6 问决策树）
 
 任何改动前，先问自己：
 
-1. 这是**创造性工作**（新功能 / 新组件 / 改行为）？→ 走 `brainstorming` 9 步清单
-2. 改完了要**发版**？→ 走 `version-management` 3 条规则
-3. 要**部署**到 GitHub Pages？→ 走 `deploy-checklist` 5 件事
-4. 改完想**端到端验证**？→ 走 `serialcube-e2e` 6 场景
-5. **其他情况**（小改 / 文档 / 配置）→ 直接动手
+1. 跑 **preflight**？→ `pwsh -File .minimax/skills/serialcube-workflow/preflight.ps1`（9 项健康检查）
+2. 这是**创造性工作**（新功能 / 新组件 / 改行为）？→ 走 `brainstorming` 9 步清单
+3. 改完了要**发版**？→ 走 `version-management` 3 条规则（必跑 `bump-version.ps1`）
+4. 要**部署**到 GitHub Pages？→ 走 `deploy-checklist` 5 件事
+5. 改完想**端到端验证**？→ 走 `serialcube-e2e` + `select-scenarios` 自动选场景
+6. **其他情况**（小改 / 文档 / 配置）→ 直接动手
 
 完整工作流见 [`.minimax/skills/README.md`](.minimax/skills/README.md)。
 
 ### 硬性规则（不可破）
 
-- **Commit message 必须用中文**（项目级约定）
-- **push 前必须确认**（`version-management` R2 规则，避免 force push 误操作）
+- **Commit message 必须用中文**（项目级约定，用 `git commit -F <file>` 避免 PS 引号问题）
+- **push 前必须 `ask_user` 确认**（避免 force push 误操作）
 - **VERSION 三处同步**：`SerialCube.html const VERSION` / HTML changelog 段 / Git tag
 - **改 `SerialCube.html` 前先跑** `bump-version.ps1 -Level <patch|minor|major>`
 - **每次 push 前必写 changelog 子文件**：`docs/changelog/YYYY-MM-DD-<topic>.md` + 更新主索引 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)
+- **版本变更后必更新根 README + docs/README**（防止文档断档，工作流自动 check）
 - **更新完必跑 link check + 同步关联文档**（见 [docs/guides/DEVELOPER-GUIDE.md](docs/guides/DEVELOPER-GUIDE.md) § 13 自检脚本）
 
 ---
@@ -131,7 +166,7 @@ cd SerialCubeWeb
 
 1. Fork → 创建特性分支（`git checkout -b feat/xxx`）
 2. 改代码，**commit message 用中文**
-3. 跑 `serialcube-e2e` 6 场景验证
+3. 跑 `serialcube-e2e` + `select-scenarios` 自动验证
 4. 提 PR
 
 ---
