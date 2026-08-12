@@ -9977,6 +9977,10 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         // 兼容垫片: 旧 NS.COMMANDS 全局数组 → 跨协议 flatMap
         //   旧代码 NS.COMMANDS.find / .forEach / .length / .filter 等都换成 NS.allCommands()
         NS.allCommands = function () { return (NS.PROTOCOLS || []).flatMap(function (p) { return p.commands || []; }); };
+        // v1.2: 告警独立规则 + 当前激活协议 (单协议聚焦, 串口绑定)
+        NS.ALERTS = NS.ALERTS || [];
+        NS.activeProtoId = NS.activeProtoId || (NS.PROTOCOLS[0] && NS.PROTOCOLS[0].id) || null;
+        NS._debugPanelCollapsed = true;  // 调试面板默认折叠 (v1.3 真实模拟占位)
 
         // 数据类型库 (Phase 2 Step 1.2): type → 字节数 + 默认字节序映射
         //   cmd.dataFields[i].type 从这里查 size, 替代原 NS.DATA_FIELDS[name].type 字符串硬编码
@@ -12394,11 +12398,12 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         };
 
         // --- 导入导出 (ie modal) ---
+        // v1.2: 升级到 v3 格式, 加 alerts + activeProtoId
         NS.exportConfig = function () {
-          // v2 格式: commands 已内嵌到 protocols[i].commands, 不再输出顶层 dataFields/commands
-          const config = { type: 'SerialWebUserConfig', version: 2, userConfig: { dashboard: {
-            protocols: NS.PROTOCOLS, cards: NS.CARDS,
-            settings: { cmdMismatchEnabled: NS.cmdMismatchEnabled, alertDebounceMs: NS.alertDebounceMs, cardLayout: NS.cardLayout }
+          // v3 格式: 加 alerts + settings.activeProtoId
+          const config = { type: 'SerialWebUserConfig', version: 3, userConfig: { dashboard: {
+            protocols: NS.PROTOCOLS, cards: NS.CARDS, alerts: NS.ALERTS || [],
+            settings: { cmdMismatchEnabled: NS.cmdMismatchEnabled, alertDebounceMs: NS.alertDebounceMs, cardLayout: NS.cardLayout, activeProtoId: NS.activeProtoId }
           }}};
           return JSON.stringify(config, null, 2);
         };
@@ -12478,8 +12483,11 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               if (typeof uc.settings.cmdMismatchEnabled === 'boolean') NS.cmdMismatchEnabled = uc.settings.cmdMismatchEnabled;
               if (typeof uc.settings.alertDebounceMs === 'number') NS.alertDebounceMs = uc.settings.alertDebounceMs;
               if (uc.settings.cardLayout) NS.cardLayout = uc.settings.cardLayout;
+              NS.activeProtoId = uc.settings.activeProtoId || (NS.PROTOCOLS[0] && NS.PROTOCOLS[0].id);
+            } else {
+              NS.activeProtoId = NS.PROTOCOLS[0] && NS.PROTOCOLS[0].id;
             }
-            NS.activeProtoId = NS.PROTOCOLS[0] && NS.PROTOCOLS[0].id;
+            NS.ALERTS = Array.isArray(uc.alerts) ? uc.alerts : [];
             NS.initMockData();
             NS.renderKpiCards();
 
@@ -13100,7 +13108,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           if (newBtn) newBtn.onclick = () => {
             // 现有 openCardEdit 是 edit-only (找不到 c 就 return),所以先 push 占位卡再调它
             const baseId = 'c' + (Date.now() % 100000);
-            const newCard = { id: baseId, type: 'trend', cmd: (allCmds[0] || {}).id || 0, dir: 'rx', field: '', title: '新建卡片', unit: '', precision: 2 };
+            // v1.2: 卡片加 protocol 字段, 默认跟当前激活协议, 仪表盘按 protocol 过滤
+            const newCard = { id: baseId, type: 'trend', cmd: (allCmds[0] || {}).id || 0, dir: 'rx', field: '', title: '新建卡片', unit: '', precision: 2, protocol: NS.activeProtoId || 'proto_bms' };
             NS.CARDS.push(newCard);
             NS.editingCardId = baseId;
             NS.openCardEdit && NS.openCardEdit(baseId);
