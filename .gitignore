@@ -26,6 +26,9 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 
+# 临时验证脚本 (Phase 2 verify, 不进 commit)
+docs/verify/
+
 # 浏览器 / 工具
 screenshots/
 *.log

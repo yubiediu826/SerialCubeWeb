@@ -1045,7 +1045,7 @@
       display: block;
     }
 
-    .floating-menu button:not(.menu-theme-opt),
+    .floating-menu button,
     .floating-menu a,
     .floating-menu .menu-placeholder {
       width: 100%;
@@ -1186,86 +1186,6 @@
       border-color:var(--hover-border-color-dark-l1117);
     }
 
-    .floating-menu .menu-theme-line {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      min-height: 34px;
-      padding: 5px 6px;
-      border-radius: 10px;
-      background: rgba(86, 114, 205, 0.06);
-      margin-top: 4px;
-    }
-
-    .floating-menu .menu-theme-label {
-      flex: 0 0 auto;
-      color: var(--text-soft);
-      font-size: 0.6875rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .menu-theme-group {
-      position: relative;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0;
-      flex: 1 1 auto;
-      min-width: 0;
-      padding: 0;
-      border-radius: 10px;
-      border: 1px solid var(--border-strong);
-      background: var(--bg-panel-strong);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
-    }
-
-    .menu-theme-group::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 0;
-      width: calc(33.333%);
-      border-radius: 8px;
-      background: var(--accent);
-      border: 1px solid rgba(255,255,255,0.14);
-      box-shadow: 0 10px 20px rgba(86, 114, 205, 0.2);
-      transition: transform 0.2s ease;
-      pointer-events: none;
-    }
-
-    .menu-theme-group.pos-light::before {
-      transform: translateX(100%);
-    }
-
-    .menu-theme-group.pos-dark::before {
-      transform: translateX(200%);
-    }
-
-    .menu-theme-opt {
-      position: relative;
-      z-index: 1;
-      min-width: 0;
-      min-height: 28px;
-      padding: 4px 6px;
-      border-radius: 7px;
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--text);
-      font-size: 0.6875rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      cursor: pointer;
-      transition: color 0.16s ease;
-    }
-
-    .menu-theme-opt.is-active {
-      color: #eef2ff;
-    }
-
     .runtime-mode-label {
       min-width: 0;
       overflow: hidden;
@@ -1286,8 +1206,8 @@
       line-height: 1.3;
     }
 
-    .floating-menu button:not(.menu-theme-opt):hover,
-    .floating-menu button:not(.menu-theme-opt):focus-visible {
+    .floating-menu button:hover,
+    .floating-menu button:focus-visible {
       background: var(--accent-soft);
     }
 
@@ -6774,110 +6694,6 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .dashboard-host     .legend-item .dot.crc { background: var(--c-crc); }
 .dashboard-host     .legend-item .dot.tail { background: var(--c-tail); }
 
-.dashboard-host     .data-field-list {
-      display: flex; flex-direction: column; gap: 4px;
-      max-height: 180px; overflow-y: auto;
-    }
-.dashboard-host     .data-field-row {
-      display: grid;
-      grid-template-columns: 20px 1fr 100px 80px 24px;
-      gap: 6px; align-items: center;
-      padding: 6px 8px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 0.6875rem;
-    }
-.dashboard-host     .data-field-row .drag-handle { color: var(--text-soft); cursor: grab; text-align: center; font-size: 0.875rem; }
-.dashboard-host     .data-field-row input, .data-field-row select {
-      font-size: 0.6875rem; padding: 0 4px; height: 24px;
-      border: 1px solid var(--border); border-radius: 4px;
-      background: var(--bg); color: var(--text);
-    }
-.dashboard-host     .data-field-row .name-input { font-family: var(--font-mono); }
-.dashboard-host     .data-field-row .type-select { font-family: var(--font-mono); }
-.dashboard-host     .data-field-row .default-input { font-family: var(--font-mono); }
-.dashboard-host     .data-field-row .del-btn { width: 22px; height: 22px; background: transparent; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; color: var(--text-soft); }
-.dashboard-host     .data-field-row .del-btn:hover { color: var(--danger); border-color: var(--danger); }
-
-    /* Cmd list */
-.dashboard-host     .cmd-list { display: flex; flex-direction: column; gap: 6px; }
-.dashboard-host     .cmd-list-item {
-      display: grid; grid-template-columns: auto 80px 1fr 80px auto;
-      gap: 10px; align-items: center;
-      padding: 10px 12px;
-      background: var(--bg); border: 1px solid var(--border);
-      border-radius: var(--radius-small);
-    }
-.dashboard-host     .cmd-list-item .badge { font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
-.dashboard-host     .cmd-list-item .badge.rx { background: rgba(58, 92, 204, 0.12); color: var(--signal); }
-.dashboard-host     .cmd-list-item .badge.tx { background: var(--accent-soft); color: var(--accent-strong); }
-.dashboard-host     .cmd-list-item .name { font-weight: 700; }
-.dashboard-host     .cmd-list-item .fields { font-family: var(--font-mono); font-size: 0.625rem; color: var(--text-soft); }
-.dashboard-host     .cmd-list-item .cadence { font-family: var(--font-mono); font-size: 0.6875rem; color: var(--text-soft); text-align: right; }
-    /* 命令管理 modal 列表行 (data 长度 / data 字段展示)
-       数据字段列 1fr → 1.5fr, 让 RX 0x01 5 字段 (cell_1_v, cell_2_v, cell_3_v, cell_4_v, pack_v_avg) 不被压缩
-       名称列 1fr → 0.7fr, 释放空间给数据字段; 名称本身短, 不影响阅读 */
-.dashboard-host     .cmd-row {
-      display: grid; grid-template-columns: 50px 70px 0.7fr 100px 1.5fr 80px 28px;
-      gap: 10px; align-items: center;
-      padding: 8px 10px;
-      background: var(--bg); border: 1px solid var(--border);
-      border-radius: var(--radius-small);
-      font-size: 0.75rem;
-    }
-.dashboard-host     .cmd-row .cmd-data { font-family: var(--font-mono); font-size: 0.625rem; color: var(--text-soft); }
-.dashboard-host     .cmd-row .cmd-fields { min-width: 0; word-break: break-all; }
-    /* c: 命令管理 modal 列标题行 (跟 .cmd-row 同 7 列 grid) */
-.dashboard-host     .cmd-list-header {
-      display: grid; grid-template-columns: 50px 70px 0.7fr 100px 1.5fr 80px 28px;
-      gap: 10px; align-items: center;
-      padding: 4px 10px 8px;
-      font-size: 0.625rem; font-weight: 600; color: var(--text-soft);
-      text-transform: uppercase; letter-spacing: 0.06em;
-      border-bottom: 1px solid var(--border-soft);
-      margin-bottom: 2px;
-    }
-.dashboard-host     .cmd-list-header .dir-badge,
-.dashboard-host     .cmd-list-header .cmd-id { background: transparent; padding: 0; }
-.dashboard-host     .cmd-list-header .cmd-data { font-family: var(--font-mono); }
-
-.dashboard-host     .card-edit-list { display: flex; flex-direction: column; gap: 6px; }
-.dashboard-host     .card-edit-item {
-      display: grid; grid-template-columns: 60px 70px 1fr 80px auto auto;
-      gap: 10px; align-items: center;
-      padding: 8px 10px;
-      background: var(--bg); border: 1px solid var(--border);
-      border-radius: var(--radius-small);
-      font-size: 0.75rem;
-    }
-    /* d: 卡片配置列标题行 (跟 .card-edit-item 同 6 列 grid) */
-.dashboard-host     .card-edit-list-header {
-      display: grid; grid-template-columns: 60px 70px 1fr 80px auto auto;
-      gap: 10px; align-items: center;
-      padding: 4px 10px 8px;
-      font-size: 0.625rem; font-weight: 600; color: var(--text-soft);
-      text-transform: uppercase; letter-spacing: 0.06em;
-      border-bottom: 1px solid var(--border-soft);
-      margin-bottom: 2px;
-    }
-.dashboard-host     .card-edit-list-header .ce-type {
-      font-size: 0.625rem; font-weight: 600; color: var(--text-soft);
-      text-transform: uppercase; letter-spacing: 0.06em;
-      background: transparent; padding: 0;
-    }
-.dashboard-host     .card-edit-item .drag-handle { color: var(--text-soft); cursor: grab; text-align: center; }
-.dashboard-host     .card-edit-item .type-tag { font-size: 0.625rem; padding: 2px 6px; border-radius: 3px; background: var(--bg-terminal); color: var(--text-soft); font-weight: 700; text-transform: uppercase; }
-.dashboard-host     .card-edit-item .rx-tag { font-size: 0.5625rem; padding: 1px 4px; border-radius: 3px; background: rgba(58, 92, 204, 0.18); color: var(--signal); font-weight: 700; }
-    .card-edit-item .edit-btn,
-.dashboard-host     .card-edit-item .del-btn {
-      background: transparent; border: 1px solid var(--border);
-      border-radius: 4px; padding: 2px 8px; cursor: pointer;
-      font-size: 0.6875rem; color: var(--text-soft);
-    }
-.dashboard-host     .card-edit-item .edit-btn:hover { background: var(--accent-soft); color: var(--accent); }
-.dashboard-host     .card-edit-item .del-btn:hover { color: var(--danger); border-color: var(--danger); }
-
     /* Edit mode toast */
 .dashboard-host     .edit-toast {
       position: fixed; top: 70px; right: 16px;
@@ -7051,9 +6867,47 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .dashboard-host     .toast.danger { box-shadow: inset 3px 0 0 var(--danger); }
     @keyframes toast-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
+    /* 新建协议 3 步向导 (dh-new-proto-wizard) */
+.dashboard-host     .wizard-kind-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.dashboard-host     .wizard-kind-card { padding: 14px; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.12s; }
+.dashboard-host     .wizard-kind-card:hover { border-color: var(--accent); }
+.dashboard-host     .wizard-kind-card.selected { border-color: var(--accent); background: var(--accent-soft); }
+.dashboard-host     .wizard-kind-name { font-weight: 600; margin-bottom: 4px; font-size: 13px; }
+.dashboard-host     .wizard-kind-desc { font-size: 11px; color: var(--text-soft); }
+.dashboard-host     .wizard-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.dashboard-host     .wizard-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-soft); }
+.dashboard-host     .wizard-form input, .wizard-form select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px; }
+.dashboard-host     .wiz-field-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dashboard-host     .wiz-field-table th, .wiz-field-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+.dashboard-host     .wiz-field-table input, .wiz-field-table select { padding: 3px 6px; border: 1px solid var(--border); border-radius: 3px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 12px; width: 80px; }
+.dashboard-host     .wiz-field-table .wiz-field-name { width: 120px; }
+.dashboard-host     .wiz-field-del { background: none; border: none; cursor: pointer; padding: 4px; color: var(--danger); }
+
+    /* 配置中心 modal (Task 9) — 5 tab 切换 + 1180px 宽 modal */
+.dashboard-host     .modal.xtra-wide { width: min(1180px, 95vw); max-width: 95vw; }   /* 配置中心要 1180px,覆盖原 L6233 同选择器 1400px 规则 */
+.dashboard-host     .editor-tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--bg-subtle); padding: 0 12px; gap: 4px; }
+.dashboard-host     .editor-tab { background: transparent; border: none; padding: 10px 16px; font-size: 13px; color: var(--text-soft); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; transition: all 0.12s; }
+.dashboard-host     .editor-tab:hover { color: var(--text); background: var(--bg-elev); }
+.dashboard-host     .editor-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--bg); }
+.dashboard-host     .editor-tab .badge { background: var(--accent-soft); color: var(--accent); border-radius: 9px; padding: 1px 6px; font-size: 10px; font-weight: 600; }
+.dashboard-host     .cc-tab-pane { display: none; padding: 20px 24px; }
+.dashboard-host     .cc-tab-pane.active { display: block; }
+.dashboard-host     .cc-body { min-height: 400px; }
+
+/* 配置中心 Tab 1 协议 (Task 10) — 帧模板表 */
+.dashboard-host     .cc-field-table td { padding: 6px 12px; border-bottom: 1px solid var(--border); }
+.dashboard-host     .cc-field-table tbody tr:hover { background: var(--bg-subtle); }
+.dashboard-host     .cc-field-table tbody tr:last-child td { border-bottom: none; }
+
+    /* 新建命令 modal (dh-new-command) */
+.dashboard-host     .new-cmd-form { display: flex; flex-direction: column; gap: 16px; }
+.dashboard-host     .new-cmd-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.dashboard-host     .new-cmd-row label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-soft); }
+.dashboard-host     .new-cmd-row input, .new-cmd-row select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px; }
+
     /* Scrollbar */
-.dashboard-host     .alert-list::-webkit-scrollbar, .modal-body::-webkit-scrollbar, .command-panel::-webkit-scrollbar, .proto-tabs::-webkit-scrollbar, .sidebar-content::-webkit-scrollbar, .card-grid-area::-webkit-scrollbar, .data-field-list::-webkit-scrollbar { width: 6px; height: 6px; }
-.dashboard-host     .alert-list::-webkit-scrollbar-thumb, .modal-body::-webkit-scrollbar-thumb, .command-panel::-webkit-scrollbar-thumb, .proto-tabs::-webkit-scrollbar-thumb, .sidebar-content::-webkit-scrollbar-thumb, .card-grid-area::-webkit-scrollbar-thumb, .data-field-list::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); }   /* 用 token 跟主题切换: 浅色柔和蓝紫 + 深色暗灰,
+.dashboard-host     .alert-list::-webkit-scrollbar, .modal-body::-webkit-scrollbar, .command-panel::-webkit-scrollbar, .proto-tabs::-webkit-scrollbar, .sidebar-content::-webkit-scrollbar, .card-grid-area::-webkit-scrollbar { width: 6px; height: 6px; }
+.dashboard-host     .alert-list::-webkit-scrollbar-thumb, .modal-body::-webkit-scrollbar-thumb, .command-panel::-webkit-scrollbar-thumb, .proto-tabs::-webkit-scrollbar-thumb, .sidebar-content::-webkit-scrollbar-thumb, .card-grid-area::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); }   /* 用 token 跟主题切换: 浅色柔和蓝紫 + 深色暗灰,
                                                                                                                                                                                                                                                                                                                           之前写死硬编码蓝紫 on 深色背景 = "白边" (thumb 6px 宽, 圆角视觉差异小, 省略) */
   
 
@@ -7175,14 +7029,6 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 <span id="runtime-mode-label" class="runtime-mode-label">关于 v1.0.0</span>
                 <span id="online-mode-chip" class="online-mode-chip">当前在线最新</span>
               </button>
-              <div class="menu-theme-line">
-                <span class="menu-theme-label">主题：</span>
-                <div id="menu-theme-group" class="menu-theme-group">
-                  <button class="menu-theme-opt is-active" data-theme="system">跟随系统</button>
-                  <button class="menu-theme-opt" data-theme="light">浅色模式</button>
-                  <button class="menu-theme-opt" data-theme="dark">深色模式</button>
-                </div>
-              </div>
               <div id="config-menu-row" class="menu-config-line">
                 <span class="menu-config-label">配置：</span>
                 <button id="copy-user-config-btn" type="button">复制配置</button>
@@ -7604,41 +7450,11 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           <div class="main-row">
             <main class="content">
               <div class="toolbar">
-                <button class="toolbar-btn" id="dh-open-proto-editor">
-                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="6" cy="6" r="2.4"></circle>
-                    <circle cx="10" cy="10" r="2.4"></circle>
-                    <path d="M6 8.4v5.2M10 7.6V2.4M3.6 6h5.2M7.2 10H2"></path>
-                  </svg>
-                  协议编辑器
+                <button class="toolbar-btn" id="dh-open-config-center" data-svg="settings" data-svg-size="14">
+                  <span>配置中心</span>
                 </button>
-                <button class="toolbar-btn" id="dh-open-cmd-config">
-                  <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
-                    <path d="M7 1L1.5 9h4L4 15l5.5-8h-4z"></path>
-                  </svg>
-                  命令管理
-                </button>
-                <button class="toolbar-btn" id="dh-open-card-config">
-                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
-                    <rect x="1.5" y="1.5" width="6" height="5" rx="1"></rect>
-                    <rect x="8.5" y="1.5" width="6" height="5" rx="1"></rect>
-                    <rect x="1.5" y="9.5" width="6" height="5" rx="1"></rect>
-                    <rect x="8.5" y="9.5" width="6" height="5" rx="1"></rect>
-                  </svg>
-                  卡片配置
-                </button>
-                <button class="toolbar-btn" id="dh-open-import-export">
-                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M2 8h12M10 4l4 4-4 4M6 12L2 8l4-4"></path>
-                  </svg>
-                  导入 / 导出
-                </button>
-                <button class="toolbar-btn" id="dh-open-alerts">
-                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M8 2c-3 0-5 2-5 5v3l-1.5 1.5h13L13 10V7c0-3-2-5-5-5z"></path>
-                    <path d="M6.5 13a1.5 1.5 0 003 0"></path>
-                  </svg>
-                  告警配置
+                <button class="toolbar-btn" id="dh-open-tour" data-svg="graduation-cap" data-svg-size="14">
+                  <span>引导</span>
                 </button>
                 <span class="toolbar-status"><span class="dot"></span>实时 800ms</span>
                 <span class="spacer"></span>
@@ -7741,106 +7557,6 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           </div>
         </div>
 
-        <div class="modal-backdrop" id="dh-cmd-config-backdrop"></div>
-        <div class="modal" id="dh-cmd-config-modal">
-          <div class="modal-header">
-            <button aria-label="关闭" class="close-btn" data-close="dh-cmd-config" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
-            <span class="modal-title">命令管理</span>
-            <span class="modal-subtitle">绑定协议 / 方向 / 轮询 / 数据字段</span>
-          </div>
-          <div class="modal-body">
-            <div class="form-section-title">已配置命令</div>
-            <div class="cmd-list" id="dh-cmd-list"></div>
-            <div class="form-section-title" style="margin-top: 20px;">新增 / 编辑命令</div>
-            <div class="form-row col-2">
-              <label for="dh-cmd-form-id">命令 ID (Hex)</label>
-              <input class="form-input mono" id="dh-cmd-form-id" placeholder="0x12">
-              <label style="grid-column: auto; margin-left: 8px;" for="dh-cmd-form-name">名称</label>
-              <input class="form-input" id="dh-cmd-form-name" placeholder="Read SoC">
-            </div>
-            <div class="form-row col-2">
-              <label for="dh-cmd-form-dir">方向</label>
-              <select class="form-select" id="dh-cmd-form-dir">
-                <option value="rx">rx (设备 → 主机)</option>
-                <option value="tx">tx (主机 → 设备, 控制)</option>
-              </select>
-              <label style="grid-column: auto; margin-left: 8px;" for="dh-cmd-form-proto">使用协议</label>
-              <select class="form-select" id="dh-cmd-form-proto"></select>
-            </div>
-            <div class="form-row col-2">
-              <label for="dh-cmd-form-frame">帧类型</label>
-              <select class="form-select" id="dh-cmd-form-frame">
-                <option value="query">query (轮询)</option>
-                <option value="control">control (手动 / 事件触发)</option>
-                <option value="event">event (设备主动上报)</option>
-              </select>
-              <label style="grid-column: auto; margin-left: 8px;" for="dh-cmd-form-cadence">轮询周期 (ms)</label>
-              <input class="form-input mono" type="number" id="dh-cmd-form-cadence" placeholder="0=手动" value="0">
-            </div>
-            <div class="form-row">
-              <label for="dh-cmd-form-fields">数据字段 (data 段)</label>
-              <input class="form-input mono" id="dh-cmd-form-fields" placeholder="soc, soh, cycle_count">
-            </div>
-            <div class="form-row col-2">
-              <label>data 长度 (字节)</label>
-              <span class="readonly-auto-calc" id="dh-cmd-form-datasize">自动算 0 bytes</span>
-              <label style="grid-column: auto; margin-left: 8px;" for="dh-cmd-form-expect">期望响应 (Hex)</label>
-              <input class="form-input mono" id="dh-cmd-form-expect" placeholder="0x92 (rx 命令, 错配检测用)">
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="toolbar-btn" data-close="dh-cmd-config">取消</button>
-            <span class="spacer"></span>
-            <button class="toolbar-btn" id="dh-cmd-save">保存命令</button>
-          </div>
-        </div>
-
-        <div class="modal-backdrop" id="dh-card-config-backdrop"></div>
-        <div class="modal" id="dh-card-config-modal">
-          <div class="modal-header">
-            <button aria-label="关闭" class="close-btn" data-close="dh-card-config" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
-            <span class="modal-title">卡片配置</span>
-            <span class="modal-subtitle">所有卡片 · 大卡 / 列表</span>
-          </div>
-          <div class="modal-body">
-            <div class="form-section-title">已配卡片</div>
-            <div class="card-edit-list" id="dh-card-edit-list"></div>
-            <div class="form-section-title" style="margin-top: 20px;">添加卡片</div>
-            <div class="form-row col-2">
-              <label for="dh-card-form-type">类型</label>
-              <select class="form-select" id="dh-card-form-type">
-                <option value="trend">趋势卡 (数值 + sparkline)</option>
-                <option value="pair">Pair 对比卡 (SET / ACT / Δ)</option>
-              </select>
-              <label style="grid-column: auto; margin-left: 8px;" for="dh-card-form-cmd">命令</label>
-              <select class="form-select" id="dh-card-form-cmd"></select>
-            </div>
-            <div class="form-row">
-              <label for="dh-card-form-field">字段</label>
-              <select class="form-select" id="dh-card-form-field"></select>
-              <label class="form-checkbox" style="margin-left: 12px;"><input type="checkbox" id="dh-card-form-rx">RX-only (fromOtherCmd)</label>
-            </div>
-            <div class="form-row col-2">
-              <label for="dh-card-form-title">标题</label>
-              <input class="form-input" id="dh-card-form-title" placeholder="(留空自动)">
-              <label style="grid-column: auto; margin-left: 8px;" for="dh-card-form-unit">单位</label>
-              <input class="form-input mono" id="dh-card-form-unit" placeholder="V / A / %">
-            </div>
-            <div class="form-row col-3">
-              <label for="dh-card-form-lower">范围下限</label>
-              <input class="form-input mono" type="number" step="0.01" id="dh-card-form-lower" placeholder="(无)">
-              <label for="dh-card-form-upper">范围上限</label>
-              <input class="form-input mono" type="number" step="0.01" id="dh-card-form-upper" placeholder="(无)">
-              <label for="dh-card-form-precision">小数位</label>
-              <input class="form-input mono" type="number" min="0" max="6" id="dh-card-form-precision" value="2">
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="toolbar-btn" data-close="dh-card-config">关闭</button>
-            <span class="spacer"></span>
-            <button class="toolbar-btn primary" id="dh-card-add">+ 添加卡片</button>
-          </div>
-        </div>
 
         <div class="modal-backdrop" id="dh-card-edit-backdrop"></div>
         <div class="modal" id="dh-card-edit-modal">
@@ -7887,49 +7603,95 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           </div>
         </div>
 
-        <div class="modal-backdrop" id="dh-ie-backdrop"></div>
-        <div class="modal wide" id="dh-ie-modal">
+        <!-- 新建协议 3 步向导 (Task 7) -->
+        <div class="modal-backdrop" id="dh-new-proto-wizard-backdrop"></div>
+        <div class="modal xtra-wide" id="dh-new-proto-wizard-modal">
           <div class="modal-header">
-            <button aria-label="关闭" class="close-btn" data-close="dh-ie" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
-            <span class="modal-title">协议配置 导入 / 导出 (JSON)</span>
-            <span class="modal-subtitle">复用 SerialWebUserConfig v1 格式</span>
+            <button aria-label="关闭" class="close-btn" data-close="dh-new-proto-wizard" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            <span class="modal-title">新建协议 · 3 步向导</span>
+            <span class="modal-subtitle" id="dh-new-proto-step-label">第 1 步 / 共 3 步</span>
+            <span style="flex: 1;"></span>
           </div>
-          <div class="modal-body">
-            <div class="form-section-title">导出</div>
-            <textarea class="form-textarea" id="dh-ie-export" readonly></textarea>
-            <div class="form-section-title" style="margin-top: 16px;">导入</div>
-            <textarea class="form-textarea" id="dh-ie-import" placeholder="粘贴 SerialWebUserConfig JSON..."></textarea>
+          <div class="modal-body" style="padding: 0;">
+            <div id="dh-new-proto-wizard-body"></div>
           </div>
           <div class="modal-footer">
-            <button class="toolbar-btn" data-close="dh-ie">关闭</button>
+            <button class="toolbar-btn" data-close="dh-new-proto-wizard">取消</button>
             <span class="spacer"></span>
-            <button class="toolbar-btn" id="dh-ie-copy">⎘ 复制导出</button>
-            <button class="toolbar-btn primary" id="dh-ie-apply">应用导入</button>
+            <button class="toolbar-btn" id="dh-new-proto-prev">上一步</button>
+            <button class="toolbar-btn primary" id="dh-new-proto-next">下一步</button>
           </div>
         </div>
 
-        <div class="modal-backdrop" id="dh-alerts-backdrop"></div>
-        <div class="modal" id="dh-alerts-modal">
+        <!-- 新建命令 modal (Task 8) -->
+        <div class="modal-backdrop" id="dh-new-command-modal-backdrop"></div>
+        <div class="modal" id="dh-new-command-modal">
           <div class="modal-header">
-            <button aria-label="关闭" class="close-btn" data-close="dh-alerts" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
-            <span class="modal-title">告警配置</span>
+            <button aria-label="关闭" class="close-btn" data-close="dh-new-command" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            <span class="modal-title">新建命令</span>
+            <span class="modal-subtitle" id="dh-new-cmd-proto-label">协议: -</span>
+            <span style="flex: 1;"></span>
           </div>
           <div class="modal-body">
-            <div class="form-section-title">告警规则 (自动从卡片范围派生)</div>
-            <div id="dh-alert-rules-list"></div>
-            <div class="form-section-title" style="margin-top: 20px;">命令错配检测</div>
-            <div class="form-row">
-              <label class="form-checkbox"><input type="checkbox" id="dh-alert-cmd-mismatch" checked> 启用命令错配告警</label>
-            </div>
-            <div class="form-row">
-              <label for="dh-alert-debounce">告警去抖 (ms)</label>
-              <input class="form-input mono" type="number" id="dh-alert-debounce" value="1000" min="0" step="100">
+            <div class="new-cmd-form">
+              <div class="new-cmd-row">
+                <label>ID (hex)<input id="dh-new-cmd-id" type="text" placeholder="0x20" /></label>
+                <label>名称<input id="dh-new-cmd-name" type="text" placeholder="Read Pack Info" /></label>
+                <label>方向<select id="dh-new-cmd-direction"><option value="rx">RX (接收)</option><option value="tx">TX (发送)</option></select></label>
+              </div>
+              <div class="new-cmd-row">
+                <label>帧类型<select id="dh-new-cmd-frameType"><option value="query">query</option><option value="control">control</option><option value="response">response</option></select></label>
+                <label>周期 (ms, 0=触发)<input id="dh-new-cmd-cadence" type="number" min="0" value="200" /></label>
+                <label>期望响应 (hex)<input id="dh-new-cmd-expectResponse" type="text" placeholder="0x80" /></label>
+              </div>
+              <div class="new-cmd-row">
+                <label>备注 (可选)<input id="dh-new-cmd-remark" type="text" placeholder="可空" /></label>
+              </div>
+              <div class="new-cmd-dataFields">
+                <h4 style="margin: 12px 0 8px; font-size: 13px;">数据字段 <span style="color: var(--text-soft); font-weight: 400;" id="dh-new-cmd-total-size">0 字节</span></h4>
+                <div id="dh-new-cmd-dataFields-list"></div>
+                <button class="toolbar-btn" id="dh-new-cmd-add-field" style="margin-top: 8px;"><span data-svg="plus" data-svg-size="12"></span>添加字段</button>
+              </div>
             </div>
           </div>
           <div class="modal-footer">
-            <button class="toolbar-btn" data-close="dh-alerts">关闭</button>
+            <button class="toolbar-btn" data-close="dh-new-command">取消</button>
             <span class="spacer"></span>
-            <button class="toolbar-btn primary" data-close="dh-alerts">完成</button>
+            <button class="toolbar-btn primary" id="dh-new-cmd-save">保存命令</button>
+          </div>
+        </div>
+
+        <!-- 配置中心 modal (Task 9: 5 tab 骨架 - protocols/commands/cards/alerts/ie) -->
+        <div class="modal-backdrop" id="dh-config-center-backdrop"></div>
+        <div class="modal xtra-wide" id="dh-config-center-modal">
+          <div class="modal-header">
+            <button aria-label="关闭" class="close-btn" data-close="dh-config-center" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            <span class="modal-title">配置中心</span>
+            <span class="modal-subtitle" id="dh-config-center-subtitle">协议 / 命令 / 卡片 / 告警 / 导入导出</span>
+            <span style="flex: 1;"></span>
+            <button class="toolbar-btn" id="dh-config-center-tour" data-svg="graduation-cap" data-svg-size="14"><span>开始引导</span></button>
+          </div>
+          <div class="editor-tabs" id="dh-config-center-tabs">
+            <button class="editor-tab active" data-tab="protocols" data-svg="network" data-svg-size="14"><span>协议</span></button>
+            <button class="editor-tab" data-tab="commands" data-svg="zap" data-svg-size="14"><span>命令 <span class="badge" id="dh-cc-commands-badge">0</span></span></button>
+            <button class="editor-tab" data-tab="cards" data-svg="layout-grid" data-svg-size="14"><span>卡片 <span class="badge" id="dh-cc-cards-badge">0</span></span></button>
+            <button class="editor-tab" data-tab="alerts" data-svg="bell" data-svg-size="14"><span>告警 <span class="badge" id="dh-cc-alerts-badge">0</span></span></button>
+            <button class="editor-tab" data-tab="ie" data-svg="arrow-left-right" data-svg-size="14"><span>导入/导出</span></button>
+          </div>
+          <div class="modal-body" style="padding: 0;">
+            <div class="cc-body" id="dh-config-center-body">
+              <div data-tab-content="protocols" class="cc-tab-pane active"></div>
+              <div data-tab-content="commands" class="cc-tab-pane"></div>
+              <div data-tab-content="cards" class="cc-tab-pane"></div>
+              <div data-tab-content="alerts" class="cc-tab-pane"></div>
+              <div data-tab-content="ie" class="cc-tab-pane"></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <span class="spacer"></span>
+            <span id="dh-config-center-status" style="font-size: 11px; color: var(--text-soft); margin-right: 12px;">已自动保存</span>
+            <button class="toolbar-btn" id="dh-config-center-export" data-svg="download" data-svg-size="14"><span>导出</span></button>
+            <button class="toolbar-btn primary" data-close="dh-config-center"><span>完成</span></button>
           </div>
         </div>
 
@@ -8042,6 +7804,19 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.1.0 版本 · 26/8/12</strong>
+            <ul>
+              <li>新增: 协议多命令方案 — 命令作为协议的一级子项,自带 dataFields(类型 + 默认值),告别全局 NS.DATA_FIELDS 数组。</li>
+              <li>新增: 第 9 种协议 kind — Custom,完全空白帧模板,用户自拼每个字段。</li>
+              <li>新增: 统一配置中心 — 5 tab 整合协议/命令/卡片/告警/导入导出,告别 4 个散落 modal + 4 个 toolbar 按钮。</li>
+              <li>新增: 新建协议 3 步向导 — 选 kind → 填基础信息 → 调帧模板(实时预览)。</li>
+              <li>新增: 新建命令 modal — 表单 + 内联 dataFields 编辑器,自动算总字节数。</li>
+              <li>新增: 漫游引导 — 🎓 按钮手动触发,4 步走完协议→命令→卡片→告警全流程。</li>
+              <li>优化: 全部图标统一为 Lucide inline SVG(16x16 viewBox, stroke 1.5),告别 emoji / 文字图标。</li>
+              <li>优化: 工具栏按钮从 5 个减到 1 个配置入口 + 1 个引导,界面更克制。</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.0.0 版本 · 26/8/11</strong>
             <ul>
               <li>首个正式版本。串口监视、设备连接管理、图形解析、时间线系统、预设发送、协议编辑器等核心功能集成。</li>
@@ -8065,7 +7840,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 
   <script>
     (() => {
-      const VERSION = '1.0.0';  // 同步 README/PRODUCT/About 弹窗版本号
+      const VERSION = '1.1.0';  // 同步 README/PRODUCT/About 弹窗版本号
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
@@ -8108,8 +7883,6 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         logoModeSwitch: document.getElementById('logo-mode-switch'),
         serialStatusDot: document.getElementById('serial-status-dot'),
         serialStatusText: document.getElementById('serial-status-text'),
-        themeGroup: document.getElementById('menu-theme-group'),
-        themeOpts: document.querySelectorAll('#menu-theme-group .menu-theme-opt'),
         timelineSelect: document.getElementById('timeline-select'),
         stopRecordBtn: document.getElementById('stop-record-btn'),
         timelinePickerBtn: document.getElementById('timeline-picker-btn'),
@@ -9509,7 +9282,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           refs.themeGroup.classList.remove('pos-light', 'pos-dark');
           if (state.theme === 'light') refs.themeGroup.classList.add('pos-light');
           else if (state.theme === 'dark') refs.themeGroup.classList.add('pos-dark');
-          refs.themeOpts.forEach(function(opt) {
+          (refs.themeOpts || []).forEach(function(opt) {
             opt.classList.toggle('is-active', opt.dataset.theme === state.theme);
           });
         }
@@ -9906,6 +9679,73 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       (function initDashboardState() {
         const NS = window.__serialWebDashboard = window.__serialWebDashboard || {};
 
+        // === Lucide inline SVG 图标库 (24x24, stroke 1.5 跟现有 SerialCube 风格一致) ===
+        // 来源 lucide.dev (ISC License)
+        // 注意: help-circle / alert-triangle / plus-circle / check-circle / filter 在新版 lucide 改名了
+        //   help-circle -> circle-question-mark
+        //   alert-triangle -> triangle-alert
+        //   plus-circle -> circle-plus
+        //   check-circle -> circle-check
+        //   filter -> funnel
+        const ICONS = {
+          settings: '<path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/>',
+          network: '<rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/>',
+          zap: '<path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z"/>',
+          'layout-grid': '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+          bell: '<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>',
+          'arrow-left-right': '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+          plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+          'circle-plus': '<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
+          x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+          pencil: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+          trash: '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+          copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+          search: '<path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/>',
+          funnel: '<path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/>',
+          check: '<path d="M20 6 9 17l-5-5"/>',
+          'circle-check': '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+          'chevron-left': '<path d="m15 18-6-6 6-6"/>',
+          'chevron-right': '<path d="m9 18 6-6-6-6"/>',
+          'grip-vertical': '<circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>',
+          download: '<path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/>',
+          upload: '<path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>',
+          'file-up': '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M12 12v6"/><path d="m15 15-3-3-3 3"/>',
+          'folder-open': '<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>',
+          'triangle-alert': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+          'rotate-ccw': '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+          'refresh-cw': '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+          'circle-question-mark': '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+          moon: '<path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/>',
+          'graduation-cap': '<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
+          info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>'
+        };
+        function icon(name, size) {
+          size = size || 14;
+          const path = ICONS[name];
+          if (!path) return '';
+          return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + path + '</svg>';
+        }
+        // 启动时扫描所有 [data-svg] 元素
+        function NS_renderIcons() {
+          const els = document.querySelectorAll('[data-svg]');
+          for (let i = 0; i < els.length; i++) {
+            const el = els[i];
+            const name = el.getAttribute('data-svg');
+            const size = parseInt(el.getAttribute('data-svg-size') || '14', 10);
+            // 保留其他 children: 只插入 SVG 到开头, 移除之前可能已插入的 svg 占位
+            // 旧实现: el.innerHTML = icon(...);  → 覆盖整个 innerHTML, badge/文字丢失
+            // 新实现: 找到第一个 SVG 子元素(或无), 替换它; 保留其他节点
+            const existingSvg = el.querySelector(':scope > svg');
+            if (existingSvg) {
+              // 替换这个 SVG(尺寸可能变化)
+              existingSvg.outerHTML = icon(name, size);
+            } else {
+              // 插到开头, 不影响后面的 children(badge / 文字)
+              el.insertAdjacentHTML('afterbegin', icon(name, size));
+            }
+          }
+        }
+
         // === 状态层: 三层数据模型 (协议帧 → 字段类型 → 命令 → 卡片) ===
         // === a: 8 kind 协议模板 metadata ===
         // 8 种 TLV 协议类型: kind 0 = fixed-header (legacy, 现状协议), kind 1-7 = 新协议类型
@@ -9920,6 +9760,68 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           'msgid-mixed':   { name: 'MsgID Mixed (消息 ID 15+7+8 packed)', desc: 'msgID bit15 方向, bit14-8=func(7), bit7-0=addr(8)' },
           'tlv':           { name: 'Pure TLV (Type+Length+Value 循环)', desc: 'tlv type bit7 编码方向' }
         };
+
+        // 9 种 kind (8 + Custom) 的默认 fields 数组 (Task 7 wizard step 3 预填)
+        //   字段格式跟 _defaultProtocols 内 fields 保持一致, step 3 完成时浅拷贝后 push 到 NS.PROTOCOLS
+        //   Custom 空白起步, 用户点 [+ 添加字段] 自拼
+        NS.KIND_DEFAULTS = {
+          'fixed-header': [
+            { name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
+            { name: 'addr', type: 'addr', size: 1, byteOrder: null, default: '0x01' },
+            { name: 'cmd', type: 'cmd', size: 1, byteOrder: 'BE', default: '0x00' },
+            { name: 'length', type: 'length', size: 1, byteOrder: 'BE', default: 'auto' },
+            { name: 'data', type: 'data', size: 0, byteOrder: 'BE', default: '0x00' },
+            { name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' },
+            { name: 'tail', type: 'tail', size: 1, byteOrder: null, default: '0x55' }
+          ],
+          'raw': [
+            { name: 'header', type: 'header', size: 1, byteOrder: null, default: '0x5A' },
+            { name: 'cmd', type: 'cmd', size: 1, byteOrder: 'BE', default: '0x00' },
+            { name: 'length', type: 'length', size: 1, byteOrder: 'BE', default: 'auto' },
+            { name: 'data', type: 'data', size: 0, byteOrder: 'BE', default: '0x00' },
+            { name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' }
+          ],
+          'cmd-split': [
+            { name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
+            { name: 'cmd', type: 'cmd', size: 1, byteOrder: 'BE', default: '0x00' },
+            { name: 'data', type: 'data', size: 0, byteOrder: 'BE', default: '0x00' },
+            { name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' }
+          ],
+          'addr-split': [
+            { name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
+            { name: 'srcAddr', type: 'data', size: 1, byteOrder: 'BE', default: '0x01' },
+            { name: 'dstAddr', type: 'data', size: 1, byteOrder: 'BE', default: '0x02' },
+            { name: 'cmd', type: 'cmd', size: 1, byteOrder: 'BE', default: '0x00' },
+            { name: 'data', type: 'data', size: 0, byteOrder: 'BE', default: '0x00' },
+            { name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' }
+          ],
+          'ctrl-bit7': [
+            { name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
+            { name: 'addr', type: 'addr', size: 1, byteOrder: null, default: '0x01' },
+            { name: 'ctrl', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+            { name: 'data', type: 'data', size: 0, byteOrder: 'BE', default: '0x00' },
+            { name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' }
+          ],
+          'type-high-bit': [
+            { name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
+            { name: 'addr', type: 'addr', size: 1, byteOrder: null, default: '0x01' },
+            { name: 'type', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
+            { name: 'data', type: 'data', size: 0, byteOrder: 'BE', default: '0x00' },
+            { name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' }
+          ],
+          'msgid-mixed': [
+            { name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
+            { name: 'msgID', type: 'data', size: 2, byteOrder: 'BE', default: '0x0000' },
+            { name: 'data', type: 'data', size: 0, byteOrder: 'BE', default: '0x00' },
+            { name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' }
+          ],
+          'tlv': [
+            { name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
+            { name: 'tlv', type: 'data', size: 0, byteOrder: 'BE', default: '0x00' },
+            { name: 'crc', type: 'crc', size: 2, byteOrder: 'LE', default: 'auto' }
+          ],
+          'custom': []
+        };
         NS._defaultProtocols = function () {
           return [
             {
@@ -9933,6 +9835,41 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 { id: 'f4d',name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
                 { id: 'f5', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' },
                 { id: 'f6', name: 'tail',   type: 'tail',   size: 1, byteOrder: null, default: '0x55' }
+              ],
+              // 命令内嵌到协议: 每条命令自带 dataFields (对象数组, 含 name/type/default)
+              //   type 取自 NS.DATA_TYPES, 字节序缺省用 protocol.byteOrder (BE)
+              //   0x90/0x91 ACK 与原 NS._defaultCommands 保持一致, 仍归 BMS 协议 (设备响应也走同一协议)
+              commands: [
+                { id: 0x01, name: 'Read Voltage',    direction: 'rx', frameType: 'query',    cadence: 200,  expectResponse: 0x80, dataFields: [
+                    { name: 'cell_1_v',   type: 'u16', default: '0x0000' },
+                    { name: 'cell_2_v',   type: 'u16', default: '0x0000' },
+                    { name: 'cell_3_v',   type: 'u16', default: '0x0000' },
+                    { name: 'cell_4_v',   type: 'u16', default: '0x0000' },
+                    { name: 'pack_v_avg', type: 'u16', default: '0x0000' }
+                ]},
+                { id: 0x02, name: 'Read Current',    direction: 'rx', frameType: 'query',    cadence: 500,  expectResponse: 0x80, dataFields: [
+                    { name: 'pack_i', type: 'u16', default: '0x0000' }
+                ]},
+                { id: 0x03, name: 'Read Temp',       direction: 'rx', frameType: 'query',    cadence: 1000, expectResponse: 0x80, dataFields: [
+                    { name: 'temperature', type: 'u16', default: '0x0000' }
+                ]},
+                { id: 0x04, name: 'Read SOC',        direction: 'rx', frameType: 'query',    cadence: 2000, expectResponse: 0x80, dataFields: [
+                    { name: 'soc', type: 'u16', default: '0x0000' }
+                ]},
+                { id: 0x10, name: 'Control Charge',  direction: 'tx', frameType: 'control',  cadence: 0,    expectResponse: 0x90, dataFields: [
+                    { name: 'charge_v_set', type: 'u16', default: '0x0000' },
+                    { name: 'charge_i_set', type: 'u16', default: '0x0000' }
+                ]},
+                { id: 0x11, name: 'Control Disch',   direction: 'tx', frameType: 'control',  cadence: 0,    expectResponse: 0x91, dataFields: [
+                    { name: 'discharge_v_set', type: 'u16', default: '0x0000' }
+                ]},
+                { id: 0x90, name: 'Charge Ack',      direction: 'rx', frameType: 'response', cadence: 0,                   dataFields: [
+                    { name: 'charge_v_set', type: 'u16', default: '0x0000' },
+                    { name: 'charge_i_set', type: 'u16', default: '0x0000' }
+                ]},
+                { id: 0x91, name: 'Disch Ack',       direction: 'rx', frameType: 'response', cadence: 0,                   dataFields: [
+                    { name: 'discharge_v_set', type: 'u16', default: '0x0000' }
+                ]}
               ]
             },
             {
@@ -9946,66 +9883,53 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 { id: 'm5', name: 'qty_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
                 { id: 'm6', name: 'qty_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
                 { id: 'm7', name: 'crc',    type: 'crc',  size: 2, byteOrder: 'LE', default: 'auto' }
-              ]
+              ],
+              // Modbus 暂时无 commands (原 NS._defaultCommands 8 条都是 BMS 的, 等 Modbus 命令用例出现再补)
+              commands: []
             }
           ];
         };
         NS.PROTOCOLS = NS._defaultProtocols();
+        // 兼容垫片: 旧 NS.COMMANDS 全局数组 → 跨协议 flatMap
+        //   旧代码 NS.COMMANDS.find / .forEach / .length / .filter 等都换成 NS.allCommands()
+        NS.allCommands = function () { return (NS.PROTOCOLS || []).flatMap(function (p) { return p.commands || []; }); };
 
-        // dataSize 自动算 - type → 字节数映射 (NS.computeDataSize 用)
-        NS._FIELD_BYTE_SIZE = { u8: 1, i8: 1, u16: 2, i16: 2, u32: 4, i32: 4, float: 4, double: 8 };
-
-        // 加 0x10 Set 命令配对字段 (TX 方向, 用户设定值, mock 模式不抖)
-        // set 字段单位 V (电压) / A (电流), pair 卡 (c7) 对比 SET vs ACT (pack_v_avg * 15 模拟 4 cell 串联)
-        NS.DATA_FIELDS = [
-          { name: 'cell_1_v', type: 'u16', default: '0x0000' },
-          { name: 'cell_2_v', type: 'u16', default: '0x0000' },
-          { name: 'cell_3_v', type: 'u16', default: '0x0000' },
-          { name: 'cell_4_v', type: 'u16', default: '0x0000' },
-          { name: 'pack_v_avg', type: 'u16', default: '0x0000' },
-          { name: 'pack_i', type: 'u16', default: '0x0000' },
-          { name: 'temperature', type: 'u16', default: '0x0000' },
-          { name: 'soc', type: 'u16', default: '0x0000' },
-          { name: 'charge_v_set', type: 'u16', default: '0x0000' },
-          { name: 'charge_i_set', type: 'u16', default: '0x0000' },
-          { name: 'discharge_v_set', type: 'u16', default: '0x0000' }
+        // 数据类型库 (Phase 2 Step 1.2): type → 字节数 + 默认字节序映射
+        //   cmd.dataFields[i].type 从这里查 size, 替代原 NS.DATA_FIELDS[name].type 字符串硬编码
+        NS.DATA_TYPES = [
+          { name: 'u8',  size: 1 },
+          { name: 'u16', size: 2, byteOrder: 'BE' },
+          { name: 'u32', size: 4, byteOrder: 'BE' },
+          { name: 'i16', size: 2, byteOrder: 'BE' },
+          { name: 'i32', size: 4, byteOrder: 'BE' },
+          { name: 'float', size: 4, byteOrder: 'BE' }
         ];
 
-        // 加 0x10 / 0x11 TX Set 命令 (留的 TODO, 现在补齐数据模型)
-        // cadence: 0 表示不主动 query, 由用户触发 (trigger 按钮 → buildFrame 0x10 → 串口发)
-        // expectResponse 0x90 / 0x91 是设备响应 cmd (mock 模式设备不响应, 但 pair 卡 act 用现有 pack_v_avg * 15 模拟)
-        NS._defaultCommands = function () {
-          return [
-            { id: 0x01, name: 'Read Voltage', direction: 'rx', frameType: 'query',   cadence: 200,  protocol: 'proto_bms', dataFields: ['cell_1_v', 'cell_2_v', 'cell_3_v', 'cell_4_v', 'pack_v_avg'], dataSize: 10, expectResponse: 0x80 },
-            { id: 0x02, name: 'Read Current', direction: 'rx', frameType: 'query',   cadence: 500,  protocol: 'proto_bms', dataFields: ['pack_i'], dataSize: 2, expectResponse: 0x80 },
-            { id: 0x03, name: 'Read Temp',    direction: 'rx', frameType: 'query',   cadence: 1000, protocol: 'proto_bms', dataFields: ['temperature'], dataSize: 2, expectResponse: 0x80 },
-            { id: 0x04, name: 'Read SOC',     direction: 'rx', frameType: 'query',   cadence: 2000, protocol: 'proto_bms', dataFields: ['soc'], dataSize: 2, expectResponse: 0x80 },
-            { id: 0x10, name: 'Control Charge', direction: 'tx', frameType: 'control', cadence: 0, protocol: 'proto_bms', dataFields: ['charge_v_set', 'charge_i_set'], dataSize: 4, expectResponse: 0x90 },
-            { id: 0x11, name: 'Control Disch',  direction: 'tx', frameType: 'control', cadence: 0, protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2, expectResponse: 0x91 },
-            // ACK 命令定义 (方向 rx, frameType response, cadence 0 不主动 query)
-            { id: 0x90, name: 'Charge Ack', direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['charge_v_set', 'charge_i_set'], dataSize: 4 },
-            { id: 0x91, name: 'Disch Ack',  direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2 }
-          ];
-        };
-        NS.COMMANDS = NS._defaultCommands();
+        // dataSize 自动算 - type → 字节数映射 (NS.computeDataSize 用, 保留兼容)
+        //   NS.DATA_TYPES 推出后这里逐步废弃, 但旧代码 (encodeDataFields) 还用, 暂留
+        NS._FIELD_BYTE_SIZE = { u8: 1, i8: 1, u16: 2, i16: 2, u32: 4, i32: 4, float: 4, double: 8 };
 
-        // c9 pair 卡 (充电设定 vs 实际) + c10 trend 卡 (充电设定值)
-        // 10 个完整卡片: 8 个 RX trend (c1-c8) + 1 个 TX pair (c9) + 1 个 TX trend (c10)
+        // (Phase 2 Step 1.4-1.5 删除了原 NS.DATA_FIELDS 顶层数组 + NS._defaultCommands + NS.COMMANDS 赋值
+        //   命令字段已内嵌到 NS.PROTOCOLS[i].commands[].dataFields, 全局查询走 NS.allCommands() 兼容垫片)
+
+        // c9/c11 pair 卡 (充电/放电设定 vs 实际) + c10/c12 trend 卡 (充电/放电设定值)
+        // 12 个完整卡片: 8 个 RX trend (c1-c8) + 2 个 TX pair (c9/c11) + 2 个 TX trend (c10/c12)
         // pairId 'charge_v' 配对: setField=charge_v_set (0x10 TX) + actField=pack_v_avg*15 (0x01 RX 派生)
+        // 全部 12 张卡片当前都属 proto_bms (Phase 2.1 加 protocol 字段为后续多协议 lookup 优化铺路)
         NS.CARDS = [
-          { id: 'c1', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_1_v',    title: 'Cell 1 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true },
-          { id: 'c2', type: 'trend', cmd: 0x02, dir: 'rx', field: 'pack_i',      title: 'Pack 电流',   unit: 'A',   range: [-50, 50],  precision: 2, fromOtherCmd: true },
-          { id: 'c3', type: 'trend', cmd: 0x03, dir: 'rx', field: 'temperature', title: '温度',        unit: '°C',  range: [-20, 60],  precision: 1, fromOtherCmd: true },
-          { id: 'c4', type: 'trend', cmd: 0x04, dir: 'rx', field: 'soc',         title: 'SOC',         unit: '%',   range: [0, 100],   precision: 1, fromOtherCmd: true },
-          { id: 'c5', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_2_v',    title: 'Cell 2 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true },
-          { id: 'c6', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_3_v',    title: 'Cell 3 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true },
-          { id: 'c7', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_4_v',    title: 'Cell 4 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true },
-          { id: 'c8', type: 'trend', cmd: 0x01, dir: 'rx', field: 'pack_v_avg',  title: 'Pack 均压',  unit: 'V', range: [2.8, 4.2], precision: 3, fromOtherCmd: true },
-          { id: 'c9', type: 'pair',  cmd: 0x10, dir: 'tx', pairId: 'charge_v',     title: '充电电压',    unit: 'V', fromOtherCmd: false },
-          { id: 'c10', type: 'trend', cmd: 0x10, dir: 'tx', field: 'charge_v_set', title: '充电设定',    unit: 'V', range: [0, 60],   precision: 1, fromOtherCmd: false },
+          { id: 'c1', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_1_v',    title: 'Cell 1 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true,  protocol: 'proto_bms' },
+          { id: 'c2', type: 'trend', cmd: 0x02, dir: 'rx', field: 'pack_i',      title: 'Pack 电流',   unit: 'A',   range: [-50, 50],  precision: 2, fromOtherCmd: true,  protocol: 'proto_bms' },
+          { id: 'c3', type: 'trend', cmd: 0x03, dir: 'rx', field: 'temperature', title: '温度',        unit: '°C',  range: [-20, 60],  precision: 1, fromOtherCmd: true,  protocol: 'proto_bms' },
+          { id: 'c4', type: 'trend', cmd: 0x04, dir: 'rx', field: 'soc',         title: 'SOC',         unit: '%',   range: [0, 100],   precision: 1, fromOtherCmd: true,  protocol: 'proto_bms' },
+          { id: 'c5', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_2_v',    title: 'Cell 2 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true,  protocol: 'proto_bms' },
+          { id: 'c6', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_3_v',    title: 'Cell 3 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true,  protocol: 'proto_bms' },
+          { id: 'c7', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_4_v',    title: 'Cell 4 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true,  protocol: 'proto_bms' },
+          { id: 'c8', type: 'trend', cmd: 0x01, dir: 'rx', field: 'pack_v_avg',  title: 'Pack 均压',  unit: 'V', range: [2.8, 4.2], precision: 3, fromOtherCmd: true,  protocol: 'proto_bms' },
+          { id: 'c9', type: 'pair',  cmd: 0x10, dir: 'tx', pairId: 'charge_v',     title: '充电电压',    unit: 'V', fromOtherCmd: false, protocol: 'proto_bms' },
+          { id: 'c10', type: 'trend', cmd: 0x10, dir: 'tx', field: 'charge_v_set', title: '充电设定',    unit: 'V', range: [0, 60],   precision: 1, fromOtherCmd: false, protocol: 'proto_bms' },
           // c11/c12 放电卡片 — 跟 c9/c10 风格一致 (pair / trend), field/pairId/range/precision 全填
-          { id: 'c11', type: 'pair',  cmd: 0x11, dir: 'tx', pairId: 'discharge_v',    title: '放电电压',    unit: 'V', fromOtherCmd: false },
-          { id: 'c12', type: 'trend', cmd: 0x11, dir: 'tx', field: 'discharge_v_set', title: '放电设定',    unit: 'V', range: [0, 60],   precision: 1, fromOtherCmd: false }
+          { id: 'c11', type: 'pair',  cmd: 0x11, dir: 'tx', pairId: 'discharge_v',    title: '放电电压',    unit: 'V', fromOtherCmd: false, protocol: 'proto_bms' },
+          { id: 'c12', type: 'trend', cmd: 0x11, dir: 'tx', field: 'discharge_v_set', title: '放电设定',    unit: 'V', range: [0, 60],   precision: 1, fromOtherCmd: false, protocol: 'proto_bms' }
         ];
 
         // === UI 状态 ===
@@ -10048,8 +9972,9 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             'charge_v_set': 56.0, 'charge_i_set': 0, 'discharge_v_set': 0  // set 字段初始 0, 等用户触发 0x10/0x11
           };
           const now = Date.now();
-          NS.COMMANDS.forEach((cmd) => {
-            cmd.dataFields.forEach((field) => {
+          NS.allCommands().forEach((cmd) => {
+            cmd.dataFields.forEach((df) => {
+              const field = df.name;
               NS.currentVals[field] = (field in initVals) ? initVals[field] : 0;
               const key = `${cmd.id.toString(16).padStart(2, '0').toUpperCase()}.${field}`;
               NS.trendData[key] = NS.trendData[key] || [];
@@ -10079,8 +10004,9 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 
         NS.tickData = function () {
           const now = Date.now();
-          NS.COMMANDS.forEach((cmd) => {
-            cmd.dataFields.forEach((field) => {
+          NS.allCommands().forEach((cmd) => {
+            cmd.dataFields.forEach((df) => {
+              const field = df.name;
               if (field === 'pack_v_avg') return;  // pack_v_avg 由 cell 派生, 单独处理
               // set 字段 (TX 输入值) 不抖, 保持原值, 等用户触发
               if (field === 'charge_v_set' || field === 'charge_i_set' || field === 'discharge_v_set') return;
@@ -10143,7 +10069,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           allChip.innerHTML = '<span class="dir-badge">ALL</span><span>全部命令</span>';
           allChip.onclick = () => { NS.selectedCmd = 'all'; NS.renderCommandPanel(); NS.renderCardGrid(); };
           scrollEl.appendChild(allChip);
-          NS.COMMANDS.forEach((cmd) => {
+          NS.allCommands().forEach((cmd) => {
             const chip = document.createElement('button');
             const idHex = cmd.id.toString(16).padStart(2, '0').toUpperCase();
             chip.className = 'cmd-chip ' + cmd.direction + (NS.selectedCmd === idHex ? ' selected' : '');
@@ -10401,7 +10327,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             // 列表布局 add 卡跨满列, 跟 group header 一致, 高度跟 list card 一样 (80px)
             add.style.gridColumn = '1 / -1';
           }
-          add.onclick = () => { if (NS.editMode) NS.openModal('dh-card-config'); else NS.toast('请先开启"编辑模式"', 'info'); };
+          add.onclick = () => { if (NS.editMode) NS.toast('请在配置中心添加卡片 (Task 9+ 上线)', 'info'); else NS.toast('请先开启"编辑模式"', 'info'); };
           return add;
         };
 
@@ -10427,7 +10353,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               el.style.gap = '';
               el.style.alignItems = '';
               sortedKeys.forEach((k) => {
-                const cmd = NS.COMMANDS.find((c) => c.id === k);
+                const cmd = NS.allCommands().find((c) => c.id === k);
                 const cmdHex = k.toString(16).padStart(2, '0').toUpperCase();
                 const dir = cmd ? cmd.direction : 'rx';
                 const group = groups.get(k);
@@ -10451,7 +10377,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               el.style.gap = '';
               el.style.alignItems = '';
               sortedKeys.forEach((k, idx) => {
-                const cmd = NS.COMMANDS.find((c) => c.id === k);
+                const cmd = NS.allCommands().find((c) => c.id === k);
                 const cmdHex = k.toString(16).padStart(2, '0').toUpperCase();
                 const dir = cmd ? cmd.direction : 'rx';
                 const group = groups.get(k);
@@ -11279,6 +11205,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             NS.initMockData();
             NS.renderKpiCards();
             NS.attachModalHandlers();
+            // 单一挂载点: 扫描所有 [data-svg] 元素渲染 inline SVG
+            if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', NS_renderIcons); } else { NS_renderIcons(); }
           }
           // 取消旧 handle (重入防护, 避免双 tick)
           if (NS._tickHandle) clearInterval(NS._tickHandle);
@@ -11368,16 +11296,16 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         };
 
         // --- encodeDataFields: 把 cmd.dataFields 数组按协议 + 字段类型编码为字节 ---
+        //   Phase 2.1 适配: cmd.dataFields 现在是 [{name, type, default}, ...] 对象数组 (替代原 string[] + NS.DATA_FIELDS[name])
         NS.encodeDataFields = function (cmd, protocol) {
           const out = [];
           const protoEndian = (protocol && protocol.byteOrder) || 'BE';
           // 支持 cmd.dataFieldsValues 覆盖 (用于 modal 实时预览; 不影响 currentVals 全局状态)
           const overrideMap = (cmd && cmd.dataFieldsValues) || null;
-          for (const fname of (cmd.dataFields || [])) {
-            const df = NS.DATA_FIELDS.find((d) => d.name === fname);
-            if (!df) continue;
-            const override = overrideMap ? overrideMap[fname] : undefined;
-            const v = Number(override != null ? override : (NS.currentVals[fname] != null ? NS.currentVals[fname] : NS.parseHexOr0(df.default))) || 0;
+          for (const df of (cmd.dataFields || [])) {
+            if (!df || !df.name) continue;
+            const override = overrideMap ? overrideMap[df.name] : undefined;
+            const v = Number(override != null ? override : (NS.currentVals[df.name] != null ? NS.currentVals[df.name] : NS.parseHexOr0(df.default))) || 0;
             const bo = df.byteOrder || protoEndian;
             const t = df.type;
             if (t === 'u8' || t === 'i8') {
@@ -11397,15 +11325,15 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           return out;
         };
 
-        // --- dataSize 自动算 - 按 cmd.dataFields + DATA_FIELDS 算字节数 ---
+        // --- dataSize 自动算 - 按 cmd.dataFields (对象数组) 算字节数 ---
         // 返 0 = 缺字段 / string 变长 / 未知 type (UI 该报警)
+        //   Phase 2.1 适配: 直接读 df.type (对象内联), 不再依赖 NS.DATA_FIELDS
         NS.computeDataSize = function (cmd) {
           if (!cmd || !cmd.dataFields) return 0;
           let total = 0;
-          for (const fname of cmd.dataFields) {
-            const field = NS.DATA_FIELDS.find((f) => f.name === fname);
-            if (!field) return 0;
-            const size = NS._FIELD_BYTE_SIZE[field.type] || 0;
+          for (const df of cmd.dataFields) {
+            if (!df || !df.type) return 0;
+            const size = NS._FIELD_BYTE_SIZE[df.type] || 0;
             if (!size) return 0;
             total += size;
           }
@@ -11717,7 +11645,6 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         // --- TX trigger 状态空间 (Task 3) ---
         // 开 UI 前的"地基": 字段 hint + bytes 解码 + ack 解析 + waiter 状态 + handler
         // 不接任何 modal / 按钮 / toast — Task 4-5 才接 UI
-
         // 字段 hint (modal 数字 stepper 兜底): label / unit / min / max / step
         NS._FIELD_HINT = {
           'charge_v_set':    { label: '充电电压', unit: 'V', min: 0, max: 60, step: 0.1 },
@@ -11765,13 +11692,12 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           const dataLen = bytes.length - 7;
           const data = bytes.slice(4, 4 + dataLen);
           let off = 0;
-          for (const fname of (ackCmd.dataFields || [])) {
-            const df = NS.DATA_FIELDS.find((f) => f.name === fname);
-            if (!df) continue;
+          for (const df of (ackCmd.dataFields || [])) {
+            if (!df || !df.name) continue;
             const size = NS._FIELD_BYTE_SIZE[df.type] || 2;
             if (off + size > data.length) break;
             const slice = data.slice(off, off + size);
-            out[fname] = NS._bytesToNumber(slice, df.byteOrder || protoEndian, df.type);
+            out[df.name] = NS._bytesToNumber(slice, df.byteOrder || protoEndian, df.type);
             off += size;
           }
           return out;
@@ -11793,15 +11719,16 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           const waiter = NS.txAckWaiters.get(rxCmdId);
           if (!waiter) return false;
           // 2. 找 cmd
-          const cmd = NS.COMMANDS.find((c) => c.id === waiter.triggerCmdId);
+          const cmd = NS.allCommands().find((c) => c.id === waiter.triggerCmdId);
           if (!cmd) return false;
-          const ackCmd = NS.COMMANDS.find((c) => c.id === rxCmdId);
+          const ackCmd = NS.allCommands().find((c) => c.id === rxCmdId);
           if (!ackCmd) return false;
           // 3. 解析 (ackCmd.dataFields 决定切几个字段)
           const parsed = NS._parseAckFields(ackCmd, bytes, cmd.protocol);
           // 4. 写 currentVals + push trendData (按 trigger cmd.dataFields 写)
           const ackT = Date.now();
-          cmd.dataFields.forEach((field) => {
+          cmd.dataFields.forEach((df) => {
+            const field = df.name;
             if (parsed[field] != null) {
               NS.currentVals[field] = parsed[field];
               const key = cmd.id.toString(16).padStart(2, '0').toUpperCase() + '.' + field;
@@ -11915,7 +11842,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         // Task 5 才接真发送 (sendPayload + ack waiter); 本任务不接
         // 同 cmd 互斥 (Q8 决策): txPendingCmds.has(cmdId) → 弹 warn toast
         NS.openPairTriggerModal = function (cmdId, sourceCard) {
-          const cmd = NS.COMMANDS.find((c) => c.id === cmdId);
+          const cmd = NS.allCommands().find((c) => c.id === cmdId);
           if (!cmd) return;
           const proto = NS.PROTOCOLS.find((p) => p.id === cmd.protocol);
           if (!proto) return;
@@ -11928,8 +11855,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 
           // 临时 userSet (modal 内编辑; 不写 NS.currentVals, 直到 Task 5 真发送才写)
           const userSet = {};
-          cmd.dataFields.forEach((f) => {
-            userSet[f] = NS.currentVals[f] != null ? NS.currentVals[f] : 0;
+          cmd.dataFields.forEach((df) => {
+            userSet[df.name] = NS.currentVals[df.name] != null ? NS.currentVals[df.name] : 0;
           });
 
           // 渲染标题 + subtitle
@@ -11939,16 +11866,17 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           const bytesEl = document.getElementById('dh-pair-trigger-bytes');
           if (titleEl) titleEl.textContent = '触发 0x' + cmdId.toString(16).padStart(2, '0').toUpperCase() + ' ' + cmd.name;
           if (subtitleEl) {
-            const fieldDescs = cmd.dataFields.map((f) => {
-              const h = NS._FIELD_HINT[f];
-              return h ? (h.label + ' (' + h.unit + ')') : f;
+            const fieldDescs = cmd.dataFields.map((df) => {
+              const h = NS._FIELD_HINT[df.name];
+              return h ? (h.label + ' (' + h.unit + ')') : df.name;
             });
             subtitleEl.textContent = '字段 · ' + fieldDescs.join(' / ');
           }
 
           // 字段输入框 (数字 stepper, 优先用 _FIELD_HINT 兜底)
           fieldsEl.innerHTML = '';
-          cmd.dataFields.forEach((f) => {
+          cmd.dataFields.forEach((df) => {
+            const f = df.name;
             const h = NS._FIELD_HINT[f] || { label: f, unit: '', min: 0, max: 100, step: 0.1 };
             const row = document.createElement('div');
             row.className = 'field-row';
@@ -12060,7 +11988,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 setTimeout(() => {
                   const saved = { ...NS.currentVals };
                   Object.assign(NS.currentVals, userSet);
-                  const ackCmd = NS.COMMANDS.find((c) => c.id === ackCmdId);
+                  const ackCmd = NS.allCommands().find((c) => c.id === ackCmdId);
                   const ackFrame = ackCmd ? NS.buildFrame(proto, ackCmd) : null;
                   Object.keys(saved).forEach((k) => { NS.currentVals[k] = saved[k]; });
                   if (ackFrame && !ackFrame.error) {
@@ -12106,7 +12034,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           });
           const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
           if (!proto) { bodyEl.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-soft);">未选择协议</div>'; return; }
-          const previewCmd = NS.COMMANDS.find((c) => c.protocol === proto.id) || NS.COMMANDS[0];
+          const previewCmd = NS.allCommands().find((c) => c.protocol === proto.id) || NS.allCommands()[0];
           const frame = NS.buildFrame(proto, previewCmd);
           bodyEl.innerHTML = `
             <div class="proto-section">
@@ -12200,7 +12128,6 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             </div>
           `;
           NS._renderFieldList(proto, frame, previewCmd);
-          NS._renderDataFieldList();
           NS._renderFramePreview(frame, proto);
           const onChange = () => NS._renderFramePreview(NS.buildFrame(proto, previewCmd), proto);
           document.getElementById('dh-proto-name').oninput = (e) => { proto.name = e.target.value || '未命名'; };
@@ -12230,7 +12157,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           };
           document.getElementById('dh-add-data-field-btn').onclick = () => {
             NS.DATA_FIELDS.push({ name: 'new_field_' + (NS.DATA_FIELDS.length + 1), type: 'u16', default: '0x0000' });
-            NS._renderDataFieldList();
+            // TODO Task 7 wizard: data field 编辑将改由新建协议向导接管, 这里只 push 不渲染
           };
         };
 
@@ -12292,31 +12219,6 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           });
         };
 
-        NS._renderDataFieldList = function () {
-          const el = document.getElementById('dh-data-field-list');
-          if (!el) return;
-          el.innerHTML = '';
-          const types = ['u8', 'u16', 'u32', 'i16', 'i32', 'float'];
-          NS.DATA_FIELDS.forEach((df, idx) => {
-            const row = document.createElement('div');
-            row.className = 'data-field-row';
-            row.draggable = true;
-            row.innerHTML = `
-              <span class="drag-handle" title="拖到帧字段插入 data 段">⠿</span>
-              <input class="name-input" value="${NS.escapeHtml(df.name)}" placeholder="字段名">
-              <select class="type-select">${types.map((t) => `<option value="${t}" ${df.type === t ? 'selected' : ''}>${t}</option>`).join('')}</select>
-              <input class="default-input" value="${NS.escapeHtml(df.default || '0x0000')}" placeholder="0x0000">
-              <button class="del-btn" title="删除" aria-label="删除"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M3 3 L13 13 M13 3 L3 13"/></svg></button>
-            `;
-            row.querySelector('.name-input').oninput = (e) => { df.name = e.target.value; };
-            row.querySelector('.type-select').onchange = (e) => { df.type = e.target.value; };
-            row.querySelector('.default-input').oninput = (e) => { df.default = e.target.value; };
-            row.querySelector('.del-btn').onclick = () => { NS.DATA_FIELDS.splice(idx, 1); NS._renderDataFieldList(); };
-            row.ondragstart = (e) => { e.dataTransfer.setData('data-field', df.name); };
-            el.appendChild(row);
-          });
-        };
-
         NS._renderFramePreview = function (frame, proto) {
           const el = document.getElementById('dh-frame-bytes');
           if (!el) return;
@@ -12342,83 +12244,6 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             if (tEl) tEl.textContent = NS.crcTypeLabel(proto.crcType || 'crc16-modbus');
             const rEl = document.getElementById('dh-meta-crc-range');
             if (rEl) rEl.textContent = NS.crcRangeLabel(proto.crcRange || 'all');
-          }
-        };
-
-        // --- 命令管理 (cmd-config modal) ---
-        NS.renderCmdList = function () {
-          const el = document.getElementById('dh-cmd-list');
-          if (!el) return;
-          el.innerHTML = '';
-          // c: 列标题行 (方向/命令ID/名称/协议/数据字段/data 长度/操作)
-          const header = document.createElement('div');
-          header.className = 'cmd-list-header';
-          header.innerHTML = `
-            <span class="dir-badge">方向</span>
-            <span class="cmd-id">命令ID</span>
-            <span class="cmd-name">名称</span>
-            <span class="cmd-proto">协议</span>
-            <span class="cmd-fields">数据字段</span>
-            <span class="cmd-data">data 长度</span>
-            <span class="del-btn"></span>
-          `;
-          el.appendChild(header);
-          NS.COMMANDS.forEach((cmd) => {
-            const row = document.createElement('div');
-            row.className = 'cmd-row';
-            const idHex = cmd.id.toString(16).padStart(2, '0').toUpperCase();
-            const autoSize = NS.computeDataSize(cmd);
-            row.innerHTML = `
-              <span class="dir-badge ${cmd.direction}">${cmd.direction.toUpperCase()}</span>
-              <span class="cmd-id">0x${idHex}</span>
-              <span class="cmd-name">${NS.escapeHtml(cmd.name)}</span>
-              <span class="cmd-proto">${NS.escapeHtml(cmd.protocol || '—')}</span>
-              <span class="cmd-fields">${(cmd.dataFields || []).join(', ')}</span>
-              <span class="cmd-data">data ${autoSize} bytes</span>
-              <button class="del-btn" title="删除" aria-label="删除"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M3 3 L13 13 M13 3 L3 13"/></svg></button>
-            `;
-            row.querySelector('.del-btn').onclick = () => {
-              NS.COMMANDS = NS.COMMANDS.filter((c) => c.id !== cmd.id);
-              NS.renderCmdList();
-              NS.toast(`已移除命令 0x${idHex}`, 'success');
-            };
-            el.appendChild(row);
-          });
-        };
-        NS.populateCmdForm = function () {
-          const protoSel = document.getElementById('dh-cmd-form-proto');
-          if (protoSel) {
-            // c: 兜底 - 如果 PROTOCOLS 为空 (用户数据被清/导入坏), 恢复默认
-            if (!Array.isArray(NS.PROTOCOLS) || NS.PROTOCOLS.length === 0) {
-              NS.PROTOCOLS = NS._defaultProtocols();
-              NS.activeProtoId = NS.PROTOCOLS[0].id;
-              NS.toast('协议列表为空, 已恢复默认协议 (proto_bms + proto_modbus)', 'warn');
-            }
-            protoSel.innerHTML = '<option value="">— 请选择协议 —</option>' +
-              NS.PROTOCOLS.map((p) => `<option value="${p.id}">${NS.escapeHtml(p.name)}</option>`).join('');
-          }
-          NS.updateCmdFormDataSize();
-        };
-        // 添加命令表单 - data 长度自动算显示
-        // 按 dh-cmd-form-fields 输入实时刷新, 仅当字段名有错 / 未知 type 才报警
-        NS.updateCmdFormDataSize = function () {
-          const fieldsEl = document.getElementById('dh-cmd-form-fields');
-          const dsEl = document.getElementById('dh-cmd-form-datasize');
-          if (!dsEl) return;
-          const fields = fieldsEl ? fieldsEl.value.split(',').map((s) => s.trim()).filter(Boolean) : [];
-          if (fields.length === 0) {
-            // 没填字段 - 默认 0 bytes (无 warn)
-            dsEl.textContent = '自动算 0 bytes';
-            dsEl.classList.remove('warn');
-            return;
-          }
-          const autoSize = NS.computeDataSize({ dataFields: fields });
-          if (autoSize > 0) {
-            dsEl.textContent = `自动算 ${autoSize} bytes`;
-            dsEl.classList.remove('warn');
-          } else {
-            dsEl.textContent = '自动算 — (string 变长 / 缺字段)';
-            dsEl.classList.add('warn');
           }
         };
 
@@ -12460,30 +12285,6 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             el.appendChild(row);
           });
         };
-        NS.populateCardFormCmds = function () {
-          const cmdSel = document.getElementById('dh-card-form-cmd');
-          if (cmdSel) {
-            // c: 兜底 - 如果 COMMANDS 为空, 恢复默认
-            if (!Array.isArray(NS.COMMANDS) || NS.COMMANDS.length === 0) {
-              NS.COMMANDS = NS._defaultCommands();
-              NS.toast('命令列表为空, 已恢复默认 8 条命令', 'warn');
-            }
-            cmdSel.innerHTML = '<option value="">— 请选择命令 —</option>' +
-              NS.COMMANDS.map((c) => `<option value="${c.id}">0x${c.id.toString(16).padStart(2, '0').toUpperCase()} ${NS.escapeHtml(c.name)}</option>`).join('');
-            cmdSel.onchange = () => NS.populateCardFormFields();
-          }
-          NS.populateCardFormFields();
-        };
-        NS.populateCardFormFields = function () {
-          const cmdSel = document.getElementById('dh-card-form-cmd');
-          const fieldSel = document.getElementById('dh-card-form-field');
-          if (!cmdSel || !fieldSel) return;
-          const cmd = NS.COMMANDS.find((c) => c.id === parseInt(cmdSel.value));
-          // c: 加 placeholder, 没选 cmd 时显示提示, 不让 select 完全空
-          fieldSel.innerHTML = '<option value="">— 请选择字段 —</option>' +
-            (cmd ? (cmd.dataFields || []).map((f) => `<option value="${f}">${f}</option>`).join('') : '');
-        };
-
         NS.openCardEdit = function (id) {
           NS.editingCardId = id;
           const c = NS.CARDS.find((x) => x.id === id);
@@ -12493,13 +12294,13 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           document.getElementById('dh-ce-unit').value = c.unit || '';
           document.getElementById('dh-ce-type').value = c.type || 'trend';
           const cmdSel = document.getElementById('dh-ce-cmd');
-          cmdSel.innerHTML = NS.COMMANDS.map((cmd) => `<option value="${cmd.id}" ${c.cmd === cmd.id ? 'selected' : ''}>0x${cmd.id.toString(16).padStart(2, '0').toUpperCase()} ${NS.escapeHtml(cmd.name)}</option>`).join('');
+          cmdSel.innerHTML = NS.allCommands().map((cmd) => `<option value="${cmd.id}" ${c.cmd === cmd.id ? 'selected' : ''}>0x${cmd.id.toString(16).padStart(2, '0').toUpperCase()} ${NS.escapeHtml(cmd.name)}</option>`).join('');
           const fieldSel = document.getElementById('dh-ce-field');
-          const cmdObj = NS.COMMANDS.find((cmd) => cmd.id === c.cmd);
-          fieldSel.innerHTML = cmdObj ? (cmdObj.dataFields || []).map((f) => `<option value="${f}" ${c.field === f ? 'selected' : ''}>${f}</option>`).join('') : '';
+          const cmdObj = NS.allCommands().find((cmd) => cmd.id === c.cmd);
+          fieldSel.innerHTML = cmdObj ? (cmdObj.dataFields || []).map((df) => `<option value="${df.name}" ${c.field === df.name ? 'selected' : ''}>${df.name}</option>`).join('') : '';
           cmdSel.onchange = () => {
-            const newCmd = NS.COMMANDS.find((cmd) => cmd.id === parseInt(cmdSel.value));
-            fieldSel.innerHTML = newCmd ? (newCmd.dataFields || []).map((f) => `<option value="${f}">${f}</option>`).join('') : '';
+            const newCmd = NS.allCommands().find((cmd) => cmd.id === parseInt(cmdSel.value));
+            fieldSel.innerHTML = newCmd ? (newCmd.dataFields || []).map((df) => `<option value="${df.name}">${df.name}</option>`).join('') : '';
           };
           document.getElementById('dh-ce-rx').checked = !!c.fromOtherCmd;
           document.getElementById('dh-ce-lower').value = c.range ? c.range[0] : '';
@@ -12510,8 +12311,9 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 
         // --- 导入导出 (ie modal) ---
         NS.exportConfig = function () {
-          const config = { type: 'SerialWebUserConfig', version: 1, userConfig: { dashboard: {
-            protocols: NS.PROTOCOLS, dataFields: NS.DATA_FIELDS, commands: NS.COMMANDS, cards: NS.CARDS,
+          // v2 格式: commands 已内嵌到 protocols[i].commands, 不再输出顶层 dataFields/commands
+          const config = { type: 'SerialWebUserConfig', version: 2, userConfig: { dashboard: {
+            protocols: NS.PROTOCOLS, cards: NS.CARDS,
             settings: { cmdMismatchEnabled: NS.cmdMismatchEnabled, alertDebounceMs: NS.alertDebounceMs, cardLayout: NS.cardLayout }
           }}};
           return JSON.stringify(config, null, 2);
@@ -12522,25 +12324,72 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             if (obj.type !== 'SerialWebUserConfig') throw new Error('type 不是 SerialWebUserConfig');
             const uc = obj.userConfig && obj.userConfig.dashboard;
             if (!uc) throw new Error('userConfig.dashboard 缺失');
-            if (uc.protocols) {
-              // a: 兼容旧 user config (无 kind 字段 → kind 0 'fixed-header')
-              NS.PROTOCOLS = uc.protocols.map((p) => ({
-                ...p,
-                kind: p.kind || 'fixed-header'
-              }));
+            if (!Array.isArray(uc.protocols)) throw new Error('protocols 缺失或非数组');
+
+            // v1 检测: 顶层有 commands 或 dataFields + protocols[i].commands 不存在
+            const isV1 = (Array.isArray(uc.commands) || Array.isArray(uc.dataFields)) &&
+                          !uc.protocols.some((p) => Array.isArray(p.commands));
+
+            if (isV1) {
+              // v1 → v2 迁移: 顶层 commands 按 cmd.protocol 归并到 protocols[i].commands
+              uc.protocols.forEach((p) => { if (!Array.isArray(p.commands)) p.commands = []; });
+              let migratedCount = 0;
+              (uc.commands || []).forEach((cmd) => {
+                const proto = uc.protocols.find((p) => p.id === cmd.protocol);
+                if (!proto) return;
+                // dataFields 在 v1 是 name 数组, 转 v2 对象数组 (用顶层 dataFields 解析 type/default)
+                const fields = (cmd.dataFields || []).map((name) => {
+                  const def = (uc.dataFields || []).find((f) => f.name === name);
+                  return def ? { name: def.name, type: def.type || 'u16', default: def.default || '0x0000' }
+                             : { name, type: 'u16', default: '0x0000' };
+                });
+                proto.commands.push({
+                  id: cmd.id, name: cmd.name, direction: cmd.direction || 'rx',
+                  frameType: cmd.frameType || 'query', cadence: cmd.cadence || 0,
+                  expectResponse: cmd.expectResponse, dataFields: fields
+                });
+                migratedCount++;
+              });
+              // 清理已迁移的顶层数组
+              delete uc.dataFields;
+              delete uc.commands;
+              // 暂存供 toast 使用
+              uc._migratedCount = migratedCount;
+            } else {
+              // v2 直接加载, 但要适配边界: cmd.dataFields 可能是 name 数组 (从 v1 export 来的脏数据)
+              uc.protocols.forEach((p) => {
+                if (!Array.isArray(p.commands)) p.commands = [];
+                p.commands.forEach((cmd) => {
+                  if (Array.isArray(cmd.dataFields) && cmd.dataFields.length > 0 && typeof cmd.dataFields[0] === 'string') {
+                    cmd.dataFields = cmd.dataFields.map((name) => ({ name, type: 'u16', default: '0x0000' }));
+                  }
+                  if (!Array.isArray(cmd.dataFields)) cmd.dataFields = [];
+                });
+              });
             }
-            if (uc.dataFields) NS.DATA_FIELDS = uc.dataFields;
-            if (uc.commands) {
-              NS.COMMANDS = uc.commands;
-              // 容错 - 旧 config 可能没 0x90/0x91 ACK 定义, 自动补
-              if (!NS.COMMANDS.find((c) => c.id === 0x90)) {
-                NS.COMMANDS.push({ id: 0x90, name: 'Charge Ack', direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['charge_v_set', 'charge_i_set'], dataSize: 4 });
+
+            // 容错 - 旧 config 可能没 0x90/0x91 ACK 定义, 自动补 (v2 对象数组格式)
+            const bms = uc.protocols.find((p) => p.id === 'proto_bms');
+            if (bms) {
+              if (!bms.commands.find((c) => c.id === 0x90)) {
+                bms.commands.push({ id: 0x90, name: 'Charge Ack', direction: 'rx', frameType: 'response', cadence: 0, dataFields: [
+                  { name: 'charge_v_set', type: 'u16', default: '0x0000' },
+                  { name: 'charge_i_set', type: 'u16', default: '0x0000' }
+                ]});
               }
-              if (!NS.COMMANDS.find((c) => c.id === 0x91)) {
-                NS.COMMANDS.push({ id: 0x91, name: 'Disch Ack', direction: 'rx', frameType: 'response', cadence: 0, protocol: 'proto_bms', dataFields: ['discharge_v_set'], dataSize: 2 });
+              if (!bms.commands.find((c) => c.id === 0x91)) {
+                bms.commands.push({ id: 0x91, name: 'Disch Ack', direction: 'rx', frameType: 'response', cadence: 0, dataFields: [
+                  { name: 'discharge_v_set', type: 'u16', default: '0x0000' }
+                ]});
               }
             }
-            if (uc.cards) NS.CARDS = uc.cards;
+
+            // 应用
+            NS.PROTOCOLS = uc.protocols.map((p) => ({ ...p, kind: p.kind || 'fixed-header' }));
+            if (uc.cards) {
+              // 给 cards 加 protocol 字段(如果缺), 模糊查找时优先用
+              NS.CARDS = uc.cards.map((c) => c.protocol ? c : { ...c, protocol: 'proto_bms' });
+            }
             if (uc.settings) {
               if (typeof uc.settings.cmdMismatchEnabled === 'boolean') NS.cmdMismatchEnabled = uc.settings.cmdMismatchEnabled;
               if (typeof uc.settings.alertDebounceMs === 'number') NS.alertDebounceMs = uc.settings.alertDebounceMs;
@@ -12549,28 +12398,15 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             NS.activeProtoId = NS.PROTOCOLS[0] && NS.PROTOCOLS[0].id;
             NS.initMockData();
             NS.renderKpiCards();
-            NS.toast('已应用导入配置', 'success');
+
+            if (isV1) {
+              NS.toast('已从 v1 配置自动迁移 (' + (uc._migratedCount || 0) + ' 条命令归并到协议)', 'success');
+              delete uc._migratedCount;
+            } else {
+              NS.toast('已应用导入配置', 'success');
+            }
             return true;
           } catch (e) { NS.toast('导入失败: ' + e.message, 'danger'); return false; }
-        };
-
-        // --- 告警配置 (alerts modal) ---
-        NS.renderAlertRules = function () {
-          const el = document.getElementById('dh-alert-rules-list');
-          if (!el) return;
-          const rules = [];
-          NS.CARDS.forEach((c) => { if (c.range) rules.push({ title: c.title, field: c.field, range: c.range, unit: c.unit }); });
-          if (rules.length === 0) {
-            el.innerHTML = '<div style="padding: 8px 10px; color: var(--text-soft); font-size: 0.75rem;">(无规则 — 添加带范围的卡片后自动生成)</div>';
-            return;
-          }
-          el.innerHTML = rules.map((r) => `
-            <div style="padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-small); font-size: 0.75rem; margin-bottom: 6px;">
-              <strong>${NS.escapeHtml(r.title)}</strong>
-              <span style="font-family: var(--font-mono); color: var(--text-soft); margin-left: 8px;">${r.field}</span>
-              <span style="float: right; font-family: var(--font-mono); color: var(--text-soft);">${r.range[0]} ~ ${r.range[1]}${NS.escapeHtml(r.unit || '')}</span>
-            </div>
-          `).join('');
         };
 
         // --- Toast 通知 ---
@@ -12650,14 +12486,6 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             // 重要弹窗始终居中 (回到 .dashboard-host .modal 默认样式), 不再用 body.toast-pos-XX 强改
           }
           if (name === 'dh-proto') NS.renderProtoEditor();
-          if (name === 'dh-cmd-config') { NS.renderCmdList(); NS.populateCmdForm(); }
-          if (name === 'dh-card-config') { NS.renderCardEditList(); NS.populateCardFormCmds(); }
-          if (name === 'dh-ie') { const exp = document.getElementById('dh-ie-export'); if (exp) exp.value = NS.exportConfig(); }
-          if (name === 'dh-alerts') {
-            NS.renderAlertRules();
-            const cb = document.getElementById('dh-alert-cmd-mismatch'); if (cb) cb.checked = NS.cmdMismatchEnabled;
-            const db = document.getElementById('dh-alert-debounce'); if (db) db.value = NS.alertDebounceMs;
-          }
         };
         NS.closeModal = function (name) {
           const backdrop = document.getElementById(name + '-backdrop');
@@ -12671,23 +12499,946 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         };
 
         // --- 挂载 modal toolbar 按钮 + 内部按钮 handlers ---
+
+        // === 新建协议 3 步向导 (Task 7) ===
+        //   state.step  1=选 kind, 2=基础信息, 3=帧模板
+        //   state.kind  选中的 kind (fixed-header / raw / ... / custom)
+        //   state.fields 帧模板字段数组 (从 KIND_DEFAULTS 浅拷贝起步, Custom 空白)
+        //   完成时 append 到 NS.PROTOCOLS, 设 activeProtoId, 关 modal
+        NS._wizardState = { step: 1, kind: null, id: '', name: '', byteOrder: 'BE', crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE', crcRange: 'all', fields: [] };
+
+        NS.openNewProtocolWizard = function () {
+          NS._wizardState = { step: 1, kind: null, id: '', name: '', byteOrder: 'BE', crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE', crcRange: 'all', fields: [] };
+          NS._renderWizardStep1();
+          NS.openModal('dh-new-proto-wizard');
+        };
+
+        // 9 张 kind 卡片 (8 + Custom), 单选高亮
+        NS._renderWizardStep1 = function () {
+          const s = NS._wizardState;
+          const kinds = Object.keys(NS._KIND_TEMPLATES).concat(['custom']);
+          const html = '<div style="padding: 24px 28px;">'
+            + '<h3 style="margin-top: 0;">第 1 步 · 选协议类型</h3>'
+            + '<p style="color: var(--text-soft); margin-bottom: 16px;">选 8 种内置 kind,或选 Custom 自拼帧模板。</p>'
+            + '<div class="wizard-kind-grid">'
+            + kinds.map((k) => {
+              const def = NS._KIND_TEMPLATES[k] || { name: 'Custom (空白帧模板)', desc: '用户自拼每个字段' };
+              const selected = s.kind === k;
+              return '<div class="wizard-kind-card' + (selected ? ' selected' : '') + '" data-kind="' + k + '">'
+                + '<div class="wizard-kind-name">' + NS.escapeHtml(def.name) + '</div>'
+                + '<div class="wizard-kind-desc">' + NS.escapeHtml(def.desc) + '</div>'
+                + '</div>';
+            }).join('')
+            + '</div></div>';
+          document.getElementById('dh-new-proto-wizard-body').innerHTML = html;
+          document.getElementById('dh-new-proto-step-label').textContent = '第 1 步 / 共 3 步';
+          document.getElementById('dh-new-proto-prev').disabled = true;
+          document.getElementById('dh-new-proto-next').textContent = '下一步';
+          document.querySelectorAll('.wizard-kind-card').forEach((el) => {
+            el.addEventListener('click', () => {
+              NS._wizardState.kind = el.getAttribute('data-kind');
+              NS._renderWizardStep1();
+            });
+          });
+        };
+
+        // 基础信息表单: id / name / byteOrder / crcType / crcInit / crcEndian / crcRange
+        NS._renderWizardStep2 = function () {
+          const s = NS._wizardState;
+          if (!s.kind) { NS._renderWizardStep1(); return; }
+          const html = '<div style="padding: 24px 28px;">'
+            + '<h3 style="margin-top: 0;">第 2 步 · 基础信息</h3>'
+            + '<div class="wizard-form">'
+            + '<label>协议 ID<input id="dh-wiz-id" value="' + NS.escapeHtml(s.id) + '" placeholder="例: proto_mybms" /></label>'
+            + '<label>显示名<input id="dh-wiz-name" value="' + NS.escapeHtml(s.name) + '" placeholder="例: MyBMS v1" /></label>'
+            + '<label>字节序<select id="dh-wiz-byteOrder"><option value="BE"' + (s.byteOrder === 'BE' ? ' selected' : '') + '>BE (大端)</option><option value="LE"' + (s.byteOrder === 'LE' ? ' selected' : '') + '>LE (小端)</option></select></label>'
+            + '<label>CRC 类型<select id="dh-wiz-crcType"><option value="crc16-modbus"' + (s.crcType === 'crc16-modbus' ? ' selected' : '') + '>CRC-16 MODBUS</option><option value="crc16-ccitt"' + (s.crcType === 'crc16-ccitt' ? ' selected' : '') + '>CRC-16 CCITT</option><option value="crc8"' + (s.crcType === 'crc8' ? ' selected' : '') + '>CRC-8</option><option value="checksum"' + (s.crcType === 'checksum' ? ' selected' : '') + '>Checksum</option><option value="xor"' + (s.crcType === 'xor' ? ' selected' : '') + '>XOR</option><option value="none"' + (s.crcType === 'none' ? ' selected' : '') + '>无</option></select></label>'
+            + '<label>CRC 初始值<input id="dh-wiz-crcInit" value="' + NS.escapeHtml(s.crcInit) + '" placeholder="0xFFFF" /></label>'
+            + '<label>CRC 字节序<select id="dh-wiz-crcEndian"><option value="LE"' + (s.crcEndian === 'LE' ? ' selected' : '') + '>LE</option><option value="BE"' + (s.crcEndian === 'BE' ? ' selected' : '') + '>BE</option></select></label>'
+            + '<label>CRC 范围<select id="dh-wiz-crcRange"><option value="all"' + (s.crcRange === 'all' ? ' selected' : '') + '>全部 (含 header/tail)</option><option value="no_header"' + (s.crcRange === 'no_header' ? ' selected' : '') + '>不含 header</option><option value="data_only"' + (s.crcRange === 'data_only' ? ' selected' : '') + '>仅 data 段</option></select></label>'
+            + '</div></div>';
+          document.getElementById('dh-new-proto-wizard-body').innerHTML = html;
+          document.getElementById('dh-new-proto-step-label').textContent = '第 2 步 / 共 3 步';
+          document.getElementById('dh-new-proto-prev').disabled = false;
+          document.getElementById('dh-new-proto-next').textContent = '下一步';
+        };
+
+        // 帧模板表: kind 预填 / Custom 空白, 支持拖拽 reorder + 添加/删除 + 实时帧预览
+        NS._renderWizardStep3 = function () {
+          const s = NS._wizardState;
+          // 同步 step 2 表单到 state (避免用户改了表单没回车就点下一步)
+          const idEl = document.getElementById('dh-wiz-id');
+          const nameEl = document.getElementById('dh-wiz-name');
+          if (idEl) s.id = idEl.value.trim();
+          if (nameEl) s.name = nameEl.value.trim();
+          const boEl = document.getElementById('dh-wiz-byteOrder');
+          const ctEl = document.getElementById('dh-wiz-crcType');
+          const ciEl = document.getElementById('dh-wiz-crcInit');
+          const ceEl = document.getElementById('dh-wiz-crcEndian');
+          const crEl = document.getElementById('dh-wiz-crcRange');
+          if (boEl) s.byteOrder = boEl.value;
+          if (ctEl) s.crcType = ctEl.value;
+          if (ciEl) s.crcInit = ciEl.value.trim() || '0xFFFF';
+          if (ceEl) s.crcEndian = ceEl.value;
+          if (crEl) s.crcRange = crEl.value;
+          // 字段表行
+          const rows = s.fields.map((f, i) => '<tr data-field-index="' + i + '" draggable="true">'
+            + '<td><span data-svg="grip-vertical" data-svg-size="12"></span></td>'
+            + '<td><input class="wiz-field-type" value="' + NS.escapeHtml(f.type) + '" /></td>'
+            + '<td><input class="wiz-field-name" value="' + NS.escapeHtml(f.name) + '" /></td>'
+            + '<td><input class="wiz-field-size" type="number" min="0" max="8" value="' + (f.size || 0) + '" /></td>'
+            + '<td><select class="wiz-field-byteOrder"><option value="">无</option><option value="BE"' + (f.byteOrder === 'BE' ? ' selected' : '') + '>BE</option><option value="LE"' + (f.byteOrder === 'LE' ? ' selected' : '') + '>LE</option></select></td>'
+            + '<td><input class="wiz-field-default" value="' + NS.escapeHtml(f.default || '') + '" /></td>'
+            + '<td><button class="wiz-field-del" data-field-del="' + i + '" title="删除"><span data-svg="trash" data-svg-size="12"></span></button></td>'
+            + '</tr>').join('');
+          const html = '<div style="padding: 24px 28px;">'
+            + '<h3 style="margin-top: 0;">第 3 步 · 帧模板</h3>'
+            + '<p style="color: var(--text-soft); margin-bottom: 12px;">kind <code>' + NS.escapeHtml(s.kind) + '</code> 预填。可拖拽行重排, [+ 添加字段] 自定义。</p>'
+            + '<div style="overflow-x: auto;"><table class="wiz-field-table"><thead><tr><th></th><th>类型</th><th>名字</th><th>字节</th><th>序</th><th>默认</th><th></th></tr></thead><tbody id="dh-wiz-fields-tbody">' + rows + '</tbody></table></div>'
+            + '<div style="margin-top: 12px;"><button class="toolbar-btn" id="dh-wiz-add-field"><span data-svg="plus" data-svg-size="12"></span>添加字段</button></div>'
+            + '<div style="margin-top: 16px; padding: 12px; background: var(--bg-subtle); border-radius: 6px;"><strong>实时帧预览:</strong><pre id="dh-wiz-frame-preview" style="margin: 8px 0 0; font-size: 12px; font-family: ui-monospace, Menlo, monospace;">' + NS.escapeHtml(NS._wizardFramePreview()) + '</pre></div>'
+            + '</div>';
+          document.getElementById('dh-new-proto-wizard-body').innerHTML = html;
+          document.getElementById('dh-new-proto-step-label').textContent = '第 3 步 / 共 3 步';
+          document.getElementById('dh-new-proto-prev').disabled = false;
+          document.getElementById('dh-new-proto-next').textContent = '完成';
+          // 重新渲染 icons (grip-vertical / trash / plus 都是 data-svg)
+          if (typeof NS_renderIcons === 'function') NS_renderIcons();
+          // [+ 添加字段]
+          document.getElementById('dh-wiz-add-field').addEventListener('click', () => {
+            s.fields.push({ name: 'field_' + (s.fields.length + 1), type: 'data', size: 1, byteOrder: 'BE', default: '0x00' });
+            NS._renderWizardStep3();
+          });
+          // [× 删除]
+          document.querySelectorAll('.wiz-field-del').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const idx = parseInt(btn.getAttribute('data-field-del'), 10);
+              s.fields.splice(idx, 1);
+              NS._renderWizardStep3();
+            });
+          });
+          // 字段值变化 → 同步到 state → 刷新帧预览
+          const updatePreview = () => {
+            document.querySelectorAll('#dh-wiz-fields-tbody tr').forEach((tr, i) => {
+              s.fields[i].type = tr.querySelector('.wiz-field-type').value;
+              s.fields[i].name = tr.querySelector('.wiz-field-name').value;
+              s.fields[i].size = parseInt(tr.querySelector('.wiz-field-size').value, 10) || 0;
+              s.fields[i].byteOrder = tr.querySelector('.wiz-field-byteOrder').value || null;
+              s.fields[i].default = tr.querySelector('.wiz-field-default').value;
+            });
+            document.getElementById('dh-wiz-frame-preview').textContent = NS._wizardFramePreview();
+          };
+          document.querySelectorAll('#dh-wiz-fields-tbody input, #dh-wiz-fields-tbody select').forEach((el) => {
+            el.addEventListener('input', updatePreview);
+            el.addEventListener('change', updatePreview);
+          });
+          // 拖拽 reorder (HTML5 drag-and-drop, grip 列作 handle)
+          let dragSrc = null;
+          document.querySelectorAll('#dh-wiz-fields-tbody tr').forEach((tr) => {
+            tr.addEventListener('dragstart', (e) => { dragSrc = parseInt(tr.getAttribute('data-field-index'), 10); e.dataTransfer.effectAllowed = 'move'; });
+            tr.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+            tr.addEventListener('drop', (e) => {
+              e.preventDefault();
+              const tgt = parseInt(tr.getAttribute('data-field-index'), 10);
+              if (dragSrc !== null && dragSrc !== tgt) {
+                const moved = s.fields.splice(dragSrc, 1)[0];
+                s.fields.splice(tgt, 0, moved);
+                NS._renderWizardStep3();
+              }
+            });
+          });
+        };
+
+        // 实时帧预览: 临时 proto + 临时 cmd 走 NS.buildFrame
+        NS._wizardFramePreview = function () {
+          const s = NS._wizardState;
+          try {
+            const tmpProto = { id: s.id || 'preview', kind: s.kind || 'custom', byteOrder: s.byteOrder, crcType: s.crcType, crcInit: s.crcInit, crcEndian: s.crcEndian, crcRange: s.crcRange, fields: s.fields.map((f, i) => ({ id: 'pf' + i, name: f.name, type: f.type, size: f.size, byteOrder: f.byteOrder, default: f.default })), commands: [] };
+            const tmpCmd = { id: 0x01, name: 'preview', direction: 'rx', dataFields: [] };
+            const result = NS.buildFrame(tmpProto, tmpCmd);
+            if (!result) return '(空预览)';
+            if (result.error) return '错误: ' + result.error;
+            if (!result.bytes || result.bytes.length === 0) return '(空预览)';
+            return result.bytes.map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+          } catch (e) {
+            return '预览错误: ' + e.message;
+          }
+        };
+
+        NS._wizardPrev = function () {
+          const s = NS._wizardState;
+          if (s.step === 1) return;
+          s.step--;
+          if (s.step === 1) NS._renderWizardStep1();
+          else if (s.step === 2) NS._renderWizardStep2();
+        };
+
+        NS._wizardNext = function () {
+          const s = NS._wizardState;
+          if (s.step === 1) {
+            if (!s.kind) { NS.toast('请先选一个协议类型', 'warn'); return; }
+            s.step = 2;
+            NS._renderWizardStep2();
+          } else if (s.step === 2) {
+            // 收表单
+            const id = document.getElementById('dh-wiz-id').value.trim();
+            const name = document.getElementById('dh-wiz-name').value.trim();
+            if (!id) { NS.toast('协议 ID 不能为空', 'warn'); return; }
+            if (NS.PROTOCOLS.some((p) => p.id === id)) { NS.toast('协议 ID 已存在', 'warn'); return; }
+            if (!name) { NS.toast('显示名不能为空', 'warn'); return; }
+            s.id = id;
+            s.name = name;
+            // 初始化 fields 数组 (kind 预填 / Custom 空白)
+            s.fields = JSON.parse(JSON.stringify(NS.KIND_DEFAULTS[s.kind] || []));
+            s.step = 3;
+            NS._renderWizardStep3();
+          } else if (s.step === 3) {
+            if (s.fields.length === 0) { NS.toast('请至少添加一个字段', 'warn'); return; }
+            const newProto = {
+              id: s.id, name: s.name, kind: s.kind,
+              byteOrder: s.byteOrder, crcType: s.crcType, crcInit: s.crcInit, crcEndian: s.crcEndian, crcRange: s.crcRange,
+              fields: s.fields.map((f, i) => ({ id: 'f' + (i + 1), name: f.name, type: f.type, size: f.size, byteOrder: f.byteOrder, default: f.default })),
+              commands: []
+            };
+            NS.PROTOCOLS.push(newProto);
+            NS.activeProtoId = newProto.id;
+            NS.toast('已添加协议: ' + newProto.name, 'success');
+            NS.closeModal('dh-new-proto-wizard');
+          }
+        };
+
+        // === 新建命令 modal (Task 8) ===
+        //   state.dataFields 走 NS.DATA_TYPES 选类型, 实时算总字节
+        //   完成时 append 到 proto.commands (在协议内 ID 唯一)
+        NS.openNewCommandModal = function (protocolId) {
+          const proto = NS.PROTOCOLS.find((p) => p.id === protocolId);
+          if (!proto) { NS.toast('协议不存在: ' + protocolId, 'danger'); return; }
+          NS._newCmdState = { protoId: protocolId, id: 0, name: '', direction: 'rx', frameType: 'query', cadence: 200, expectResponse: '', remark: '', dataFields: [] };
+          document.getElementById('dh-new-cmd-proto-label').textContent = '协议: ' + (proto.name || proto.id);
+          document.getElementById('dh-new-cmd-id').value = '';
+          document.getElementById('dh-new-cmd-name').value = '';
+          document.getElementById('dh-new-cmd-direction').value = 'rx';
+          document.getElementById('dh-new-cmd-frameType').value = 'query';
+          document.getElementById('dh-new-cmd-cadence').value = '200';
+          document.getElementById('dh-new-cmd-expectResponse').value = '';
+          document.getElementById('dh-new-cmd-remark').value = '';
+          NS._renderNewCmdDataFields();
+          NS.openModal('dh-new-command');
+        };
+
+        // === 配置中心 modal (Task 9: 5 tab 骨架, 内容由 Task 10-13 注册) ===
+        //   - 5 tab: protocols / commands / cards / alerts / ie (import/export)
+        //   - tab 切换: 调 NS._configCenterTabRenderers[tabName]() 渲染,允许 Task 10-13 注册自己的渲染器
+        //   - badge 计数: 实时同步 NS.allCommands() / NS.CARDS / 含 range 的 card
+        //   - 导出按钮: 用 NS.exportConfig() 拿 JSON 串触发下载 (Task 11+ 实装 NS.exportConfig)
+        //   - 引导按钮: 暂占位,Task 14 完整实现 NS.startGuidedTour
+        NS._configCenterActiveTab = 'protocols';
+        NS._configCenterTabRenderers = {};  // { protocols, commands, cards, alerts, ie } -> fn
+
+        NS.openConfigCenter = function (initialTab) {
+          NS._configCenterActiveTab = initialTab || 'protocols';
+          NS._renderConfigCenter();
+          NS.openModal('dh-config-center');
+        };
+
+        NS._renderConfigCenter = function () {
+          // 更新 tab active class
+          document.querySelectorAll('#dh-config-center-tabs .editor-tab').forEach((btn) => {
+            btn.classList.toggle('active', btn.dataset.tab === NS._configCenterActiveTab);
+          });
+          // 更新 tab pane
+          document.querySelectorAll('#dh-config-center-body .cc-tab-pane').forEach((pane) => {
+            pane.classList.toggle('active', pane.dataset.tabContent === NS._configCenterActiveTab);
+          });
+          // 更新 badge (try/catch 防止 NS.allCommands / NS.CARDS 暂时为 undefined)
+          try {
+            const cmdBadge = document.getElementById('dh-cc-commands-badge');
+            if (cmdBadge && typeof NS.allCommands === 'function') cmdBadge.textContent = NS.allCommands().length;
+            const cardBadge = document.getElementById('dh-cc-cards-badge');
+            if (cardBadge) cardBadge.textContent = (NS.CARDS || []).length;
+            const alertBadge = document.getElementById('dh-cc-alerts-badge');
+            if (alertBadge) alertBadge.textContent = (NS.CARDS || []).filter((c) => c.range).length;
+          } catch (e) { /* badge 失败不阻塞渲染 */ }
+          // 调用对应 tab 渲染函数 (Task 10-13 注册)
+          const renderer = NS._configCenterTabRenderers[NS._configCenterActiveTab];
+          if (typeof renderer === 'function') {
+            try { renderer(); } catch (e) { console.error('cc tab render err:', e); }
+          }
+        };
+
+        NS._switchConfigCenterTab = function (tabName) {
+          NS._configCenterActiveTab = tabName;
+          NS._renderConfigCenter();
+        };
+
+        // === 配置中心 Tab 1: 协议 (Task 10) ===
+        //   - 协议 select + 新建/导入/编辑 工具栏
+        //   - 帧模板表: 列出选中协议的 fields (类型/名字/字节/序/默认)
+        //   - 新建: 复用 NS.openNewProtocolWizard (3 步向导, Task 7)
+        //   - 导入: 读 JSON 文件, push 未重名协议到 NS.PROTOCOLS
+        //   - 编辑: 设 activeProtoId + 复用 dh-proto 协议编辑器
+        NS._configCenterTabRenderers.protocols = function () {
+          const pane = document.querySelector('#dh-config-center-body [data-tab-content="protocols"]');
+          if (!pane) return;
+          const sel = NS._ccSelectedProtoId || (NS.PROTOCOLS[0] && NS.PROTOCOLS[0].id);
+          const proto = NS.PROTOCOLS.find((p) => p.id === sel);
+          const rows = (proto && proto.fields) ? proto.fields.map((f, i) =>
+            '<tr data-field-index="' + i + '">' +
+            '<td><span style="color: var(--text-soft); font-size: 11px;">' + (i + 1) + '</span></td>' +
+            '<td><code style="background: var(--bg-subtle); padding: 2px 6px; border-radius: 3px; font-size: 11px;">' + NS.escapeHtml(f.type) + '</code></td>' +
+            '<td>' + NS.escapeHtml(f.name) + '</td>' +
+            '<td style="text-align: center;">' + (f.size || 0) + '</td>' +
+            '<td style="text-align: center;">' + (f.byteOrder || '—') + '</td>' +
+            '<td><code style="font-size: 11px;">' + NS.escapeHtml(f.default || '—') + '</code></td>' +
+            '</tr>'
+          ).join('') : '';
+          const protoOptions = NS.PROTOCOLS.map((p) =>
+            '<option value="' + NS.escapeHtml(p.id) + '"' + (p.id === sel ? ' selected' : '') + '>' + NS.escapeHtml(p.name || p.id) + ' (' + NS.escapeHtml(p.kind) + ')</option>'
+          ).join('');
+          pane.innerHTML = '<div style="margin-bottom: 14px; display: flex; gap: 8px; align-items: center;">' +
+            '<label style="font-size: 12px; color: var(--text-soft);">当前协议:</label>' +
+            '<select id="dh-cc-proto-select" style="padding: 5px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px; flex: 1; max-width: 360px;">' + protoOptions + '</select>' +
+            '<button class="toolbar-btn primary" id="dh-cc-proto-new" data-svg="plus" data-svg-size="14"><span>新建协议</span></button>' +
+            '<button class="toolbar-btn" id="dh-cc-proto-import" data-svg="upload" data-svg-size="14"><span>导入 JSON</span></button>' +
+            '<button class="toolbar-btn" id="dh-cc-proto-edit" data-svg="pencil" data-svg-size="14"><span>编辑</span></button>' +
+            '</div>' +
+            '<div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">' +
+            '<table class="cc-field-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">' +
+            '<thead><tr style="background: var(--bg-subtle);"><th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">#</th><th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">类型</th><th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">名字</th><th style="padding: 8px 12px; text-align: center; border-bottom: 1px solid var(--border);">字节</th><th style="padding: 8px 12px; text-align: center; border-bottom: 1px solid var(--border);">序</th><th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">默认</th></tr></thead>' +
+            '<tbody>' + (rows || '<tr><td colspan="6" style="padding: 20px; text-align: center; color: var(--text-soft);">该协议没有字段</td></tr>') + '</tbody>' +
+            '</table></div>' +
+            '<div style="margin-top: 12px; font-size: 11px; color: var(--text-soft);">' +
+            '共 ' + NS.PROTOCOLS.length + ' 个协议 · 当前 "' + (proto ? (proto.name || proto.id) : '无') + '" ' + ((proto && proto.fields) ? proto.fields.length : 0) + ' 个字段' +
+            '</div>';
+          // data-svg 按钮图标渲染
+          if (typeof NS_renderIcons === 'function') NS_renderIcons();
+          // bind 协议 select change
+          const select = document.getElementById('dh-cc-proto-select');
+          if (select) select.onchange = () => {
+            NS._ccSelectedProtoId = select.value;
+            NS._configCenterTabRenderers.protocols();  // 重渲染
+          };
+          // bind 新建 → 复用 3 步向导
+          const newBtn = document.getElementById('dh-cc-proto-new');
+          if (newBtn) newBtn.onclick = () => {
+            NS.closeModal('dh-config-center');
+            NS.openNewProtocolWizard();
+          };
+          // bind 导入 JSON
+          const importBtn = document.getElementById('dh-cc-proto-import');
+          if (importBtn) importBtn.onclick = () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/json,.json';
+            input.onchange = (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = (ev) => {
+                try {
+                  const json = JSON.parse(ev.target.result);
+                  if (Array.isArray(json.protocols) && json.protocols.length) {
+                    json.protocols.forEach((p) => {
+                      if (!NS.PROTOCOLS.find((x) => x.id === p.id)) {
+                        NS.PROTOCOLS.push({ ...p, kind: p.kind || 'fixed-header', commands: p.commands || [] });
+                      }
+                    });
+                    NS.toast && NS.toast('已导入 ' + json.protocols.length + ' 个协议', 'success');
+                    NS._configCenterTabRenderers.protocols();
+                  } else {
+                    NS.toast && NS.toast('JSON 中未找到 protocols 数组', 'warn');
+                  }
+                } catch (err) {
+                  NS.toast && NS.toast('导入失败: ' + err.message, 'danger');
+                }
+              };
+              reader.readAsText(file);
+            };
+            input.click();
+          };
+          // bind 编辑 → 复用 dh-proto 协议编辑器
+          const editBtn = document.getElementById('dh-cc-proto-edit');
+          if (editBtn) editBtn.onclick = () => {
+            if (proto) {
+              NS.closeModal('dh-config-center');
+              NS.activeProtoId = proto.id;
+              NS.openModal('dh-proto');
+            }
+          };
+        };
+
+        // === 配置中心 Tab 2: 命令 (Task 11) ===
+        NS._configCenterTabRenderers.commands = function () {
+          const pane = document.querySelector('#dh-config-center-body [data-tab-content="commands"]');
+          if (!pane) return;
+          const selProtoId = NS._ccSelectedProtoId || (NS.PROTOCOLS[0] && NS.PROTOCOLS[0].id);
+          const proto = NS.PROTOCOLS.find((p) => p.id === selProtoId);
+          const cmds = (proto && proto.commands) || [];
+          const protoOptions = NS.PROTOCOLS.map((p) =>
+            '<option value="' + NS.escapeHtml(p.id) + '"' + (p.id === selProtoId ? ' selected' : '') + '>' + NS.escapeHtml(p.name || p.id) + ' (' + (p.commands || []).length + ' cmd)</option>'
+          ).join('');
+          const dirLabel = (d) => d === 'tx' ? 'TX 发送' : d === 'rx' ? 'RX 接收' : d || '—';
+          const typeLabel = (t) => ({ query: '查询', control: '控制', response: '响应' }[t] || t || '—');
+          const rows = cmds.map((cmd, i) => {
+            const totalSize = NS.computeDataSize ? NS.computeDataSize(cmd) : 0;
+            const fieldNames = (cmd.dataFields || []).map((df) => df.name).join(', ');
+            return '<tr data-cmd-index="' + i + '">' +
+              '<td><code style="background: var(--bg-subtle); padding: 2px 6px; border-radius: 3px; font-size: 11px;">0x' + (cmd.id || 0).toString(16).padStart(2, '0').toUpperCase() + '</code></td>' +
+              '<td>' + NS.escapeHtml(cmd.name || '—') + '</td>' +
+              '<td>' + dirLabel(cmd.direction) + '</td>' +
+              '<td>' + typeLabel(cmd.frameType) + '</td>' +
+              '<td style="text-align: right;">' + (cmd.cadence || 0) + 'ms</td>' +
+              '<td style="font-size: 11px; color: var(--text-soft);">' + NS.escapeHtml(fieldNames || '—') + '</td>' +
+              '<td style="text-align: center;"><span style="background: var(--accent-soft); color: var(--accent); padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600;">' + totalSize + 'B</span></td>' +
+              '<td style="text-align: right;">' +
+                '<button class="wiz-field-del" data-cmd-del="' + i + '" title="删除" style="background: none; border: none; cursor: pointer; padding: 4px; color: var(--danger);"><span data-svg="trash" data-svg-size="12"></span></button>' +
+              '</td>' +
+              '</tr>';
+          }).join('');
+          pane.innerHTML = '<div style="margin-bottom: 14px; display: flex; gap: 8px; align-items: center;">' +
+            '<label style="font-size: 12px; color: var(--text-soft);">协议:</label>' +
+            '<select id="dh-cc-cmd-proto-select" style="padding: 5px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px; flex: 1; max-width: 360px;">' + protoOptions + '</select>' +
+            '<button class="toolbar-btn primary" id="dh-cc-cmd-new" data-svg="plus" data-svg-size="14"><span>新建命令</span></button>' +
+            '</div>' +
+            '<div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">' +
+            '<table class="cc-field-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">' +
+            '<thead><tr style="background: var(--bg-subtle);">' +
+              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">ID</th>' +
+              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">名称</th>' +
+              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">方向</th>' +
+              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">类型</th>' +
+              '<th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--border);">周期</th>' +
+              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">字段</th>' +
+              '<th style="padding: 8px 12px; text-align: center; border-bottom: 1px solid var(--border);">大小</th>' +
+              '<th style="padding: 8px 12px; border-bottom: 1px solid var(--border);"></th>' +
+            '</tr></thead>' +
+            '<tbody>' + (rows || '<tr><td colspan="8" style="padding: 20px; text-align: center; color: var(--text-soft);">该协议下没有命令</td></tr>') + '</tbody>' +
+            '</table></div>' +
+            '<div style="margin-top: 12px; font-size: 11px; color: var(--text-soft);">' +
+            '共 ' + cmds.length + ' 条命令 · ' + cmds.filter((c) => c.direction === 'rx').length + ' RX / ' + cmds.filter((c) => c.direction === 'tx').length + ' TX' +
+            '</div>';
+          // render icons
+          if (typeof NS_renderIcons === 'function') NS_renderIcons();
+          // 协议 select change 同步到 NS._ccSelectedProtoId (影响 Tab 1 也重新渲染)
+          const protoSel = document.getElementById('dh-cc-cmd-proto-select');
+          if (protoSel) protoSel.onchange = () => {
+            NS._ccSelectedProtoId = protoSel.value;
+            // 重新渲染两个 tab(因为协议变了,协议 tab 的 select 也要同步)
+            NS._configCenterTabRenderers.protocols();
+            NS._configCenterTabRenderers.commands();
+          };
+          // 新建按钮
+          const newBtn = document.getElementById('dh-cc-cmd-new');
+          if (newBtn) newBtn.onclick = () => {
+            if (!proto) { NS.toast && NS.toast('请先选一个协议', 'warn'); return; }
+            NS.closeModal('dh-config-center');
+            NS.openNewCommandModal(proto.id);
+          };
+          // 删除按钮
+          document.querySelectorAll('[data-cmd-del]').forEach((btn) => {
+            btn.onclick = () => {
+              const idx = parseInt(btn.getAttribute('data-cmd-del'), 10);
+              if (!proto || !proto.commands[idx]) return;
+              if (!confirm('确认删除命令 0x' + proto.commands[idx].id.toString(16).padStart(2, '0').toUpperCase() + ' ' + proto.commands[idx].name + '?')) return;
+              proto.commands.splice(idx, 1);
+              NS.toast && NS.toast('已删除命令', 'success');
+              NS._configCenterTabRenderers.commands();
+              // 同步更新顶部 badge
+              const cmdBadge = document.getElementById('dh-cc-commands-badge');
+              if (cmdBadge) cmdBadge.textContent = NS.allCommands().length;
+            };
+          });
+        };
+
+        // === 配置中心 Tab 3: 卡片 (Task 12) ===
+        NS._configCenterTabRenderers.cards = function () {
+          const pane = document.querySelector('#dh-config-center-body [data-tab-content="cards"]');
+          if (!pane) return;
+          const allCmds = NS.allCommands();
+          const cmdOptions = (cmdId) => {
+            const c = allCmds.find((x) => x.id === cmdId);
+            return c ? '0x' + c.id.toString(16).padStart(2, '0').toUpperCase() + ' ' + c.name : '0x' + (cmdId || 0).toString(16).padStart(2, '0').toUpperCase() + ' (orphan)';
+          };
+          const rows = NS.CARDS.map((c, i) => {
+            const rangeStr = c.range ? c.range[0] + ' - ' + c.range[1] : '—';
+            const typeStr = c.type === 'pair' ? 'PAIR 对比' : 'TREND 趋势';
+            return '<tr data-card-index="' + i + '">' +
+              '<td><code style="background: var(--bg-subtle); padding: 2px 6px; border-radius: 3px; font-size: 11px;">' + NS.escapeHtml(c.id || '—') + '</code></td>' +
+              '<td>' + NS.escapeHtml(c.title || '—') + '</td>' +
+              '<td style="font-size: 11px;">' + typeStr + '</td>' +
+              '<td style="font-size: 11px;">' + cmdOptions(c.cmd) + '</td>' +
+              '<td style="font-size: 11px; color: var(--text-soft);">' + NS.escapeHtml(c.field || c.pairId || '—') + '</td>' +
+              '<td style="text-align: center; font-size: 11px;">' + rangeStr + '</td>' +
+              '<td style="text-align: center;">' + (c.precision || 0) + '</td>' +
+              '<td style="font-size: 11px;">' + NS.escapeHtml(c.unit || '—') + '</td>' +
+              '<td style="text-align: right;">' +
+                '<button class="wiz-field-del" data-card-edit="' + i + '" title="编辑" style="background: none; border: none; cursor: pointer; padding: 4px; color: var(--accent);"><span data-svg="pencil" data-svg-size="12"></span></button>' +
+                '<button class="wiz-field-del" data-card-del="' + i + '" title="删除" style="background: none; border: none; cursor: pointer; padding: 4px; color: var(--danger);"><span data-svg="trash" data-svg-size="12"></span></button>' +
+              '</td>' +
+              '</tr>';
+          }).join('');
+          pane.innerHTML = '<div style="margin-bottom: 14px; display: flex; gap: 8px; align-items: center;">' +
+            '<span style="font-size: 12px; color: var(--text-soft); flex: 1;">共 ' + NS.CARDS.length + ' 张卡片 (TREND ' + NS.CARDS.filter(c => c.type === 'trend').length + ' / PAIR ' + NS.CARDS.filter(c => c.type === 'pair').length + ')</span>' +
+            '<button class="toolbar-btn primary" id="dh-cc-card-new" data-svg="plus" data-svg-size="14"><span>新建卡片</span></button>' +
+            '</div>' +
+            '<div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden; max-height: 500px; overflow-y: auto;">' +
+            '<table class="cc-field-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">' +
+            '<thead><tr style="background: var(--bg-subtle); position: sticky; top: 0;">' +
+              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">ID</th>' +
+              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">标题</th>' +
+              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">类型</th>' +
+              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">命令</th>' +
+              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">字段/pair</th>' +
+              '<th style="padding: 8px 12px; text-align: center; border-bottom: 1px solid var(--border);">范围</th>' +
+              '<th style="padding: 8px 12px; text-align: center; border-bottom: 1px solid var(--border);">精度</th>' +
+              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">单位</th>' +
+              '<th style="padding: 8px 12px; border-bottom: 1px solid var(--border);"></th>' +
+            '</tr></thead>' +
+            '<tbody>' + (rows || '<tr><td colspan="9" style="padding: 20px; text-align: center; color: var(--text-soft);">没有卡片</td></tr>') + '</tbody>' +
+            '</table></div>';
+          if (typeof NS_renderIcons === 'function') NS_renderIcons();
+          // 新建
+          const newBtn = document.getElementById('dh-cc-card-new');
+          if (newBtn) newBtn.onclick = () => {
+            // 现有 openCardEdit 是 edit-only (找不到 c 就 return),所以先 push 占位卡再调它
+            const baseId = 'c' + (Date.now() % 100000);
+            const newCard = { id: baseId, type: 'trend', cmd: (allCmds[0] || {}).id || 0, dir: 'rx', field: '', title: '新建卡片', unit: '', precision: 2 };
+            NS.CARDS.push(newCard);
+            NS.editingCardId = baseId;
+            NS.openCardEdit && NS.openCardEdit(baseId);
+          };
+          // 编辑
+          document.querySelectorAll('[data-card-edit]').forEach((btn) => {
+            btn.onclick = () => {
+              const idx = parseInt(btn.getAttribute('data-card-edit'), 10);
+              const card = NS.CARDS[idx];
+              if (!card) return;
+              NS.editingCardId = card.id;
+              NS.openCardEdit && NS.openCardEdit(card.id);
+            };
+          });
+          // 删除
+          document.querySelectorAll('[data-card-del]').forEach((btn) => {
+            btn.onclick = () => {
+              const idx = parseInt(btn.getAttribute('data-card-del'), 10);
+              if (!NS.CARDS[idx]) return;
+              if (!confirm('确认删除卡片 ' + NS.CARDS[idx].id + ' ' + (NS.CARDS[idx].title || '') + '?')) return;
+              const removed = NS.CARDS.splice(idx, 1)[0];
+              NS.toast && NS.toast('已删除卡片 ' + removed.id, 'success');
+              NS._configCenterTabRenderers.cards();
+              NS._configCenterTabRenderers.alerts();
+              const cardBadge = document.getElementById('dh-cc-cards-badge');
+              if (cardBadge) cardBadge.textContent = NS.CARDS.length;
+              const alertBadge = document.getElementById('dh-cc-alerts-badge');
+              if (alertBadge) alertBadge.textContent = NS.CARDS.filter((c) => c.range).length;
+            };
+          });
+        };
+
+        // === 配置中心 Tab 4: 告警 (Task 12) ===
+        NS._configCenterTabRenderers.alerts = function () {
+          const pane = document.querySelector('#dh-config-center-body [data-tab-content="alerts"]');
+          if (!pane) return;
+          const cardsWithRange = NS.CARDS.filter((c) => c.range && c.range.length === 2);
+          const rows = cardsWithRange.map((c, i) => {
+            return '<tr data-alert-index="' + i + '">' +
+              '<td style="font-size: 11px;"><code style="background: var(--bg-subtle); padding: 2px 6px; border-radius: 3px;">' + NS.escapeHtml(c.id) + '</code></td>' +
+              '<td>' + NS.escapeHtml(c.title || '—') + '</td>' +
+              '<td style="font-size: 11px;">' + c.range[0] + ' - ' + c.range[1] + ' ' + NS.escapeHtml(c.unit || '') + '</td>' +
+              '<td style="text-align: center;"><span style="background: rgba(217, 119, 6, 0.12); color: rgb(217, 119, 6); padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600;">警告</span></td>' +
+              '<td style="text-align: right;">' +
+                '<button class="wiz-field-del" data-alert-del="' + i + '" title="删除" style="background: none; border: none; cursor: pointer; padding: 4px; color: var(--danger);"><span data-svg="trash" data-svg-size="12"></span></button>' +
+              '</td>' +
+              '</tr>';
+          }).join('');
+          pane.innerHTML = '<div style="margin-bottom: 14px; display: flex; gap: 8px; align-items: center;">' +
+            '<span style="font-size: 12px; color: var(--text-soft); flex: 1;">从 ' + cardsWithRange.length + ' 张带 range 的卡片自动派生 (改卡片 range 后点 ↻ 重建)</span>' +
+            '<button class="toolbar-btn" id="dh-cc-alert-rebuild" data-svg="rotate-ccw" data-svg-size="14"><span>从卡片重建</span></button>' +
+            '<button class="toolbar-btn" id="dh-cc-alert-add" data-svg="plus-circle" data-svg-size="14"><span>手动添加</span></button>' +
+            '</div>' +
+            '<div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden; max-height: 500px; overflow-y: auto;">' +
+            '<table class="cc-field-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">' +
+            '<thead><tr style="background: var(--bg-subtle); position: sticky; top: 0;">' +
+              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">卡片 ID</th>' +
+              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">标题</th>' +
+              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">范围</th>' +
+              '<th style="padding: 8px 12px; text-align: center; border-bottom: 1px solid var(--border);">严重度</th>' +
+              '<th style="padding: 8px 12px; border-bottom: 1px solid var(--border);"></th>' +
+            '</tr></thead>' +
+            '<tbody>' + (rows || '<tr><td colspan="5" style="padding: 20px; text-align: center; color: var(--text-soft);">没有告警规则 (卡片没设 range)</td></tr>') + '</tbody>' +
+            '</table></div>' +
+            '<div style="margin-top: 12px; padding: 10px 12px; background: var(--bg-subtle); border-radius: 6px; font-size: 11px; color: var(--text-soft);">' +
+            '<strong>派生规则:</strong> 当卡片 field 值超出 range[0] ~ range[1] 时触发告警 (severity = warn)。' +
+            '</div>';
+          if (typeof NS_renderIcons === 'function') NS_renderIcons();
+          // 重建
+          const rebuildBtn = document.getElementById('dh-cc-alert-rebuild');
+          if (rebuildBtn) rebuildBtn.onclick = () => {
+            NS._configCenterTabRenderers.alerts();
+            NS.toast && NS.toast('已从卡片重建告警规则', 'success');
+          };
+          // 手动添加
+          const addBtn = document.getElementById('dh-cc-alert-add');
+          if (addBtn) addBtn.onclick = () => {
+            NS.toast && NS.toast('手动添加: 简化实现 — 暂不支持 (TBD)', 'info');
+          };
+          // 删除
+          document.querySelectorAll('[data-alert-del]').forEach((btn) => {
+            btn.onclick = () => {
+              const idx = parseInt(btn.getAttribute('data-alert-del'), 10);
+              if (!cardsWithRange[idx]) return;
+              if (!confirm('确认删除卡片 ' + cardsWithRange[idx].id + ' 的告警规则?\n(卡片本身的 range 不会变)')) return;
+              // 简化: 直接去掉该卡片的 range,触发重建
+              const cardId = cardsWithRange[idx].id;
+              const card = NS.CARDS.find((c) => c.id === cardId);
+              if (card) delete card.range;
+              NS._configCenterTabRenderers.alerts();
+              const alertBadge = document.getElementById('dh-cc-alerts-badge');
+              if (alertBadge) alertBadge.textContent = NS.CARDS.filter((c) => c.range).length;
+            };
+          });
+        };
+
+        // === 配置中心 Tab 5: 导入/导出 ===
+        NS._configCenterTabRenderers.ie = function () {
+          const pane = document.querySelector('#dh-config-center-body [data-tab-content="ie"]');
+          if (!pane) return;
+          // 实时生成 JSON 预览
+          let jsonStr = '';
+          try { jsonStr = NS.exportConfig(); } catch (e) { jsonStr = '// 导出失败: ' + e.message; }
+          const lineCount = jsonStr.split('\n').length;
+          pane.innerHTML = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0;">' +
+            // === 左栏: 导出 ===
+            '<div>' +
+              '<h4 style="margin: 0 0 10px; font-size: 13px; display: flex; align-items: center; gap: 6px;">' +
+                '<span data-svg="download" data-svg-size="14"></span>导出配置' +
+                '<span style="font-size: 11px; color: var(--text-soft); font-weight: 400; margin-left: 8px;">v2 格式 · ' + lineCount + ' 行 · ' + jsonStr.length + ' 字符</span>' +
+              '</h4>' +
+              '<pre id="dh-cc-export-preview" style="background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 11px; max-height: 400px; overflow: auto; font-family: var(--font-mono); margin: 0 0 10px;">' + NS.escapeHtml(jsonStr) + '</pre>' +
+              '<div style="display: flex; gap: 8px;">' +
+                '<button class="toolbar-btn primary" id="dh-cc-export-download" data-svg="download" data-svg-size="14"><span>下载 .json</span></button>' +
+                '<button class="toolbar-btn" id="dh-cc-export-copy" data-svg="copy" data-svg-size="14"><span>复制到剪贴板</span></button>' +
+              '</div>' +
+            '</div>' +
+            // === 右栏: 导入 ===
+            '<div>' +
+              '<h4 style="margin: 0 0 10px; font-size: 13px; display: flex; align-items: center; gap: 6px;">' +
+                '<span data-svg="upload" data-svg-size="14"></span>导入配置' +
+                '<span style="font-size: 11px; color: var(--text-soft); font-weight: 400; margin-left: 8px;">支持 v1 (自动迁移) / v2</span>' +
+              '</h4>' +
+              '<div id="dh-cc-import-drop" style="background: var(--bg-subtle); border: 2px dashed var(--border); border-radius: 6px; padding: 32px 16px; text-align: center; cursor: pointer; transition: all 0.12s;">' +
+                '<span data-svg="file-up" data-svg-size="32" style="color: var(--text-soft); display: block; margin: 0 auto 8px;"></span>' +
+                '<div style="font-size: 13px; margin-bottom: 4px;">拖拽 .json 到这里</div>' +
+                '<div style="font-size: 11px; color: var(--text-soft);">或点击选择文件</div>' +
+              '</div>' +
+              '<input type="file" id="dh-cc-import-file" accept="application/json,.json" style="display: none;" />' +
+              '<div style="margin-top: 16px; padding: 10px 12px; background: rgba(224, 87, 94, 0.06); border-left: 3px solid var(--danger); border-radius: 4px; font-size: 12px;">' +
+                '<strong style="color: var(--danger);">危险区</strong>' +
+                '<button class="toolbar-btn" id="dh-cc-reset-default" data-svg="rotate-ccw" data-svg-size="14" style="margin-top: 8px;"><span>重置为默认配置</span></button>' +
+                '<div style="font-size: 11px; color: var(--text-soft); margin-top: 4px;">恢复 _defaultProtocols / _defaultCommands / _defaultCards 默认值,所有自定义数据丢失。</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+          if (typeof NS_renderIcons === 'function') NS_renderIcons();
+          // === 导出: 下载 ===
+          const downloadBtn = document.getElementById('dh-cc-export-download');
+          if (downloadBtn) downloadBtn.onclick = () => {
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'serialcube-config-v2-' + new Date().toISOString().slice(0, 10) + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            NS.toast && NS.toast('已下载配置文件', 'success');
+          };
+          // === 导出: 复制 ===
+          const copyBtn = document.getElementById('dh-cc-export-copy');
+          if (copyBtn) copyBtn.onclick = () => {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(jsonStr).then(
+                () => NS.toast && NS.toast('已复制到剪贴板', 'success'),
+                () => NS.toast && NS.toast('复制失败,请手动选择', 'warn')
+              );
+            } else {
+              // fallback: textarea select
+              const ta = document.createElement('textarea');
+              ta.value = jsonStr;
+              ta.style.position = 'fixed';
+              ta.style.left = '-9999px';
+              document.body.appendChild(ta);
+              ta.select();
+              try { document.execCommand('copy'); NS.toast && NS.toast('已复制', 'success'); }
+              catch (e) { NS.toast && NS.toast('复制失败', 'danger'); }
+              document.body.removeChild(ta);
+            }
+          };
+          // === 导入: 点击 + 拖拽 ===
+          const dropZone = document.getElementById('dh-cc-import-drop');
+          const fileInput = document.getElementById('dh-cc-import-file');
+          if (dropZone && fileInput) {
+            dropZone.onclick = () => fileInput.click();
+            dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--accent)'; dropZone.style.background = 'var(--accent-soft)'; };
+            dropZone.ondragleave = () => { dropZone.style.borderColor = ''; dropZone.style.background = ''; };
+            dropZone.ondrop = (e) => {
+              e.preventDefault();
+              dropZone.style.borderColor = ''; dropZone.style.background = '';
+              const file = e.dataTransfer.files[0];
+              if (file) handleImportFile(file);
+            };
+            fileInput.onchange = (e) => {
+              const file = e.target.files[0];
+              if (file) handleImportFile(file);
+              fileInput.value = '';  // 重置,允许同名文件再次选择
+            };
+          }
+          function handleImportFile(file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              const json = ev.target.result;
+              if (NS.importConfig(json)) {
+                // 成功, 刷新所有 tab + 重渲 export 预览
+                NS._configCenterTabRenderers.ie();
+                if (NS._configCenterTabRenderers.protocols) NS._configCenterTabRenderers.protocols();
+                if (NS._configCenterTabRenderers.commands) NS._configCenterTabRenderers.commands();
+                if (NS._configCenterTabRenderers.cards) NS._configCenterTabRenderers.cards();
+                if (NS._configCenterTabRenderers.alerts) NS._configCenterTabRenderers.alerts();
+                // 更新顶部 badge
+                const cmdBadge = document.getElementById('dh-cc-commands-badge');
+                if (cmdBadge) cmdBadge.textContent = NS.allCommands().length;
+                const cardBadge = document.getElementById('dh-cc-cards-badge');
+                if (cardBadge) cardBadge.textContent = NS.CARDS.length;
+                const alertBadge = document.getElementById('dh-cc-alerts-badge');
+                if (alertBadge) alertBadge.textContent = NS.CARDS.filter((c) => c.range).length;
+              }
+            };
+            reader.readAsText(file);
+          }
+          // === 重置默认 ===
+          const resetBtn = document.getElementById('dh-cc-reset-default');
+          if (resetBtn) resetBtn.onclick = () => {
+            if (!confirm('确认重置为默认配置?\n所有自定义协议 / 命令 / 卡片将丢失!')) return;
+            if (typeof NS.reset === 'function') {
+              NS.reset();
+              // reset 会重置为 _defaultProtocols 等, 重新渲染全部 tab
+              setTimeout(() => {
+                NS._configCenterTabRenderers.ie();
+                ['protocols', 'commands', 'cards', 'alerts'].forEach((t) => {
+                  if (NS._configCenterTabRenderers[t]) NS._configCenterTabRenderers[t]();
+                });
+                const cmdBadge = document.getElementById('dh-cc-commands-badge');
+                if (cmdBadge) cmdBadge.textContent = NS.allCommands().length;
+                const cardBadge = document.getElementById('dh-cc-cards-badge');
+                if (cardBadge) cardBadge.textContent = NS.CARDS.length;
+                const alertBadge = document.getElementById('dh-cc-alerts-badge');
+                if (alertBadge) alertBadge.textContent = NS.CARDS.filter((c) => c.range).length;
+                NS.toast && NS.toast('已重置为默认配置', 'success');
+              }, 50);
+            } else {
+              NS.toast && NS.toast('NS.reset 函数不存在,无法重置', 'danger');
+            }
+          };
+        };
+
+        // === 漫游引导 (Task 14: 4 步 overlay 蒙层 + 高亮 + tooltip) ===
+        //   spec §4.4 Guided Tour + §7 风险 "Tour gracefully no-op"
+        //   手动触发,无 localStorage 自动弹,🎓 按钮每次都从 step 1 开始
+        NS._tourSteps = [
+          { tab: 'protocols', target: '#dh-config-center-tabs .editor-tab[data-tab="protocols"]', title: '第 1 步 · 协议', body: '选/新建一个协议, 调好帧模板 (header/addr/length/data/crc/tail)。8 种 kind 选一种, 或选 Custom 自己拼。' },
+          { tab: 'commands', target: '#dh-config-center-tabs .editor-tab[data-tab="commands"]', title: '第 2 步 · 命令', body: '在当前协议下加几条命令 (0x01 读、0x10 写、0x90 响应)。每条命令自带数据字段。' },
+          { tab: 'cards', target: '#dh-config-center-tabs .editor-tab[data-tab="cards"]', title: '第 3 步 · 卡片', body: '选命令的某个字段做卡片, TREND 看趋势, PAIR 对比 SET vs ACT。设单位、范围、精度。' },
+          { tab: 'alerts', target: '#dh-config-center-tabs .editor-tab[data-tab="alerts"]', title: '第 4 步 · 告警', body: '卡片 range 自动派生告警规则, 不需要手维护。关掉 modal 就能看到数据流。' }
+        ];
+        NS._tourStep = 0;
+        NS._tourOverlay = null;
+
+        NS.startGuidedTour = function () {
+          // 1. 确保配置中心 modal 打开
+          const modal = document.getElementById('dh-config-center-modal');
+          if (!modal || !modal.classList.contains('open')) {
+            NS.openConfigCenter();
+          }
+          // 2. 0 协议状态 graceful no-op (spec §7): 不阻塞 tour, 只 toast 提示
+          if (!NS.PROTOCOLS || NS.PROTOCOLS.length === 0) {
+            NS.toast && NS.toast('请先在协议 tab 加一个协议', 'info');
+            NS._switchConfigCenterTab('protocols');
+          }
+          // 3. 切到第 1 步对应 tab
+          NS._tourStep = 0;
+          NS._switchConfigCenterTab(NS._tourSteps[0].tab);
+          // 4. 渲染 overlay (等 tab 切换 + DOM 渲染完成)
+          setTimeout(() => NS._renderTourStep(), 50);
+        };
+
+        NS._renderTourStep = function () {
+          const step = NS._tourSteps[NS._tourStep];
+          if (!step) return;
+          // 1. 切 tab + 找目标
+          NS._switchConfigCenterTab(step.tab);
+          const tabBtn = document.querySelector(step.target);
+          if (!tabBtn) {
+            // graceful: 目标不存在就跳到下一步
+            if (NS._tourStep < NS._tourSteps.length - 1) {
+              NS._tourStep++;
+              NS._renderTourStep();
+            } else {
+              NS._endTour();
+            }
+            return;
+          }
+          // 2. 等 tab 切换 + 渲染完成, 再画蒙层
+          setTimeout(() => {
+            // 移除旧 overlay
+            if (NS._tourOverlay) { NS._tourOverlay.remove(); NS._tourOverlay = null; }
+            // 创建蒙层 (蒙层整体 pointer-events: none, 高亮和 tooltip 单独开)
+            const overlay = document.createElement('div');
+            overlay.id = 'dh-tour-overlay';
+            overlay.style.cssText = 'position: fixed; inset: 0; z-index: 99999; pointer-events: none;';
+            // 高亮目标元素: 2px accent 边框 + 9999px 黑色阴影蒙住其余区域
+            const rect = tabBtn.getBoundingClientRect();
+            const highlight = document.createElement('div');
+            highlight.style.cssText = 'position: absolute; left: ' + (rect.left - 6) + 'px; top: ' + (rect.top - 6) + 'px; width: ' + (rect.width + 12) + 'px; height: ' + (rect.height + 12) + 'px; border: 2px solid var(--accent); border-radius: 8px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); pointer-events: none; z-index: 1;';
+            overlay.appendChild(highlight);
+            // tooltip 卡片 (固定右下角, 不挡目标)
+            const tooltip = document.createElement('div');
+            tooltip.style.cssText = 'position: absolute; right: 24px; bottom: 24px; width: 340px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); pointer-events: auto; z-index: 2;';
+            // 进度点 (当前步 20px 长条, 已过 soft, 未到 border)
+            const dots = NS._tourSteps.map((_, i) => {
+              const active = i === NS._tourStep;
+              const filled = i < NS._tourStep;
+              return '<span style="display: inline-block; width: ' + (active ? '20px' : '8px') + '; height: 8px; border-radius: 4px; background: ' + (active ? 'var(--accent)' : filled ? 'var(--accent-soft)' : 'var(--border)') + '; margin-right: 4px; transition: all 0.2s;"></span>';
+            }).join('');
+            tooltip.innerHTML = '<div style="font-size: 11px; color: var(--text-soft); margin-bottom: 4px;">漫游引导 · ' + (NS._tourStep + 1) + ' / ' + NS._tourSteps.length + '</div>' +
+              '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">' + NS.escapeHtml(step.title) + '</div>' +
+              '<div style="font-size: 12px; color: var(--text-soft); line-height: 1.6; margin-bottom: 14px;">' + NS.escapeHtml(step.body) + '</div>' +
+              '<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px;">' + dots + '</div>' +
+              '<div style="display: flex; gap: 8px; justify-content: flex-end;">' +
+                '<button class="toolbar-btn" id="dh-tour-skip" style="font-size: 12px; padding: 4px 10px;">跳过引导</button>' +
+                '<button class="toolbar-btn" id="dh-tour-prev" style="font-size: 12px; padding: 4px 10px;"' + (NS._tourStep === 0 ? ' disabled' : '') + '>上一步</button>' +
+                '<button class="toolbar-btn primary" id="dh-tour-next" style="font-size: 12px; padding: 4px 14px;">' + (NS._tourStep === NS._tourSteps.length - 1 ? '完成引导' : '下一步') + '</button>' +
+              '</div>';
+            overlay.appendChild(tooltip);
+            document.body.appendChild(overlay);
+            NS._tourOverlay = overlay;
+            // 绑定按钮
+            document.getElementById('dh-tour-skip').onclick = () => NS._endTour();
+            document.getElementById('dh-tour-prev').onclick = () => {
+              if (NS._tourStep > 0) { NS._tourStep--; NS._renderTourStep(); }
+            };
+            document.getElementById('dh-tour-next').onclick = () => {
+              if (NS._tourStep < NS._tourSteps.length - 1) {
+                NS._tourStep++;
+                NS._renderTourStep();
+              } else {
+                NS._endTour();
+              }
+            };
+            // ESC 关闭
+            overlay.addEventListener('keydown', (e) => {
+              if (e.key === 'Escape') NS._endTour();
+            });
+          }, 100);
+        };
+
+        NS._endTour = function () {
+          if (NS._tourOverlay) {
+            NS._tourOverlay.remove();
+            NS._tourOverlay = null;
+          }
+          NS.toast && NS.toast('已结束漫游引导', 'info');
+        };
+
+        NS._renderNewCmdDataFields = function () {
+          const s = NS._newCmdState;
+          if (!s) return;
+          const list = document.getElementById('dh-new-cmd-dataFields-list');
+          if (!list) return;
+          if (s.dataFields.length === 0) {
+            list.innerHTML = '<p style="color: var(--text-soft); font-size: 12px;">无数据字段 (纯控制命令可不加)</p>';
+          } else {
+            const typeOptions = NS.DATA_TYPES.map((t) => '<option value="' + t.name + '">' + t.name + ' (' + t.size + 'B)</option>').join('');
+            list.innerHTML = '<table class="wiz-field-table"><thead><tr><th>名字</th><th>类型</th><th>默认值</th><th></th></tr></thead><tbody>'
+              + s.dataFields.map((df, i) => '<tr data-df-index="' + i + '">'
+                + '<td><input class="new-cmd-df-name" value="' + NS.escapeHtml(df.name) + '" /></td>'
+                + '<td><select class="new-cmd-df-type">' + typeOptions.replace('value="' + df.type + '"', 'value="' + df.type + '" selected') + '</select></td>'
+                + '<td><input class="new-cmd-df-default" value="' + NS.escapeHtml(df.default || '') + '" /></td>'
+                + '<td><button class="wiz-field-del" data-df-del="' + i + '" title="删除"><span data-svg="trash" data-svg-size="12"></span></button></td>'
+                + '</tr>').join('')
+              + '</tbody></table>';
+          }
+          // 算总字节
+          const totalSize = s.dataFields.reduce((sum, df) => {
+            const t = NS.DATA_TYPES.find((tt) => tt.name === df.type);
+            return sum + (t ? t.size : 0);
+          }, 0);
+          document.getElementById('dh-new-cmd-total-size').textContent = totalSize + ' 字节 (' + s.dataFields.length + ' 字段)';
+          if (typeof NS_renderIcons === 'function') NS_renderIcons();
+          // 绑定删除
+          document.querySelectorAll('.wiz-field-del').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const idx = parseInt(btn.getAttribute('data-df-del'), 10);
+              s.dataFields.splice(idx, 1);
+              NS._renderNewCmdDataFields();
+            });
+          });
+          // 字段值变化 → 同步到 state → 重算字节
+          const updateState = () => {
+            document.querySelectorAll('#dh-new-cmd-dataFields-list tr').forEach((tr, i) => {
+              s.dataFields[i].name = tr.querySelector('.new-cmd-df-name').value;
+              s.dataFields[i].type = tr.querySelector('.new-cmd-df-type').value;
+              s.dataFields[i].default = tr.querySelector('.new-cmd-df-default').value;
+            });
+            const tot = s.dataFields.reduce((sum, df) => {
+              const t = NS.DATA_TYPES.find((tt) => tt.name === df.type);
+              return sum + (t ? t.size : 0);
+            }, 0);
+            document.getElementById('dh-new-cmd-total-size').textContent = tot + ' 字节 (' + s.dataFields.length + ' 字段)';
+          };
+          document.querySelectorAll('#dh-new-cmd-dataFields-list input, #dh-new-cmd-dataFields-list select').forEach((el) => {
+            el.addEventListener('input', updateState);
+            el.addEventListener('change', updateState);
+          });
+        };
+
+        NS._saveNewCommand = function () {
+          const s = NS._newCmdState;
+          if (!s) return;
+          const proto = NS.PROTOCOLS.find((p) => p.id === s.protoId);
+          if (!proto) return;
+          // 收 form
+          const idStr = document.getElementById('dh-new-cmd-id').value;
+          s.id = NS.parseHexOr0(idStr);
+          s.name = document.getElementById('dh-new-cmd-name').value.trim();
+          s.direction = document.getElementById('dh-new-cmd-direction').value;
+          s.frameType = document.getElementById('dh-new-cmd-frameType').value;
+          s.cadence = parseInt(document.getElementById('dh-new-cmd-cadence').value, 10) || 0;
+          const erStr = document.getElementById('dh-new-cmd-expectResponse').value;
+          s.expectResponse = erStr ? NS.parseHexOr0(erStr) : undefined;
+          const rmkStr = document.getElementById('dh-new-cmd-remark').value.trim();
+          s.remark = rmkStr || undefined;
+          // 校验
+          if (!s.name) { NS.toast('命令名不能为空', 'warn'); return; }
+          if (proto.commands.some((c) => c.id === s.id)) { NS.toast('该协议下命令 ID 已存在', 'warn'); return; }
+          // 保存
+          proto.commands.push({
+            id: s.id, name: s.name, direction: s.direction, frameType: s.frameType, cadence: s.cadence,
+            expectResponse: s.expectResponse, remark: s.remark, dataFields: s.dataFields
+          });
+          NS.toast('已添加命令: 0x' + s.id.toString(16).toUpperCase() + ' ' + s.name, 'success');
+          NS.closeModal('dh-new-command');
+        };
+
         NS.attachModalHandlers = function () {
           const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
-          // toolbar 5 个按钮
-          bind('dh-open-proto-editor', () => NS.openModal('dh-proto'));
-          bind('dh-open-cmd-config', () => NS.openModal('dh-cmd-config'));
-          bind('dh-open-card-config', () => NS.openModal('dh-card-config'));
-          bind('dh-open-import-export', () => NS.openModal('dh-ie'));
-          bind('dh-open-alerts', () => NS.openModal('dh-alerts'));
+          // toolbar 按钮 (配置中心 + 引导 - 4 个旧 modal 按钮已删, 留 Task 9+ 接 openConfigCenter / startGuidedTour)
           // 关闭按钮 (data-close="dh-xxx")
           document.querySelectorAll('[data-close]').forEach((btn) => {
             btn.addEventListener('click', () => NS.closeModal(btn.getAttribute('data-close')));
           });
-          // 命令管理表单 - data 长度自动算 (按 data 字段输入实时刷新)
-          const cmdFieldsEl = document.getElementById('dh-cmd-form-fields');
-          if (cmdFieldsEl) cmdFieldsEl.addEventListener('input', NS.updateCmdFormDataSize);
           // backdrop 点击关闭
-          ['dh-proto', 'dh-cmd-config', 'dh-card-config', 'dh-card-edit', 'dh-ie', 'dh-alerts', 'dh-detail'].forEach((name) => {
+          ['dh-proto', 'dh-card-edit', 'dh-detail', 'dh-new-proto-wizard', 'dh-new-command'].forEach((name) => {
             const bd = document.getElementById(name + '-backdrop');
             if (bd) bd.addEventListener('click', () => NS.closeModal(name));
           });
@@ -12815,49 +13566,6 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
               } else { NS.toast('JSON 缺少 protocols', 'danger'); }
             } catch (e) { NS.toast('JSON 解析失败: ' + e.message, 'danger'); }
           });
-          // 命令管理: 保存
-          bind('dh-cmd-save', () => {
-            const idHex = document.getElementById('dh-cmd-form-id').value.trim();
-            const id = NS.parseHexOr0(idHex);
-            const name = document.getElementById('dh-cmd-form-name').value.trim();
-            const dir = document.getElementById('dh-cmd-form-dir').value;
-            const proto = document.getElementById('dh-cmd-form-proto').value;
-            const frame = document.getElementById('dh-cmd-form-frame').value;
-            const cadence = parseInt(document.getElementById('dh-cmd-form-cadence').value) || 0;
-            const fields = document.getElementById('dh-cmd-form-fields').value.split(',').map((s) => s.trim()).filter(Boolean);
-            // dataSize 自动算 (dataSize 字段保留, 旧 config 兼容)
-            const datasize = NS.computeDataSize({ dataFields: fields });
-            const expect = NS.parseHexOr0(document.getElementById('dh-cmd-form-expect').value.trim());
-            if (!id && id !== 0) { NS.toast('请填命令 ID', 'warn'); return; }
-            if (!name) { NS.toast('请填名称', 'warn'); return; }
-            const newCmd = { id, name, direction: dir, frameType: frame, cadence, protocol: proto, dataFields: fields, dataSize: datasize, expectResponse: expect };
-            const existing = NS.COMMANDS.findIndex((c) => c.id === id);
-            if (existing >= 0) NS.COMMANDS[existing] = newCmd; else NS.COMMANDS.push(newCmd);
-            NS.initMockData();
-            NS.renderCmdList();
-            NS.renderKpiCards();
-            NS.toast(`已保存命令 0x${id.toString(16).padStart(2, '0').toUpperCase()}`, 'success');
-          });
-          // 卡片配置: 添加
-          bind('dh-card-add', () => {
-            const type = document.getElementById('dh-card-form-type').value;
-            const cmd = parseInt(document.getElementById('dh-card-form-cmd').value);
-            const field = document.getElementById('dh-card-form-field').value;
-            const rx = document.getElementById('dh-card-form-rx').checked;
-            const title = document.getElementById('dh-card-form-title').value.trim();
-            const unit = document.getElementById('dh-card-form-unit').value.trim();
-            const lo = parseFloat(document.getElementById('dh-card-form-lower').value);
-            const hi = parseFloat(document.getElementById('dh-card-form-upper').value);
-            const precision = parseInt(document.getElementById('dh-card-form-precision').value) || 2;
-            const id = 'c' + (NS.CARDS.length + 1) + '_' + Date.now().toString(36);
-            const c = { id, type, cmd, dir: rx ? 'rx' : 'tx', field, title: title || field, unit, fromOtherCmd: rx };
-            if (!isNaN(lo) && !isNaN(hi)) c.range = [lo, hi];
-            if (type === 'trend') c.precision = precision;
-            NS.CARDS.push(c);
-            NS.renderCardEditList();
-            NS.renderKpiCards();
-            NS.toast(`已添加卡片 ${id}`, 'success');
-          });
           // 卡片编辑: 保存 / 删除
           bind('dh-ce-save', () => {
             const c = NS.CARDS.find((x) => x.id === NS.editingCardId);
@@ -12885,25 +13593,36 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             NS.closeModal('dh-card-edit');
             NS.toast(`已删除卡片 ${NS.editingCardId}`, 'success');
           });
-          // 导入导出: 复制 / 应用
-          bind('dh-ie-copy', () => {
-            const txt = document.getElementById('dh-ie-export').value;
-            navigator.clipboard.writeText(txt).then(
-              () => NS.toast('已复制到剪贴板', 'success'),
-              () => NS.toast('复制失败, 请手动复制', 'warn')
-            );
+          // 新建协议 3 步向导 (Task 7): 上一步 / 下一步
+          bind('dh-new-proto-prev', () => NS._wizardPrev());
+          bind('dh-new-proto-next', () => NS._wizardNext());
+          // 新建命令 modal (Task 8): 添加字段 / 保存命令
+          bind('dh-new-cmd-add-field', () => {
+            const s = NS._newCmdState;
+            if (!s) return;
+            s.dataFields.push({ name: 'field_' + (s.dataFields.length + 1), type: 'u16', default: '0x0000' });
+            NS._renderNewCmdDataFields();
           });
-          bind('dh-ie-apply', () => {
-            const txt = document.getElementById('dh-ie-import').value.trim();
-            if (!txt) { NS.toast('请粘贴 JSON', 'warn'); return; }
-            if (NS.importConfig(txt)) NS.closeModal('dh-ie');
+          bind('dh-new-cmd-save', () => NS._saveNewCommand());
+          // 配置中心 (Task 9): toolbar 按钮 / tab 切换 / 引导 / 导出
+          bind('dh-open-config-center', () => NS.openConfigCenter());
+          document.querySelectorAll('#dh-config-center-tabs .editor-tab').forEach((btn) => {
+            btn.addEventListener('click', () => NS._switchConfigCenterTab(btn.dataset.tab));
           });
-          // 告警配置: 实时同步去抖 + 错配检测
-          const debounceEl = document.getElementById('dh-alert-debounce');
-          if (debounceEl) debounceEl.onchange = (e) => { NS.alertDebounceMs = parseInt(e.target.value) || 1000; };
-          const mismatchEl = document.getElementById('dh-alert-cmd-mismatch');
-          if (mismatchEl) mismatchEl.onchange = (e) => { NS.cmdMismatchEnabled = !!e.target.checked; };
-
+          bind('dh-config-center-tour', () => { NS.closeModal('dh-config-center'); NS.startGuidedTour && NS.startGuidedTour(); });
+          bind('dh-config-center-export', () => {
+            try {
+              const json = typeof NS.exportConfig === 'function' ? NS.exportConfig() : JSON.stringify({ protocols: NS.PROTOCOLS, cards: NS.CARDS });
+              const blob = new Blob([json], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url; a.download = 'serialcube-config-v2.json'; a.click();
+              URL.revokeObjectURL(url);
+              NS.toast && NS.toast('已导出配置', 'success');
+            } catch (e) {
+              NS.toast && NS.toast('导出失败: ' + e.message, 'danger');
+            }
+          });
           // 布局切换 (大卡 / 列表)
           bind('dh-layout-card', () => {
             NS.cardLayout = 'card';
@@ -13009,10 +13728,14 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             NS._updateNotifBadge();
           })();
 
+          // 早期绑定 modal handlers (新建协议 wizard / 新建命令 modal / 已有 dh-proto / dh-card-edit),
+          // 不依赖用户进入 dashboard 模式 (这样 verify 跟配置中心还没接 dashboardMode 之前都能直接调)
+          // (注: 函数体本身在 NS.attachModalHandlers 函数体内, 不会自动跑. main script 末尾 L13053+ 调一次)
+
           // Esc 关闭任何打开的 modal
           document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-              ['dh-proto', 'dh-cmd-config', 'dh-card-config', 'dh-card-edit', 'dh-ie', 'dh-alerts'].forEach((n) => {
+              ['dh-proto', 'dh-card-edit', 'dh-new-proto-wizard', 'dh-new-command'].forEach((n) => {
                 const m = document.getElementById(n + '-modal');
                 if (m && m.classList.contains('open')) NS.closeModal(n);
               });
@@ -13020,6 +13743,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           });
         };
       })();
+      // 早期绑定 modal handlers, 不依赖用户进入 dashboard 模式 (这样 verify 跟配置中心还没接 dashboardMode 之前都能直接调)
+      window.__serialWebDashboard.attachModalHandlers();
 
       function arrangeWorkspacePanels() {
         const {
@@ -20389,7 +21114,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       }
 
       function attachEventListeners() {
-        refs.themeOpts.forEach(function(opt) {
+        // 主题三按钮 Task 3 已删, refs.themeOpts 留空数组兜底防报错
+        (refs.themeOpts || []).forEach(function(opt) {
           opt.addEventListener('click', function() {
             handleThemeChange(opt.dataset.theme);
           });
