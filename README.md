@@ -20,7 +20,7 @@
 | 告警独立规则 | NS.ALERTS 数组，严重度 info/warn/danger 三档，通知方式 toast/sound(v1.3)/list |
 | 调试面板占位 | 仪表盘右下角 ⚙ 折叠按钮，v1.3 真实模拟（BroadcastChannel + Mutator）入口 |
 
-详细：[`docs/changelog/2026-08-12-v1.2.0-config-center-refactor.md`](docs/changelog/2026-08-12-v1.2.0-config-center-refactor.md)
+详细：[`docs/changelog/2026-08-12-v1.2.0-config-center-refactor.md`](docs/changelog/2026-08-12-v1.2.0-config-center-refactor.md) · [`docs/handover/HANDOFF-V1.2-2026-08-12.md`](docs/handover/HANDOFF-V1.2-2026-08-12.md)
 
 ---
 
@@ -118,6 +118,7 @@ cd SerialCubeWeb
 | 改代码 / 调试 / 部署 SOP | [docs/guides/DEVELOPER-GUIDE.md](docs/guides/DEVELOPER-GUIDE.md) |
 | AI Agent 接手标准动作 | [docs/guides/AGENT-START-HERE.md](docs/guides/AGENT-START-HERE.md) |
 | 项目当前状态 / 关键决策 | [docs/handover/PROJECT-HANDOVER-2026-08-11.md](docs/handover/PROJECT-HANDOVER-2026-08-11.md) |
+| v1.2 配置中心重构交接 | [docs/handover/HANDOFF-V1.2-2026-08-12.md](docs/handover/HANDOFF-V1.2-2026-08-12.md) |
 | v1.1.1 修复交接 | [docs/handover/HANDOFF-V1.1.1-FIXES-2026-08-12.md](docs/handover/HANDOFF-V1.1.1-FIXES-2026-08-12.md) |
 | v1.1.0 协议多命令交接 | [docs/handover/HANDOFF-PROTOCOL-MULTI-COMMAND-2026-08-12.md](docs/handover/HANDOFF-PROTOCOL-MULTI-COMMAND-2026-08-12.md) |
 | v1.1.0 release notes | [docs/handover/release-v1.1.0-2026-08-12.md](docs/handover/release-v1.1.0-2026-08-12.md) |
