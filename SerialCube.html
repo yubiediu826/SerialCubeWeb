@@ -10324,11 +10324,41 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         // === 完整 8 卡片渲染 (替换 阶段 4 个 KPI 演示) ===
         NS.nowStr = function () { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`; };
         NS.matchCard = function (c, cmdHex) { if (c.type === 'pair') return true; if (!c.cmd) return true; return c.cmd.toString(16).padStart(2, '0').toUpperCase() === cmdHex; };
-        NS.checkAlert = function (v, range) {
-          if (!range) return null;
-          const lo = range[0], hi = range[1];
-          if (v < lo * 0.85 || v > hi * 1.05) return 'danger';
-          if (v < lo * 0.95 || v > hi * 1.02) return 'warning';
+        // v1.2 (Task 12): checkAlert 改用 NS.ALERTS 独立规则
+        //   签名: (v, field, protocol, fallbackRange?)
+        //   返回: { severity, alertId, name, op, value, notify, debounceMs } | null
+        //   优先级: NS.ALERTS 匹配的 enabled 规则 → fallback 到 card.range 派生 (v1.1.1 兼容)
+        //   旧版签名 checkAlert(v, range) 也兼容 (range 是数组时按派生)
+        NS.checkAlert = function (v, field, protocol, fallbackRange) {
+          // v1.1.1 旧调用兼容: (v, range)
+          if (Array.isArray(field)) {
+            fallbackRange = field;
+            field = null; protocol = null;
+          }
+          // 1) 优先 NS.ALERTS 规则
+          const alerts = (NS.ALERTS || []).filter(function (a) {
+            if (!a.enabled) return false;
+            if (field != null && a.field !== field) return false;
+            if (protocol != null && a.protocol !== protocol) return false;
+            return true;
+          });
+          for (const a of alerts) {
+            let triggered = false;
+            if (a.op === '>') triggered = v > a.value;
+            else if (a.op === '<') triggered = v < a.value;
+            else if (a.op === '=') triggered = v === a.value;
+            else if (a.op === '!=') triggered = v !== a.value;
+            else if (a.op === 'range' && Array.isArray(a.value)) triggered = v < a.value[0] || v > a.value[1];
+            if (triggered) {
+              return { severity: a.severity, alertId: a.id, name: a.name, op: a.op, value: a.value, notify: a.notify || [], debounceMs: a.debounceMs || 2000 };
+            }
+          }
+          // 2) Fallback 到 card.range 派生 (v1.1.1 兼容)
+          if (fallbackRange && fallbackRange.length === 2) {
+            const lo = fallbackRange[0], hi = fallbackRange[1];
+            if (v < lo * 0.85 || v > hi * 1.05) return { severity: 'danger', alertId: null, name: '(派生)', op: 'range', value: fallbackRange, notify: [], debounceMs: 0 };
+            if (v < lo * 0.95 || v > hi * 1.02) return { severity: 'warn', alertId: null, name: '(派生)', op: 'range', value: fallbackRange, notify: [], debounceMs: 0 };
+          }
           return null;
         };
 
@@ -10464,9 +10494,9 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             // widget: trend 卡
             const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
             const range = c.range || [0, 100];
-            const alert = NS.checkAlert(v, range);
-            const statusCls = c.fromOtherCmd ? 'rx' : (alert || 'ok');
-            if (alert) card.classList.add('alert-' + alert);
+            const alert = NS.checkAlert(v, c.field, c.protocol, range);
+            const statusCls = c.fromOtherCmd ? 'rx' : (alert ? alert.severity : 'ok');
+            if (alert) card.classList.add('alert-' + (alert.severity === 'warn' ? 'warning' : alert.severity));
             if (c.fromOtherCmd) card.classList.add('rx');
             const isPending = NS.txPendingCmds && NS.txPendingCmds.has(c.cmd);
             const lockForPending = !c.fromOtherCmd && isPending;
@@ -10564,9 +10594,9 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           } else {
             const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
             const range = c.range || [0, 100];
-            const alert = NS.checkAlert(v, range);
-            const ring = c.fromOtherCmd ? 'rx' : (alert || 'normal');
-            if (alert) card.classList.add('alert-' + alert);
+            const alert = NS.checkAlert(v, c.field, c.protocol, range);
+            const ring = c.fromOtherCmd ? 'rx' : (alert ? alert.severity : 'normal');
+            if (alert) card.classList.add('alert-' + (alert.severity === 'warn' ? 'warning' : alert.severity));
             const cmdHex = c.cmd ? c.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
             const flashClass = (NS.lastValues[c.field] !== undefined && Math.abs(v - NS.lastValues[c.field]) > 0.001) ? ' flash' : '';
             card.innerHTML = '<span class="lc-status-ring ' + ring + '"></span>'
@@ -10706,11 +10736,32 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         NS.renderAlerts = function () {
           const el = document.getElementById('dh-alert-list');
           if (!el) return;
-          const v = NS.currentVals.cell_1_v || 0;
+          // v1.2 (Task 12): 遍历 NS.CARDS,每张卡用 NS.checkAlert (基于 NS.ALERTS) 检查,触发的写入列表
           const items = [];
-          if (v > 4.2 * 1.05) items.push({ time: NS.nowStr(), cmd: '0x01', dir: 'rx', msg: 'Cell 1 电压 ' + v.toFixed(2) + 'V > 4.41V', level: 'danger' });
-          else if (v > 4.2 * 1.02) items.push({ time: NS.nowStr(), cmd: '0x01', dir: 'rx', msg: 'Cell 1 电压 ' + v.toFixed(2) + 'V > 4.28V', level: 'warning' });
-          if (NS.cmdMismatchEnabled) items.push({ time: '11:42:15', cmd: '0x10', dir: 'tx', msg: 'cmd 0x10 期望响应 0x90, 实际收到 0x91', level: 'danger', mismatch: true });
+          const now = NS.nowStr();
+          (NS.CARDS || []).forEach(function (c) {
+            const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : null;
+            if (v == null) return;
+            const alertInfo = NS.checkAlert(v, c.field, c.protocol, c.range);
+            if (!alertInfo) return;
+            const cmdHex = '0x' + ((c.cmd || 0) < 16 ? '0' : '') + (c.cmd || 0).toString(16).toUpperCase();
+            const msg = (c.title || c.id) + ' ' + v.toFixed(2) + (c.unit || '') +
+              ' [' + (alertInfo.op === 'range' ? '范围外' : alertInfo.op) + ' ' +
+              (Array.isArray(alertInfo.value) ? alertInfo.value.join('~') : alertInfo.value) + ']';
+            items.push({
+              time: now,
+              cmd: cmdHex,
+              dir: c.fromOtherCmd ? 'tx' : 'rx',
+              msg: msg,
+              level: alertInfo.severity === 'warn' ? 'warning' : alertInfo.severity,
+              alertId: alertInfo.alertId,
+              notify: alertInfo.notify || [],
+              _key: (alertInfo.alertId || c.id) + '|' + v.toFixed(2)
+            });
+          });
+          // 加 cmd mismatch 模拟条目 (v1.1.1 保留)
+          if (NS.cmdMismatchEnabled) items.push({ time: '11:42:15', cmd: '0x10', dir: 'tx', msg: 'cmd 0x10 期望响应 0x90, 实际收到 0x91', level: 'danger', mismatch: true, _key: 'mismatch' });
+          // 加一个 recovered mock (跟 v1.1.1 保持视觉)
           items.push({ time: '11:40:02', cmd: '0x01', dir: 'rx', msg: 'Cell 3 电压 ' + (NS.currentVals.cell_3_v || 0).toFixed(2) + 'V 在范围内', level: 'recovered' });
           const head = document.querySelector('.alert-drawer-head span');
           if (head) head.textContent = '告警 (' + items.length + ')';
@@ -10721,20 +10772,19 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             + (a.level === 'recovered' ? '<span style="color: var(--success); font-size: 0.5625rem;"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px" aria-hidden="true"><path d="M3 8.5 L7 12.5 L13.5 4.5"/></svg> OK</span>' : '<span class="alert-level ' + a.level + '">' + a.level.toUpperCase() + '</span>')
             + '<button aria-label="确认" class="ack-btn" title="确认"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px" aria-hidden="true"><path d="M3 8.5 L7 12.5 L13.5 4.5"/></svg></button>'
             + '</div></div>').join('');
-          // 告警条目除抽屉外, 同步推一条 toast 浮层 (5s 自动消失) + 写入通知历史
-          // 防止每次 renderAlerts 都重复弹 (renderAlerts 由 updateAll → setInterval 持续调用)
-          NS._alertLastKey = NS._alertLastKey || '';
-          const dangerOrWarn = items.find((a) => a.level === 'danger' || a.level === 'warning');
-          if (dangerOrWarn) {
-            const k = dangerOrWarn.level + '|' + dangerOrWarn.msg;
-            if (k !== NS._alertLastKey) {
-              NS._alertLastKey = k;
-              // CSS 类名是 .toast.warn, 同步用 'warn'
-              NS.toast(dangerOrWarn.msg, dangerOrWarn.level === 'warning' ? 'warn' : dangerOrWarn.level, 5000);
+          // Toast 触发: 遍历触发的告警,按 alertId+value 去重 (防止每 tick 重弹)
+          NS._alertLastKeys = NS._alertLastKeys || new Set();
+          items.forEach(function (a) {
+            if (a.level === 'recovered' || a.mismatch) return;
+            const key = a._key;
+            if (!key || NS._alertLastKeys.has(key)) return;
+            NS._alertLastKeys.add(key);
+            if (a.notify && a.notify.indexOf('toast') >= 0) {
+              const toastLevel = a.level === 'warning' ? 'warn' : a.level;
+              NS.toast(a.msg, toastLevel, 5000);
             }
-          } else {
-            NS._alertLastKey = '';
-          }
+            setTimeout(function () { NS._alertLastKeys && NS._alertLastKeys.delete(key); }, 1500);
+          });
         };
 
         // updateAll 重写 - 重渲染卡片网格 + 画 sparkline + 告警
@@ -11132,7 +11182,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             cmd: card.cmd,
             field: card.field,
             unit: card.unit,
-            alert: NS.checkAlert(p.v, card.range)
+            alert: NS.checkAlert(p.v, card.field, card.protocol, card.range)
           }));
         };
         NS._renderDetailSingleChart = function (data, chartType, card) {
