@@ -7861,6 +7861,20 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.2.0 版本 · 26/8/12</strong>
+            <ul>
+              <li>新增: 配置中心重构 — 仪表盘单协议聚焦 (串口 1 对 1, 当前协议卡片), 连接时弹选择协议 modal。</li>
+              <li>新增: 协议编辑三模式 (新建/编辑/复制) — openNewCommandModal(protocolId, editCmd?) 复用 modal。</li>
+              <li>新增: 告警独立规则 — NS.ALERTS 数组, 可手动添加/编辑/删除/启用切换, 严重度支持 info/warn/danger 三档。</li>
+              <li>新增: 命令编辑 modal 加帧预览 (hex 风格, 字段类型色块, CRC 重算) + 批量默认值按钮。</li>
+              <li>新增: 配置中心 Tab 1-4 重做为表格视图 (状态徽章 / 编辑/复制/删除 / 协议列 / 严重度筛选)。</li>
+              <li>新增: 删除级联 confirm — 删协议/命令/卡片时弹引用清单让用户选 (仅删/级联/取消)。</li>
+              <li>新增: v1.3 真实模拟调试面板占位 (仪表盘右下角 ⚙ 折叠, 主从连接 + Mutator 占位)。</li>
+              <li>优化: 主题适配贯穿 — v1.2 所有新 UI 用 CSS 变量, 禁止硬编码颜色, 自动跟随浅色/深色。</li>
+              <li>修复: 5 个配置中心 UI/逻辑自洽性问题 (协议应用/命令编辑/卡片命令选择/告警编辑/协议 select)。</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.1.1 版本 · 26/8/12</strong>
             <ul>
               <li>修复: 主题切换入口迁到主系统菜单 (topbar 3 横线) — 浅色/深色/跟随 segmented, 复用 handleThemeChange 0 行业务逻辑新增。</li>
@@ -7910,7 +7924,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 
   <script>
     (() => {
-      const VERSION = '1.1.1';  // 同步 README/PRODUCT/About 弹窗版本号
+      const VERSION = '1.2.0';  // 同步 README/PRODUCT/About 弹窗版本号
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;

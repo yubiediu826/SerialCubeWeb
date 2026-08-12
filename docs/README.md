@@ -6,9 +6,9 @@
 
 ## 🚀 当前状态
 
-**最新版本**: v1.1.1 (2026-08-12) — 4 修复：主题 segmented / 协议配置改名 / 编辑模式视觉 / Modal stack
+**最新版本**: v1.2.0 (2026-08-12) — 配置中心重构：单协议聚焦 / 4 tab 表格化 / 命令三模式 / 告警独立 / 调试面板占位
 **当前分支**: `main`
-**最近 release**: v1.1.1 ([changelog](changelog/2026-08-12-v1.1.1-fixes.md)) | v1.1.0 ([release notes](handover/release-v1.1.0-2026-08-12.md))
+**最近 release**: v1.2.0 ([changelog](changelog/2026-08-12-v1.2.0-config-center-refactor.md)) | v1.1.1 ([changelog](changelog/2026-08-12-v1.1.1-fixes.md)) | v1.1.0 ([release notes](handover/release-v1.1.0-2026-08-12.md))
 
 ---
 
@@ -18,7 +18,7 @@
 
 1. 读完 [`handover/HANDOFF-QUICKSTART-2026-08-11.md`](handover/HANDOFF-QUICKSTART-2026-08-11.md) — 30 秒快速接手卡
 2. 跑一次 **preflight**：`pwsh -File .minimax/skills/serialcube-workflow/preflight.ps1`（9 项健康检查）
-3. 知道项目是单 HTML 串口调试工具，主文件 `SerialCube.html`，当前版本 `v1.1.1`
+3. 知道项目是单 HTML 串口调试工具，主文件 `SerialCube.html`，当前版本 `v1.2.0`
 
 ### ⏱ 2 分钟（开始干活前）
 

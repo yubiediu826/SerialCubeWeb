@@ -13,6 +13,7 @@
 
 ### 2026-08-12
 
+- [`changelog/2026-08-12-v1.2.0-config-center-refactor.md`](changelog/2026-08-12-v1.2.0-config-center-refactor.md) — v1.2.0 配置中心重构: 仪表盘单协议聚焦 + 4 tab 表格化 + 命令三模式 + 告警独立规则 + 调试面板占位
 - [`changelog/2026-08-12-v1.1.1-fixes.md`](changelog/2026-08-12-v1.1.1-fixes.md) — v1.1.1 4 修复: 主题 segmented 进系统菜单 + 配置中心改协议配置 + 编辑模式视觉强化 + Modal stack 嵌套
 - [`changelog/2026-08-12-protocol-multi-command.md`](changelog/2026-08-12-protocol-multi-command.md) — v1.1.0 协议多命令 + 统一配置中心 5 tab + 漫游引导 + 9 kind (含 Custom) + Lucide 图标统一
 - [`changelog/2026-08-12-readme-sync-fix.md`](changelog/2026-08-12-readme-sync-fix.md) — README.md 同步修复（R5/R6 自检发现 4 处遗漏：3 个文档导航 + 2 条硬性规则）
