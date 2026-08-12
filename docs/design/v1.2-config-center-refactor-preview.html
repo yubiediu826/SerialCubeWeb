@@ -1203,27 +1203,32 @@
 
       <h4 style="margin: 18px 0 8px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
         <span>帧预览 (Frame Preview)</span>
-        <span style="font-size: 11px; color: var(--text-soft); font-weight: 400;">实时根据 header + dataFields 拼帧</span>
+        <span style="font-size: 11px; color: var(--text-soft); font-weight: 400;">实时根据 header + dataFields 拼帧 · 字节用空格分隔</span>
         <span style="margin-left: auto; font-size: 11px; color: var(--text-soft); font-weight: 400;">共 12 字节</span>
       </h4>
-      <div style="background: #0d1117; color: #c9d1d9; padding: 12px 14px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; overflow-x: auto;">
-        <div style="display: flex; gap: 14px; flex-wrap: wrap;">
-          <span><span style="color: #6e7681;">HEADER</span> <span style="color: #79c0ff;">AA 55</span></span>
-          <span><span style="color: #6e7681;">LEN</span> <span style="color: #79c0ff;">0C</span></span>
-          <span><span style="color: #6e7681;">CMD</span> <span style="color: #79c0ff;">01</span></span>
-          <span><span style="color: #6e7681;">DATA</span>
-            <span style="color: #ffa657;">00 00</span>
-            <span style="color: #7ee787;">00 00</span>
-            <span style="color: #ffa657;">00 00</span>
-            <span style="color: #ffa657;">00 00</span>
-            <span style="color: #7ee787;">00 00</span>
-            <span style="color: #d2a8ff;">19</span>
-            <span style="color: #d2a8ff;">57</span>
+      <div style="background: var(--bg-terminal); color: var(--text); padding: 12px 14px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; overflow-x: auto; border: 1px solid var(--border);">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+          <span><span style="color: var(--text-soft); font-size: 10px;">HEADER</span> <span style="color: var(--signal);">AA 55</span></span>
+          <span><span style="color: var(--text-soft); font-size: 10px;">LEN</span> <span style="color: var(--signal);">0C</span></span>
+          <span><span style="color: var(--text-soft); font-size: 10px;">CMD</span> <span style="color: var(--signal);">01</span></span>
+          <span><span style="color: var(--text-soft); font-size: 10px;">DATA</span>
+            <span style="color: var(--accent);">00 00</span>
+            <span style="color: var(--success);">00 00</span>
+            <span style="color: var(--accent);">00 00</span>
+            <span style="color: var(--accent);">00 00</span>
+            <span style="color: var(--success);">00 00</span>
+            <span style="color: var(--warning);">19</span>
+            <span style="color: var(--warning);">57</span>
           </span>
-          <span><span style="color: #6e7681;">CRC</span> <span style="color: #f97583;">B7 E4</span></span>
+          <span><span style="color: var(--text-soft); font-size: 10px;">CRC</span> <span style="color: var(--danger);">B7 E4</span></span>
         </div>
-        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #30363d; font-size: 10px; color: #6e7681;">
-          颜色说明: <span style="color: #79c0ff;">头/固定</span> · <span style="color: #ffa657;">u16 字段</span> · <span style="color: #7ee787;">s16 字段</span> · <span style="color: #d2a8ff;">u8 字段</span> · <span style="color: #f97583;">CRC</span>
+        <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border); font-size: 10px; color: var(--text-soft); display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+          <span>色块说明:</span>
+          <span><span style="display: inline-block; width: 8px; height: 8px; background: var(--signal); border-radius: 2px; vertical-align: middle;"></span> 头/固定</span>
+          <span><span style="display: inline-block; width: 8px; height: 8px; background: var(--accent); border-radius: 2px; vertical-align: middle;"></span> u16</span>
+          <span><span style="display: inline-block; width: 8px; height: 8px; background: var(--success); border-radius: 2px; vertical-align: middle;"></span> s16</span>
+          <span><span style="display: inline-block; width: 8px; height: 8px; background: var(--warning); border-radius: 2px; vertical-align: middle;"></span> u8/i8</span>
+          <span><span style="display: inline-block; width: 8px; height: 8px; background: var(--danger); border-radius: 2px; vertical-align: middle;"></span> CRC</span>
         </div>
       </div>
 
