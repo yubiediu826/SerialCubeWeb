@@ -288,6 +288,15 @@ Add-Type -AssemblyName Microsoft.VisualBasic
 - [ ] 验证深色 / 浅色主题切换
 - [ ] 验证协议编辑器能正常打开
 
+### P0 - 实施 (设计已完成,代码未动)
+
+**协议多命令 & 配置中心改造** — 设计阶段产物已就绪,代码层未动。详见:
+- 设计交接: [`HANDOFF-PROTOCOL-MULTI-COMMAND-2026-08-12.md`](HANDOFF-PROTOCOL-MULTI-COMMAND-2026-08-12.md)
+- 5 步 checklist: [`HANDOFF-PROTOCOL-MULTI-COMMAND-CHECKLIST-2026-08-12.md`](HANDOFF-PROTOCOL-MULTI-COMMAND-CHECKLIST-2026-08-12.md)
+- 正式 spec: [`../superpowers/specs/2026-08-12-protocol-multi-command-design.md`](../superpowers/specs/2026-08-12-protocol-multi-command-design.md)
+
+新会话直接照 5 步 checklist 走 (start → plan → 实施 → 验证 → 发布),预计 1 个 sprint (8h)。
+
 ### P1 - 充实（1 周内可选）
 
 - [ ] 跑 `serialcube-e2e` 6 场景实测（agent-browser timeout=120s）

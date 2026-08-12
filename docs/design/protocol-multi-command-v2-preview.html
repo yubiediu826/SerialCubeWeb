@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>协议方案 · 多命令支持 v2 设计预览</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --bg-elevated: #ffffff;
+    --bg-panel: #ffffff;
+    --bg-panel-strong: #ffffff;
+    --bg-subtle: #f6f6f7;
+    --bg-terminal: #f6f6f7;
+    --border: rgba(60, 60, 67, 0.16);
+    --border-strong: rgba(60, 60, 67, 0.24);
+    --text: #3c3c43;
+    --text-soft: #67676c;
+    --accent: #5672cd;
+    --accent-strong: #3451b2;
+    --accent-soft: rgba(100, 108, 255, 0.14);
+    --signal: #3a5ccc;
+    --warning: #d97706;
+    --danger: #e0575e;
+    --success: #16a34a;
+    --shadow: 0 18px 48px rgba(0, 0, 0, 0.10);
+    --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.07);
+    --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.18);
+    --radius: 14px;
+    --radius-small: 10px;
+    --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #1b1b1f;
+      --bg-elevated: #2a2a30;
+      --bg-panel: #202127;
+      --bg-panel-strong: #202127;
+      --bg-subtle: #161618;
+      --bg-terminal: #161618;
+      --border: rgba(60, 63, 68, 0.32);
+      --border-strong: rgba(60, 63, 68, 0.6);
+      --text: #dfdfd6;
+      --text-soft: #98989f;
+      --accent: #818cf8;
+      --accent-strong: #c7d2fe;
+      --accent-soft: rgba(129, 140, 248, 0.16);
+      --signal: #6366f1;
+      --warning: #ffb14d;
+      --danger: #f87171;
+      --success: #4ade80;
+      --shadow: 0 24px 54px rgba(0, 0, 0, 0.38);
+      --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.28);
+      --shadow-modal: 0 32px 80px rgba(0, 0, 0, 0.5);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg-subtle);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .page { max-width: 1280px; margin: 0 auto; padding: 32px 24px 80px; }
+
+  /* ---------- Page head ---------- */
+  .page-head {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-soft);
+  }
+  .page-head h1 { margin: 0 0 6px; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .page-head .sub { color: var(--text-soft); font-size: 13px; }
+  .page-head .meta { display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--text-soft); flex-wrap: wrap; }
+  .page-head .meta code { font-family: var(--font-mono); background: var(--bg-subtle); padding: 2px 6px; border-radius: 4px; }
+  .page-head .revision {
+    display: inline-block; background: var(--accent-soft); color: var(--accent-strong);
+    font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px;
+    font-family: var(--font-mono); margin-left: 8px; vertical-align: middle;
+  }
+
+  /* ---------- Section ---------- */
+  section { margin-bottom: 32px; }
+  .section-head {
+    display: flex; align-items: center; gap: 10px;
+    margin: 0 0 14px; font-size: 16px; font-weight: 600;
+  }
+  .section-head .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent-strong);
+    font-size: 12px; font-weight: 700; font-family: var(--font-mono);
+  }
+  .section-head .desc { color: var(--text-soft); font-weight: 400; font-size: 13px; }
+
+  /* ---------- Common ---------- */
+  code { font-family: var(--font-mono); background: var(--bg-subtle); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  pre { font-family: var(--font-mono); background: var(--bg-subtle); padding: 12px 14px; border-radius: 6px; font-size: 12px; line-height: 1.6; overflow-x: auto; margin: 0; }
+  .panel {
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px;
+  }
+  .hint {
+    background: var(--accent-soft); border-left: 3px solid var(--accent);
+    padding: 10px 14px; font-size: 12px; border-radius: 6px;
+    color: var(--text); margin-bottom: 14px;
+  }
+  .hint b { color: var(--accent-strong); }
+
+  /* ---------- Data model diagram ---------- */
+  .data-model { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .data-model .compare-col h4 { margin: 0 0 8px; font-size: 12px; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .data-model .compare-col.old h4 { color: var(--danger); }
+  .data-model .compare-col.new h4 { color: var(--success); }
+  .data-model pre { min-height: 240px; }
+
+  /* ---------- Modal mockup ---------- */
+  .modal-frame {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-modal);
+    margin: 12px 0;
+  }
+  .modal-header {
+    background: var(--bg-subtle);
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-title { font-size: 14px; font-weight: 600; }
+  .modal-title .step { color: var(--text-soft); font-size: 12px; font-weight: 400; margin-left: 8px; }
+  .modal-close {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: transparent; border: none; color: var(--text-soft);
+    cursor: pointer; font-size: 16px; line-height: 1;
+  }
+  .modal-close:hover { background: var(--bg-panel); color: var(--text); }
+  .modal-body { padding: 20px 24px; }
+  .modal-footer {
+    border-top: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--bg-subtle);
+  }
+  .modal-footer .spacer { flex: 1; }
+  .btn {
+    font-size: 13px; padding: 7px 16px; border-radius: 6px;
+    border: 1px solid var(--border-strong); background: var(--bg-panel);
+    color: var(--text); cursor: pointer; font-family: inherit;
+    transition: all 0.12s;
+  }
+  .btn:hover { background: var(--bg-subtle); }
+  .btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+  .btn.danger { color: var(--danger); }
+  .btn.danger:hover { background: var(--bg-subtle); }
+  .btn.ghost { border-color: transparent; color: var(--text-soft); }
+  .btn.ghost:hover { color: var(--text); background: var(--bg-subtle); }
+
+  /* ---------- Wizard stepper ---------- */
+  .wizard-steps {
+    display: flex; align-items: center; gap: 0;
+    padding: 0 0 18px; border-bottom: 1px solid var(--border);
+    margin-bottom: 18px;
+  }
+  .wizard-step {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text-soft);
+  }
+  .wizard-step .dot {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--bg-subtle); border: 1px solid var(--border-strong);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-weight: 700; font-size: 11px;
+  }
+  .wizard-step.active .dot { background: var(--accent); color: white; border-color: var(--accent); }
+  .wizard-step.active { color: var(--text); font-weight: 600; }
+  .wizard-step.done .dot { background: var(--success); color: white; border-color: var(--success); }
+  .wizard-step.done { color: var(--text-soft); }
+  .wizard-connector {
+    flex: 0 0 30px; height: 1px; background: var(--border);
+    margin: 0 8px;
+  }
+
+  /* ---------- Form ---------- */
+  .form-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .form-row label { font-size: 12px; color: var(--text-soft); font-weight: 500; }
+  .form-row label .req { color: var(--danger); }
+  .form-row input, .form-row select, .form-row textarea {
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 10px; font-size: 13px;
+    font-family: inherit; color: var(--text);
+  }
+  .form-row input:focus, .form-row select:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .form-row input.mono, .form-row select.mono { font-family: var(--font-mono); }
+  .form-row .hint-text { font-size: 11px; color: var(--text-soft); }
+  .form-row .err-text { font-size: 11px; color: var(--danger); }
+  .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .form-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+  /* ---------- Kind picker (step 1) ---------- */
+  .kind-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .kind-card {
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px;
+    cursor: pointer; transition: all 0.12s;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .kind-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: var(--shadow-soft); }
+  .kind-card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--accent-soft); }
+  .kind-card .name { font-size: 13px; font-weight: 600; font-family: var(--font-mono); }
+  .kind-card .id { font-size: 10px; color: var(--text-soft); font-family: var(--font-mono); }
+  .kind-card .desc { font-size: 11px; color: var(--text-soft); line-height: 1.4; }
+  .kind-card .preview {
+    margin-top: 6px; padding: 6px 8px;
+    background: var(--bg-subtle); border-radius: 4px;
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--text-soft); white-space: nowrap; overflow-x: auto;
+  }
+  .kind-card .preview .header { color: #a855f7; }
+  .kind-card .preview .addr { color: #0891b2; }
+  .kind-card .preview .cmd { color: #d97706; }
+  .kind-card .preview .data { color: #16a34a; }
+  .kind-card .preview .crc { color: #dc2626; }
+  .kind-card .preview .tail { color: #a855f7; }
+
+  /* ---------- Frame template editor (step 3) ---------- */
+  .field-table {
+    border: 1px solid var(--border); border-radius: 6px;
+    overflow: hidden;
+  }
+  .field-table-head, .field-row {
+    display: grid;
+    grid-template-columns: 24px 100px 1fr 60px 80px 1fr 28px;
+    gap: 8px; align-items: center;
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+  .field-table-head {
+    background: var(--bg-subtle); color: var(--text-soft);
+    font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+  }
+  .field-table-body .field-row {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+  }
+  .field-table-body .field-row:last-child { border-bottom: none; }
+  .field-table-body .field-row:hover { background: var(--bg-subtle); }
+  .field-table-body .field-row .drag { color: var(--text-soft); cursor: grab; text-align: center; user-select: none; }
+  .field-table-body .field-row select, .field-table-body .field-row input {
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 4px; padding: 4px 6px; font-size: 11px;
+    font-family: inherit; color: var(--text); min-width: 0; width: 100%;
+  }
+  .field-table-body .field-row input.mono { font-family: var(--font-mono); }
+  .field-table-body .field-row .del-btn {
+    background: transparent; border: none; color: var(--text-soft);
+    cursor: pointer; font-size: 14px; padding: 0; width: 22px; height: 22px;
+    border-radius: 4px;
+  }
+  .field-table-body .field-row .del-btn:hover { color: var(--danger); background: var(--bg-subtle); }
+  .field-table-body .add-row {
+    padding: 8px 10px; background: var(--bg-subtle);
+    border-top: 1px dashed var(--border);
+  }
+  .field-table-body .add-row .btn { font-size: 11px; padding: 4px 10px; }
+  .type-pill {
+    display: inline-block; font-family: var(--font-mono); font-weight: 600;
+    font-size: 10px; padding: 2px 6px; border-radius: 3px;
+    background: var(--bg-subtle); border: 1px solid var(--border);
+    text-align: center; width: 100%;
+  }
+  .type-pill.header { color: #a855f7; }
+  .type-pill.addr { color: #0891b2; }
+  .type-pill.cmd { color: #d97706; }
+  .type-pill.length { color: #6366f1; }
+  .type-pill.data { color: #16a34a; }
+  .type-pill.crc { color: #dc2626; }
+  .type-pill.tail { color: #a855f7; }
+
+  /* ---------- Frame preview (live in step 3) ---------- */
+  .live-preview {
+    margin-top: 14px; padding: 12px;
+    background: var(--bg-subtle); border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .live-preview .head { font-size: 11px; color: var(--text-soft); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .live-preview .bytes { font-family: var(--font-mono); font-size: 13px; line-height: 1.7; }
+  .live-preview .byte { padding: 2px 5px; border-radius: 3px; margin: 0 1px; display: inline-block; }
+  .live-preview .byte.header { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+  .live-preview .byte.addr { background: rgba(8, 145, 178, 0.2); color: #0891b2; }
+  .live-preview .byte.cmd { background: rgba(217, 119, 6, 0.2); color: #d97706; font-weight: 700; }
+  .live-preview .byte.length { background: rgba(99, 102, 241, 0.2); color: #6366f1; }
+  .live-preview .byte.data { background: rgba(22, 163, 74, 0.2); color: #16a34a; }
+  .live-preview .byte.crc { background: rgba(220, 38, 38, 0.2); color: #dc2626; }
+  .live-preview .byte.tail { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+  .live-preview .gap { color: var(--text-soft); margin: 0 4px; }
+
+  /* ---------- Command list (new command modal) ---------- */
+  .cmd-list-section {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+  }
+  .cmd-list-section .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .cmd-list-section .head .label { font-size: 12px; font-weight: 600; }
+  .cmd-list-section .head .count { font-size: 11px; color: var(--text-soft); font-family: var(--font-mono); }
+  .cmd-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 4px; padding: 3px 8px;
+    font-size: 11px; font-family: var(--font-mono);
+    margin: 2px;
+  }
+  .cmd-chip .dir { font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 2px; }
+  .cmd-chip .dir.rx { background: rgba(34, 197, 94, 0.18); color: #16a34a; }
+  .cmd-chip .dir.tx { background: rgba(245, 158, 11, 0.18); color: #d97706; }
+  .cmd-chip .x { color: var(--text-soft); cursor: pointer; padding: 0 2px; }
+  .cmd-chip .x:hover { color: var(--danger); }
+
+  /* ---------- Data field list (within new command) ---------- */
+  .data-field-list {
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg-panel);
+  }
+  .data-field-list .head {
+    display: grid;
+    grid-template-columns: 24px 1fr 100px 120px 28px;
+    gap: 8px; padding: 7px 10px;
+    background: var(--bg-subtle); color: var(--text-soft);
+    font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+  }
+  .data-field-list .row {
+    display: grid;
+    grid-template-columns: 24px 1fr 100px 120px 28px;
+    gap: 8px; padding: 7px 10px; align-items: center;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .data-field-list .row:last-child { border-bottom: none; }
+  .data-field-list .row .drag { color: var(--text-soft); cursor: grab; text-align: center; user-select: none; }
+  .data-field-list .row input, .data-field-list .row select {
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 4px; padding: 4px 6px; font-size: 11px;
+    font-family: inherit; color: var(--text); width: 100%; min-width: 0;
+  }
+  .data-field-list .row input.mono { font-family: var(--font-mono); }
+  .data-field-list .row .del-btn {
+    background: transparent; border: none; color: var(--text-soft);
+    cursor: pointer; font-size: 14px; padding: 0; width: 22px; height: 22px;
+    border-radius: 4px;
+  }
+  .data-field-list .row .del-btn:hover { color: var(--danger); background: var(--bg-subtle); }
+  .data-field-list .add-row {
+    padding: 8px 10px; background: var(--bg-subtle);
+    border-top: 1px dashed var(--border);
+  }
+  .data-field-list .add-row .btn { font-size: 11px; padding: 4px 10px; }
+  .data-field-list .size-auto {
+    font-size: 10px; color: var(--text-soft); font-family: var(--font-mono);
+    text-align: right; padding-right: 8px;
+  }
+  .data-field-list .total {
+    padding: 7px 10px; background: var(--bg-subtle);
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--text-soft);
+  }
+  .data-field-list .total .val { font-family: var(--font-mono); color: var(--text); font-weight: 600; }
+
+  /* ---------- Section title in modal ---------- */
+  .modal-section-title {
+    font-size: 11px; color: var(--text-soft);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    font-weight: 600; margin: 0 0 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .modal-section-title .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent-strong);
+    font-size: 10px; font-weight: 700; font-family: var(--font-mono);
+  }
+
+  /* ---------- Main editor (tabbed) ---------- */
+  .editor-frame { box-shadow: var(--shadow); }
+  .editor-tabs {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-subtle);
+    padding: 0 18px;
+  }
+  .editor-tab {
+    background: transparent; border: none; padding: 12px 16px;
+    color: var(--text-soft); font-size: 13px; font-family: inherit;
+    cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: all 0.12s;
+  }
+  .editor-tab:hover { color: var(--text); }
+  .editor-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .editor-tab .badge {
+    display: inline-block; background: var(--bg-panel); color: var(--text-soft);
+    font-size: 10px; padding: 1px 6px; border-radius: 99px;
+    font-family: var(--font-mono); margin-left: 4px;
+  }
+  .editor-tab.active .badge { background: var(--accent-soft); color: var(--accent-strong); }
+  .editor-body { padding: 18px 22px; min-height: 400px; }
+  .toolbar-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .toolbar-row .proto-picker {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 10px; background: var(--bg-subtle);
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 12px;
+  }
+  .toolbar-row .proto-picker .label { color: var(--text-soft); }
+  .toolbar-row .proto-picker select {
+    background: transparent; border: none; font-size: 12px;
+    font-family: inherit; color: var(--text); font-weight: 600;
+  }
+
+  /* ---------- Cmd table (commands tab) ---------- */
+  .cmd-table {
+    background: var(--bg-panel);
+    border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden;
+  }
+  .cmd-table .head, .cmd-table .row {
+    display: grid;
+    grid-template-columns: 60px 1fr 60px 80px 80px 1fr 80px 70px;
+    gap: 8px; padding: 9px 12px; align-items: center;
+  }
+  .cmd-table .head {
+    background: var(--bg-subtle); color: var(--text-soft);
+    font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+  }
+  .cmd-table .row {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .cmd-table .row:last-child { border-bottom: none; }
+  .cmd-table .row:hover { background: var(--bg-subtle); }
+  .cmd-table .row.active { background: var(--accent-soft); }
+  .cmd-table .id-hex { font-family: var(--font-mono); font-weight: 700; }
+  .cmd-table .name { font-weight: 500; }
+  .cmd-table .name .desc { display: block; color: var(--text-soft); font-size: 10px; font-weight: 400; }
+  .cmd-table .dir {
+    font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+    text-align: center; font-family: var(--font-mono);
+  }
+  .cmd-table .dir.rx { background: rgba(34, 197, 94, 0.16); color: #16a34a; }
+  .cmd-table .dir.tx { background: rgba(245, 158, 11, 0.16); color: #d97706; }
+  .cmd-table .ftype { color: var(--text-soft); font-size: 11px; }
+  .cmd-table .cadence { font-family: var(--font-mono); font-size: 11px; color: var(--text-soft); }
+  .cmd-table .fields { font-size: 10px; color: var(--text-soft); font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cmd-table .actions { display: flex; gap: 2px; justify-content: flex-end; }
+  .cmd-table .icon-btn {
+    background: transparent; border: none; color: var(--text-soft);
+    cursor: pointer; padding: 3px 6px; border-radius: 3px;
+    font-size: 12px;
+  }
+  .cmd-table .icon-btn:hover { background: var(--bg-subtle); color: var(--text); }
+  .cmd-table .icon-btn.del:hover { color: var(--danger); }
+
+  /* ---------- Detail drawer ---------- */
+  .detail-panel {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px;
+    margin-top: 14px;
+  }
+  .detail-panel .head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .detail-panel .head .title { font-size: 13px; font-weight: 600; }
+  .detail-panel .head .meta { font-size: 11px; color: var(--text-soft); font-family: var(--font-mono); }
+  .detail-panel .head .close {
+    background: transparent; border: none; color: var(--text-soft);
+    cursor: pointer; font-size: 14px; padding: 2px 8px; border-radius: 3px;
+  }
+  .detail-panel .head .close:hover { background: var(--bg-panel); color: var(--text); }
+
+  /* ---------- Decision box ---------- */
+  .decision {
+    background: var(--bg-panel);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    box-shadow: var(--shadow-soft);
+  }
+  .decision h3 { margin: 0 0 8px; font-size: 15px; color: var(--accent); }
+  .decision ul { padding-left: 20px; font-size: 13px; }
+  .decision ul li { margin-bottom: 4px; }
+
+  /* ---------- Nav tabs for sections ---------- */
+  .nav-tabs {
+    display: flex; gap: 4px; margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-tab {
+    background: transparent; border: none; padding: 8px 14px;
+    color: var(--text-soft); font-size: 13px; font-family: inherit;
+    cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+  /* ---------- Tabs (modal sub-navigation) ---------- */
+  .subtabs { display: none; }
+  .subtabs.active { display: block; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ===== Header ===== -->
+  <div class="page-head">
+    <h1>协议方案 · 多命令支持 v2 设计预览<span class="revision">REV-2</span></h1>
+    <div class="sub">v1 反馈已合并: 数据字段挂到命令下 / 添加全走弹窗 / 新建协议是 3 步向导</div>
+    <div class="meta">
+      <span>状态 <code>DRAFT</code></span>
+      <span>日期 <code>2026-08-12</code></span>
+      <span>作者 <code>Mavis</code></span>
+      <span>基线 <code>v1 预览</code></span>
+    </div>
+  </div>
+
+  <!-- ===== v1 → v2 反馈合并 ===== -->
+  <section>
+    <h2 class="section-head"><span class="num">0</span>v1 反馈合并 <span class="desc">— 你 3 条意见已落到下面设计里</span></h2>
+    <div class="panel">
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+        <div style="padding: 10px 12px; background: var(--bg-subtle); border-radius: 6px; border-left: 3px solid var(--success);">
+          <div style="font-size: 11px; color: var(--success); font-weight: 600; margin-bottom: 4px;">① 数据字段归属</div>
+          <div style="font-size: 12px;">从全局 <code>DATA_FIELDS[]</code> 改成 <code>cmd.dataFields[]</code>。类型元数据 (u8/u16/float 的字节数) 保留为全局小库供引用</div>
+        </div>
+        <div style="padding: 10px 12px; background: var(--bg-subtle); border-radius: 6px; border-left: 3px solid var(--success);">
+          <div style="font-size: 11px; color: var(--success); font-weight: 600; margin-bottom: 4px;">② 添加用弹窗</div>
+          <div style="font-size: 12px;">"新建协议/命令/字段" 全部走独立 modal。协议编辑器主页只做浏览 + 行内编辑，不内嵌长表单</div>
+        </div>
+        <div style="padding: 10px 12px; background: var(--bg-subtle); border-radius: 6px; border-left: 3px solid var(--success);">
+          <div style="font-size: 11px; color: var(--success); font-weight: 600; margin-bottom: 4px;">③ 帧模板何时确定</div>
+          <div style="font-size: 12px;">新建协议的 3 步向导里, 步 3 专门调帧模板。kind 选完后预填默认字段, 用户可拖拽/编辑</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 1. 数据模型 v2 ===== -->
+  <section>
+    <h2 class="section-head"><span class="num">1</span>数据模型 v2 <span class="desc">— 命令拥有自己的 dataFields, 协议拥有 commands[]</span></h2>
+    <div class="data-model">
+      <div class="compare-col old">
+        <h4>✗ v1 旧模型 (你提的问题)</h4>
+<pre>// 全局, 命令和字段互相引用
+NS.DATA_FIELDS = [
+  { name: 'cell_1_v', type: 'u16', default: '0x0000' },
+  { name: 'charge_v_set', type: 'u16', default: '0x0000' },
+  // ... 11 个全局字段
+];
+
+NS.COMMANDS = [
+  {
+    id: 0x01, name: 'Read Voltage', protocol: 'proto_bms',
+    dataFields: ['cell_1_v', 'cell_2_v', 'cell_3_v', 'cell_4_v']
+    // ⚠ 字段名引用, 含义散在全局
+  }
+];
+
+NS.PROTOCOLS = [{
+  id: 'proto_bms', fields: [/* 帧结构 */],
+  // ⚠ 命令不在协议里, 字符串引用松散
+}];</pre>
+      </div>
+      <div class="compare-col new">
+        <h4>✓ v2 新模型 (推荐)</h4>
+<pre>// 类型库: 小的, 全局, 8 种类型
+NS.DATA_TYPES = [
+  { name: 'u8',  size: 1 },
+  { name: 'u16', size: 2, byteOrder: 'BE' },
+  { name: 'u32', size: 4, byteOrder: 'BE' },
+  { name: 'i16', size: 2, byteOrder: 'BE' },
+  { name: 'float', size: 4, byteOrder: 'BE' },
+  // ...
+];
+
+// 协议自包含: 帧模板 + 命令列表
+NS.PROTOCOLS = [{
+  id: 'proto_bms', name: 'BMS TLV v1', kind: 'fixed-header',
+  fields: [/* 帧模板: header/addr/length/data/crc/tail */],
+  crcType, crcInit, ...,
+  commands: [
+    {
+      id: 0x01, name: 'Read Voltage', direction: 'rx',
+      frameType: 'query', cadence: 200,
+      dataFields: [                       // ← 命令自带
+        { name: 'cell_1_v', type: 'u16', default: '0x0000' },
+        { name: 'cell_2_v', type: 'u16', default: '0x0000' },
+        // ...
+      ]
+    }
+  ]
+}];
+
+// helper 垫片, 给 cards 用
+NS.allCommands = () =>
+  NS.PROTOCOLS.flatMap(p => p.commands || []);</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 2. 新建协议向导 (3 步) ===== -->
+  <section>
+    <h2 class="section-head"><span class="num">2</span>交互预览 ①: 新建协议 3 步向导 <span class="desc">— 点击步骤切换 / 选 kind 试试</span></h2>
+
+    <div class="hint">
+      <b>触发入口：</b>协议编辑器主 modal 顶部 <code>[+ 新建协议]</code> 按钮 / 协议选择下拉旁 <code>+</code>。<br>
+      <b>设计取舍：</b>3 步而不是 1 步弹长表单, 是因为 kind 决定帧模板默认值, 先选 kind 才能预填后面的字段。用户中途可返回上一步。
+    </div>
+
+    <div class="modal-frame" id="wizard-frame">
+      <div class="modal-header">
+        <div class="modal-title">新建协议<span class="step" id="wizard-step-label">第 1 步 / 共 3 步 · 选择协议类型</span></div>
+        <button class="modal-close" title="关闭">×</button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Stepper -->
+        <div class="wizard-steps">
+          <div class="wizard-step active" data-step="1">
+            <span class="dot">1</span><span>选择协议类型</span>
+          </div>
+          <div class="wizard-connector"></div>
+          <div class="wizard-step" data-step="2">
+            <span class="dot">2</span><span>命名与配置</span>
+          </div>
+          <div class="wizard-connector"></div>
+          <div class="wizard-step" data-step="3">
+            <span class="dot">3</span><span>调整帧模板</span>
+          </div>
+        </div>
+
+        <!-- Step 1: Kind picker -->
+        <div class="subtabs active" id="step-1">
+          <p style="margin: 0 0 12px; font-size: 12px; color: var(--text-soft);">8 种协议类型, 对应不同的帧结构和方向编码方式。选完后下一步会预填帧模板。</p>
+          <div class="kind-grid" id="kind-grid">
+            <!-- populated by JS -->
+          </div>
+        </div>
+
+        <!-- Step 2: Name + ID + base config -->
+        <div class="subtabs" id="step-2">
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label>协议 ID <span class="req">*</span> <span style="color:var(--text-soft);font-weight:400">(英文, 唯一)</span></label>
+              <input class="mono" value="proto_new_device" id="wiz-id">
+              <span class="hint-text">建议格式: <code>proto_xxx</code></span>
+            </div>
+            <div class="form-row">
+              <label>显示名称 <span class="req">*</span></label>
+              <input value="My Device Protocol" id="wiz-name">
+            </div>
+          </div>
+          <div class="form-grid-3">
+            <div class="form-row">
+              <label>协议类型</label>
+              <input value="Fixed Header (Legacy)" disabled style="opacity:0.65">
+              <span class="hint-text">上一步选择的, 此处不可改</span>
+            </div>
+            <div class="form-row">
+              <label>默认字节序</label>
+              <select><option>BE 大端 (网络序)</option><option>LE 小端</option></select>
+              <span class="hint-text">单字段可单独覆盖</span>
+            </div>
+            <div class="form-row">
+              <label>CRC 类型</label>
+              <select id="wiz-crc">
+                <option>无</option>
+                <option>Checksum (8-bit)</option>
+                <option>XOR (8-bit)</option>
+                <option>CRC-8</option>
+                <option selected>CRC-16 MODBUS</option>
+                <option>CRC-16 CCITT</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid-3">
+            <div class="form-row">
+              <label>CRC 初始值</label>
+              <input class="mono" value="0xFFFF">
+            </div>
+            <div class="form-row">
+              <label>CRC 字节序</label>
+              <select><option>LE 小端</option><option>BE 大端</option></select>
+            </div>
+            <div class="form-row">
+              <label>校验范围</label>
+              <select>
+                <option>全部字段</option>
+                <option>不含帧头 (Modbus)</option>
+                <option>不含帧尾</option>
+                <option>不含帧头帧尾</option>
+                <option>只对 data 段</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Frame template -->
+        <div class="subtabs" id="step-3">
+          <p style="margin: 0 0 10px; font-size: 12px; color: var(--text-soft);">已根据协议类型预填默认字段, 可拖动排序、修改类型/字节数/默认值, 也可新增/删除。</p>
+          <div class="field-table" id="frame-template-table">
+            <div class="field-table-head">
+              <span></span>
+              <span>类型</span>
+              <span>名称</span>
+              <span>字节</span>
+              <span>字节序</span>
+              <span>默认值</span>
+              <span></span>
+            </div>
+            <div class="field-table-body" id="frame-template-body">
+              <!-- populated by JS based on kind -->
+            </div>
+          </div>
+
+          <!-- Live preview -->
+          <div class="live-preview">
+            <div class="head">实时帧预览 (基于第一条命令 mock 数据)</div>
+            <div class="bytes" id="live-frame-bytes"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn ghost" id="wiz-cancel">取消</button>
+        <div class="spacer"></div>
+        <button class="btn" id="wiz-prev">← 上一步</button>
+        <button class="btn primary" id="wiz-next">下一步 →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 3. 新建命令 modal ===== -->
+  <section>
+    <h2 class="section-head"><span class="num">3</span>交互预览 ②: 新建命令 modal <span class="desc">— 给当前协议添加一条命令</span></h2>
+
+    <div class="hint">
+      <b>触发入口：</b>协议编辑器「Commands」tab 右上 <code>[+ 新建命令]</code>。下面是预填好一条 mock 数据的展示, 字段 chips 演示可增删。
+    </div>
+
+    <div class="modal-frame">
+      <div class="modal-header">
+        <div class="modal-title">新建命令<span class="step">添加至 BMS TLV v1</span></div>
+        <button class="modal-close" title="关闭">×</button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="form-grid-4">
+          <div class="form-row">
+            <label>命令 ID <span class="req">*</span> <span style="color:var(--text-soft);font-weight:400">(hex)</span></label>
+            <input class="mono" value="0x20">
+            <span class="hint-text">同协议内唯一, 范围 0x00-0xFF</span>
+          </div>
+          <div class="form-row">
+            <label>名称 <span class="req">*</span></label>
+            <input value="Read Pack Info">
+          </div>
+          <div class="form-row">
+            <label>方向</label>
+            <select><option>RX 接收</option><option>TX 发送</option></select>
+          </div>
+          <div class="form-row">
+            <label>帧类型</label>
+            <select><option>query 查询</option><option>control 控制</option><option>response 响应</option></select>
+          </div>
+        </div>
+
+        <div class="form-grid-4">
+          <div class="form-row">
+            <label>周期 (ms)</label>
+            <input class="mono" type="number" value="1000">
+            <span class="hint-text">0 = 不主动 query, 用户触发</span>
+          </div>
+          <div class="form-row">
+            <label>期望响应 (hex)</label>
+            <input class="mono" value="0xA0" placeholder="(可选)">
+            <span class="hint-text">如 0x10 期望 0x90</span>
+          </div>
+          <div class="form-row" style="grid-column: span 2;">
+            <label>说明备注</label>
+            <input value="读取电池包汇总信息 (电压电流温度)">
+          </div>
+        </div>
+
+        <div class="modal-section-title" style="margin-top: 6px;"><span class="num">↧</span>数据字段 <span style="color:var(--text-soft);font-weight:400;margin-left:6px">— 这条命令的负载结构, 命令自己拥有</span></div>
+        <div class="data-field-list" id="data-field-list">
+          <div class="head">
+            <span></span>
+            <span>字段名</span>
+            <span>类型</span>
+            <span>默认值</span>
+            <span></span>
+          </div>
+          <div id="data-field-rows">
+            <div class="row"><span class="drag">⠿</span><input class="mono" value="pack_v_avg"><select><option>u8</option><option selected>u16</option><option>u32</option><option>i16</option><option>float</option></select><input class="mono" value="0x0000"><button class="del-btn">×</button></div>
+            <div class="row"><span class="drag">⠿</span><input class="mono" value="pack_i"><select><option>u8</option><option selected>u16</option><option>u32</option><option>i16</option><option>float</option></select><input class="mono" value="0x0000"><button class="del-btn">×</button></div>
+            <div class="row"><span class="drag">⠿</span><input class="mono" value="temperature"><select><option>u8</option><option selected>u16</option><option>u32</option><option>i16</option><option>float</option></select><input class="mono" value="0x0000"><button class="del-btn">×</button></div>
+            <div class="row"><span class="drag">⠿</span><input class="mono" value="soc"><select><option>u8</option><option selected>u16</option><option>u32</option><option>i16</option><option>float</option></select><input class="mono" value="0x0000"><button class="del-btn">×</button></div>
+          </div>
+          <div class="add-row">
+            <button class="btn">+ 添加字段</button>
+            <span style="margin-left: 10px; font-size: 11px; color: var(--text-soft);">从已有命名 (cell_1_v 等) 快速复用, 或新命名</span>
+          </div>
+          <div class="total">
+            <span>data 段总字节数 (自动算)</span>
+            <span class="val">8 bytes (4 × u16)</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; padding: 10px 12px; background: var(--bg-subtle); border-radius: 6px; font-size: 11px; color: var(--text-soft);">
+          <b style="color:var(--text)">提示：</b>如果这条命令跟另一条 (例如 0x10 Control Charge 的响应 0x90) 共享字段, 在此独立定义即可, 序列化时各自打包各自的字段, 不耦合。
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn ghost">取消</button>
+        <div class="spacer"></div>
+        <button class="btn">保存为草稿</button>
+        <button class="btn primary">保存并关闭</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 4. 最终协议编辑器 (tabbed) ===== -->
+  <section>
+    <h2 class="section-head"><span class="num">4</span>交互预览 ③: 改造后的协议编辑器主界面 <span class="desc">— 标签页分块, 新建走弹窗</span></h2>
+
+    <div class="hint">
+      <b>主 modal 的角色：</b>这是日常使用最频繁的界面, 负责浏览和编辑已有协议/命令。创建/添加通过独立弹窗完成, 不在这个 modal 里堆长表单。<br>
+      <b>三个 tab：</b>① 帧模板 (frame layout) ② 命令 (commands list + 详情面板) ③ 设置 (CRC / 字节序 / 高级)。
+    </div>
+
+    <div class="modal-frame editor-frame">
+      <div class="modal-header">
+        <div class="modal-title">协议编辑器</div>
+        <button class="modal-close" title="关闭">×</button>
+      </div>
+
+      <!-- Top toolbar: protocol picker -->
+      <div class="editor-tabs">
+        <button class="editor-tab" data-tab="frame">① 帧模板</button>
+        <button class="editor-tab active" data-tab="commands">② 命令 <span class="badge">5</span></button>
+        <button class="editor-tab" data-tab="settings">③ 设置</button>
+      </div>
+
+      <div class="editor-body">
+        <!-- Toolbar: protocol picker + add buttons -->
+        <div class="toolbar-row">
+          <div class="proto-picker">
+            <span class="label">协议:</span>
+            <select>
+              <option>BMS TLV v1 (fixed-header)</option>
+              <option>Modbus RTU (fixed-header)</option>
+            </select>
+          </div>
+          <span style="color: var(--text-soft); font-size: 11px; font-family: var(--font-mono);">id: proto_bms · kind: fixed-header</span>
+          <div class="spacer" style="flex:1"></div>
+          <button class="btn ghost" style="font-size: 12px; padding: 5px 10px;">📋 复制协议</button>
+          <button class="btn ghost" style="font-size: 12px; padding: 5px 10px;">🗑 删除协议</button>
+          <button class="btn primary" style="font-size: 12px; padding: 5px 12px;">+ 新建协议</button>
+        </div>
+
+        <!-- Tab content: commands -->
+        <div class="subtabs active" id="tab-commands">
+          <div class="toolbar-row" style="margin-bottom: 12px;">
+            <input placeholder="🔍 筛选命令 (ID / 名称 / 字段)" style="flex:1; max-width: 320px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 12px;">
+            <select style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 12px;">
+              <option>全部方向</option><option>仅 RX</option><option>仅 TX</option>
+            </select>
+            <select style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 12px;">
+              <option>全部类型</option><option>query</option><option>control</option><option>response</option>
+            </select>
+            <div class="spacer" style="flex:1"></div>
+            <button class="btn" style="font-size: 12px; padding: 5px 10px;">📥 导入命令 (JSON)</button>
+            <button class="btn primary" style="font-size: 12px; padding: 5px 12px;">+ 新建命令</button>
+          </div>
+
+          <div class="cmd-table">
+            <div class="head">
+              <span>ID</span><span>名称</span><span>方向</span><span>类型</span>
+              <span>周期</span><span>数据字段</span><span>大小</span><span>操作</span>
+            </div>
+            <div class="row active">
+              <span class="id-hex">0x01</span>
+              <span class="name">Read Voltage<span class="desc">电池单体 + pack 均压</span></span>
+              <span><span class="dir rx">RX</span></span>
+              <span class="ftype">query</span>
+              <span class="cadence">200ms</span>
+              <span class="fields">cell_1_v, cell_2_v, cell_3_v, cell_4_v, pack_v_avg (5)</span>
+              <span class="cadence">10B</span>
+              <span class="actions"><button class="icon-btn" title="编辑">✎</button><button class="icon-btn del" title="删除">×</button></span>
+            </div>
+            <div class="row">
+              <span class="id-hex">0x02</span>
+              <span class="name">Read Current<span class="desc">Pack 总电流</span></span>
+              <span><span class="dir rx">RX</span></span>
+              <span class="ftype">query</span>
+              <span class="cadence">500ms</span>
+              <span class="fields">pack_i (1)</span>
+              <span class="cadence">2B</span>
+              <span class="actions"><button class="icon-btn">✎</button><button class="icon-btn del">×</button></span>
+            </div>
+            <div class="row">
+              <span class="id-hex">0x10</span>
+              <span class="name">Control Charge<span class="desc">期望响应 0x90</span></span>
+              <span><span class="dir tx">TX</span></span>
+              <span class="ftype">control</span>
+              <span class="cadence">触发</span>
+              <span class="fields">charge_v_set, charge_i_set (2)</span>
+              <span class="cadence">4B</span>
+              <span class="actions"><button class="icon-btn">✎</button><button class="icon-btn del">×</button></span>
+            </div>
+            <div class="row">
+              <span class="id-hex">0x11</span>
+              <span class="name">Control Disch<span class="desc">期望响应 0x91</span></span>
+              <span><span class="dir tx">TX</span></span>
+              <span class="ftype">control</span>
+              <span class="cadence">触发</span>
+              <span class="fields">discharge_v_set (1)</span>
+              <span class="cadence">2B</span>
+              <span class="actions"><button class="icon-btn">✎</button><button class="icon-btn del">×</button></span>
+            </div>
+            <div class="row">
+              <span class="id-hex">0x90</span>
+              <span class="name">Charge Ack<span class="desc">对 0x10 的响应</span></span>
+              <span><span class="dir rx">RX</span></span>
+              <span class="ftype">response</span>
+              <span class="cadence">—</span>
+              <span class="fields">charge_v_set, charge_i_set (2)</span>
+              <span class="cadence">4B</span>
+              <span class="actions"><button class="icon-btn">✎</button><button class="icon-btn del">×</button></span>
+            </div>
+          </div>
+
+          <!-- Detail panel (when row is selected) -->
+          <div class="detail-panel">
+            <div class="head">
+              <div>
+                <span class="title">0x01 Read Voltage</span>
+                <span class="meta" style="margin-left: 8px;">RX · query · 200ms · 10B data</span>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span class="meta">期望响应: <code>0x80</code></span>
+                <button class="close" title="关闭详情">×</button>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div>
+                <div class="modal-section-title" style="margin-top:0"><span class="num">▤</span>数据字段</div>
+                <div class="data-field-list" style="background: var(--bg-panel);">
+                  <div class="row" style="background: var(--bg-panel);"><span class="drag">⠿</span><input class="mono" value="cell_1_v" disabled style="opacity:0.7"><select disabled style="opacity:0.7"><option>u16</option></select><input class="mono" value="0x0000" disabled style="opacity:0.7"><button class="del-btn" style="opacity:0.3">×</button></div>
+                  <div class="row" style="background: var(--bg-panel);"><span class="drag">⠿</span><input class="mono" value="cell_2_v" disabled style="opacity:0.7"><select disabled style="opacity:0.7"><option>u16</option></select><input class="mono" value="0x0000" disabled style="opacity:0.7"><button class="del-btn" style="opacity:0.3">×</button></div>
+                  <div class="row" style="background: var(--bg-panel);"><span class="drag">⠿</span><input class="mono" value="cell_3_v" disabled style="opacity:0.7"><select disabled style="opacity:0.7"><option>u16</option></select><input class="mono" value="0x0000" disabled style="opacity:0.7"><button class="del-btn" style="opacity:0.3">×</button></div>
+                  <div class="row" style="background: var(--bg-panel);"><span class="drag">⠿</span><input class="mono" value="cell_4_v" disabled style="opacity:0.7"><select disabled style="opacity:0.7"><option>u16</option></select><input class="mono" value="0x0000" disabled style="opacity:0.7"><button class="del-btn" style="opacity:0.3">×</button></div>
+                  <div class="row" style="background: var(--bg-panel);"><span class="drag">⠿</span><input class="mono" value="pack_v_avg" disabled style="opacity:0.7"><select disabled style="opacity:0.7"><option>u16</option></select><input class="mono" value="0x0000" disabled style="opacity:0.7"><button class="del-btn" style="opacity:0.3">×</button></div>
+                </div>
+                <div style="text-align: right; margin-top: 4px; font-size: 10px; color: var(--text-soft); font-family: var(--font-mono);">10 bytes (5 × u16)</div>
+              </div>
+              <div>
+                <div class="modal-section-title" style="margin-top:0"><span class="num">▦</span>帧预览</div>
+                <div class="live-preview" style="margin-top:0">
+                  <div class="head">TX 帧 (主机发送 0x01)</div>
+                  <div class="bytes">
+                    <span class="byte header">AA</span>
+                    <span class="byte addr">01</span>
+                    <span class="byte cmd">01</span>
+                    <span class="byte length">0A</span>
+                    <span class="byte data">0E 7C 0E 7E 0E 76 0E 80 0E 7A</span>
+                    <span class="byte crc">XX XX</span>
+                    <span class="byte tail">55</span>
+                  </div>
+                </div>
+                <div style="margin-top: 8px; display: flex; gap: 6px;">
+                  <button class="btn" style="font-size: 11px; padding: 4px 10px;">📋 复制 hex</button>
+                  <button class="btn" style="font-size: 11px; padding: 4px 10px;">▶ 模拟发送</button>
+                  <button class="btn" style="font-size: 11px; padding: 4px 10px;">🔍 解析测试</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab content: frame (collapsed, just hint) -->
+        <div class="subtabs" id="tab-frame">
+          <p style="font-size: 12px; color: var(--text-soft);">帧模板: header / addr / length / data / crc / tail (6 字段)。完整编辑界面类似「新建协议」第 3 步。</p>
+        </div>
+
+        <!-- Tab content: settings -->
+        <div class="subtabs" id="tab-settings">
+          <p style="font-size: 12px; color: var(--text-soft);">全局 CRC / 字节序 / 校验范围设置, 类似「新建协议」第 2 步。</p>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <span style="font-size: 11px; color: var(--text-soft);">已自动保存 · 5 个命令</span>
+        <div class="spacer"></div>
+        <button class="btn ghost">导出 JSON</button>
+        <button class="btn primary">关闭</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 5. 三个 modal 的进入路径总结 ===== -->
+  <section>
+    <h2 class="section-head"><span class="num">5</span>3 个 modal 的进入路径 <span class="desc">— 用户视角, 完整的操作流</span></h2>
+    <div class="panel" style="padding: 0;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+        <thead>
+          <tr style="background: var(--bg-subtle); color: var(--text-soft); text-align: left;">
+            <th style="padding: 10px 14px; font-weight: 600;">用户场景</th>
+            <th style="padding: 10px 14px; font-weight: 600;">触发位置</th>
+            <th style="padding: 10px 14px; font-weight: 600;">弹窗</th>
+            <th style="padding: 10px 14px; font-weight: 600;">保存后</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-top: 1px solid var(--border);">
+            <td style="padding: 10px 14px;">"我有个新设备, 它的协议怎么配?"</td>
+            <td style="padding: 10px 14px;">协议编辑器顶栏 <code>[+ 新建协议]</code></td>
+            <td style="padding: 10px 14px;"><b>新建协议 3 步向导</b></td>
+            <td style="padding: 10px 14px;">新建空协议 (无命令), 自动切到新协议, 用户接着加命令</td>
+          </tr>
+          <tr style="border-top: 1px solid var(--border);">
+            <td style="padding: 10px 14px;">"给 BMS 加个新的查询命令"</td>
+            <td style="padding: 10px 14px;">Commands tab <code>[+ 新建命令]</code></td>
+            <td style="padding: 10px 14px;"><b>新建命令 modal</b></td>
+            <td style="padding: 10px 14px;">命令追加到列表, 选中态定位到新建的命令</td>
+          </tr>
+          <tr style="border-top: 1px solid var(--border);">
+            <td style="padding: 10px 14px;">"这条命令的负载结构不对, 加个字段"</td>
+            <td style="padding: 10px 14px;">命令详情面板 <code>[+ 添加字段]</code></td>
+            <td style="padding: 10px 14px;"><b>添加数据字段 (内嵌表单)</b></td>
+            <td style="padding: 10px 14px;">字段追加到 dataField[], 大小自动重算</td>
+          </tr>
+          <tr style="border-top: 1px solid var(--border);">
+            <td style="padding: 10px 14px;">"我想复制一份协议给 v2 设备用"</td>
+            <td style="padding: 10px 14px;">工具栏 <code>[📋 复制协议]</code></td>
+            <td style="padding: 10px 14px;"><b>复制确认 modal</b> (输入新 ID/名)</td>
+            <td style="padding: 10px 14px;">新协议创建, 命令一并深拷贝, ID 全部 +0x80 避免冲突</td>
+          </tr>
+          <tr style="border-top: 1px solid var(--border);">
+            <td style="padding: 10px 14px;">"frame layout 要改, 加个 length 字段"</td>
+            <td style="padding: 10px 14px;">Frame 模板 tab <code>[+ 添加字段]</code></td>
+            <td style="padding: 10px 14px;"><b>添加帧字段 modal</b> (类型/字节/默认值)</td>
+            <td style="padding: 10px 14px;">字段插入到 fields[], 实时帧预览重算</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 6. 改造范围 ===== -->
+  <section>
+    <h2 class="section-head"><span class="num">6</span>改造范围 <span class="desc">— 还是 ~250 行, 但分得更细</span></h2>
+    <div class="panel">
+      <ul style="font-size: 13px; line-height: 1.8; padding-left: 20px;">
+        <li><b>数据模型</b> ~50 行: <code>PROTOCOLS[i].commands[].dataFields[]</code> 嵌套结构, <code>NS.allCommands()</code> 垫片</li>
+        <li><b>新建协议向导</b> ~120 行: 3 步状态机 + kind 预填逻辑 + 表单验证</li>
+        <li><b>新建命令 modal</b> ~80 行: 表单 + 字段 chips 增删 + 字节数自动算</li>
+        <li><b>协议编辑器主 modal</b> ~80 行: tab 切换 + 命令表格 + 详情面板 (比 v1 略增, 多了 tab 状态)</li>
+        <li><b>迁移</b> ~30 行: 启动时把旧 <code>NS.COMMANDS</code> 按 <code>cmd.protocol</code> 归并, 老 v1 配置自动升级</li>
+        <li><b>删除</b> ~40 行: "命令管理" 独立 modal 退役 (工具栏按钮移除, 函数保留作兼容)</li>
+      </ul>
+      <p style="margin: 12px 0 0; font-size: 12px; color: var(--text-soft);">总计 <b>~320 行新增 + 70 行迁移</b>, 比 v1 多了约 30%, 主要花在向导的状态机和 modal 之间的交互上。</p>
+    </div>
+  </section>
+
+  <!-- ===== 7. 下一步 ===== -->
+  <section>
+    <h2 class="section-head"><span class="num">7</span>下一步 <span class="desc">— 还有啥要调的?</span></h2>
+    <div class="decision">
+      <h3>几个待你确认的细节</h3>
+      <ul>
+        <li><b>命令详情面板</b>：是常驻在 commands tab 下方 (我现在画的样子), 还是改用「点编辑按钮 → 弹新建命令 modal 的复用版」?</li>
+        <li><b>复制协议</b>：要不要这个功能? (我列了, 但你可能不需要)</li>
+        <li><b>字段命名复用</b>：新建命令时, 字段名输入框要不要给「复用已有命名」的下拉提示 (cell_1_v 等)? 还是完全自由命名?</li>
+        <li><b>命令管理总览</b>：用户偶尔可能想「所有协议所有命令的扁平视图」调试某个 ID 在哪。这个要不要单开一个「命令索引」modal?</li>
+        <li><b>导入命令 JSON</b>：协议编辑器里加个「导入 JSON 批量加命令」按钮? 还是保持纯手填?</li>
+      </ul>
+      <p style="margin: 12px 0 0; font-size: 13px;">你看完这个 v2 预览, 觉得方向 OK 就告诉我「开干」, 我去写正式 design doc + implementation plan 给你 review。还想调任何点都直接说。</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ============================================================
+//  Interactive: wizard step switching + kind grid
+// ============================================================
+
+const KINDS = [
+  {
+    id: 'fixed-header', name: 'Fixed Header (Legacy)',
+    desc: 'header 写死, 方向不参与 frame 编码',
+    preview: '<span class="header">header</span>·<span class="addr">addr</span>·<span class="cmd">cmd</span>·<span class="data">data</span>·<span class="crc">crc</span>·<span class="tail">tail</span>'
+  },
+  {
+    id: 'raw', name: 'Raw (MB/CB 不同帧头)',
+    desc: 'MB=0x5A, CB=0x55, 主机从机不同单字节帧头',
+    preview: '<span class="header">header(MB/CB)</span>·<span class="cmd">cmd</span>·<span class="data">data</span>·<span class="crc">crc</span>'
+  },
+  {
+    id: 'cmd-split', name: 'Cmd Split (方向位)',
+    desc: 'cmd bit7 编码方向: 0=MB, 1=CB',
+    preview: '<span class="header">header</span>·<span class="cmd">cmd[7]=dir</span>·<span class="data">data</span>·<span class="crc">crc</span>'
+  },
+  {
+    id: 'addr-split', name: 'Addr Split (地址互换)',
+    desc: 'srcAddr / dstAddr 互换编码方向',
+    preview: '<span class="header">header</span>·<span class="addr">srcAddr</span>·<span class="addr">dstAddr</span>·<span class="cmd">cmd</span>·<span class="data">data</span>·<span class="crc">crc</span>'
+  },
+  {
+    id: 'ctrl-bit7', name: 'Ctrl Bit7',
+    desc: 'ctrl 字节 bit7 编码方向',
+    preview: '<span class="header">header</span>·<span class="addr">addr</span>·<span class="cmd">ctrl[7]=dir</span>·<span class="data">data</span>·<span class="crc">crc</span>'
+  },
+  {
+    id: 'type-high-bit', name: 'Type High Bit',
+    desc: 'type 字节 bit7 编码方向',
+    preview: '<span class="header">header</span>·<span class="addr">addr</span>·<span class="cmd">type[7]=dir</span>·<span class="data">data</span>·<span class="crc">crc</span>'
+  },
+  {
+    id: 'msgid-mixed', name: 'MsgID Mixed (15+7+8)',
+    desc: 'msgID bit15 方向, bit14-8=func, bit7-0=addr',
+    preview: '<span class="header">header</span>·<span class="cmd">msgID[15|7|8]</span>·<span class="data">data</span>·<span class="crc">crc</span>'
+  },
+  {
+    id: 'tlv', name: 'Pure TLV',
+    desc: 'tlv type bit7 编码方向, 循环 type+len+val',
+    preview: '<span class="header">header</span>·<span class="data">TLV(type[7]=dir, len, val) ×N</span>·<span class="crc">crc</span>'
+  }
+];
+
+// Default frame template per kind
+const KIND_DEFAULTS = {
+  'fixed-header': [
+    { name: 'header', type: 'header', size: 1, byteOrder: '', default: '0xAA' },
+    { name: 'addr',   type: 'addr',   size: 1, byteOrder: '', default: '0x01' },
+    { name: 'length', type: 'length', size: 1, byteOrder: 'BE', default: 'auto' },
+    { name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
+    { name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' },
+    { name: 'tail',   type: 'tail',   size: 1, byteOrder: '', default: '0x55' }
+  ],
+  'raw': [
+    { name: 'header', type: 'header', size: 1, byteOrder: '', default: '0x5A' },
+    { name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
+    { name: 'length', type: 'length', size: 1, byteOrder: 'BE', default: 'auto' },
+    { name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
+    { name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' }
+  ],
+  'cmd-split': [
+    { name: 'header', type: 'header', size: 1, byteOrder: '', default: '0xAA' },
+    { name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
+    { name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
+    { name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' }
+  ],
+  'addr-split': [
+    { name: 'header',   type: 'header', size: 1, byteOrder: '', default: '0xAA' },
+    { name: 'srcAddr',  type: 'addr',   size: 1, byteOrder: '', default: '0x00' },
+    { name: 'dstAddr',  type: 'addr',   size: 1, byteOrder: '', default: '0x00' },
+    { name: 'cmd',      type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
+    { name: 'data',     type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
+    { name: 'crc',      type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' }
+  ],
+  'ctrl-bit7': [
+    { name: 'header', type: 'header', size: 1, byteOrder: '', default: '0xAA' },
+    { name: 'addr',   type: 'addr',   size: 1, byteOrder: '', default: '0x01' },
+    { name: 'ctrl',   type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
+    { name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
+    { name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' }
+  ],
+  'type-high-bit': [
+    { name: 'header', type: 'header', size: 1, byteOrder: '', default: '0xAA' },
+    { name: 'addr',   type: 'addr',   size: 1, byteOrder: '', default: '0x01' },
+    { name: 'type',   type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
+    { name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
+    { name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' }
+  ],
+  'msgid-mixed': [
+    { name: 'header', type: 'header', size: 1, byteOrder: '', default: '0xAA' },
+    { name: 'msgID',  type: 'cmd',    size: 2, byteOrder: 'BE', default: '0x0000' },
+    { name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
+    { name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' }
+  ],
+  'tlv': [
+    { name: 'header', type: 'header', size: 1, byteOrder: '', default: '0xAA' },
+    { name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
+    { name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' }
+  ]
+};
+
+let currentStep = 1;
+let selectedKind = 'fixed-header';
+
+function renderKindGrid() {
+  const grid = document.getElementById('kind-grid');
+  grid.innerHTML = KINDS.map(k => `
+    <div class="kind-card ${k.id === selectedKind ? 'selected' : ''}" data-kind="${k.id}">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span class="name">${k.name}</span>
+        <span class="id">kind=${k.id}</span>
+      </div>
+      <div class="desc">${k.desc}</div>
+      <div class="preview">${k.preview}</div>
+    </div>
+  `).join('');
+  grid.querySelectorAll('.kind-card').forEach(card => {
+    card.onclick = () => {
+      selectedKind = card.dataset.kind;
+      renderKindGrid();
+    };
+  });
+}
+
+function renderFrameTemplate() {
+  const fields = KIND_DEFAULTS[selectedKind] || [];
+  const body = document.getElementById('frame-template-body');
+  body.innerHTML = fields.map((f, idx) => `
+    <div class="field-row" data-idx="${idx}">
+      <span class="drag">⠿</span>
+      <span class="type-pill ${f.type}">${f.type}</span>
+      <input value="${f.name}" class="mono">
+      <input type="number" min="0" max="8" value="${f.size}" style="text-align:center">
+      <select>
+        <option value="" ${f.byteOrder === '' ? 'selected' : ''}>—</option>
+        <option value="BE" ${f.byteOrder === 'BE' ? 'selected' : ''}>BE</option>
+        <option value="LE" ${f.byteOrder === 'LE' ? 'selected' : ''}>LE</option>
+      </select>
+      <input value="${f.default}" class="mono">
+      <button class="del-btn" title="删除">×</button>
+    </div>
+  `).join('');
+
+  // Add row
+  let addRow = body.querySelector('.add-row');
+  if (!addRow) {
+    addRow = document.createElement('div');
+    addRow.className = 'add-row';
+    addRow.innerHTML = `<button class="btn">+ 添加字段</button>`;
+    body.appendChild(addRow);
+  }
+}
+
+function renderLiveFramePreview() {
+  const fields = KIND_DEFAULTS[selectedKind] || [];
+  const bytesEl = document.getElementById('live-frame-bytes');
+  let html = '';
+  fields.forEach((f, i) => {
+    if (i > 0) html += '<span class="gap">│</span>';
+    if (f.type === 'data') {
+      // Mock 6 bytes of data
+      for (let b = 0; b < 6; b++) {
+        html += `<span class="byte data">${(0x10 + b * 7).toString(16).padStart(2, '0').toUpperCase()}</span>`;
+      }
+    } else if (f.type === 'crc') {
+      html += `<span class="byte crc">XX XX</span>`;
+    } else if (f.type === 'length') {
+      html += `<span class="byte length">06</span>`;
+    } else if (f.type === 'cmd') {
+      html += `<span class="byte cmd">01</span>`;
+    } else if (f.size > 1) {
+      for (let b = 0; b < f.size; b++) {
+        html += `<span class="byte ${f.type}">${(parseInt(f.default.replace('0x', ''), 16) >> (8 * b) & 0xFF).toString(16).padStart(2, '0').toUpperCase()}</span>`;
+      }
+    } else {
+      html += `<span class="byte ${f.type}">${f.default.replace('0x', '').padStart(2, '0').toUpperCase()}</span>`;
+    }
+  });
+  bytesEl.innerHTML = html;
+}
+
+function goToStep(n) {
+  currentStep = n;
+  // Hide all
+  document.querySelectorAll('.subtabs').forEach(el => el.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  // Update stepper
+  document.querySelectorAll('.wizard-step').forEach((s, i) => {
+    s.classList.remove('active', 'done');
+    const stepNum = i + 1;
+    if (stepNum === n) s.classList.add('active');
+    else if (stepNum < n) s.classList.add('done');
+  });
+  // Update label
+  const labels = {
+    1: '第 1 步 / 共 3 步 · 选择协议类型',
+    2: '第 2 步 / 共 3 步 · 命名与基础配置',
+    3: '第 3 步 / 共 3 步 · 调整帧模板'
+  };
+  document.getElementById('wizard-step-label').textContent = labels[n];
+  // Buttons
+  document.getElementById('wiz-prev').style.visibility = n === 1 ? 'hidden' : 'visible';
+  document.getElementById('wiz-next').textContent = n === 3 ? '完成' : '下一步 →';
+  // Step 3 specific
+  if (n === 3) {
+    renderFrameTemplate();
+    renderLiveFramePreview();
+  }
+}
+
+// Wire up
+document.addEventListener('DOMContentLoaded', () => {
+  renderKindGrid();
+
+  document.getElementById('wiz-prev').onclick = () => {
+    if (currentStep > 1) goToStep(currentStep - 1);
+  };
+  document.getElementById('wiz-next').onclick = () => {
+    if (currentStep < 3) goToStep(currentStep + 1);
+    else alert('(mock) 协议创建完成, 跳到编辑器主界面');
+  };
+
+  // Tab switching in main editor (Section 4)
+  document.querySelectorAll('.editor-tab').forEach(tab => {
+    tab.onclick = () => {
+      const t = tab.dataset.tab;
+      document.querySelectorAll('.editor-tab').forEach(x => x.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('#tab-commands, #tab-frame, #tab-settings').forEach(x => x.classList.remove('active'));
+      const map = { commands: 'tab-commands', frame: 'tab-frame', settings: 'tab-settings' };
+      document.getElementById(map[t]).classList.add('active');
+    };
+  });
+});
+</script>
+</body>
+</html>

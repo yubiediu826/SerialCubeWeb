@@ -13,6 +13,7 @@
 
 ### 2026-08-12
 
+- [`changelog/2026-08-12-protocol-multi-command.md`](changelog/2026-08-12-protocol-multi-command.md) — v1.1.0 协议多命令 + 统一配置中心 5 tab + 漫游引导 + 9 kind (含 Custom) + Lucide 图标统一
 - [`changelog/2026-08-12-readme-sync-fix.md`](changelog/2026-08-12-readme-sync-fix.md) — README.md 同步修复（R5/R6 自检发现 4 处遗漏：3 个文档导航 + 2 条硬性规则）
 - [`changelog/2026-08-12-docs-naming-and-changelog-refactor.md`](changelog/2026-08-12-docs-naming-and-changelog-refactor.md) — 交接文档加时间命名 + CHANGELOG 主从结构 + 每次 push 必写 changelog
 

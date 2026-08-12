@@ -42,6 +42,8 @@
 | 完整项目交接 | [`PROJECT-HANDOVER-2026-08-11.md`](PROJECT-HANDOVER-2026-08-11.md) |
 | v1.0.0 发布说明 | [`release-v1.0.0-2026-08-11.md`](release-v1.0.0-2026-08-11.md) |
 | 5 步接手检查清单 | [`SESSION-CHECKLIST-2026-08-11.md`](SESSION-CHECKLIST-2026-08-11.md) |
+| 协议多命令方案交接 (设计完待实施) | [`HANDOFF-PROTOCOL-MULTI-COMMAND-2026-08-12.md`](HANDOFF-PROTOCOL-MULTI-COMMAND-2026-08-12.md) |
+| 协议多命令 5 步实施 checklist | [`HANDOFF-PROTOCOL-MULTI-COMMAND-CHECKLIST-2026-08-12.md`](HANDOFF-PROTOCOL-MULTI-COMMAND-CHECKLIST-2026-08-12.md) |
 | 工具怎么用（用户视角） | [`../guides/USER-GUIDE.md`](../guides/USER-GUIDE.md) |
 | 改代码 / 部署 SOP | [`../guides/DEVELOPER-GUIDE.md`](../guides/DEVELOPER-GUIDE.md) |
 | Agent 接手标准动作 | [`../guides/AGENT-START-HERE.md`](../guides/AGENT-START-HERE.md) |
