@@ -13324,17 +13324,31 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             NS.toast && NS.toast('已复制协议: ' + newId, 'success');
             NS._configCenterTabRenderers.protocols();
           });
-          // bind 删除 (行) → 简单 confirm + 切到非被删协议 (Task 11 级联 confirm 留待后续)
+          // bind 删除 (行) → 级联 confirm (Task 11)
           document.querySelectorAll('[data-proto-del]').forEach((b) => b.onclick = () => {
             const delId = b.getAttribute('data-proto-del');
-            if (!confirm('确认删除协议 ' + delId + '? 关联的卡片/命令不会被自动删, 后续会接入级联引用清单。')) return;
+            const result = NS._cascadeConfirm('protocol', delId, '协议 ' + delId);
+            if (result === 'cancel') return;
+            // result === 'self' 或 'cascade' 都删协议 (self 模式保留引用方仅删自己; 当前 v1.2 简化为两种结果都删, 自定义 modal 留 v1.3+)
+            const refs = NS._findReferences('protocol', delId);
+            // 级联: 删引用方
+            if (result === 'cascade') {
+              refs.cards.forEach((c) => {
+                // 同步清掉卡的 alerts
+                NS.ALERTS = (NS.ALERTS || []).filter((a) => a.name !== (c.title || c.id));
+              });
+              NS.CARDS = NS.CARDS.filter((c) => c.protocol !== delId);
+              NS.ALERTS = (NS.ALERTS || []).filter((a) => a.protocol !== delId);
+            }
             NS.PROTOCOLS = NS.PROTOCOLS.filter((p) => p.id !== delId);
             if (NS.activeProtoId === delId) NS.activeProtoId = NS.PROTOCOLS[0] ? NS.PROTOCOLS[0].id : null;
             NS._configCenterTabRenderers.protocols();
             if (typeof NS._configCenterTabRenderers.commands === 'function') NS._configCenterTabRenderers.commands();
             if (typeof NS._configCenterTabRenderers.cards === 'function') NS._configCenterTabRenderers.cards();
+            if (typeof NS._configCenterTabRenderers.alerts === 'function') NS._configCenterTabRenderers.alerts();
+            NS._refreshAlertsBadge();
             NS.updateDashboardProtoBar && NS.updateDashboardProtoBar();
-            NS.toast && NS.toast('已删除协议 ' + delId, 'success');
+            NS.toast && NS.toast('已删除协议 ' + delId + (result === 'cascade' ? ' (含引用)' : ''), 'success');
           });
         };
 
@@ -13414,15 +13428,27 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               NS.openNewCommandModal(proto.id, proto.commands[idx], 'dup');
             };
           });
-          // 删除按钮 (Task 11 级联 confirm 留待后续)
+          // 删除按钮 (Task 11 级联 confirm)
           document.querySelectorAll('[data-cmd-del]').forEach((btn) => {
             btn.onclick = () => {
               const idx = parseInt(btn.getAttribute('data-cmd-del'), 10);
               if (!proto || !proto.commands[idx]) return;
-              if (!confirm('确认删除命令 0x' + proto.commands[idx].id.toString(16).padStart(2, '0').toUpperCase() + ' ' + proto.commands[idx].name + '? 关联卡片不会被自动删, 后续会接入级联引用清单。')) return;
+              const cmdId = proto.commands[idx].id;
+              const label = '命令 0x' + (cmdId || 0).toString(16).padStart(2, '0').toUpperCase() + ' ' + proto.commands[idx].name;
+              const result = NS._cascadeConfirm('command', cmdId, label);
+              if (result === 'cancel') return;
+              if (result === 'cascade') {
+                // 级联: 删引用此 cmd 的卡片 + alerts
+                const refs = NS._findReferences('command', cmdId);
+                NS.CARDS = NS.CARDS.filter((c) => c.cmd !== cmdId);
+                NS.ALERTS = (NS.ALERTS || []).filter((a) => a.cmd !== cmdId);
+              }
               proto.commands.splice(idx, 1);
-              NS.toast && NS.toast('已删除命令', 'success');
+              NS.toast && NS.toast('已删除' + (result === 'cascade' ? ' 命令 (含引用)' : ' 命令'), 'success');
               NS._configCenterTabRenderers.commands();
+              if (typeof NS._configCenterTabRenderers.cards === 'function') NS._configCenterTabRenderers.cards();
+              if (typeof NS._configCenterTabRenderers.alerts === 'function') NS._configCenterTabRenderers.alerts();
+              NS._refreshAlertsBadge();
               const cmdBadge = document.getElementById('dh-cc-commands-badge');
               if (cmdBadge) cmdBadge.textContent = NS.allCommands().length;
             };
@@ -13486,16 +13512,24 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               NS.openCardEdit && NS.openCardEdit(card.id);
             };
           });
-          // 删除 (Task 11 级联 confirm 留待后续, 这里先简单 confirm)
+          // 删除 (Task 11 级联 confirm)
           document.querySelectorAll('[data-card-del]').forEach((btn) => {
             btn.onclick = () => {
               const idx = parseInt(btn.getAttribute('data-card-del'), 10);
               if (!NS.CARDS[idx]) return;
-              if (!confirm('确认删除卡片 ' + NS.CARDS[idx].id + ' ' + (NS.CARDS[idx].title || '') + '?')) return;
+              const card = NS.CARDS[idx];
+              const label = '卡片 ' + (card.id || '—') + (card.title ? ' ' + card.title : '');
+              const result = NS._cascadeConfirm('card', card.id || card.title, label);
+              if (result === 'cancel') return;
+              if (result === 'cascade') {
+                // 级联: 删引用此 card 的 alerts (用 name/title 匹配)
+                NS.ALERTS = (NS.ALERTS || []).filter((a) => !(a.name === (card.title || card.id)));
+              }
               const removed = NS.CARDS.splice(idx, 1)[0];
-              NS.toast && NS.toast('已删除卡片 ' + removed.id, 'success');
+              NS.toast && NS.toast('已删除' + (result === 'cascade' ? ' 卡片 (含引用告警)' : ' 卡片') + ' ' + removed.id, 'success');
               NS._configCenterTabRenderers.cards();
               NS._configCenterTabRenderers.alerts();
+              NS._refreshAlertsBadge();
               const cardBadge = document.getElementById('dh-cc-cards-badge');
               if (cardBadge) cardBadge.textContent = NS.CARDS.length;
               const alertBadge = document.getElementById('dh-cc-alerts-badge');
@@ -13974,6 +14008,49 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           // 刷新 tab + badge
           NS._configCenterTabRenderers.alerts();
           NS._refreshAlertsBadge();
+        };
+
+        // v1.2 (Task 11): 找引用 — 协议/命令/卡片 被哪些告警/卡片/命令引用
+        //   type: 'protocol' / 'command' / 'card'
+        //   id: 协议 id (string) / 命令 id (number, 0-255) / 卡片 id 或 title
+        //   返回 { commands, cards, alerts } (按 type 包含相关字段)
+        NS._findReferences = function (type, id) {
+          const refs = { commands: [], cards: [], alerts: [] };
+          if (type === 'protocol') {
+            const proto = (NS.PROTOCOLS || []).find(function (p) { return p.id === id; });
+            if (proto) refs.commands = proto.commands || [];
+            refs.cards = (NS.CARDS || []).filter(function (c) { return c.protocol === id; });
+            refs.alerts = (NS.ALERTS || []).filter(function (a) { return a.protocol === id; });
+          } else if (type === 'command') {
+            // 找命令所在协议
+            for (const p of (NS.PROTOCOLS || [])) {
+              const c = (p.commands || []).find(function (x) { return x.id === id; });
+              if (c) { refs.protocolId = p.id; refs.protocolName = p.name || p.id; break; }
+            }
+            refs.cards = (NS.CARDS || []).filter(function (c) { return c.cmd === id; });
+            refs.alerts = (NS.ALERTS || []).filter(function (a) { return a.cmd === id; });
+          } else if (type === 'card') {
+            // card.id 是 string (e.g. 'card_xxx') 或用 title 匹配
+            refs.alerts = (NS.ALERTS || []).filter(function (a) { return a.name === id; });
+          }
+          return refs;
+        };
+
+        // v1.2 (Task 11): 级联删除 confirm
+        //   简化实现: 弹 confirm "删除 X? N 条命令 / N 张卡片 / N 条告警将一起删"
+        //   - [确定] = 'cascade' (删自己 + 引用方)
+        //   - [取消] = 'cancel' (不删)
+        //   v1.3+ 计划升级为三选项自定义 modal (仅删自己 / 级联 / 取消)
+        //   0 引用时直接返回 'self' (无引用, 不弹 confirm, 单击即删)
+        NS._cascadeConfirm = function (type, id, label) {
+          const refs = NS._findReferences(type, id);
+          const parts = [];
+          if (refs.commands && refs.commands.length) parts.push(refs.commands.length + ' 条命令');
+          if (refs.cards && refs.cards.length) parts.push(refs.cards.length + ' 张卡片');
+          if (refs.alerts && refs.alerts.length) parts.push(refs.alerts.length + ' 条告警');
+          if (parts.length === 0) return 'self';  // 没引用, 不弹
+          const msg = '确认删除 ' + label + '?\n将被级联删除: ' + parts.join(' / ') + '\n\n[确定] = 级联删除\n[取消] = 不删除';
+          return confirm(msg) ? 'cascade' : 'cancel';
         };
 
         // === 配置中心 Tab 5: 导入/导出 ===
