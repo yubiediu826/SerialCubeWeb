@@ -13389,64 +13389,53 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           });
         };
 
-        // === 配置中心 Tab 3: 卡片 (Task 12) ===
+        // === 配置中心 Tab 3: 卡片 (Task 8 重做) ===
+        //   v1.2: 表格视图 + 协议列 (pill) + 行操作 (编辑/删除) + 新建走"选协议+命令"小框
         NS._configCenterTabRenderers.cards = function () {
           const pane = document.querySelector('#dh-config-center-body [data-tab-content="cards"]');
           if (!pane) return;
           const allCmds = NS.allCommands();
-          const cmdOptions = (cmdId) => {
+          const cmdOptions = (protoId, cmdId) => {
             const c = allCmds.find((x) => x.id === cmdId);
-            return c ? '0x' + c.id.toString(16).padStart(2, '0').toUpperCase() + ' ' + c.name : '0x' + (cmdId || 0).toString(16).padStart(2, '0').toUpperCase() + ' (orphan)';
+            if (c) return '0x' + c.id.toString(16).padStart(2, '0').toUpperCase() + ' ' + c.name;
+            return '<span style="color: var(--danger);">0x' + (cmdId || 0).toString(16).padStart(2, '0').toUpperCase() + ' (orphan)</span>';
           };
+          const kindClass = (protoId) => (protoId || '').replace('proto_', '').toLowerCase();
           const rows = NS.CARDS.map((c, i) => {
             const rangeStr = c.range ? c.range[0] + ' - ' + c.range[1] : '—';
-            const typeStr = c.type === 'pair' ? 'PAIR 对比' : 'TREND 趋势';
+            const typeStr = c.type === 'pair' ? '<span class="pill pcs">PAIR 对比</span>' : '<span class="pill info">TREND 趋势</span>';
+            const protoId = c.protocol || 'proto_bms';
             return '<tr data-card-index="' + i + '">' +
-              '<td><code style="background: var(--bg-subtle); padding: 2px 6px; border-radius: 3px; font-size: 11px;">' + NS.escapeHtml(c.id || '—') + '</code></td>' +
-              '<td>' + NS.escapeHtml(c.title || '—') + '</td>' +
+              '<td><code>' + NS.escapeHtml(c.id || '—') + '</code></td>' +
+              '<td><strong>' + NS.escapeHtml(c.title || '—') + '</strong></td>' +
+              '<td><span class="pill ' + kindClass(protoId) + '">' + NS.escapeHtml(protoId.replace('proto_', '').toUpperCase()) + '</span></td>' +
               '<td style="font-size: 11px;">' + typeStr + '</td>' +
-              '<td style="font-size: 11px;">' + cmdOptions(c.cmd) + '</td>' +
+              '<td style="font-size: 11px;">' + cmdOptions(c.protocol, c.cmd) + '</td>' +
               '<td style="font-size: 11px; color: var(--text-soft);">' + NS.escapeHtml(c.field || c.pairId || '—') + '</td>' +
               '<td style="text-align: center; font-size: 11px;">' + rangeStr + '</td>' +
               '<td style="text-align: center;">' + (c.precision || 0) + '</td>' +
               '<td style="font-size: 11px;">' + NS.escapeHtml(c.unit || '—') + '</td>' +
-              '<td style="text-align: right;">' +
-                '<button class="wiz-field-del" data-card-edit="' + i + '" title="编辑" style="background: none; border: none; cursor: pointer; padding: 4px; color: var(--accent);"><span data-svg="pencil" data-svg-size="12"></span></button>' +
-                '<button class="wiz-field-del" data-card-del="' + i + '" title="删除" style="background: none; border: none; cursor: pointer; padding: 4px; color: var(--danger);"><span data-svg="trash" data-svg-size="12"></span></button>' +
+              '<td style="text-align: right; white-space: nowrap;">' +
+                '<button class="row-action accent" data-card-edit="' + i + '" title="编辑卡片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' +
+                '<button class="row-action danger" data-card-del="' + i + '" title="删除卡片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>' +
               '</td>' +
               '</tr>';
           }).join('');
-          pane.innerHTML = '<div style="margin-bottom: 14px; display: flex; gap: 8px; align-items: center;">' +
+          pane.innerHTML = '<div class="toolbar" style="margin-bottom: 12px;">' +
             '<span style="font-size: 12px; color: var(--text-soft); flex: 1;">共 ' + NS.CARDS.length + ' 张卡片 (TREND ' + NS.CARDS.filter(c => c.type === 'trend').length + ' / PAIR ' + NS.CARDS.filter(c => c.type === 'pair').length + ')</span>' +
-            '<button class="toolbar-btn primary" id="dh-cc-card-new" data-svg="plus" data-svg-size="14"><span>新建卡片</span></button>' +
+            '<button class="tbtn primary" id="dh-cc-card-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg> 新建卡片</button>' +
             '</div>' +
-            '<div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden; max-height: 500px; overflow-y: auto;">' +
-            '<table class="cc-field-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">' +
-            '<thead><tr style="background: var(--bg-subtle); position: sticky; top: 0;">' +
-              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">ID</th>' +
-              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">标题</th>' +
-              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">类型</th>' +
-              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">命令</th>' +
-              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">字段/pair</th>' +
-              '<th style="padding: 8px 12px; text-align: center; border-bottom: 1px solid var(--border);">范围</th>' +
-              '<th style="padding: 8px 12px; text-align: center; border-bottom: 1px solid var(--border);">精度</th>' +
-              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">单位</th>' +
-              '<th style="padding: 8px 12px; border-bottom: 1px solid var(--border);"></th>' +
+            '<div class="table-wrap" style="border: 1px solid var(--border); border-radius: 6px;">' +
+            '<table class="table min-wide">' +
+            '<thead><tr>' +
+              '<th>ID</th><th>标题</th><th>协议</th><th>类型</th><th>命令</th><th>字段/pair</th><th style="text-align: center;">范围</th><th style="text-align: center;">精度</th><th>单位</th><th></th>' +
             '</tr></thead>' +
-            '<tbody>' + (rows || '<tr><td colspan="9" style="padding: 20px; text-align: center; color: var(--text-soft);">没有卡片</td></tr>') + '</tbody>' +
+            '<tbody>' + (rows || '<tr><td colspan="10" style="padding: 20px; text-align: center; color: var(--text-soft);">没有卡片, 点右上 "新建卡片" 开始</td></tr>') + '</tbody>' +
             '</table></div>';
           if (typeof NS_renderIcons === 'function') NS_renderIcons();
-          // 新建
+          // 新建: 弹"选协议+命令"小框
           const newBtn = document.getElementById('dh-cc-card-new');
-          if (newBtn) newBtn.onclick = () => {
-            // 现有 openCardEdit 是 edit-only (找不到 c 就 return),所以先 push 占位卡再调它
-            const baseId = 'c' + (Date.now() % 100000);
-            // v1.2: 卡片加 protocol 字段, 默认跟当前激活协议, 仪表盘按 protocol 过滤
-            const newCard = { id: baseId, type: 'trend', cmd: (allCmds[0] || {}).id || 0, dir: 'rx', field: '', title: '新建卡片', unit: '', precision: 2, protocol: NS.activeProtoId || 'proto_bms' };
-            NS.CARDS.push(newCard);
-            NS.editingCardId = baseId;
-            NS.openCardEdit && NS.openCardEdit(baseId);
-          };
+          if (newBtn) newBtn.onclick = () => NS._openNewCardWizard();
           // 编辑
           document.querySelectorAll('[data-card-edit]').forEach((btn) => {
             btn.onclick = () => {
@@ -13457,7 +13446,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               NS.openCardEdit && NS.openCardEdit(card.id);
             };
           });
-          // 删除
+          // 删除 (Task 11 级联 confirm 留待后续, 这里先简单 confirm)
           document.querySelectorAll('[data-card-del]').forEach((btn) => {
             btn.onclick = () => {
               const idx = parseInt(btn.getAttribute('data-card-del'), 10);
@@ -13473,6 +13462,62 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               if (alertBadge) alertBadge.textContent = NS.CARDS.filter((c) => c.range).length;
             };
           });
+        };
+
+        // v1.2 (Task 8): 新建卡片向导 — 弹"选协议+命令"小框
+        //   选完 push 占位卡 + 设 protocol 字段, 调 openCardEdit 进入完整编辑
+        NS._openNewCardWizard = function () {
+          if (!NS.PROTOCOLS || NS.PROTOCOLS.length === 0) {
+            NS.toast && NS.toast('没有协议, 请先新建或导入', 'warn');
+            return;
+          }
+          const protoOptions = NS.PROTOCOLS.map((p) => '<option value="' + NS.escapeHtml(p.id) + '"' + (p.id === NS.activeProtoId ? ' selected' : '') + '>' + NS.escapeHtml(p.name || p.id) + ' (' + (p.commands || []).length + ' cmd)</option>').join('');
+          const html = '<div style="padding: 18px 22px;">' +
+            '<div style="display: grid; grid-template-columns: 80px 1fr; gap: 8px 12px; align-items: center;">' +
+              '<label style="font-size: 12px; color: var(--text-soft);">协议</label>' +
+              '<select id="dh-new-card-proto" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;">' + protoOptions + '</select>' +
+              '<label style="font-size: 12px; color: var(--text-soft);">命令</label>' +
+              '<select id="dh-new-card-cmd" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;"></select>' +
+            '</div>' +
+            '<div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px;">' +
+              '<button class="tbtn" id="dh-new-card-cancel">取消</button>' +
+              '<button class="tbtn primary" id="dh-new-card-confirm">下一步</button>' +
+            '</div>' +
+          '</div>';
+          const m = document.createElement('div');
+          m.className = 'modal-backdrop';
+          m.id = 'dh-new-card-modal';
+          m.innerHTML = '<div class="modal" style="max-width: 480px;">' +
+            '<button aria-label="关闭" class="close-btn" id="dh-new-card-close" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>' +
+            '<div class="modal-head"><span class="modal-title">新建卡片 — 选协议+命令</span></div>' +
+            html + '</div>';
+          document.body.appendChild(m);
+          const protoSel = m.querySelector('#dh-new-card-proto');
+          const cmdSel = m.querySelector('#dh-new-card-cmd');
+          const refreshCmds = () => {
+            const proto = NS.PROTOCOLS.find((p) => p.id === protoSel.value);
+            cmdSel.innerHTML = proto ? proto.commands.map((c) => '<option value="' + c.id + '">0x' + c.id.toString(16).padStart(2, '0').toUpperCase() + ' ' + NS.escapeHtml(c.name) + '</option>').join('') : '';
+          };
+          protoSel.onchange = refreshCmds;
+          refreshCmds();
+          const close = () => m.remove();
+          m.querySelector('#dh-new-card-cancel').onclick = close;
+          m.querySelector('#dh-new-card-close').onclick = close;
+          m.querySelector('#dh-new-card-confirm').onclick = () => {
+            const protoId = protoSel.value;
+            const cmdId = parseInt(cmdSel.value, 10);
+            if (!protoId || isNaN(cmdId)) { NS.toast && NS.toast('请选协议和命令', 'warn'); return; }
+            const baseId = 'c' + (Date.now() % 100000);
+            const newCard = { id: baseId, type: 'trend', cmd: cmdId, dir: 'rx', field: '', title: '新建卡片', unit: '', precision: 2, protocol: protoId };
+            NS.CARDS.push(newCard);
+            close();
+            NS.editingCardId = baseId;
+            NS.openCardEdit && NS.openCardEdit(baseId);
+            // 刷新 tab 3 表格 + 顶部 badge
+            if (typeof NS._configCenterTabRenderers.cards === 'function') NS._configCenterTabRenderers.cards();
+            const cardBadge = document.getElementById('dh-cc-cards-badge');
+            if (cardBadge) cardBadge.textContent = NS.CARDS.length;
+          };
         };
 
         // === 配置中心 Tab 4: 告警 (Task 12) ===
