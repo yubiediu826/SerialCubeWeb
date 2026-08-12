@@ -13025,19 +13025,48 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         // === 新建命令 modal (Task 8) ===
         //   state.dataFields 走 NS.DATA_TYPES 选类型, 实时算总字节
         //   完成时 append 到 proto.commands (在协议内 ID 唯一)
-        NS.openNewCommandModal = function (protocolId) {
+        // v1.2 (Task 6): 三模式 — new / edit / dup
+        //   - new: protocolId 必填, 默认空表单
+        //   - edit: protocolId + editCmd 必填, 表单填 editCmd 副本, _isEdit=true
+        //   - dup: protocolId + editCmd 必填, 表单填 editCmd 副本 + name 加 " (副本)", _isEdit=false (保存为新)
+        NS.openNewCommandModal = function (protocolId, editCmd, mode) {
           const proto = NS.PROTOCOLS.find((p) => p.id === protocolId);
           if (!proto) { NS.toast('协议不存在: ' + protocolId, 'danger'); return; }
-          NS._newCmdState = { protoId: protocolId, id: 0, name: '', direction: 'rx', frameType: 'query', cadence: 200, expectResponse: '', remark: '', dataFields: [] };
+          const isEdit = mode === 'edit' && editCmd;
+          const isDup = mode === 'dup' && editCmd;
+          // 复制模式: 浅拷贝 + name 加 (副本) + 找新 id (递增到 0xFF, 跳过已被占用的)
+          let initial = { protoId: protocolId, id: 0, name: '', direction: 'rx', frameType: 'query', cadence: 200, expectResponse: '', remark: '', dataFields: [] };
+          let originalCmd = null;
+          if (isEdit) {
+            initial = JSON.parse(JSON.stringify(editCmd));
+            originalCmd = editCmd;
+          } else if (isDup) {
+            initial = JSON.parse(JSON.stringify(editCmd));
+            initial.name = (editCmd.name || '') + ' (副本)';
+            // 找下一个未占用的 ID
+            const usedIds = new Set(proto.commands.map((c) => c.id));
+            let newId = (editCmd.id + 1) & 0xFF;
+            while (usedIds.has(newId)) { newId = (newId + 1) & 0xFF; if (newId === editCmd.id) break; /* fallback */ }
+            initial.id = newId;
+            originalCmd = null;
+          }
+          NS._newCmdState = Object.assign({}, initial, {
+            protoId: protocolId,
+            _isEdit: isEdit,
+            _originalCmd: originalCmd
+          });
           document.getElementById('dh-new-cmd-proto-label').textContent = '协议: ' + (proto.name || proto.id);
-          document.getElementById('dh-new-cmd-id').value = '';
-          document.getElementById('dh-new-cmd-name').value = '';
-          document.getElementById('dh-new-cmd-direction').value = 'rx';
-          document.getElementById('dh-new-cmd-frameType').value = 'query';
-          document.getElementById('dh-new-cmd-cadence').value = '200';
-          document.getElementById('dh-new-cmd-expectResponse').value = '';
-          document.getElementById('dh-new-cmd-remark').value = '';
+          document.getElementById('dh-new-cmd-id').value = '0x' + (NS._newCmdState.id || 0).toString(16).padStart(2, '0').toUpperCase();
+          document.getElementById('dh-new-cmd-name').value = NS._newCmdState.name || '';
+          document.getElementById('dh-new-cmd-direction').value = NS._newCmdState.direction || 'rx';
+          document.getElementById('dh-new-cmd-frameType').value = NS._newCmdState.frameType || 'query';
+          document.getElementById('dh-new-cmd-cadence').value = NS._newCmdState.cadence || 200;
+          document.getElementById('dh-new-cmd-expectResponse').value = NS._newCmdState.expectResponse != null ? '0x' + NS._newCmdState.expectResponse.toString(16).padStart(2, '0').toUpperCase() : '';
+          document.getElementById('dh-new-cmd-remark').value = NS._newCmdState.remark || '';
           NS._renderNewCmdDataFields();
+          // 改 modal 标题
+          const titleEl = document.querySelector('#dh-new-command .modal-title');
+          if (titleEl) titleEl.textContent = isEdit ? '编辑命令' : (isDup ? '复制命令' : '新建命令');
           NS.openModal('dh-new-command');
         };
 
@@ -13257,7 +13286,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           });
         };
 
-        // === 配置中心 Tab 2: 命令 (Task 11) ===
+        // === 配置中心 Tab 2: 命令 (Task 6 重做) ===
+        //   v1.2: 表格视图 + 方向徽章 + 行操作 (编辑 / 复制 / 删除)
         NS._configCenterTabRenderers.commands = function () {
           const pane = document.querySelector('#dh-config-center-body [data-tab-content="commands"]');
           if (!pane) return;
@@ -13267,72 +13297,80 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           const protoOptions = NS.PROTOCOLS.map((p) =>
             '<option value="' + NS.escapeHtml(p.id) + '"' + (p.id === selProtoId ? ' selected' : '') + '>' + NS.escapeHtml(p.name || p.id) + ' (' + (p.commands || []).length + ' cmd)</option>'
           ).join('');
-          const dirLabel = (d) => d === 'tx' ? 'TX 发送' : d === 'rx' ? 'RX 接收' : d || '—';
-          const typeLabel = (t) => ({ query: '查询', control: '控制', response: '响应' }[t] || t || '—');
+          const dirPill = (d) => d === 'tx' ? '<span class="pill bms">TX 发送</span>' : d === 'rx' ? '<span class="pill ems">RX 接收</span>' : '<span class="pill unused">—</span>';
+          const typePill = (t) => ({ query: '<span class="pill info">查询</span>', control: '<span class="pill warn">控制</span>', response: '<span class="pill unused">响应</span>' }[t] || '<span class="pill unused">' + NS.escapeHtml(t || '—') + '</span>');
           const rows = cmds.map((cmd, i) => {
             const totalSize = NS.computeDataSize ? NS.computeDataSize(cmd) : 0;
             const fieldNames = (cmd.dataFields || []).map((df) => df.name).join(', ');
             return '<tr data-cmd-index="' + i + '">' +
-              '<td><code style="background: var(--bg-subtle); padding: 2px 6px; border-radius: 3px; font-size: 11px;">0x' + (cmd.id || 0).toString(16).padStart(2, '0').toUpperCase() + '</code></td>' +
-              '<td>' + NS.escapeHtml(cmd.name || '—') + '</td>' +
-              '<td>' + dirLabel(cmd.direction) + '</td>' +
-              '<td>' + typeLabel(cmd.frameType) + '</td>' +
+              '<td><code>0x' + (cmd.id || 0).toString(16).padStart(2, '0').toUpperCase() + '</code></td>' +
+              '<td><strong>' + NS.escapeHtml(cmd.name || '—') + '</strong></td>' +
+              '<td>' + dirPill(cmd.direction) + '</td>' +
+              '<td>' + typePill(cmd.frameType) + '</td>' +
               '<td style="text-align: right;">' + (cmd.cadence || 0) + 'ms</td>' +
-              '<td style="font-size: 11px; color: var(--text-soft);">' + NS.escapeHtml(fieldNames || '—') + '</td>' +
-              '<td style="text-align: center;"><span style="background: var(--accent-soft); color: var(--accent); padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600;">' + totalSize + 'B</span></td>' +
-              '<td style="text-align: right;">' +
-                '<button class="wiz-field-del" data-cmd-del="' + i + '" title="删除" style="background: none; border: none; cursor: pointer; padding: 4px; color: var(--danger);"><span data-svg="trash" data-svg-size="12"></span></button>' +
+              '<td style="font-size: 11px; color: var(--text-soft); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="' + NS.escapeHtml(fieldNames || '—') + '">' + NS.escapeHtml(fieldNames || '—') + '</td>' +
+              '<td style="text-align: center;"><span class="pill info">' + totalSize + 'B</span></td>' +
+              '<td style="text-align: right; white-space: nowrap;">' +
+                '<button class="row-action accent" data-cmd-edit="' + i + '" title="编辑命令"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' +
+                '<button class="row-action" data-cmd-dup="' + i + '" title="复制命令"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>' +
+                '<button class="row-action danger" data-cmd-del="' + i + '" title="删除命令"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>' +
               '</td>' +
               '</tr>';
           }).join('');
-          pane.innerHTML = '<div style="margin-bottom: 14px; display: flex; gap: 8px; align-items: center;">' +
+          pane.innerHTML = '<div class="toolbar" style="margin-bottom: 12px;">' +
             '<label style="font-size: 12px; color: var(--text-soft);">协议:</label>' +
             '<select id="dh-cc-cmd-proto-select" style="padding: 5px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px; flex: 1; max-width: 360px;">' + protoOptions + '</select>' +
-            '<button class="toolbar-btn primary" id="dh-cc-cmd-new" data-svg="plus" data-svg-size="14"><span>新建命令</span></button>' +
+            '<div style="flex: 1;"></div>' +
+            '<button class="tbtn primary" id="dh-cc-cmd-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg> 新建命令</button>' +
             '</div>' +
-            '<div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">' +
-            '<table class="cc-field-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">' +
-            '<thead><tr style="background: var(--bg-subtle);">' +
-              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">ID</th>' +
-              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">名称</th>' +
-              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">方向</th>' +
-              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">类型</th>' +
-              '<th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--border);">周期</th>' +
-              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">字段</th>' +
-              '<th style="padding: 8px 12px; text-align: center; border-bottom: 1px solid var(--border);">大小</th>' +
-              '<th style="padding: 8px 12px; border-bottom: 1px solid var(--border);"></th>' +
+            '<div class="table-wrap" style="border: 1px solid var(--border); border-radius: 6px;">' +
+            '<table class="table min-wide">' +
+            '<thead><tr>' +
+              '<th>ID</th><th>名称</th><th>方向</th><th>类型</th><th style="text-align: right;">周期</th><th>字段</th><th style="text-align: center;">大小</th><th></th>' +
             '</tr></thead>' +
-            '<tbody>' + (rows || '<tr><td colspan="8" style="padding: 20px; text-align: center; color: var(--text-soft);">该协议下没有命令</td></tr>') + '</tbody>' +
+            '<tbody>' + (rows || '<tr><td colspan="8" style="padding: 20px; text-align: center; color: var(--text-soft);">该协议下没有命令, 点右上 "新建命令" 开始</td></tr>') + '</tbody>' +
             '</table></div>' +
             '<div style="margin-top: 12px; font-size: 11px; color: var(--text-soft);">' +
             '共 ' + cmds.length + ' 条命令 · ' + cmds.filter((c) => c.direction === 'rx').length + ' RX / ' + cmds.filter((c) => c.direction === 'tx').length + ' TX' +
             '</div>';
-          // render icons
-          if (typeof NS_renderIcons === 'function') NS_renderIcons();
-          // 协议 select change 同步到 NS._ccSelectedProtoId (影响 Tab 1 也重新渲染)
+          // 协议 select change 同步
           const protoSel = document.getElementById('dh-cc-cmd-proto-select');
           if (protoSel) protoSel.onchange = () => {
             NS._ccSelectedProtoId = protoSel.value;
-            // 重新渲染两个 tab(因为协议变了,协议 tab 的 select 也要同步)
             NS._configCenterTabRenderers.protocols();
             NS._configCenterTabRenderers.commands();
           };
-          // 新建按钮 (v1.1.1 modal-stack: 不再关闭外层, openModal 栈接管)
+          // 新建按钮
           const newBtn = document.getElementById('dh-cc-cmd-new');
           if (newBtn) newBtn.onclick = () => {
             if (!proto) { NS.toast && NS.toast('请先选一个协议', 'warn'); return; }
             NS.openNewCommandModal(proto.id);
           };
-          // 删除按钮
+          // 编辑按钮 → openNewCommandModal(协议, cmd, 'edit')
+          document.querySelectorAll('[data-cmd-edit]').forEach((btn) => {
+            btn.onclick = () => {
+              const idx = parseInt(btn.getAttribute('data-cmd-edit'), 10);
+              if (!proto || !proto.commands[idx]) return;
+              NS.openNewCommandModal(proto.id, proto.commands[idx], 'edit');
+            };
+          });
+          // 复制按钮 → openNewCommandModal(协议, cmd, 'dup')
+          document.querySelectorAll('[data-cmd-dup]').forEach((btn) => {
+            btn.onclick = () => {
+              const idx = parseInt(btn.getAttribute('data-cmd-dup'), 10);
+              if (!proto || !proto.commands[idx]) return;
+              NS.openNewCommandModal(proto.id, proto.commands[idx], 'dup');
+            };
+          });
+          // 删除按钮 (Task 11 级联 confirm 留待后续)
           document.querySelectorAll('[data-cmd-del]').forEach((btn) => {
             btn.onclick = () => {
               const idx = parseInt(btn.getAttribute('data-cmd-del'), 10);
               if (!proto || !proto.commands[idx]) return;
-              if (!confirm('确认删除命令 0x' + proto.commands[idx].id.toString(16).padStart(2, '0').toUpperCase() + ' ' + proto.commands[idx].name + '?')) return;
+              if (!confirm('确认删除命令 0x' + proto.commands[idx].id.toString(16).padStart(2, '0').toUpperCase() + ' ' + proto.commands[idx].name + '? 关联卡片不会被自动删, 后续会接入级联引用清单。')) return;
               proto.commands.splice(idx, 1);
               NS.toast && NS.toast('已删除命令', 'success');
               NS._configCenterTabRenderers.commands();
-              // 同步更新顶部 badge
               const cmdBadge = document.getElementById('dh-cc-commands-badge');
               if (cmdBadge) cmdBadge.textContent = NS.allCommands().length;
             };
@@ -13792,6 +13830,9 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           });
         };
 
+        // v1.2 (Task 6): 区分新建 / 编辑 / 复制 三模式
+        //   - s._isEdit=true:  找 s._originalCmd 在 proto.commands 里的 idx 替换
+        //   - 其他 (new/dup):  push 新命令, ID 冲突检查
         NS._saveNewCommand = function () {
           const s = NS._newCmdState;
           if (!s) return;
@@ -13810,13 +13851,33 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           s.remark = rmkStr || undefined;
           // 校验
           if (!s.name) { NS.toast('命令名不能为空', 'warn'); return; }
-          if (proto.commands.some((c) => c.id === s.id)) { NS.toast('该协议下命令 ID 已存在', 'warn'); return; }
-          // 保存
-          proto.commands.push({
+          // 拼装新 cmd
+          const newCmd = {
             id: s.id, name: s.name, direction: s.direction, frameType: s.frameType, cadence: s.cadence,
             expectResponse: s.expectResponse, remark: s.remark, dataFields: s.dataFields
-          });
-          NS.toast('已添加命令: 0x' + s.id.toString(16).toUpperCase() + ' ' + s.name, 'success');
+          };
+          if (s._isEdit && s._originalCmd) {
+            // 编辑模式: 找原 cmd 替换
+            const idx = proto.commands.findIndex((c) => c === s._originalCmd);
+            if (idx === -1) { NS.toast('原命令未找到, 改用新建', 'warn'); proto.commands.push(newCmd); }
+            else {
+              // ID 冲突检查: 如果改了 ID, 新 ID 不能跟其他 cmd 冲突
+              if (s.id !== s._originalCmd.id && proto.commands.some((c) => c !== s._originalCmd && c.id === s.id)) {
+                NS.toast('该协议下命令 ID 已存在', 'warn'); return;
+              }
+              proto.commands[idx] = newCmd;
+            }
+            NS.toast('已保存修改: 0x' + s.id.toString(16).toUpperCase() + ' ' + s.name, 'success');
+          } else {
+            // 新建 / 复制模式
+            if (proto.commands.some((c) => c.id === s.id)) { NS.toast('该协议下命令 ID 已存在', 'warn'); return; }
+            proto.commands.push(newCmd);
+            NS.toast('已添加命令: 0x' + s.id.toString(16).toUpperCase() + ' ' + s.name, 'success');
+          }
+          // 刷新 tab 2 + tab 1 (badge)
+          if (typeof NS._configCenterTabRenderers.commands === 'function') NS._configCenterTabRenderers.commands();
+          const cmdBadge = document.getElementById('dh-cc-commands-badge');
+          if (cmdBadge) cmdBadge.textContent = NS.allCommands().length;
           NS.closeModal('dh-new-command');
         };
 
