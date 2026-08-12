@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>v1.2 配置中心重构 · 设计预览</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --bg-elevated: #ffffff;
+    --bg-panel: #fafafb;
+    --bg-subtle: #f6f6f7;
+    --border: rgba(60, 60, 67, 0.16);
+    --border-strong: rgba(60, 60, 67, 0.24);
+    --text: #3c3c43;
+    --text-soft: #67676c;
+    --accent: #5672cd;
+    --accent-strong: #3451b2;
+    --accent-soft: rgba(100, 108, 255, 0.14);
+    --warning: #d97706;
+    --warning-soft: rgba(217, 119, 6, 0.12);
+    --danger: #e0575e;
+    --danger-soft: rgba(224, 87, 94, 0.12);
+    --success: #16a34a;
+    --success-soft: rgba(22, 163, 74, 0.12);
+    --info: #0284c7;
+    --info-soft: rgba(2, 132, 199, 0.12);
+    --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.18);
+    --radius: 12px;
+    --radius-small: 8px;
+    --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #1b1b1f;
+      --bg-elevated: #2a2a30;
+      --bg-panel: #202127;
+      --bg-subtle: #161618;
+      --border: rgba(60, 63, 68, 0.32);
+      --border-strong: rgba(60, 63, 68, 0.6);
+      --text: #dfdfd6;
+      --text-soft: #98989f;
+      --accent: #818cf8;
+      --accent-strong: #c7d2fe;
+      --accent-soft: rgba(129, 140, 248, 0.16);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px;
+    font-family: var(--font-ui);
+    background: var(--bg-subtle);
+    color: var(--text);
+    font-size: 13px;
+  }
+  .header {
+    max-width: 1280px;
+    margin: 0 auto 24px;
+  }
+  .header h1 {
+    margin: 0 0 4px;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .header p {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 12px;
+  }
+  .topnav {
+    max-width: 1280px;
+    margin: 0 auto 16px;
+    display: flex;
+    gap: 4px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+    box-shadow: var(--shadow-soft);
+    overflow-x: auto;
+  }
+  .topnav button {
+    flex: 1;
+    min-width: 130px;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-small);
+    color: var(--text-soft);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.12s;
+  }
+  .topnav button:hover { background: var(--bg-subtle); color: var(--text); }
+  .topnav button.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .topnav svg { width: 14px; height: 14px; stroke-width: 1.5; }
+  .stage {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: none;
+  }
+  .stage.active { display: block; }
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .section-title .tag {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+  .section-title .change {
+    background: var(--success-soft);
+    color: var(--success);
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+  .desc {
+    color: var(--text-soft);
+    font-size: 12px;
+    margin: 0 0 12px;
+    line-height: 1.55;
+  }
+  .desc code {
+    background: var(--bg-subtle);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  /* ===== 仪表盘 ===== */
+  .dashboard-frame {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    box-shadow: var(--shadow-soft);
+  }
+  .dash-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .dash-title { font-size: 14px; font-weight: 600; }
+  .dash-meta { font-size: 11px; color: var(--text-soft); }
+  .dash-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .kpi {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    padding: 12px;
+    position: relative;
+  }
+  .kpi .proto-tag {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 600;
+    background: var(--info-soft);
+    color: var(--info);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .kpi.bms .proto-tag { background: var(--accent-soft); color: var(--accent); }
+  .kpi.ems .proto-tag { background: var(--success-soft); color: var(--success); }
+  .kpi.pcs .proto-tag { background: var(--warning-soft); color: var(--warning); }
+  .kpi .label { font-size: 11px; color: var(--text-soft); }
+  .kpi .value { font-size: 20px; font-weight: 600; font-family: var(--font-mono); margin: 4px 0; }
+  .kpi .unit { font-size: 11px; color: var(--text-soft); }
+  .kpi .spark { margin-top: 6px; height: 22px; }
+  .kpi .alert-pin {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--danger);
+  }
+
+  /* ===== Modal 通用 ===== */
+  .modal-frame {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-modal);
+    overflow: hidden;
+  }
+  .modal-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .modal-head .title { font-size: 14px; font-weight: 600; }
+  .modal-head .sub { font-size: 11px; color: var(--text-soft); }
+  .modal-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 8px 14px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-panel);
+  }
+  .modal-tabs button {
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    color: var(--text-soft);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .modal-tabs button.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+  .modal-tabs .badge {
+    background: var(--bg-subtle);
+    color: var(--text-soft);
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  .modal-tabs button.active .badge { background: var(--accent-soft); color: var(--accent); }
+  .modal-body { padding: 16px 18px; min-height: 380px; }
+
+  /* ===== 工具栏 ===== */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .toolbar .label { font-size: 12px; color: var(--text-soft); }
+  .toolbar select, .toolbar input {
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+  }
+  .toolbar select { min-width: 220px; }
+  .tbtn {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .tbtn:hover { background: var(--bg-subtle); }
+  .tbtn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .tbtn.primary:hover { background: var(--accent-strong); }
+  .tbtn svg { width: 13px; height: 13px; stroke-width: 1.5; }
+
+  /* ===== 表格 ===== */
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .table th {
+    background: var(--bg-subtle);
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-soft);
+    font-size: 11px;
+    border-bottom: 1px solid var(--border);
+  }
+  .table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .table tr:last-child td { border-bottom: none; }
+  .table tr:hover { background: var(--bg-panel); }
+  .table .row-action {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 3px 5px;
+    color: var(--text-soft);
+    border-radius: 4px;
+  }
+  .table .row-action:hover { background: var(--bg-subtle); }
+  .table .row-action.danger:hover { color: var(--danger); }
+  .table .row-action.accent:hover { color: var(--accent); }
+  .table .row-action svg { width: 13px; height: 13px; stroke-width: 1.5; }
+  .table code {
+    background: var(--bg-subtle);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+  .table .pill {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .pill.tx { background: var(--accent-soft); color: var(--accent); }
+  .pill.rx { background: var(--success-soft); color: var(--success); }
+  .pill.used { background: var(--success-soft); color: var(--success); }
+  .pill.unused { background: var(--bg-subtle); color: var(--text-soft); }
+  .pill.warn { background: var(--warning-soft); color: var(--warning); }
+  .pill.danger { background: var(--danger-soft); color: var(--danger); }
+  .pill.info { background: var(--info-soft); color: var(--info); }
+  .pill.bms { background: var(--accent-soft); color: var(--accent); }
+  .pill.ems { background: var(--success-soft); color: var(--success); }
+  .pill.pcs { background: var(--warning-soft); color: var(--warning); }
+
+  /* ===== 信息块 ===== */
+  .info-box {
+    background: var(--bg-panel);
+    border-left: 3px solid var(--accent);
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-soft);
+    margin: 12px 0 0;
+  }
+  .info-box strong { color: var(--text); }
+  .info-box.warn { border-left-color: var(--warning); }
+  .info-box.success { border-left-color: var(--success); }
+
+  /* ===== 模态编辑 ===== */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 8px 12px;
+    align-items: center;
+    font-size: 12px;
+  }
+  .form-grid label { color: var(--text-soft); }
+  .form-grid input, .form-grid select {
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    width: 100%;
+  }
+  .modal-foot {
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-panel);
+  }
+  .modal-foot .left { font-size: 11px; color: var(--text-soft); }
+  .modal-foot .right { display: flex; gap: 8px; }
+
+  .fields-table { margin: 12px 0; }
+  .fields-table input, .fields-table select {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 11px;
+  }
+
+  .legend {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-top: 16px;
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .legend strong { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>v1.2 配置中心重构 · 设计预览</h1>
+  <p>5 个 UI/逻辑问题一次性解决 — 真实模拟（v1.3）留到下个迭代</p>
+</div>
+
+<div class="topnav" id="topnav">
+  <button data-stage="s1" class="active">① 仪表盘</button>
+  <button data-stage="s2">② 配置中心 · 协议</button>
+  <button data-stage="s3">③ 配置中心 · 命令</button>
+  <button data-stage="s4">④ 配置中心 · 卡片</button>
+  <button data-stage="s5">⑤ 配置中心 · 告警</button>
+  <button data-stage="s6">⑥ 命令编辑 modal</button>
+  <button data-stage="s7">⑦ 告警编辑 modal</button>
+</div>
+
+<!-- ====== Stage 1: 仪表盘 ====== -->
+<div class="stage active" id="s1">
+  <div class="section-title">① 仪表盘（单协议聚焦 · 串口绑定）
+    <span class="change">重做</span>
+    <span class="tag">问题 1 + 4 · 方案 D</span>
+  </div>
+  <p class="desc">串口 1 对 1 的物理事实决定了仪表盘<strong>只显示当前连接那个协议</strong>的卡片。顶部"协议条"展示当前协议 + 串口 + 状态。连接时弹小框手动选协议（v1.3 可改为自动识别）。告警触发显示红点。</p>
+
+  <!-- 未连接状态 -->
+  <div class="dashboard-frame" style="border-style: dashed; background: var(--bg-panel);">
+    <div style="text-align: center; padding: 48px 24px;">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-soft)" stroke-width="1.2" style="margin: 0 auto 12px; display: block;">
+        <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>
+      </svg>
+      <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">未连接串口</div>
+      <div style="font-size: 12px; color: var(--text-soft); margin-bottom: 16px;">连接后选择协议, 仪表盘会显示该协议的卡片</div>
+      <button class="tbtn primary" style="margin: 0 auto; display: inline-flex;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/></svg>
+        选择串口
+      </button>
+    </div>
+  </div>
+
+  <!-- 已连接状态 -->
+  <div class="dashboard-frame" style="margin-top: 16px;">
+    <div class="dash-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="dash-title">仪表盘</span>
+        <span class="pill bms">● 当前协议</span>
+        <span class="dash-meta" style="font-weight: 600; color: var(--text);">BMS 主机协议 (proto_bms)</span>
+      </div>
+      <div style="flex: 1;"></div>
+      <span class="dash-meta">串口 COM20 · 115200 · 已连接</span>
+      <button class="tbtn" style="margin-left: 8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        切换协议
+      </button>
+    </div>
+    <div class="dash-cards">
+      <div class="kpi bms">
+        <div class="label">Cell 1 电压</div>
+        <div class="value">3.71 <span class="unit">V</span></div>
+        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
+          <polyline points="0,15 10,12 20,14 30,11 40,13 50,10 60,12 70,8 80,11 90,9 100,10" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <div class="kpi bms">
+        <div class="label">Cell 2 电压</div>
+        <div class="value">3.72 <span class="unit">V</span></div>
+        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
+          <polyline points="0,12 10,11 20,12 30,11 40,12 50,11 60,12 70,11 80,12 90,11 100,12" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <div class="kpi bms">
+        <div class="label">Cell 3 电压</div>
+        <div class="value">3.69 <span class="unit">V</span></div>
+        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
+          <polyline points="0,13 10,12 20,13 30,12 40,13 50,12 60,13 70,12 80,13 90,12 100,13" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <div class="kpi bms">
+        <div class="label">Cell 4 电压</div>
+        <div class="value">3.73 <span class="unit">V</span></div>
+        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
+          <polyline points="0,11 10,12 20,11 30,12 40,11 50,12 60,11 70,12 80,11 90,12 100,11" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <div class="kpi bms">
+        <div class="label">Pack 总电压</div>
+        <div class="value">55.65 <span class="unit">V</span></div>
+        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
+          <polyline points="0,11 10,10 20,12 30,11 40,10 50,9 60,11 70,10 80,12 90,11 100,10" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <div class="kpi bms">
+        <div class="label">电池电流</div>
+        <div class="value">1.2 <span class="unit">A</span></div>
+        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
+          <polyline points="0,11 10,10 20,11 30,12 40,11 50,10 60,11 70,12 80,11 90,10 100,11" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <div class="kpi bms">
+        <div class="label">SOC</div>
+        <div class="value">87.5 <span class="unit">%</span></div>
+        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
+          <polyline points="0,8 10,8 20,9 30,9 40,8 50,9 60,8 70,9 80,8 90,9 100,8" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <div class="kpi bms">
+        <div class="label">温度</div>
+        <div class="value">25.3 <span class="unit">℃</span></div>
+        <div class="alert-pin" title="触发过压告警 (Cell 1 4.28V)"></div>
+        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
+          <polyline points="0,11 10,12 20,11 30,12 40,11 50,12 60,11 70,12 80,11 90,12 100,11" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box success" style="margin-top: 14px;">
+    <strong>变更点：</strong>① 卡片不再带协议徽章（已经天然属于当前协议）；② 顶部加"协议条"显示当前协议 + 串口 + 状态 + 切换按钮；③ 连接时弹小框手动选协议（NS.activeProtoId）；④ 仪表盘只渲染 <code>card.protocol === activeProtoId</code> 的卡片；⑤ 未连接时不显示卡片，只显示"未连接"占位。
+  </div>
+
+  <div class="info-box" style="margin-top: 8px;">
+    <strong>协议切换时序：</strong>点击"切换协议" → 弹选择框（3 选 1）→ 选完不重连串口，只是切换 <code>activeProtoId</code> 和重新渲染仪表盘。切回原协议时，仪表盘恢复原状态。
+  </div>
+</div>
+
+<!-- ====== Stage 2: 配置中心 - 协议 ====== -->
+<div class="stage" id="s2">
+  <div class="section-title">② 配置中心 · 协议 Tab
+    <span class="change">重做</span>
+    <span class="tag">问题 1 + 5</span>
+  </div>
+  <p class="desc">协议列表视图，<strong>使用中</strong>的协议高亮 + 徽章。表格行加"编辑/复制/删除"按钮，工具栏只剩 2 个按钮（新建协议 / 导入 JSON）。协议 select 切换不需"应用"——只是个查看过滤。</p>
+
+  <div class="modal-frame">
+    <div class="modal-head">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M2 12h20"/></svg>
+      <span class="title">协议配置</span>
+      <span class="sub">协议 / 命令 / 字段 / 告警 / 导入导出</span>
+    </div>
+    <div class="modal-tabs">
+      <button class="active">协议 <span class="badge">3</span></button>
+      <button>命令 <span class="badge">12</span></button>
+      <button>卡片 <span class="badge">8</span></button>
+      <button>告警 <span class="badge">5</span></button>
+      <button>导入导出</button>
+    </div>
+    <div class="modal-body">
+      <div class="toolbar">
+        <span class="label">过滤:</span>
+        <select>
+          <option>全部协议 (3)</option>
+          <option>仅使用中 (1)</option>
+          <option>仅未使用 (2)</option>
+        </select>
+        <span class="label" style="margin-left: 12px;">查看:</span>
+        <select>
+          <option>BMS 主机协议 (proto_bms)</option>
+          <option>EMS 网关协议 (proto_ems)</option>
+          <option>PCS 储能协议 (proto_pcs)</option>
+        </select>
+        <div style="flex: 1;"></div>
+        <button class="tbtn primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+          新建协议
+        </button>
+        <button class="tbtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          导入 JSON
+        </button>
+      </div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>状态</th>
+            <th>ID</th>
+            <th>显示名</th>
+            <th>类型</th>
+            <th>字段</th>
+            <th>命令</th>
+            <th>关联卡片</th>
+            <th>字节序</th>
+            <th>CRC</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="pill used">● 使用中</span></td>
+            <td><code>proto_bms</code></td>
+            <td><strong>BMS 主机协议</strong></td>
+            <td>fixed-header</td>
+            <td>8</td>
+            <td>5</td>
+            <td>5</td>
+            <td>BE</td>
+            <td>CRC-16 MODBUS</td>
+            <td style="text-align: right;">
+              <button class="row-action accent" title="编辑">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </button>
+              <button class="row-action" title="复制">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+              <button class="row-action danger" title="删除">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg>
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="pill unused">未使用</span></td>
+            <td><code>proto_ems</code></td>
+            <td>EMS 网关协议</td>
+            <td>modbus-rtu</td>
+            <td>6</td>
+            <td>4</td>
+            <td>0</td>
+            <td>BE</td>
+            <td>CRC-16 MODBUS</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="pill unused">未使用</span></td>
+            <td><code>proto_pcs</code></td>
+            <td>PCS 储能协议</td>
+            <td>custom</td>
+            <td>5</td>
+            <td>3</td>
+            <td>2</td>
+            <td>LE</td>
+            <td>XOR</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="info-box">
+        <strong>操作说明：</strong>勾选某行为"使用中"会让它在仪表盘默认显示（不勾选 = 隐藏，但卡片仍能引用）。"复制"快速基于现有协议派生新协议（保留 fields + 复制 commands）。
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box success" style="margin-top: 14px;">
+    <strong>变更点：</strong>原"select + fields 表"重做为"协议列表 + 状态徽章"。"使用中"状态用 <code>NS._activeProtocolIds</code>（Set）保存，默认含导入时声明的协议。点击"编辑"打开 <code>dh-proto</code> modal，"复制"克隆协议并改名。
+  </div>
+</div>
+
+<!-- ====== Stage 3: 配置中心 - 命令 ====== -->
+<div class="stage" id="s3">
+  <div class="section-title">③ 配置中心 · 命令 Tab
+    <span class="change">增强</span>
+    <span class="tag">问题 2</span>
+  </div>
+  <p class="desc">表格行加"编辑/复制/删除"按钮（之前只有删除）。协议 select 切了直接重渲，<strong>无需"应用"按钮</strong>。右上角徽章实时显示该协议下命令数。</p>
+
+  <div class="modal-frame">
+    <div class="modal-head">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M2 12h20"/></svg>
+      <span class="title">协议配置</span>
+      <span class="sub">协议 / 命令 / 字段 / 告警 / 导入导出</span>
+    </div>
+    <div class="modal-tabs">
+      <button>协议 <span class="badge">3</span></button>
+      <button class="active">命令 <span class="badge">5</span></button>
+      <button>卡片 <span class="badge">8</span></button>
+      <button>告警 <span class="badge">5</span></button>
+      <button>导入导出</button>
+    </div>
+    <div class="modal-body">
+      <div class="toolbar">
+        <span class="label">协议:</span>
+        <select>
+          <option>BMS 主机协议 (5 cmd) — proto_bms</option>
+          <option>EMS 网关协议 (4 cmd) — proto_ems</option>
+          <option>PCS 储能协议 (3 cmd) — proto_pcs</option>
+        </select>
+        <div style="flex: 1;"></div>
+        <button class="tbtn primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+          新建命令
+        </button>
+      </div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>名称</th>
+            <th>方向</th>
+            <th>类型</th>
+            <th>周期</th>
+            <th>字段</th>
+            <th>大小</th>
+            <th>关联卡片</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>0x01</code></td>
+            <td>Pack 状态查询</td>
+            <td><span class="pill rx">RX</span></td>
+            <td>查询</td>
+            <td style="text-align: right;">200 ms</td>
+            <td style="font-size: 11px; color: var(--text-soft);">cell_1_v, cell_2_v, cell_3_v, cell_4_v, pack_i, temperature, soc</td>
+            <td style="text-align: center;"><span class="pill info">16 B</span></td>
+            <td>3</td>
+            <td style="text-align: right;">
+              <button class="row-action accent" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action" title="复制"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+              <button class="row-action danger" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><code>0x10</code></td>
+            <td>充电参数设置</td>
+            <td><span class="pill tx">TX</span></td>
+            <td>控制</td>
+            <td style="text-align: right;">— </td>
+            <td style="font-size: 11px; color: var(--text-soft);">charge_v_set, charge_i_set</td>
+            <td style="text-align: center;"><span class="pill info">4 B</span></td>
+            <td>1</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><code>0x11</code></td>
+            <td>放电参数设置</td>
+            <td><span class="pill tx">TX</span></td>
+            <td>控制</td>
+            <td style="text-align: right;">— </td>
+            <td style="font-size: 11px; color: var(--text-soft);">discharge_v_set</td>
+            <td style="text-align: center;"><span class="pill info">2 B</span></td>
+            <td>0</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><code>0x90</code></td>
+            <td>Charge Ack</td>
+            <td><span class="pill rx">RX</span></td>
+            <td>响应</td>
+            <td style="text-align: right;">— </td>
+            <td style="font-size: 11px; color: var(--text-soft);">charge_v_set, charge_i_set</td>
+            <td style="text-align: center;"><span class="pill info">4 B</span></td>
+            <td>0</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><code>0x91</code></td>
+            <td>Disch Ack</td>
+            <td><span class="pill rx">RX</span></td>
+            <td>响应</td>
+            <td style="text-align: right;">— </td>
+            <td style="font-size: 11px; color: var(--text-soft);">discharge_v_set</td>
+            <td style="text-align: center;"><span class="pill info">2 B</span></td>
+            <td>0</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="info-box">
+        <strong>共 5 条命令</strong> · 3 RX / 2 TX · 协议 BMS 主机协议 · 关联卡片 4 张
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box success" style="margin-top: 14px;">
+    <strong>变更点：</strong><code>openNewCommandModal(protocolId, editCmd?)</code> 接受第二参数；为 null = 新建，否则 = 编辑。新增"复制"按钮。删除时如有关联卡片，给出 confirm 提示并级联解除关联。
+  </div>
+</div>
+
+<!-- ====== Stage 4: 配置中心 - 卡片 ====== -->
+<div class="stage" id="s4">
+  <div class="section-title">④ 配置中心 · 卡片 Tab
+    <span class="change">增强</span>
+    <span class="tag">问题 3 (卡片部分)</span>
+  </div>
+  <p class="desc">卡片表格加 <strong>"协议"列</strong>（pill 颜色区分）。新建卡片时强制让用户选协议 + 命令，cmd 下拉按协议分组。新建/编辑/删除都明显。</p>
+
+  <div class="modal-frame">
+    <div class="modal-head">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M2 12h20"/></svg>
+      <span class="title">协议配置</span>
+      <span class="sub">协议 / 命令 / 字段 / 告警 / 导入导出</span>
+    </div>
+    <div class="modal-tabs">
+      <button>协议 <span class="badge">3</span></button>
+      <button>命令 <span class="badge">12</span></button>
+      <button class="active">卡片 <span class="badge">8</span></button>
+      <button>告警 <span class="badge">5</span></button>
+      <button>导入导出</button>
+    </div>
+    <div class="modal-body">
+      <div class="toolbar">
+        <span class="label">过滤:</span>
+        <select>
+          <option>全部卡片 (8)</option>
+          <option>BMS 协议 (5)</option>
+          <option>EMS 协议 (1)</option>
+          <option>PCS 协议 (2)</option>
+        </select>
+        <div style="flex: 1;"></div>
+        <button class="tbtn primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+          新建卡片
+        </button>
+      </div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>标题</th>
+            <th>类型</th>
+            <th>协议</th>
+            <th>命令</th>
+            <th>字段</th>
+            <th>范围</th>
+            <th>单位</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>c1</code></td>
+            <td>Cell 1 电压</td>
+            <td>TREND</td>
+            <td><span class="pill bms">BMS</span></td>
+            <td><code style="font-size: 11px;">0x01</code> Pack 状态</td>
+            <td>cell_1_v</td>
+            <td style="text-align: center; font-size: 11px;">2.8 - 4.2</td>
+            <td>V</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><code>c2</code></td>
+            <td>Pack 总电压</td>
+            <td>TREND</td>
+            <td><span class="pill bms">BMS</span></td>
+            <td><code style="font-size: 11px;">0x09</code> Pack 派生</td>
+            <td>pack_v_avg</td>
+            <td style="text-align: center; font-size: 11px;">40 - 60</td>
+            <td>V</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><code>c3</code></td>
+            <td>SOC</td>
+            <td>TREND</td>
+            <td><span class="pill bms">BMS</span></td>
+            <td><code style="font-size: 11px;">0x01</code> Pack 状态</td>
+            <td>soc</td>
+            <td style="text-align: center; font-size: 11px;">0 - 100</td>
+            <td>%</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><code>c4</code></td>
+            <td>温度</td>
+            <td>TREND</td>
+            <td><span class="pill bms">BMS</span></td>
+            <td><code style="font-size: 11px;">0x01</code> Pack 状态</td>
+            <td>temperature</td>
+            <td style="text-align: center; font-size: 11px;">-20 - 60</td>
+            <td>℃</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><code>c5</code></td>
+            <td>电池电流</td>
+            <td>TREND</td>
+            <td><span class="pill bms">BMS</span></td>
+            <td><code style="font-size: 11px;">0x01</code> Pack 状态</td>
+            <td>pack_i</td>
+            <td style="text-align: center; font-size: 11px;">-50 - 50</td>
+            <td>A</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><code>c6</code></td>
+            <td>电网频率</td>
+            <td>TREND</td>
+            <td><span class="pill ems">EMS</span></td>
+            <td><code style="font-size: 11px;">0x20</code> 频率查询</td>
+            <td>grid_freq</td>
+            <td style="text-align: center; font-size: 11px;">49.5 - 50.5</td>
+            <td>Hz</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><code>c7</code></td>
+            <td>逆变效率</td>
+            <td>TREND</td>
+            <td><span class="pill pcs">PCS</span></td>
+            <td><code style="font-size: 11px;">0x30</code> 状态查询</td>
+            <td>eff</td>
+            <td style="text-align: center; font-size: 11px;">90 - 100</td>
+            <td>%</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><code>c8</code></td>
+            <td>输出电流</td>
+            <td>TREND</td>
+            <td><span class="pill pcs">PCS</span></td>
+            <td><code style="font-size: 11px;">0x30</code> 状态查询</td>
+            <td>i_out</td>
+            <td style="text-align: center; font-size: 11px;">0 - 30</td>
+            <td>A</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="info-box">
+        <strong>共 8 张卡片</strong> · TREND 8 / PAIR 0 · BMS 5 / EMS 1 / PCS 2
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box success" style="margin-top: 14px;">
+    <strong>变更点：</strong>卡片加 <code>protocol</code> 字段（默认 "proto_bms"）。新建卡片按钮先弹"选协议+命令"小弹窗（避免 cmd 下拉选错协议的命令）。删除卡片时如有 alert 引用，给出 confirm。
+  </div>
+</div>
+
+<!-- ====== Stage 5: 配置中心 - 告警 ====== -->
+<div class="stage" id="s5">
+  <div class="section-title">⑤ 配置中心 · 告警 Tab
+    <span class="change">重做</span>
+    <span class="tag">问题 3 (告警部分) + 4</span>
+  </div>
+  <p class="desc">告警从派生改为独立 <code>NS.ALERTS</code> 数组。每条规则可独立编辑/启用/删除。严重度支持 <strong>danger / warn / info</strong> 三档。卡片 range 仍可一键"从卡片重建"批量生成默认规则。</p>
+
+  <div class="modal-frame">
+    <div class="modal-head">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M2 12h20"/></svg>
+      <span class="title">协议配置</span>
+      <span class="sub">协议 / 命令 / 字段 / 告警 / 导入导出</span>
+    </div>
+    <div class="modal-tabs">
+      <button>协议 <span class="badge">3</span></button>
+      <button>命令 <span class="badge">12</span></button>
+      <button>卡片 <span class="badge">8</span></button>
+      <button class="active">告警 <span class="badge">5</span></button>
+      <button>导入导出</button>
+    </div>
+    <div class="modal-body">
+      <div class="toolbar">
+        <span class="label">过滤:</span>
+        <select>
+          <option>全部告警 (5)</option>
+          <option>仅启用 (4)</option>
+          <option>严重度: 危险 (2)</option>
+          <option>严重度: 警告 (2)</option>
+          <option>严重度: 提示 (0)</option>
+        </select>
+        <div style="flex: 1;"></div>
+        <button class="tbtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          从卡片重建
+        </button>
+        <button class="tbtn primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+          新建告警
+        </button>
+      </div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>启用</th>
+            <th>名称</th>
+            <th>协议</th>
+            <th>字段</th>
+            <th>触发条件</th>
+            <th>严重度</th>
+            <th>通知</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><input type="checkbox" checked></td>
+            <td><strong>Cell 过压</strong></td>
+            <td><span class="pill bms">BMS</span></td>
+            <td>cell_1_v</td>
+            <td style="font-family: var(--font-mono); font-size: 11px;">&gt; 4.2 V</td>
+            <td><span class="pill danger">危险</span></td>
+            <td>toast</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" checked></td>
+            <td>SOC 低于 20%</td>
+            <td><span class="pill bms">BMS</span></td>
+            <td>soc</td>
+            <td style="font-family: var(--font-mono); font-size: 11px;">&lt; 20 %</td>
+            <td><span class="pill warn">警告</span></td>
+            <td>toast</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" checked></td>
+            <td>温度过高</td>
+            <td><span class="pill bms">BMS</span></td>
+            <td>temperature</td>
+            <td style="font-family: var(--font-mono); font-size: 11px;">&gt; 50 ℃</td>
+            <td><span class="pill danger">危险</span></td>
+            <td>toast + 声音</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" checked></td>
+            <td>电网频率偏差</td>
+            <td><span class="pill ems">EMS</span></td>
+            <td>grid_freq</td>
+            <td style="font-family: var(--font-mono); font-size: 11px;">≠ 50 ± 0.5 Hz</td>
+            <td><span class="pill warn">警告</span></td>
+            <td>toast</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td><input type="checkbox"></td>
+            <td>逆变效率低 (已禁用)</td>
+            <td><span class="pill pcs">PCS</span></td>
+            <td>eff</td>
+            <td style="font-family: var(--font-mono); font-size: 11px;">&lt; 95 %</td>
+            <td><span class="pill info">提示</span></td>
+            <td>仅列表</td>
+            <td style="text-align: right;">
+              <button class="row-action accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+              <button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="info-box">
+        <strong>告警规则说明：</strong>5 条规则 · 4 启用 · 危险 2 / 警告 2 / 提示 1 · 触发后支持 toast 弹窗 / 声音 / 列表记录三档通知。规则触发频率受 <code>alertDebounceMs</code> (默认 2000ms) 防抖。
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box success" style="margin-top: 14px;">
+    <strong>变更点：</strong>新增 <code>NS.ALERTS = []</code>，每条 <code>{ id, name, enabled, protocol, cmd, field, op, value, value2, severity, notify, debounceMs }</code>。"从卡片重建"按钮：扫描所有 <code>card.range</code> 自动生成默认规则（warn 严重度）。"新建告警"打开独立编辑 modal。
+  </div>
+</div>
+
+<!-- ====== Stage 6: 命令编辑 Modal ====== -->
+<div class="stage" id="s6">
+  <div class="section-title">⑥ 命令编辑 Modal（新建 / 编辑 / 复制 三模式共用）
+    <span class="change">复用</span>
+    <span class="tag">问题 2 核心修复</span>
+  </div>
+  <p class="desc"><code>openNewCommandModal(protocolId, editCmd?)</code> 接受第二参数。null = 新建，传 cmd 对象 = 编辑/复制。底部按钮根据模式动态变。</p>
+
+  <div class="modal-frame" style="max-width: 720px; margin: 0 auto;">
+    <div class="modal-head">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      <span class="title">编辑命令</span>
+      <span class="sub" style="margin-left: auto;">协议: BMS 主机协议</span>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <label>命令 ID</label>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <code style="background: var(--bg-subtle); padding: 4px 8px; border-radius: 4px;">0x</code>
+          <input value="01" style="max-width: 80px; font-family: var(--font-mono);">
+          <span style="color: var(--text-soft); font-size: 11px;">(同协议下唯一, 0x00-0xFF)</span>
+        </div>
+
+        <label>名称</label>
+        <input value="Pack 状态查询">
+
+        <label>方向</label>
+        <div style="display: flex; gap: 12px;">
+          <label style="display: flex; align-items: center; gap: 4px;"><input type="radio" name="dir" checked> <span>RX 接收</span></label>
+          <label style="display: flex; align-items: center; gap: 4px;"><input type="radio" name="dir"> <span>TX 发送</span></label>
+        </div>
+
+        <label>类型</label>
+        <select>
+          <option>查询 (query)</option>
+          <option>控制 (control)</option>
+          <option>响应 (response)</option>
+        </select>
+
+        <label>周期 (ms)</label>
+        <input value="200" type="number" style="max-width: 120px;">
+
+        <label>期望响应</label>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <code style="background: var(--bg-subtle); padding: 4px 8px; border-radius: 4px;">0x</code>
+          <input value="90" style="max-width: 80px; font-family: var(--font-mono);">
+          <span style="color: var(--text-soft); font-size: 11px;">(RX 时填, 收到不匹配则报 cmdMismatch)</span>
+        </div>
+
+        <label>备注</label>
+        <input value="每 200ms 轮询, 用于仪表盘主数据源">
+      </div>
+
+      <h4 style="margin: 18px 0 8px; font-size: 13px;">数据字段 (dataFields)</h4>
+      <table class="table fields-table">
+        <thead>
+          <tr>
+            <th>名字</th>
+            <th>类型</th>
+            <th>默认值</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><input value="cell_1_v"></td>
+            <td><select><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
+            <td><input value="0x0000"></td>
+            <td><button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
+          </tr>
+          <tr>
+            <td><input value="cell_2_v"></td>
+            <td><select><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
+            <td><input value="0x0000"></td>
+            <td><button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
+          </tr>
+          <tr>
+            <td><input value="cell_3_v"></td>
+            <td><select><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
+            <td><input value="0x0000"></td>
+            <td><button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
+          </tr>
+          <tr>
+            <td><input value="cell_4_v"></td>
+            <td><select><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
+            <td><input value="0x0000"></td>
+            <td><button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
+          </tr>
+          <tr>
+            <td><input value="pack_i"></td>
+            <td><select><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
+            <td><input value="0x0000"></td>
+            <td><button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
+          </tr>
+          <tr>
+            <td><input value="temperature"></td>
+            <td><select><option selected>i8 (1B)</option><option>u16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
+            <td><input value="0x00"></td>
+            <td><button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
+          </tr>
+          <tr>
+            <td><input value="soc"></td>
+            <td><select><option selected>u8 (1B)</option><option>u16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
+            <td><input value="0x00"></td>
+            <td><button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
+          </tr>
+        </tbody>
+      </table>
+      <button class="tbtn" style="margin-top: 4px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+        添加字段
+      </button>
+      <div style="font-size: 11px; color: var(--text-soft); margin-top: 8px;">共 7 字段 · 12 字节 (按 u8=1, u16=2, u32=4 算)</div>
+    </div>
+    <div class="modal-foot">
+      <span class="left">模式: <strong>编辑现有命令</strong> (从 Tab 2 表格"编辑"按钮进入)</span>
+      <div class="right">
+        <button class="tbtn">取消</button>
+        <button class="tbtn primary">保存修改</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box success" style="margin-top: 14px;">
+    <strong>复用方案：</strong>现有 <code>openNewCommandModal</code> 加可选第二参数 <code>editCmd</code>。null = 新建、传 cmd = 编辑模式（标题"编辑命令"）、传 cmd + 改 ID = 复制模式（标题"复制命令"）。底部按钮文案根据模式切换。
+  </div>
+</div>
+
+<!-- ====== Stage 7: 告警编辑 Modal ====== -->
+<div class="stage" id="s7">
+  <div class="section-title">⑦ 告警编辑 Modal
+    <span class="change">新增</span>
+    <span class="tag">问题 3 (告警编辑)</span>
+  </div>
+  <p class="desc">告警编辑是 v1.2 新增的独立 modal，替代之前"从卡片派生"模式。支持多种触发条件 + 严重度 + 通知方式。</p>
+
+  <div class="modal-frame" style="max-width: 720px; margin: 0 auto;">
+    <div class="modal-head">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span class="title">编辑告警规则</span>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <label>启用</label>
+        <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" checked> <span>启用后规则生效</span></label>
+
+        <label>名称</label>
+        <input value="Cell 过压">
+
+        <label>协议</label>
+        <select>
+          <option>BMS 主机协议 (proto_bms)</option>
+          <option>EMS 网关协议 (proto_ems)</option>
+          <option>PCS 储能协议 (proto_pcs)</option>
+        </select>
+
+        <label>命令</label>
+        <select>
+          <option>0x01 Pack 状态查询</option>
+          <option>0x10 充电参数设置</option>
+          <option>0x11 放电参数设置</option>
+          <option>0x90 Charge Ack</option>
+          <option>0x91 Disch Ack</option>
+        </select>
+
+        <label>字段</label>
+        <select>
+          <option>cell_1_v</option>
+          <option>cell_2_v</option>
+          <option>cell_3_v</option>
+          <option>cell_4_v</option>
+          <option>pack_i</option>
+          <option>temperature</option>
+          <option>soc</option>
+        </select>
+
+        <label>触发条件</label>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <select style="max-width: 110px;">
+            <option>大于 &gt;</option>
+            <option>小于 &lt;</option>
+            <option>等于 =</option>
+            <option>不等于 ≠</option>
+            <option>范围外</option>
+            <option>变化率 &gt;</option>
+          </select>
+          <input value="4.2" type="number" step="0.01" style="max-width: 100px;">
+          <select style="max-width: 80px;">
+            <option>V</option>
+            <option>A</option>
+            <option>%</option>
+            <option>℃</option>
+            <option>Hz</option>
+            <option>(无)</option>
+          </select>
+        </div>
+
+        <label>严重度</label>
+        <div style="display: flex; gap: 8px;">
+          <label style="display: flex; align-items: center; gap: 4px;"><input type="radio" name="sev"> <span class="pill info">提示</span></label>
+          <label style="display: flex; align-items: center; gap: 4px;"><input type="radio" name="sev"> <span class="pill warn">警告</span></label>
+          <label style="display: flex; align-items: center; gap: 4px;"><input type="radio" name="sev" checked> <span class="pill danger">危险</span></label>
+        </div>
+
+        <label>通知方式</label>
+        <div style="display: flex; gap: 12px;">
+          <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" checked> <span>toast 弹窗</span></label>
+          <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox"> <span>声音</span></label>
+          <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" checked> <span>列表记录</span></label>
+        </div>
+
+        <label>防抖 (ms)</label>
+        <input value="2000" type="number" style="max-width: 120px;">
+        <span style="color: var(--text-soft); font-size: 11px; grid-column: 2;">同规则重复触发最小间隔, 默认 2000ms</span>
+      </div>
+
+      <div class="info-box warn" style="margin-top: 16px;">
+        <strong>联动提示：</strong>此规则引用 BMS · 0x01 · cell_1_v。删除/重命名该命令或字段会断开引用, 需手动修复。
+      </div>
+    </div>
+    <div class="modal-foot">
+      <span class="left">ID: alert_3 · 创建于 2026-08-10</span>
+      <div class="right">
+        <button class="tbtn">取消</button>
+        <button class="tbtn">另存为副本</button>
+        <button class="tbtn primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box success" style="margin-top: 14px;">
+    <strong>实现要点：</strong>新增 <code>NS.openAlertEdit(alertId?)</code> 函数。新建模式：自动生成 alert ID。编辑模式：填入现有值。保存时校验 cmd/field 引用是否还存在（防止 orphan alert）。
+  </div>
+</div>
+
+<div class="legend">
+  <strong>设计原则（与你之前提的偏好一致）：</strong><br>
+  ① <strong>数据字段归命令不归协议</strong> — 字段不污染协议配置，跟用户原本的"命令自带 dataFields"逻辑一致<br>
+  ② <strong>添加用 modal 不用内嵌表单</strong> — 命令/卡片/告警都走弹窗，列表只展示<br>
+  ③ <strong>图标 inline SVG Lucide 16x16 stroke 1.5</strong> — 全程不引外部图标库<br>
+  ④ <strong>正交分层一站式 modal</strong> — 配置中心 5 tab + 3 个编辑 modal，每页目标单一<br>
+  ⑤ <strong>工具栏按钮越少越好</strong> — 每个 tab 工具栏最多 3 个，行操作在表格内
+</div>
+
+<script>
+  const nav = document.getElementById('topnav');
+  nav.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const stage = btn.dataset.stage;
+    if (!stage) return;
+    nav.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.stage').forEach((s) => s.classList.toggle('active', s.id === stage));
+  });
+</script>
+
+</body>
+</html>
