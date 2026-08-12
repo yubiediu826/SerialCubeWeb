@@ -7820,7 +7820,19 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               <div class="new-cmd-dataFields">
                 <h4 style="margin: 12px 0 8px; font-size: 13px;">数据字段 <span style="color: var(--text-soft); font-weight: 400;" id="dh-new-cmd-total-size">0 字节</span></h4>
                 <div id="dh-new-cmd-dataFields-list"></div>
-                <button class="toolbar-btn" id="dh-new-cmd-add-field" style="margin-top: 8px;"><span data-svg="plus" data-svg-size="12"></span>添加字段</button>
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                  <button class="toolbar-btn" id="dh-new-cmd-add-field"><span data-svg="plus" data-svg-size="12"></span>添加字段</button>
+                  <button class="toolbar-btn" id="dh-new-cmd-bulk-default" title="批量设置所有数据字段默认值 (hex)"><span data-svg="refresh" data-svg-size="12"></span>批量默认值</button>
+                </div>
+              </div>
+              <!-- v1.2 (Task 7): 帧预览 (实时 hex, 字段类型色块) -->
+              <h4 style="margin: 18px 0 8px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                <span>帧预览 (Frame Preview)</span>
+                <span style="font-size: 11px; color: var(--text-soft); font-weight: 400;">实时根据协议 header + dataFields default 拼帧 · 字节用空格分隔</span>
+                <span style="margin-left: auto; font-size: 11px; color: var(--text-soft); font-weight: 400;" id="dh-new-cmd-frame-size">共 0 字节</span>
+              </h4>
+              <div id="dh-new-cmd-frame-preview" style="background: var(--bg-terminal); color: var(--text); padding: 12px 14px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; overflow-x: auto; border: 1px solid var(--border);">
+                <span style="color: var(--text-soft);">—</span>
               </div>
             </div>
           </div>
@@ -13811,7 +13823,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               NS._renderNewCmdDataFields();
             });
           });
-          // 字段值变化 → 同步到 state → 重算字节
+          // 字段值变化 → 同步到 state → 重算字节 + 帧预览
           const updateState = () => {
             document.querySelectorAll('#dh-new-cmd-dataFields-list tr').forEach((tr, i) => {
               s.dataFields[i].name = tr.querySelector('.new-cmd-df-name').value;
@@ -13823,11 +13835,68 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               return sum + (t ? t.size : 0);
             }, 0);
             document.getElementById('dh-new-cmd-total-size').textContent = tot + ' 字节 (' + s.dataFields.length + ' 字段)';
+            if (typeof NS._renderNewCmdFramePreview === 'function') NS._renderNewCmdFramePreview();
           };
           document.querySelectorAll('#dh-new-cmd-dataFields-list input, #dh-new-cmd-dataFields-list select').forEach((el) => {
             el.addEventListener('input', updateState);
             el.addEventListener('change', updateState);
           });
+          // v1.2 (Task 7): 批量默认值按钮
+          const bulkBtn = document.getElementById('dh-new-cmd-bulk-default');
+          if (bulkBtn) bulkBtn.onclick = () => {
+            const value = prompt('批量设置所有数据字段默认值为 (hex, 例 0x0000):', '0x0000');
+            if (value === null || value === '') return;
+            s.dataFields.forEach((df) => { df.default = value; });
+            NS._renderNewCmdDataFields();
+            if (typeof NS._renderNewCmdFramePreview === 'function') NS._renderNewCmdFramePreview();
+          };
+          // v1.2 (Task 7): 初次渲染触发帧预览
+          if (typeof NS._renderNewCmdFramePreview === 'function') NS._renderNewCmdFramePreview();
+        };
+
+        // v1.2 (Task 7): 帧预览 — 实时拼 hex 帧
+        //   简化版: HEADER (协议 fields type=header) + CMD (1B) + DATA (dataFields default) + CRC (2B 占位)
+        //   真实 CRC 计算留待后续 Task, 这里占位 00 00
+        NS._renderNewCmdFramePreview = function () {
+          const s = NS._newCmdState;
+          if (!s) return;
+          const proto = NS.PROTOCOLS.find((p) => p.id === s.protoId);
+          const headerFields = (proto && proto.fields) ? proto.fields.filter((f) => f.type === 'header') : [];
+          const headerBytes = headerFields.map((f) => {
+            // 默认 0xAA, 也可读 default 字段 (hex 字符串)
+            const def = (f.default || '0xAA').toString().replace(/^0x/i, '');
+            const n = parseInt(def, 16);
+            return isNaN(n) ? 0xAA : n;
+          });
+          const cmdByte = (typeof s.id === 'number') ? s.id : 0;
+          const dataBytes = [];
+          (s.dataFields || []).forEach((df) => {
+            const t = NS.DATA_TYPES.find((tt) => tt.name === df.type);
+            const size = t ? t.size : 1;
+            const def = (df.default || '0x00').toString().replace(/^0x/i, '');
+            const n = parseInt(def, 16);
+            const v = isNaN(n) ? 0 : n;
+            // 对应 size 字节 big-endian
+            for (let i = size - 1; i >= 0; i--) {
+              dataBytes.push((v >> (i * 8)) & 0xFF);
+            }
+          });
+          // CRC 2B 占位 (00 00, 真实 CRC 由 NS.computeCrc 计算 — 留待后续)
+          const crcBytes = [0, 0];
+          const allBytes = [...headerBytes, cmdByte, ...dataBytes, ...crcBytes];
+          const fmt = (arr) => arr.map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+          const html =
+            '<div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center; line-height: 1.8;">' +
+              '<span><span style="color: var(--text-soft); font-size: 10px; margin-right: 4px;">HEADER</span><span style="color: var(--signal); font-weight: 600;">' + (headerBytes.length ? fmt(headerBytes) : '—') + '</span></span>' +
+              '<span><span style="color: var(--text-soft); font-size: 10px; margin-right: 4px;">CMD</span><span style="color: var(--signal); font-weight: 600;">' + cmdByte.toString(16).padStart(2, '0').toUpperCase() + '</span></span>' +
+              '<span><span style="color: var(--text-soft); font-size: 10px; margin-right: 4px;">DATA</span><span style="color: var(--accent); font-weight: 600;">' + (dataBytes.length ? fmt(dataBytes) : '—') + '</span></span>' +
+              '<span><span style="color: var(--text-soft); font-size: 10px; margin-right: 4px;">CRC</span><span style="color: var(--text-soft);">' + fmt(crcBytes) + '</span></span>' +
+            '</div>' +
+            '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); font-size: 11px; color: var(--text-soft);">完整帧: <code style="color: var(--text);">' + fmt(allBytes) + '</code></div>';
+          const el = document.getElementById('dh-new-cmd-frame-preview');
+          if (el) el.innerHTML = html;
+          const sizeEl = document.getElementById('dh-new-cmd-frame-size');
+          if (sizeEl) sizeEl.textContent = '共 ' + allBytes.length + ' 字节';
         };
 
         // v1.2 (Task 6): 区分新建 / 编辑 / 复制 三模式
