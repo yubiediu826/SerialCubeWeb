@@ -7593,7 +7593,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
                   </svg>
-                  切换协议
+                  <span id="dh-dash-proto-switch-label">选择协议</span>
                 </button>
               </div>
               <div class="command-panel" id="dh-command-panel">
@@ -7892,6 +7892,26 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             <span class="modal-title" id="dh-pair-trigger-title">触发命令</span>
             <span class="modal-subtitle" id="dh-pair-trigger-subtitle">字段</span>
           </div>
+        </div>
+
+        <!-- v1.2: 选择协议 modal (串口连接后弹, 仪表盘切换协议也弹) -->
+        <div class="modal-backdrop" id="dh-select-proto-backdrop"></div>
+        <div class="modal" id="dh-select-proto-modal" style="max-width: 520px;">
+          <div class="modal-header">
+            <button aria-label="关闭" class="close-btn" data-close="dh-select-proto" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            <span class="modal-title">选择协议</span>
+            <span class="modal-subtitle" id="dh-select-proto-subtitle">仪表盘会显示该协议的卡片</span>
+          </div>
+          <div class="modal-body" id="dh-select-proto-body" style="padding: 18px 22px;"></div>
+          <div class="modal-foot">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-soft); cursor: pointer;">
+              <input type="checkbox" id="dh-select-proto-remember" checked> 记住选择, 下次自动用
+            </label>
+            <span style="flex: 1;"></span>
+            <button class="tbtn" data-close="dh-select-proto">取消</button>
+            <button class="tbtn primary" id="dh-select-proto-confirm">确认</button>
+          </div>
+        </div>
           <div class="modal-body">
             <div class="form-section-title">设置值</div>
             <div id="dh-pair-trigger-fields"></div>
@@ -11389,6 +11409,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           const name = document.getElementById('dh-dash-proto-name');
           const port = document.getElementById('dh-dash-proto-port');
           const cardGrid = document.getElementById('dh-card-grid');
+          const switchBtn = document.getElementById('dh-dash-proto-switch');
+          const switchLabel = document.getElementById('dh-dash-proto-switch-label');
           const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
           if (NS.activeProtoId && proto) {
             // 已激活协议: 显示协议条 + 卡片
@@ -11397,6 +11419,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             if (cardGrid) cardGrid.style.display = '';
             if (name) name.textContent = (proto.name || proto.id) + ' (' + proto.id + ')';
             if (port) port.textContent = NS._serialConnected ? '已连接' : '未连接';
+            if (switchBtn) switchBtn.style.display = '';
+            if (switchLabel) switchLabel.textContent = '切换协议';
             // pill 颜色根据协议 kind/id
             if (pill) {
               const kind = (proto.id || '').replace('proto_', '').toUpperCase();
@@ -11410,6 +11434,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             if (cardGrid) cardGrid.style.display = 'none';
             if (name) name.textContent = '—';
             if (port) port.textContent = '未连接';
+            if (switchBtn) switchBtn.style.display = '';
+            if (switchLabel) switchLabel.textContent = '选择协议';
             if (pill) { pill.className = 'pill unused'; pill.textContent = '○ 未激活'; }
           }
         };
@@ -12994,6 +13020,61 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           NS._configCenterActiveTab = initialTab || 'protocols';
           NS._renderConfigCenter();
           NS.openModal('dh-config-center');
+        };
+
+        // v1.2: 选择协议 modal (串口连接后弹, 仪表盘切换协议也弹)
+        //   弹个 3 选 1 (N 选 1) radio + 记住选择 checkbox
+        //   确认后: 设 NS.activeProtoId + 写 localStorage + 重渲染仪表盘
+        NS.openSelectProtocolModal = function (remember) {
+          if (remember === undefined) remember = true;
+          if (!NS.PROTOCOLS || NS.PROTOCOLS.length === 0) {
+            NS.toast && NS.toast('没有可用协议, 请先导入或新建', 'warn');
+            return;
+          }
+          const body = document.getElementById('dh-select-proto-body');
+          const rows = NS.PROTOCOLS.map((p, i) => {
+            const kind = (p.id || '').replace('proto_', '').toUpperCase();
+            const kindClass = kind === 'BMS' ? 'bms' : kind === 'EMS' ? 'ems' : kind === 'PCS' ? 'pcs' : 'info';
+            return '<label class="select-proto-row" data-proto-id="' + p.id + '" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.12s;">' +
+              '<input type="radio" name="dh-select-proto" value="' + p.id + '"' + (p.id === NS.activeProtoId ? ' checked' : '') + ' style="margin: 0;">' +
+              '<div style="flex: 1;">' +
+                '<div style="display: flex; align-items: center; gap: 8px;">' +
+                  '<strong style="font-size: 13px;">' + NS.escapeHtml(p.name || p.id) + '</strong>' +
+                  '<span class="pill ' + kindClass + '" style="font-size: 10px;">' + NS.escapeHtml(kind) + '</span>' +
+                '</div>' +
+                '<div style="font-size: 11px; color: var(--text-soft); margin-top: 2px;">' + NS.escapeHtml(p.id) + ' · ' + NS.escapeHtml(p.kind || '—') + ' · ' + (p.commands || []).length + ' cmd · ' + (p.fields || []).length + ' fields</div>' +
+              '</div>' +
+            '</label>';
+          }).join('');
+          body.innerHTML = rows;
+          // 记住 checkbox
+          const rememberEl = document.getElementById('dh-select-proto-remember');
+          if (rememberEl) rememberEl.checked = remember;
+          // 行 hover 高亮
+          body.querySelectorAll('.select-proto-row').forEach((row) => {
+            row.addEventListener('mouseenter', () => { row.style.background = 'var(--bg-subtle)'; });
+            row.addEventListener('mouseleave', () => { row.style.background = ''; });
+          });
+          // 确认按钮事件
+          const confirmBtn = document.getElementById('dh-select-proto-confirm');
+          if (confirmBtn) {
+            confirmBtn.onclick = () => {
+              const selected = body.querySelector('input[name="dh-select-proto"]:checked');
+              if (!selected) { NS.toast && NS.toast('请选一个协议', 'warn'); return; }
+              NS.activeProtoId = selected.value;
+              const rememberChecked = document.getElementById('dh-select-proto-remember').checked;
+              if (rememberChecked) {
+                try { localStorage.setItem('serialcube.lastProtoId', NS.activeProtoId); } catch (e) {}
+              } else {
+                try { localStorage.removeItem('serialcube.lastProtoId'); } catch (e) {}
+              }
+              NS.closeModal('dh-select-proto');
+              NS.renderKpiCards();
+              NS.updateDashboardProtoBar && NS.updateDashboardProtoBar();
+              NS.toast && NS.toast('已切换到 ' + (NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId) || {}).name || NS.activeProtoId, 'success');
+            };
+          }
+          NS.openModal('dh-select-proto');
         };
 
         NS._renderConfigCenter = function () {
