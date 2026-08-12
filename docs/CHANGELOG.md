@@ -13,6 +13,7 @@
 
 ### 2026-08-12
 
+- [`changelog/2026-08-12-v1.1.1-fixes.md`](changelog/2026-08-12-v1.1.1-fixes.md) — v1.1.1 4 修复: 主题 segmented 进系统菜单 + 配置中心改协议配置 + 编辑模式视觉强化 + Modal stack 嵌套
 - [`changelog/2026-08-12-protocol-multi-command.md`](changelog/2026-08-12-protocol-multi-command.md) — v1.1.0 协议多命令 + 统一配置中心 5 tab + 漫游引导 + 9 kind (含 Custom) + Lucide 图标统一
 - [`changelog/2026-08-12-readme-sync-fix.md`](changelog/2026-08-12-readme-sync-fix.md) — README.md 同步修复（R5/R6 自检发现 4 处遗漏：3 个文档导航 + 2 条硬性规则）
 - [`changelog/2026-08-12-docs-naming-and-changelog-refactor.md`](changelog/2026-08-12-docs-naming-and-changelog-refactor.md) — 交接文档加时间命名 + CHANGELOG 主从结构 + 每次 push 必写 changelog
@@ -55,9 +56,11 @@
 
 ## 🗂 历史 release notes
 
-| 版本 | 发布日期 | 详细 notes |
-|------|----------|------------|
-| v1.0.0 | 2026-08-11 | [`handover/release-v1.0.0-2026-08-11.md`](handover/release-v1.0.0-2026-08-11.md) |
+| 版本 | 发布日期 | 详细 notes | 会话交接 |
+|------|----------|------------|----------|
+| v1.1.1 | 2026-08-12 | [`changelog/2026-08-12-v1.1.1-fixes.md`](changelog/2026-08-12-v1.1.1-fixes.md) | [`handover/HANDOFF-V1.1.1-FIXES-2026-08-12.md`](handover/HANDOFF-V1.1.1-FIXES-2026-08-12.md) |
+| v1.1.0 | 2026-08-12 | [`handover/release-v1.1.0-2026-08-12.md`](handover/release-v1.1.0-2026-08-12.md) | [`handover/HANDOFF-POST-V1.1.0-2026-08-12.md`](handover/HANDOFF-POST-V1.1.0-2026-08-12.md) |
+| v1.0.0 | 2026-08-11 | [`handover/release-v1.0.0-2026-08-11.md`](handover/release-v1.0.0-2026-08-11.md) | — |
 
 ---
 

@@ -1147,6 +1147,46 @@
       border-color: rgba(86, 114, 205, 0.3);
     }
 
+    /* v1.1.1: 主题 segmented 控件 (放在 system-menu 主题行) */
+    .floating-menu .theme-seg {
+      display: inline-flex;
+      flex: 1 1 0;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      padding: 2px;
+      background: var(--bg-elev);
+      gap: 2px;
+    }
+    .floating-menu .theme-seg button {
+      flex: 1 1 0;
+      min-height: 24px;
+      width: auto;
+      padding: 3px 6px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.6875rem;
+      font-weight: 500;
+      color: var(--text-soft);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      white-space: nowrap;
+      transition: background 0.12s, color 0.12s;
+    }
+    .floating-menu .theme-seg button:hover:not(.active) {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .floating-menu .theme-seg button.active {
+      background: var(--bg-panel-strong);
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+    .floating-menu .theme-seg button svg { width: 11px; height: 11px; stroke-width: 1.6; }
+
     .floating-menu .menu-link-row {
       display: flex;
       gap: 6px;
@@ -5697,7 +5737,8 @@
       transition: all 0.15s ease;
     }
 .dashboard-host     .toolbar-btn:hover { border-color: var(--accent); color: var(--accent); }
-.dashboard-host     .toolbar-btn.active { background: var(--accent); color: white; border-color: transparent; }
+.dashboard-host     .toolbar-btn.active { background: var(--accent) !important; color: white !important; border-color: var(--accent) !important; position: relative; }
+.dashboard-host     .toolbar-btn.active::before { content: ''; position: absolute; top: -2px; left: -2px; width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 2px var(--bg-elev); }
 .dashboard-host     .toolbar-btn.primary { background: var(--accent); color: white; border-color: transparent; }
 .dashboard-host     .toolbar-btn.primary:hover { background: var(--accent-strong); }
 .dashboard-host     .toolbar-btn.danger { color: var(--danger); border-color: rgba(224, 87, 94, 0.4); }
@@ -6063,20 +6104,21 @@
       z-index: 6;
     }
     .dashboard-host     .card-default .card-action {
-      width: 16px; height: 16px;
-      background: transparent;  /* 不要底色, 用 stroke 颜色 + 微背景圆角提示 hover 区域 */
-      border: none; border-radius: 4px;
+      width: 20px; height: 20px;  /* v1.1.1: 16 → 20, 加 1px 边 + 浅底, hover 区域可见 */
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
       box-shadow: none;
       cursor: pointer;
       display: inline-flex; align-items: center; justify-content: center;
-      color: #4a5568;  /* 加深 (之前 #67676c 太淡), transparent bg 下让 SVG 在白底卡片上清晰可见 */
+      color: #4a5568;
       font-size: 0.625rem;
       padding: 0; line-height: 1;
-      transition: background 0.12s, color 0.12s;
+      transition: all 0.12s;
     }
-    .dashboard-host     .card-default .card-action:hover { color: var(--accent); background: rgba(86, 114, 205, 0.1); }
-    .dashboard-host     .card-default .card-action svg { width: 14px; height: 14px; stroke-width: 1.6; }
-    .dashboard-host     .card-default .card-action:hover { color: var(--accent); }
+    .dashboard-host     .card-default .card-action:hover { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+    .dashboard-host     .card-default .card-action.del:hover { color: var(--danger); background: rgba(224, 87, 94, 0.1); border-color: var(--danger); }
+    .dashboard-host     .card-default .card-action svg { width: 11px; height: 11px; stroke-width: 1.6; }
     /* card-action SVG 图标 — 替代原来的 ⇄ ↗ ✎ 🔒 字符 (重复的旧规则已删) */
     .dashboard-host     .card-default .card-delete-btn svg { width: 14px; height: 14px; stroke-width: 1.6; }
     .dashboard-host     .card-default .card-action.disabled { opacity: 0.4; cursor: not-allowed; }
@@ -7029,6 +7071,24 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                 <span id="runtime-mode-label" class="runtime-mode-label">关于 v1.0.0</span>
                 <span id="online-mode-chip" class="online-mode-chip">当前在线最新</span>
               </button>
+              <!-- v1.1.1: 主题 segmented 加在 system-menu(关于+配置之间), 复用 handleThemeChange -->
+              <div class="menu-config-line">
+                <span class="menu-config-label">主题:</span>
+                <div class="theme-seg" id="sys-theme-seg">
+                  <button data-theme="light" title="浅色主题" type="button">
+                    <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M3 3l1.5 1.5M11.5 11.5L13 13M1 8h2M13 8h2M3 13l1.5-1.5M11.5 4.5L13 3"/></svg>
+                    浅色
+                  </button>
+                  <button data-theme="dark" title="深色主题" type="button">
+                    <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 9.5A6.5 6.5 0 0 1 6.5 2 6.5 6.5 0 1 0 14 9.5z"/></svg>
+                    深色
+                  </button>
+                  <button data-theme="system" title="跟随系统" type="button">
+                    <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="3" width="12" height="9" rx="1"/><path d="M5 13h6M8 12v1"/></svg>
+                    跟随
+                  </button>
+                </div>
+              </div>
               <div id="config-menu-row" class="menu-config-line">
                 <span class="menu-config-label">配置：</span>
                 <button id="copy-user-config-btn" type="button">复制配置</button>
@@ -7451,7 +7511,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             <main class="content">
               <div class="toolbar">
                 <button class="toolbar-btn" id="dh-open-config-center" data-svg="settings" data-svg-size="14">
-                  <span>配置中心</span>
+                  <span>协议配置</span>
                 </button>
                 <button class="toolbar-btn" id="dh-open-tour" data-svg="graduation-cap" data-svg-size="14">
                   <span>引导</span>
@@ -7483,7 +7543,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
                     <path d="M11 2l3 3-8 8H3v-3z"></path>
                     <path d="M10 3l3 3"></path>
                   </svg>
-                  编辑模式
+                  <span id="dh-toggle-edit-label">编辑模式</span>
                 </button>
               </div>
               <div class="command-panel" id="dh-command-panel">
@@ -7504,9 +7564,6 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           <div class="menu-row" data-pos="br"><span class="dot"></span> 右下角</div>
           <div class="menu-row" data-pos="bl"><span class="dot"></span> 左下角</div>
           <div class="menu-section">外观</div>
-          <!-- TODO: 配套 click handler 未接 (v1.0.0) — 见 NS.reset (L11163) -->
-          <div class="menu-row" id="dh-menu-theme">切换深色 / 浅色</div>
-          <!-- TODO: 配套 click handler 未接 (v1.0.0) — 见 NS.reset (L11163) -->
           <div class="menu-row" id="dh-menu-reset">重置数据</div>
           <div class="menu-section">Pair Trigger</div>
           <div class="menu-row menu-row-input">
@@ -7666,10 +7723,10 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         <div class="modal xtra-wide" id="dh-config-center-modal">
           <div class="modal-header">
             <button aria-label="关闭" class="close-btn" data-close="dh-config-center" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
-            <span class="modal-title">配置中心</span>
-            <span class="modal-subtitle" id="dh-config-center-subtitle">协议 / 命令 / 卡片 / 告警 / 导入导出</span>
+            <span class="modal-title">协议配置</span>
+            <span class="modal-subtitle" id="dh-config-center-subtitle">协议 / 命令 / 字段 / 导入导出</span>
             <span style="flex: 1;"></span>
-            <button class="toolbar-btn" id="dh-config-center-tour" data-svg="graduation-cap" data-svg-size="14"><span>开始引导</span></button>
+            <button class="toolbar-btn" id="dh-config-center-tour" data-svg="plus" data-svg-size="14"><span>新建协议</span></button>
           </div>
           <div class="editor-tabs" id="dh-config-center-tabs">
             <button class="editor-tab active" data-tab="protocols" data-svg="network" data-svg-size="14"><span>协议</span></button>
@@ -7804,6 +7861,19 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.1.1 版本 · 26/8/12</strong>
+            <ul>
+              <li>修复: 主题切换入口迁到主系统菜单 (topbar 3 横线) — 浅色/深色/跟随 segmented, 复用 handleThemeChange 0 行业务逻辑新增。</li>
+              <li>修复: 清理仪表盘内部 dh-menu-theme 死按钮 (TODO 注释), 主题切换入口单点化。</li>
+              <li>优化: "配置中心" 改名为 "协议配置" (用户指定), 副标题简化为"协议 / 命令 / 字段 / 导入导出"。</li>
+              <li>优化: 协议配置 modal 头部 "开始引导" 按钮改为 "新建协议" (+ 图标), 直接打开新建协议 3 步向导。</li>
+              <li>修复: 编辑模式按钮 active 态视觉加强 — 加 !important 锁住 + 蓝色背景 + 绿点 + 文字态切换 (编辑模式 ↔ 编辑中)。</li>
+              <li>修复: 卡片右上角 action 按钮 16px → 20px + 1px 边 + 浅底, hover 区域可见 (edit accent 边 / del 危险色)。</li>
+              <li>修复: Modal Stack 嵌套 — openModal/closeModal 引入 _modalStack, z-index 动态 1000 + len*20, 协议配置 4 处 closeModal 删除, 关闭子 modal 自动回到父 modal。</li>
+              <li>修复: Esc 键只关栈顶 modal (不一次关到底, 嵌套时不闪回仪表盘)。</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.1.0 版本 · 26/8/12</strong>
             <ul>
               <li>新增: 协议多命令方案 — 命令作为协议的一级子项,自带 dataFields(类型 + 默认值),告别全局 NS.DATA_FIELDS 数组。</li>
@@ -7840,7 +7910,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 
   <script>
     (() => {
-      const VERSION = '1.1.0';  // 同步 README/PRODUCT/About 弹窗版本号
+      const VERSION = '1.1.1';  // 同步 README/PRODUCT/About 弹窗版本号
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
@@ -10231,7 +10301,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             const actionsEl = card.querySelector('.card-actions');
             if (actionsEl) {
               const del = document.createElement('button');
-              del.className = 'card-delete-btn';
+              del.className = 'card-action del';  // v1.1.1: 跟 .card-action 共享 20px + hover 危险色样式
               // 通用垃圾桶 SVG: 盖子 + 提手 + 桶身 + 桶内 2 竖线
               del.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4 H13 M5 4 V3 H11 V4 M4 4 L5 13 H11 L12 4 M6.5 7 V11.5 M9.5 7 V11.5"/></svg>';
               del.title = '删除卡片';
@@ -12476,15 +12546,23 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           setTimeout(() => t.remove(), ms + 400);
         };
 
-        // --- Modal 控制 ---
+        // --- Modal 控制 (v1.1.1: modal-stack — 嵌套弹窗不互关) ---
+        //   栈式叠加: openModal push, closeModal 弹栈
+        //   z-index 动态: 1000 + stack.length * 20, 栈顶永远最上
+        //   Esc 键只关栈顶 modal, 不一次关所有
+        NS._modalStack = NS._modalStack || [];
         NS.openModal = function (name) {
+          const baseZ = 1000;
+          const z = baseZ + NS._modalStack.length * 20;
           const backdrop = document.getElementById(name + '-backdrop');
           const modal = document.getElementById(name + '-modal');
-          if (backdrop) backdrop.classList.add('open');
+          if (backdrop) { backdrop.style.zIndex = z; backdrop.classList.add('open'); }
           if (modal) {
+            modal.style.zIndex = z + 1;
             modal.classList.add('open');
             // 重要弹窗始终居中 (回到 .dashboard-host .modal 默认样式), 不再用 body.toast-pos-XX 强改
           }
+          NS._modalStack.push(name);
           if (name === 'dh-proto') NS.renderProtoEditor();
         };
         NS.closeModal = function (name) {
@@ -12496,7 +12574,16 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             // 关闭时清掉任何可能残留的 inline style, 回归默认居中
             try { modal.style.cssText = ''; } catch (e) {}
           }
+          const idx = NS._modalStack.lastIndexOf(name);
+          if (idx >= 0) NS._modalStack.splice(idx, 1);
         };
+        // Esc 键只关栈顶 modal (避免嵌套时一次关到仪表盘)
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && NS._modalStack && NS._modalStack.length > 0) {
+            const top = NS._modalStack[NS._modalStack.length - 1];
+            NS.closeModal(top);
+          }
+        });
 
         // --- 挂载 modal toolbar 按钮 + 内部按钮 handlers ---
 
@@ -12818,10 +12905,9 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             NS._ccSelectedProtoId = select.value;
             NS._configCenterTabRenderers.protocols();  // 重渲染
           };
-          // bind 新建 → 复用 3 步向导
+          // bind 新建 → 复用 3 步向导 (v1.1.1 modal-stack: 不再关闭外层, 由 openModal 栈接管)
           const newBtn = document.getElementById('dh-cc-proto-new');
           if (newBtn) newBtn.onclick = () => {
-            NS.closeModal('dh-config-center');
             NS.openNewProtocolWizard();
           };
           // bind 导入 JSON
@@ -12856,11 +12942,10 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             };
             input.click();
           };
-          // bind 编辑 → 复用 dh-proto 协议编辑器
+          // bind 编辑 → 复用 dh-proto 协议编辑器 (v1.1.1 modal-stack: 不再关闭外层)
           const editBtn = document.getElementById('dh-cc-proto-edit');
           if (editBtn) editBtn.onclick = () => {
             if (proto) {
-              NS.closeModal('dh-config-center');
               NS.activeProtoId = proto.id;
               NS.openModal('dh-proto');
             }
@@ -12927,11 +13012,10 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             NS._configCenterTabRenderers.protocols();
             NS._configCenterTabRenderers.commands();
           };
-          // 新建按钮
+          // 新建按钮 (v1.1.1 modal-stack: 不再关闭外层, openModal 栈接管)
           const newBtn = document.getElementById('dh-cc-cmd-new');
           if (newBtn) newBtn.onclick = () => {
             if (!proto) { NS.toast && NS.toast('请先选一个协议', 'warn'); return; }
-            NS.closeModal('dh-config-center');
             NS.openNewCommandModal(proto.id);
           };
           // 删除按钮
@@ -13609,7 +13693,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           document.querySelectorAll('#dh-config-center-tabs .editor-tab').forEach((btn) => {
             btn.addEventListener('click', () => NS._switchConfigCenterTab(btn.dataset.tab));
           });
-          bind('dh-config-center-tour', () => { NS.closeModal('dh-config-center'); NS.startGuidedTour && NS.startGuidedTour(); });
+          bind('dh-config-center-tour', () => { NS.openNewProtocolWizard && NS.openNewProtocolWizard(); });
           bind('dh-config-center-export', () => {
             try {
               const json = typeof NS.exportConfig === 'function' ? NS.exportConfig() : JSON.stringify({ protocols: NS.PROTOCOLS, cards: NS.CARDS });
@@ -13647,6 +13731,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
             if (host) host.classList.toggle('edit-mode', NS.editMode);
             const btn = document.getElementById('dh-toggle-edit');
             if (btn) btn.classList.toggle('active', NS.editMode);
+            const labelEl = document.getElementById('dh-toggle-edit-label');  // v1.1.1: 文字态切换
+            if (labelEl) labelEl.textContent = NS.editMode ? '编辑中' : '编辑模式';
             const toastEl = document.getElementById('dh-edit-toast');
             if (toastEl) toastEl.style.display = NS.editMode ? 'flex' : 'none';
             NS.renderCardGrid();
@@ -21121,6 +21207,23 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
           });
         });
         refs.systemMenuBtn.addEventListener('click', () => toggleMenu(refs.systemMenu));
+        // v1.1.1: 主系统菜单主题 segmented — 复用 handleThemeChange
+        (function bindSystemMenuThemeSeg() {
+          const seg = document.getElementById('sys-theme-seg');
+          if (!seg) return;
+          const refresh = () => {
+            seg.querySelectorAll('button[data-theme]').forEach((btn) => {
+              btn.classList.toggle('active', btn.dataset.theme === state.theme);
+            });
+          };
+          refresh();
+          seg.querySelectorAll('button[data-theme]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              handleThemeChange(btn.dataset.theme);
+              refresh();
+            });
+          });
+        })();
         // 系统菜单 "Pair trigger 超时" 输入绑定
         if (refs.pairTriggerTimeoutInput) {
           // 初始化 input 值 (从 state.settings, 兜底 3000)
