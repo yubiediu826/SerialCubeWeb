@@ -458,12 +458,23 @@
   <div class="dashboard-frame" style="border-style: dashed; background: var(--bg-panel);">
     <div style="text-align: center; padding: 48px 24px;">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-soft)" stroke-width="1.2" style="margin: 0 auto 12px; display: block;">
-        <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>
+        <!-- DB9 串口简化图标 -->
+        <path d="M4 8 L4 16 C4 17.1 4.9 18 6 18 L18 18 C19.1 18 20 17.1 20 16 L20 8 C20 6.9 19.1 6 18 6 L6 6 C4.9 6 4 6.9 4 8 Z"/>
+        <line x1="7" y1="9" x2="7" y2="9.01"/>
+        <line x1="11" y1="9" x2="11" y2="9.01"/>
+        <line x1="15" y1="9" x2="15" y2="9.01"/>
+        <line x1="9" y1="11" x2="9" y2="11.01"/>
+        <line x1="13" y1="11" x2="13" y2="11.01"/>
+        <line x1="7" y1="15" x2="7" y2="15.01"/>
+        <line x1="11" y1="15" x2="11" y2="15.01"/>
+        <line x1="15" y1="15" x2="15" y2="15.01"/>
+        <line x1="17" y1="13" x2="17" y2="13.01"/>
+        <rect x="10" y="3" width="4" height="3" stroke="var(--text-soft)" fill="none"/>
       </svg>
       <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">未连接串口</div>
       <div style="font-size: 12px; color: var(--text-soft); margin-bottom: 16px;">连接后选择协议, 仪表盘会显示该协议的卡片</div>
       <button class="tbtn primary" style="margin: 0 auto; display: inline-flex;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8 L4 16 C4 17.1 4.9 18 6 18 L18 18 C19.1 18 20 17.1 20 16 L20 8 C20 6.9 19.1 6 18 6 L6 6 C4.9 6 4 6.9 4 8 Z"/><line x1="7" y1="9" x2="7" y2="9.01"/><line x1="11" y1="9" x2="11" y2="9.01"/><line x1="15" y1="9" x2="15" y2="9.01"/><line x1="9" y1="11" x2="9" y2="11.01"/><line x1="13" y1="11" x2="13" y2="11.01"/><line x1="7" y1="15" x2="7" y2="15.01"/><line x1="11" y1="15" x2="11" y2="15.01"/><line x1="15" y1="15" x2="15" y2="15.01"/><line x1="17" y1="13" x2="17" y2="13.01"/></svg>
         选择串口
       </button>
     </div>
@@ -1190,66 +1201,100 @@
         <input value="每 200ms 轮询, 用于仪表盘主数据源">
       </div>
 
-      <h4 style="margin: 18px 0 8px; font-size: 13px;">数据字段 (dataFields)</h4>
+      <h4 style="margin: 18px 0 8px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+        <span>帧预览 (Frame Preview)</span>
+        <span style="font-size: 11px; color: var(--text-soft); font-weight: 400;">实时根据 header + dataFields 拼帧</span>
+        <span style="margin-left: auto; font-size: 11px; color: var(--text-soft); font-weight: 400;">共 12 字节</span>
+      </h4>
+      <div style="background: #0d1117; color: #c9d1d9; padding: 12px 14px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; overflow-x: auto;">
+        <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+          <span><span style="color: #6e7681;">HEADER</span> <span style="color: #79c0ff;">AA 55</span></span>
+          <span><span style="color: #6e7681;">LEN</span> <span style="color: #79c0ff;">0C</span></span>
+          <span><span style="color: #6e7681;">CMD</span> <span style="color: #79c0ff;">01</span></span>
+          <span><span style="color: #6e7681;">DATA</span>
+            <span style="color: #ffa657;">00 00</span>
+            <span style="color: #7ee787;">00 00</span>
+            <span style="color: #ffa657;">00 00</span>
+            <span style="color: #ffa657;">00 00</span>
+            <span style="color: #7ee787;">00 00</span>
+            <span style="color: #d2a8ff;">19</span>
+            <span style="color: #d2a8ff;">57</span>
+          </span>
+          <span><span style="color: #6e7681;">CRC</span> <span style="color: #f97583;">B7 E4</span></span>
+        </div>
+        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #30363d; font-size: 10px; color: #6e7681;">
+          颜色说明: <span style="color: #79c0ff;">头/固定</span> · <span style="color: #ffa657;">u16 字段</span> · <span style="color: #7ee787;">s16 字段</span> · <span style="color: #d2a8ff;">u8 字段</span> · <span style="color: #f97583;">CRC</span>
+        </div>
+      </div>
+
+      <h4 style="margin: 18px 0 8px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+        <span>数据字段 (dataFields)</span>
+        <span style="font-size: 11px; color: var(--text-soft); font-weight: 400;">7 字段 · 12 字节</span>
+        <span style="margin-left: auto; display: flex; gap: 6px;">
+          <button class="tbtn" style="padding: 3px 8px; font-size: 11px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+            批量默认值
+          </button>
+          <button class="tbtn" style="padding: 3px 8px; font-size: 11px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/></svg>
+            添加字段
+          </button>
+        </span>
+      </h4>
       <table class="table fields-table">
         <thead>
           <tr>
-            <th>名字</th>
-            <th>类型</th>
-            <th>默认值</th>
-            <th></th>
+            <th style="width: 30%;">名字</th>
+            <th style="width: 25%;">类型</th>
+            <th style="width: 35%;">默认值</th>
+            <th style="width: 10%;"></th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><input value="cell_1_v"></td>
-            <td><select><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
-            <td><input value="0x0000"></td>
-            <td><button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
+            <td><select style="font-size: 11px;"><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>s16 (2B)</option><option>float (4B)</option></select></td>
+            <td><input value="0x0000" style="font-size: 11px;"></td>
+            <td><button class="row-action danger" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
           </tr>
           <tr>
             <td><input value="cell_2_v"></td>
-            <td><select><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
-            <td><input value="0x0000"></td>
-            <td><button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
+            <td><select style="font-size: 11px;"><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>s16 (2B)</option><option>float (4B)</option></select></td>
+            <td><input value="0x0000" style="font-size: 11px;"></td>
+            <td><button class="row-action danger" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
           </tr>
           <tr>
             <td><input value="cell_3_v"></td>
-            <td><select><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
-            <td><input value="0x0000"></td>
-            <td><button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
+            <td><select style="font-size: 11px;"><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>s16 (2B)</option><option>float (4B)</option></select></td>
+            <td><input value="0x0000" style="font-size: 11px;"></td>
+            <td><button class="row-action danger" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
           </tr>
           <tr>
             <td><input value="cell_4_v"></td>
-            <td><select><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
-            <td><input value="0x0000"></td>
-            <td><button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
+            <td><select style="font-size: 11px;"><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>s16 (2B)</option><option>float (4B)</option></select></td>
+            <td><input value="0x0000" style="font-size: 11px;"></td>
+            <td><button class="row-action danger" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
           </tr>
           <tr>
             <td><input value="pack_i"></td>
-            <td><select><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
-            <td><input value="0x0000"></td>
-            <td><button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
+            <td><select style="font-size: 11px;"><option>u8 (1B)</option><option selected>u16 (2B)</option><option>u32 (4B)</option><option>s16 (2B)</option><option>float (4B)</option></select></td>
+            <td><input value="0x0000" style="font-size: 11px;"></td>
+            <td><button class="row-action danger" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
           </tr>
           <tr>
             <td><input value="temperature"></td>
-            <td><select><option selected>i8 (1B)</option><option>u16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
-            <td><input value="0x00"></td>
-            <td><button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
+            <td><select style="font-size: 11px;"><option selected>s8 (1B)</option><option>u8 (1B)</option><option>u16 (2B)</option><option>s16 (2B)</option><option>float (4B)</option></select></td>
+            <td><input value="0x19" style="font-size: 11px;"></td>
+            <td><button class="row-action danger" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
           </tr>
           <tr>
             <td><input value="soc"></td>
-            <td><select><option selected>u8 (1B)</option><option>u16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
-            <td><input value="0x00"></td>
-            <td><button class="row-action danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
+            <td><select style="font-size: 11px;"><option selected>u8 (1B)</option><option>u16 (2B)</option><option>s16 (2B)</option><option>u32 (4B)</option><option>float (4B)</option></select></td>
+            <td><input value="0x57" style="font-size: 11px;"></td>
+            <td><button class="row-action danger" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button></td>
           </tr>
         </tbody>
       </table>
-      <button class="tbtn" style="margin-top: 4px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
-        添加字段
-      </button>
-      <div style="font-size: 11px; color: var(--text-soft); margin-top: 8px;">共 7 字段 · 12 字节 (按 u8=1, u16=2, u32=4 算)</div>
     </div>
     <div class="modal-foot">
       <span class="left">模式: <strong>编辑现有命令</strong> (从 Tab 2 表格"编辑"按钮进入)</span>
@@ -1262,6 +1307,9 @@
 
   <div class="info-box success" style="margin-top: 14px;">
     <strong>复用方案：</strong>现有 <code>openNewCommandModal</code> 加可选第二参数 <code>editCmd</code>。null = 新建、传 cmd = 编辑模式（标题"编辑命令"）、传 cmd + 改 ID = 复制模式（标题"复制命令"）。底部按钮文案根据模式切换。
+  </div>
+  <div class="info-box" style="margin-top: 8px;">
+    <strong>帧预览实现：</strong>dark 风格（终端配色）显示 12 字节，色块按类型区分（u8 / u16 / s16 / float / CRC）。dataFields 任一字段值变化即时重算 + CRC 重算。"批量默认值"按钮弹小框支持"全部清零/全部 0xFF/按类型填充"，避免 7 个 input 一个个填。
   </div>
 </div>
 
