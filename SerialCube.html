@@ -7863,6 +7863,26 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           </div>
         </div>
 
+        <!-- 告警编辑 modal (Task 10) -->
+        <div class="modal-backdrop" id="dh-alert-edit-modal-backdrop"></div>
+        <div class="modal" id="dh-alert-edit-modal">
+          <div class="modal-header">
+            <button aria-label="关闭" class="close-btn" data-close="dh-alert-edit" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            <span class="modal-title" id="dh-alert-edit-title">新建告警</span>
+            <span class="modal-subtitle" id="dh-alert-edit-id-label">ID: -</span>
+            <span style="flex: 1;"></span>
+          </div>
+          <div class="modal-body">
+            <div id="dh-alert-edit-body"></div>
+          </div>
+          <div class="modal-footer">
+            <button class="toolbar-btn" data-close="dh-alert-edit">取消</button>
+            <span class="spacer"></span>
+            <button class="toolbar-btn" id="dh-alert-edit-save-as" title="基于当前表单存为新告警 (不覆盖原)">另存为副本</button>
+            <button class="toolbar-btn primary" id="dh-alert-edit-save">保存</button>
+          </div>
+        </div>
+
         <!-- 配置中心 modal (Task 9: 5 tab 骨架 - protocols/commands/cards/alerts/ie) -->
         <div class="modal-backdrop" id="dh-config-center-backdrop"></div>
         <div class="modal xtra-wide" id="dh-config-center-modal">
@@ -13479,7 +13499,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               const cardBadge = document.getElementById('dh-cc-cards-badge');
               if (cardBadge) cardBadge.textContent = NS.CARDS.length;
               const alertBadge = document.getElementById('dh-cc-alerts-badge');
-              if (alertBadge) alertBadge.textContent = NS.CARDS.filter((c) => c.range).length;
+              if (alertBadge) alertBadge.textContent = (NS.ALERTS || []).length;
             };
           });
         };
@@ -13705,6 +13725,257 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           if (alertBadge) alertBadge.textContent = (NS.ALERTS || []).length;
         };
 
+        // v1.2 (Task 10): 告警编辑 modal (新建 / 编辑 / 另存为副本 三模式)
+        //   - alertId 缺省 = 新建 (生成 'alert_' + Date.now() id, 默认 NS.activeProtoId)
+        //   - alertId 传 = 编辑 (按 id 找原 alert, 填表单副本, _isEdit=true, _originalId 记原 id)
+        //   - "另存为副本" 按钮 = 改 _isEdit=false + 生成新 id, 调保存 (走新建逻辑)
+        //   联动: 协议 → 命令 (按协议过滤) → 字段 (按命令 dataFields 过滤)
+        //   联动提示: cmd/field 不存在时在顶部显示孤儿警告 + 保存前 confirm
+        NS.openAlertEdit = function (alertId) {
+          const isEdit = !!alertId;
+          const a = isEdit ? (NS.ALERTS || []).find(function (x) { return x.id === alertId; }) : null;
+          if (isEdit && !a) { NS.toast('告警未找到: ' + alertId, 'danger'); return; }
+          // 默认协议: 优先 activeProtoId, 否则第一个
+          const defaultProtoId = NS.activeProtoId || (NS.PROTOCOLS[0] && NS.PROTOCOLS[0].id);
+          NS._alertEditState = a ? {
+            id: a.id,
+            enabled: a.enabled !== false,
+            name: a.name || '',
+            protocol: a.protocol || defaultProtoId,
+            cmd: a.cmd != null ? a.cmd : 0,
+            field: a.field || '',
+            op: a.op || '>',
+            value: a.value != null ? a.value : 0,
+            severity: a.severity || 'warn',
+            notify: Array.isArray(a.notify) ? a.notify.slice() : ['toast'],
+            debounceMs: a.debounceMs != null ? a.debounceMs : 2000,
+            _isEdit: true,
+            _originalId: a.id
+          } : {
+            id: 'alert_' + Date.now(),
+            enabled: true,
+            name: '',
+            protocol: defaultProtoId,
+            cmd: 0,
+            field: '',
+            op: '>',
+            value: 0,
+            severity: 'warn',
+            notify: ['toast'],
+            debounceMs: 2000,
+            _isEdit: false
+          };
+          NS._renderAlertEditBody();
+          // modal 标题 + id label
+          const titleEl = document.getElementById('dh-alert-edit-title');
+          if (titleEl) titleEl.textContent = isEdit ? '编辑告警规则' : '新建告警';
+          const idLabelEl = document.getElementById('dh-alert-edit-id-label');
+          if (idLabelEl) idLabelEl.textContent = isEdit ? ('ID: ' + a.id) : '';
+          // "另存为副本" 仅在编辑模式显示
+          const saveAsBtn = document.getElementById('dh-alert-edit-save-as');
+          if (saveAsBtn) saveAsBtn.style.display = isEdit ? '' : 'none';
+          // 事件
+          const protoEl = document.getElementById('dh-alert-proto');
+          if (protoEl) protoEl.onchange = function () {
+            NS._alertEditState.protocol = protoEl.value;
+            // 协议切换: 重置 cmd 为该协议第一个, 重渲 body
+            const p = (NS.PROTOCOLS || []).find(function (x) { return x.id === protoEl.value; });
+            NS._alertEditState.cmd = p && p.commands && p.commands[0] ? p.commands[0].id : 0;
+            NS._renderAlertEditBody();
+          };
+          const cmdEl = document.getElementById('dh-alert-cmd');
+          if (cmdEl) cmdEl.onchange = function () {
+            NS._alertEditState.cmd = parseInt(cmdEl.value, 10);
+            // 切命令: 重置 field
+            NS._renderAlertEditBody();
+          };
+          const fieldEl = document.getElementById('dh-alert-field');
+          if (fieldEl) fieldEl.onchange = function () { NS._alertEditState.field = fieldEl.value; };
+          const opEl = document.getElementById('dh-alert-op');
+          if (opEl) opEl.onchange = function () {
+            NS._alertEditState.op = opEl.value;
+            NS._renderAlertEditBody();
+          };
+          const valueEl = document.getElementById('dh-alert-value');
+          if (valueEl) valueEl.onchange = function () {
+            const v = parseFloat(valueEl.value);
+            NS._alertEditState.value = isNaN(v) ? 0 : v;
+          };
+          const debounceEl = document.getElementById('dh-alert-debounce');
+          if (debounceEl) debounceEl.onchange = function () {
+            const d = parseInt(debounceEl.value, 10);
+            NS._alertEditState.debounceMs = isNaN(d) ? 2000 : d;
+          };
+          const enabledEl = document.getElementById('dh-alert-enabled');
+          if (enabledEl) enabledEl.onchange = function () { NS._alertEditState.enabled = enabledEl.checked; };
+          // 严重度 radio
+          document.querySelectorAll('input[name="dh-alert-sev"]').forEach(function (r) {
+            r.onchange = function () {
+              if (r.checked) NS._alertEditState.severity = r.value;
+            };
+          });
+          // 通知方式 checkbox
+          document.querySelectorAll('input[name="dh-alert-notify"]').forEach(function (c) {
+            c.onchange = function () {
+              const set = new Set(NS._alertEditState.notify || []);
+              if (c.checked) set.add(c.value); else set.delete(c.value);
+              NS._alertEditState.notify = Array.from(set);
+            };
+          });
+          // 名称
+          const nameEl = document.getElementById('dh-alert-name');
+          if (nameEl) nameEl.onchange = function () { NS._alertEditState.name = nameEl.value.trim(); };
+          // 保存
+          const saveBtn = document.getElementById('dh-alert-edit-save');
+          if (saveBtn) saveBtn.onclick = function () { NS._saveAlertEdit(); };
+          // 另存为副本
+          const saveAsBtn2 = document.getElementById('dh-alert-edit-save-as');
+          if (saveAsBtn2) saveAsBtn2.onclick = function () {
+            NS._alertEditState._isEdit = false;
+            NS._alertEditState.id = 'alert_' + Date.now();
+            // 标题联动
+            const tEl = document.getElementById('dh-alert-edit-title');
+            if (tEl) tEl.textContent = '新建告警 (另存为副本)';
+            NS._saveAlertEdit();
+          };
+          NS.openModal('dh-alert-edit');
+        };
+
+        // 渲染告警编辑 modal body (联动: 协议 → 命令 → 字段)
+        NS._renderAlertEditBody = function () {
+          const s = NS._alertEditState;
+          if (!s) return;
+          const body = document.getElementById('dh-alert-edit-body');
+          if (!body) return;
+          // 协议 options
+          const protoOptions = (NS.PROTOCOLS || []).map(function (p) {
+            return '<option value="' + NS.escapeHtml(p.id) + '"' + (p.id === s.protocol ? ' selected' : '') + '>' + NS.escapeHtml(p.name || p.id) + '</option>';
+          }).join('');
+          // 当前协议 + 命令
+          const proto = (NS.PROTOCOLS || []).find(function (x) { return x.id === s.protocol; });
+          const cmds = proto ? (proto.commands || []) : [];
+          const cmdOptions = cmds.map(function (c) {
+            const hex = '0x' + (c.id < 16 ? '0' : '') + c.id.toString(16).toUpperCase();
+            return '<option value="' + c.id + '"' + (c.id === s.cmd ? ' selected' : '') + '>' + hex + ' ' + NS.escapeHtml(c.name || '') + '</option>';
+          }).join('');
+          // 当前命令 + 字段
+          const cmd = cmds.find(function (x) { return x.id === s.cmd; });
+          const fields = cmd ? (cmd.dataFields || []) : [];
+          const fieldOptions = fields.map(function (df) {
+            return '<option value="' + NS.escapeHtml(df.name) + '"' + (df.name === s.field ? ' selected' : '') + '>' + NS.escapeHtml(df.name) + ' (' + NS.escapeHtml(df.type || '') + ')</option>';
+          }).join('');
+          // 孤儿检测
+          const orphan = [];
+          if (!proto) orphan.push('协议 "' + s.protocol + '" 不存在');
+          else if (!cmd) orphan.push('命令 0x' + (s.cmd < 16 ? '0' : '') + s.cmd.toString(16).toUpperCase() + ' 不存在');
+          else if (!fields.find(function (df) { return df.name === s.field; })) orphan.push('字段 "' + s.field + '" 不存在');
+          const orphanHtml = orphan.length ? '<div class="alert-orphan-warn" style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--text); padding: 8px 12px; border-radius: 4px; margin-bottom: 12px; font-size: 12px;">⚠ 引用不存在的 ' + NS.escapeHtml(orphan.join(' / ')) + '. 保存后规则可能不触发.</div>' : '';
+          // op 是 range 时 value 显示 2 个输入
+          let valueHtml;
+          if (s.op === 'range') {
+            const lo = Array.isArray(s.value) ? s.value[0] : 0;
+            const hi = Array.isArray(s.value) ? s.value[1] : 1;
+            valueHtml = '<div style="display: flex; gap: 6px; align-items: center;">' +
+              '<input id="dh-alert-value-lo" type="number" step="0.01" value="' + lo + '" style="max-width: 100px;">' +
+              '<span>~</span>' +
+              '<input id="dh-alert-value-hi" type="number" step="0.01" value="' + hi + '" style="max-width: 100px;">' +
+            '</div>';
+          } else {
+            valueHtml = '<input id="dh-alert-value" type="number" step="0.01" value="' + (typeof s.value === 'number' ? s.value : 0) + '" style="max-width: 100px;">';
+          }
+          body.innerHTML = orphanHtml +
+            '<div class="form-grid" style="display: grid; grid-template-columns: 90px 1fr; gap: 10px 14px; align-items: center; font-size: 13px;">' +
+              '<label>启用</label><label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="dh-alert-enabled"' + (s.enabled ? ' checked' : '') + '> <span>启用后规则生效</span></label>' +
+              '<label>名称</label><input id="dh-alert-name" value="' + NS.escapeHtml(s.name) + '" placeholder="例: Cell 1 过压">' +
+              '<label>协议</label><select id="dh-alert-proto">' + protoOptions + '</select>' +
+              '<label>命令</label><select id="dh-alert-cmd">' + (cmdOptions || '<option value="0">(无命令)</option>') + '</select>' +
+              '<label>字段</label><select id="dh-alert-field">' + (fieldOptions || '<option value="">(无字段)</option>') + '</select>' +
+              '<label>触发条件</label><div style="display: flex; gap: 6px; align-items: center;">' +
+                '<select id="dh-alert-op" style="max-width: 110px;">' +
+                  '<option value=">"' + (s.op === '>' ? ' selected' : '') + '>&gt;</option>' +
+                  '<option value="<"' + (s.op === '<' ? ' selected' : '') + '>&lt;</option>' +
+                  '<option value="="' + (s.op === '=' ? ' selected' : '') + '>=</option>' +
+                  '<option value="!="' + (s.op === '!=' ? ' selected' : '') + '>≠</option>' +
+                  '<option value="range"' + (s.op === 'range' ? ' selected' : '') + '>范围外</option>' +
+                  '<option value="rate"' + (s.op === 'rate' ? ' selected' : '') + '>变化率 &gt;</option>' +
+                '</select>' + valueHtml +
+              '</div>' +
+              '<label>严重度</label><div style="display: flex; gap: 12px;">' +
+                '<label style="display: flex; align-items: center; gap: 4px; cursor: pointer;"><input type="radio" name="dh-alert-sev" value="info"' + (s.severity === 'info' ? ' checked' : '') + '> <span class="pill info">提示</span></label>' +
+                '<label style="display: flex; align-items: center; gap: 4px; cursor: pointer;"><input type="radio" name="dh-alert-sev" value="warn"' + (s.severity === 'warn' ? ' checked' : '') + '> <span class="pill warn">警告</span></label>' +
+                '<label style="display: flex; align-items: center; gap: 4px; cursor: pointer;"><input type="radio" name="dh-alert-sev" value="danger"' + (s.severity === 'danger' ? ' checked' : '') + '> <span class="pill danger">危险</span></label>' +
+              '</div>' +
+              '<label>通知方式</label><div style="display: flex; gap: 14px;">' +
+                '<label style="display: flex; align-items: center; gap: 4px; cursor: pointer;"><input type="checkbox" name="dh-alert-notify" value="toast"' + (s.notify.indexOf('toast') >= 0 ? ' checked' : '') + '> toast</label>' +
+                '<label style="display: flex; align-items: center; gap: 4px; cursor: pointer; opacity: 0.5;" title="v1.3 接入真实模拟后支持"><input type="checkbox" name="dh-alert-notify" value="sound"' + (s.notify.indexOf('sound') >= 0 ? ' checked' : '') + '> 声音 <span class="pill info" style="font-size: 9px;">v1.3</span></label>' +
+                '<label style="display: flex; align-items: center; gap: 4px; cursor: pointer;"><input type="checkbox" name="dh-alert-notify" value="list"' + (s.notify.indexOf('list') >= 0 ? ' checked' : '') + '> 列表</label>' +
+              '</div>' +
+              '<label>防抖 (ms)</label><input id="dh-alert-debounce" type="number" min="0" value="' + s.debounceMs + '" style="max-width: 120px;">' +
+            '</div>';
+          // range 模式: 重新绑 value 的 lo/hi 联动
+          if (s.op === 'range') {
+            const loEl = document.getElementById('dh-alert-value-lo');
+            const hiEl = document.getElementById('dh-alert-value-hi');
+            const update = function () {
+              const lo = parseFloat(loEl.value);
+              const hi = parseFloat(hiEl.value);
+              NS._alertEditState.value = [isNaN(lo) ? 0 : lo, isNaN(hi) ? 1 : hi];
+            };
+            if (loEl) loEl.onchange = update;
+            if (hiEl) hiEl.onchange = update;
+          }
+        };
+
+        // 保存告警编辑 (新建 / 编辑 模式分支, 按 _isEdit 决定 push 还是替换)
+        NS._saveAlertEdit = function () {
+          const s = NS._alertEditState;
+          if (!s) { NS.toast && NS.toast('告警状态异常, 请重试', 'danger'); return; }
+          if (!s.name) { NS.toast && NS.toast('名称不能为空', 'warn'); return; }
+          NS.ALERTS = NS.ALERTS || [];
+          // 孤儿警告: 保存前 confirm
+          const proto = (NS.PROTOCOLS || []).find(function (x) { return x.id === s.protocol; });
+          const cmd = proto && (proto.commands || []).find(function (x) { return x.id === s.cmd; });
+          const fieldExists = cmd && (cmd.dataFields || []).find(function (df) { return df.name === s.field; });
+          if (!cmd || !fieldExists) {
+            if (!confirm('引用的命令或字段不存在, 告警可能不触发.\n仍要保存吗?')) return;
+          }
+          // 构造持久化对象 (去掉内部字段)
+          const persisted = {
+            id: s.id,
+            enabled: s.enabled,
+            name: s.name,
+            protocol: s.protocol,
+            cmd: s.cmd,
+            field: s.field,
+            op: s.op,
+            value: s.value,
+            severity: s.severity,
+            notify: s.notify,
+            debounceMs: s.debounceMs
+          };
+          if (s._isEdit) {
+            const idx = NS.ALERTS.findIndex(function (x) { return x.id === s._originalId; });
+            if (idx !== -1) {
+              NS.ALERTS[idx] = persisted;
+              NS.toast && NS.toast('已保存告警 ' + s.name, 'success');
+            } else {
+              NS.ALERTS.push(persisted);
+              NS.toast && NS.toast('原告警未找到, 已新建 ' + s.name, 'success');
+            }
+          } else {
+            // 检查 id 冲突, 自动加后缀
+            if (NS.ALERTS.find(function (x) { return x.id === persisted.id; })) {
+              persisted.id = 'alert_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+            }
+            NS.ALERTS.push(persisted);
+            NS.toast && NS.toast('已新建告警 ' + s.name, 'success');
+          }
+          NS.closeModal('dh-alert-edit');
+          // 刷新 tab + badge
+          NS._configCenterTabRenderers.alerts();
+          NS._refreshAlertsBadge();
+        };
+
         // === 配置中心 Tab 5: 导入/导出 ===
         NS._configCenterTabRenderers.ie = function () {
           const pane = document.querySelector('#dh-config-center-body [data-tab-content="ie"]');
@@ -13817,7 +14088,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 const cardBadge = document.getElementById('dh-cc-cards-badge');
                 if (cardBadge) cardBadge.textContent = NS.CARDS.length;
                 const alertBadge = document.getElementById('dh-cc-alerts-badge');
-                if (alertBadge) alertBadge.textContent = NS.CARDS.filter((c) => c.range).length;
+                if (alertBadge) alertBadge.textContent = (NS.ALERTS || []).length;
               }
             };
             reader.readAsText(file);
@@ -13839,7 +14110,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 const cardBadge = document.getElementById('dh-cc-cards-badge');
                 if (cardBadge) cardBadge.textContent = NS.CARDS.length;
                 const alertBadge = document.getElementById('dh-cc-alerts-badge');
-                if (alertBadge) alertBadge.textContent = NS.CARDS.filter((c) => c.range).length;
+                if (alertBadge) alertBadge.textContent = (NS.ALERTS || []).length;
                 NS.toast && NS.toast('已重置为默认配置', 'success');
               }, 50);
             } else {
