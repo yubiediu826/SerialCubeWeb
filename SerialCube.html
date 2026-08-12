@@ -7003,6 +7003,26 @@ body.theme-dark     .pill.ems { background: rgba(52, 211, 153, 0.18); color: #6e
 body.theme-dark     .pill.pcs { background: rgba(251, 191, 36, 0.18); color: #fcd34d; }
 body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color: #fca5a5; }
 
+/* v1.2: 工具栏按钮 .tbtn (Task 5/6/8/9 通用) — 之前 v1.1.1 沿用浏览器默认 button 样式, 主题感割裂 */
+.dashboard-host     .tbtn {
+  height: 30px; padding: 0 12px;
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 12px; font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.dashboard-host     .tbtn:hover { background: var(--bg-subtle); border-color: var(--accent); color: var(--accent); }
+.dashboard-host     .tbtn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+.dashboard-host     .tbtn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.dashboard-host     .tbtn svg { width: 14px; height: 14px; stroke-width: 1.5; }
+.dashboard-host     .tbtn select { font-size: 12px; padding: 4px 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 3px; }
+
 /* v1.2: 行操作按钮 (Task 5/6/8 编辑/复制/删除) */
 .dashboard-host     .row-action { width: 24px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text-soft); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; margin-right: 2px; transition: all 0.12s; }
 .dashboard-host     .row-action:hover { background: var(--bg-subtle); color: var(--text); }
@@ -13168,7 +13188,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const cardBadge = document.getElementById('dh-cc-cards-badge');
             if (cardBadge) cardBadge.textContent = (NS.CARDS || []).length;
             const alertBadge = document.getElementById('dh-cc-alerts-badge');
-            if (alertBadge) alertBadge.textContent = (NS.CARDS || []).filter((c) => c.range).length;
+            if (alertBadge) alertBadge.textContent = (NS.ALERTS || []).length;  // v1.2 (Task 9): 从 cards.range 改为 NS.ALERTS.length
           } catch (e) { /* badge 失败不阻塞渲染 */ }
           // 调用对应 tab 渲染函数 (Task 10-13 注册)
           const renderer = NS._configCenterTabRenderers[NS._configCenterActiveTab];
@@ -13520,68 +13540,169 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           };
         };
 
-        // === 配置中心 Tab 4: 告警 (Task 12) ===
+        // === 配置中心 Tab 4: 告警 (Task 9 重做) ===
+        //   v1.2: 从派生 NS.CARDS.range 改为独立 NS.ALERTS 规则存储
+        //   表格 8 列: 启用 / 名称 / 协议 / 字段 / 触发 / 严重度 / 通知 / 操作
+        //   工具栏: 共 N 条 + 启用 M + [从卡片重建] [新建告警]
         NS._configCenterTabRenderers.alerts = function () {
           const pane = document.querySelector('#dh-config-center-body [data-tab-content="alerts"]');
           if (!pane) return;
-          const cardsWithRange = NS.CARDS.filter((c) => c.range && c.range.length === 2);
-          const rows = cardsWithRange.map((c, i) => {
-            return '<tr data-alert-index="' + i + '">' +
-              '<td style="font-size: 11px;"><code style="background: var(--bg-subtle); padding: 2px 6px; border-radius: 3px;">' + NS.escapeHtml(c.id) + '</code></td>' +
-              '<td>' + NS.escapeHtml(c.title || '—') + '</td>' +
-              '<td style="font-size: 11px;">' + c.range[0] + ' - ' + c.range[1] + ' ' + NS.escapeHtml(c.unit || '') + '</td>' +
-              '<td style="text-align: center;"><span style="background: rgba(217, 119, 6, 0.12); color: rgb(217, 119, 6); padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600;">警告</span></td>' +
-              '<td style="text-align: right;">' +
-                '<button class="wiz-field-del" data-alert-del="' + i + '" title="删除" style="background: none; border: none; cursor: pointer; padding: 4px; color: var(--danger);"><span data-svg="trash" data-svg-size="12"></span></button>' +
+          const sevPill = function (s) {
+            if (s === 'danger') return '<span class="pill danger">危险</span>';
+            if (s === 'warn') return '<span class="pill warn">警告</span>';
+            return '<span class="pill info">提示</span>';
+          };
+          const protoPill = function (protoId) {
+            const kind = (protoId || '').replace('proto_', '').toLowerCase();
+            const cls = (kind === 'bms' || kind === 'ems' || kind === 'pcs') ? kind : 'info';
+            return '<span class="pill ' + cls + '">' + NS.escapeHtml((protoId || '').replace('proto_', '').toUpperCase() || '—') + '</span>';
+          };
+          const opLabel = function (op, value) {
+            if (op === '>') return '&gt; ' + value;
+            if (op === '<') return '&lt; ' + value;
+            if (op === '=') return '= ' + value;
+            if (op === '!=') return '≠ ' + value;
+            if (op === 'range' && Array.isArray(value)) return '≠ [' + value[0] + ', ' + value[1] + ']';
+            if (op === 'rate') return 'Δ &gt; ' + value;
+            return (op || '?') + ' ' + value;
+          };
+          // 协议名解析 (回退 ID)
+          const protoName = function (protoId) {
+            const p = (NS.PROTOCOLS || []).find(function (x) { return x.id === protoId; });
+            return p ? p.name : (protoId || '—');
+          };
+          // 命令名解析
+          const cmdName = function (protoId, cmdId) {
+            const p = (NS.PROTOCOLS || []).find(function (x) { return x.id === protoId; });
+            if (!p) return cmdId;
+            const c = (p.commands || []).find(function (x) { return x.id === cmdId; });
+            return c ? ('0x' + (c.id < 16 ? '0' : '') + c.id.toString(16).toUpperCase() + ' ' + (c.name || '')) : cmdId;
+          };
+          const alerts = NS.ALERTS || [];
+          const enabledCount = alerts.filter(function (a) { return a.enabled; }).length;
+          const rows = alerts.map(function (a, i) {
+            // 字段/cmd 孤儿检测 (引用不存在的 cmd/field)
+            const p = (NS.PROTOCOLS || []).find(function (x) { return x.id === a.protocol; });
+            const c = p && (p.commands || []).find(function (x) { return x.id === a.cmd; });
+            const fieldExists = c && (c.dataFields || []).some(function (df) { return df.name === a.field; });
+            const orphanTag = (!c || !fieldExists) ? ' <span class="pill danger" title="引用的命令/字段已不存在" style="font-size: 9px;">孤儿</span>' : '';
+            return '<tr data-alert-row="' + NS.escapeHtml(a.id) + '">' +
+              '<td><input type="checkbox" data-alert-toggle="' + i + '"' + (a.enabled ? ' checked' : '') + ' title="' + (a.enabled ? '禁用规则' : '启用规则') + '"></td>' +
+              '<td><strong>' + NS.escapeHtml(a.name || '—') + '</strong>' + orphanTag + '<div style="font-size: 10px; color: var(--text-soft); font-family: var(--font-mono);">' + NS.escapeHtml(a.id) + '</div></td>' +
+              '<td>' + protoPill(a.protocol) + '<div style="font-size: 10px; color: var(--text-soft); margin-top: 2px;">' + NS.escapeHtml(protoName(a.protocol)) + '</div></td>' +
+              '<td><code>' + NS.escapeHtml(a.field || '—') + '</code><div style="font-size: 10px; color: var(--text-soft); margin-top: 2px;">' + NS.escapeHtml(cmdName(a.protocol, a.cmd)) + '</div></td>' +
+              '<td style="font-family: var(--font-mono); font-size: 11px;">' + opLabel(a.op, a.value) + '</td>' +
+              '<td>' + sevPill(a.severity) + '</td>' +
+              '<td style="font-size: 11px; color: var(--text-soft);">' + ((a.notify || []).join(' · ') || '—') + (a.debounceMs ? '<div style="font-size: 10px;">' + a.debounceMs + 'ms</div>' : '') + '</td>' +
+              '<td style="text-align: right; white-space: nowrap;">' +
+                '<button class="row-action accent" data-alert-edit="' + i + '" title="编辑告警"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' +
+                '<button class="row-action danger" data-alert-del="' + i + '" title="删除告警"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>' +
               '</td>' +
               '</tr>';
           }).join('');
-          pane.innerHTML = '<div style="margin-bottom: 14px; display: flex; gap: 8px; align-items: center;">' +
-            '<span style="font-size: 12px; color: var(--text-soft); flex: 1;">从 ' + cardsWithRange.length + ' 张带 range 的卡片自动派生 (改卡片 range 后点 ↻ 重建)</span>' +
-            '<button class="toolbar-btn" id="dh-cc-alert-rebuild" data-svg="rotate-ccw" data-svg-size="14"><span>从卡片重建</span></button>' +
-            '<button class="toolbar-btn" id="dh-cc-alert-add" data-svg="plus-circle" data-svg-size="14"><span>手动添加</span></button>' +
+          pane.innerHTML = '<div class="toolbar" style="margin-bottom: 12px;">' +
+            '<span style="font-size: 12px; color: var(--text-soft);">共 ' + alerts.length + ' 条规则 · ' + enabledCount + ' 启用</span>' +
+            '<div style="flex: 1;"></div>' +
+            '<button class="tbtn" id="dh-cc-alert-rebuild"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 从卡片重建</button>' +
+            '<button class="tbtn primary" id="dh-cc-alert-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> 新建告警</button>' +
             '</div>' +
-            '<div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden; max-height: 500px; overflow-y: auto;">' +
-            '<table class="cc-field-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">' +
-            '<thead><tr style="background: var(--bg-subtle); position: sticky; top: 0;">' +
-              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">卡片 ID</th>' +
-              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">标题</th>' +
-              '<th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);">范围</th>' +
-              '<th style="padding: 8px 12px; text-align: center; border-bottom: 1px solid var(--border);">严重度</th>' +
-              '<th style="padding: 8px 12px; border-bottom: 1px solid var(--border);"></th>' +
+            '<div class="table-wrap" style="border: 1px solid var(--border); border-radius: 6px;">' +
+            '<table class="table min-wide">' +
+            '<thead><tr>' +
+              '<th style="width: 50px;">启用</th><th>名称</th><th>协议</th><th>字段 / 命令</th><th>触发条件</th><th>严重度</th><th>通知 / 防抖</th><th style="width: 70px;"></th>' +
             '</tr></thead>' +
-            '<tbody>' + (rows || '<tr><td colspan="5" style="padding: 20px; text-align: center; color: var(--text-soft);">没有告警规则 (卡片没设 range)</td></tr>') + '</tbody>' +
+            '<tbody>' + (rows || '<tr><td colspan="8" style="padding: 20px; text-align: center; color: var(--text-soft);">没有告警规则 — 点右上 "新建告警" 或 "从卡片重建"</td></tr>') + '</tbody>' +
             '</table></div>' +
-            '<div style="margin-top: 12px; padding: 10px 12px; background: var(--bg-subtle); border-radius: 6px; font-size: 11px; color: var(--text-soft);">' +
-            '<strong>派生规则:</strong> 当卡片 field 值超出 range[0] ~ range[1] 时触发告警 (severity = warn)。' +
+            '<div style="margin-top: 12px; padding: 10px 12px; background: var(--bg-subtle); border-radius: 6px; font-size: 11px; color: var(--text-soft); line-height: 1.6;">' +
+            '<strong style="color: var(--text);">独立规则模式</strong> — v1.2 起告警从 NS.ALERTS 数组独立存储, 不再从卡片 range 派生. ' +
+            '触发条件支持 <code>&gt;</code> / <code>&lt;</code> / <code>=</code> / <code>≠</code> / 范围外 / 变化率. ' +
+            'v1.3 接入 BroadcastChannel 真实模拟后, 命令/计时器联动生效。' +
             '</div>';
           if (typeof NS_renderIcons === 'function') NS_renderIcons();
-          // 重建
+          // bind 从卡片重建
           const rebuildBtn = document.getElementById('dh-cc-alert-rebuild');
-          if (rebuildBtn) rebuildBtn.onclick = () => {
-            NS._configCenterTabRenderers.alerts();
-            NS.toast && NS.toast('已从卡片重建告警规则', 'success');
+          if (rebuildBtn) rebuildBtn.onclick = function () { NS._rebuildAlertsFromCards && NS._rebuildAlertsFromCards(); };
+          // bind 新建告警 (Task 10 实现 openAlertEdit; 未实现时 toast 提示)
+          const newBtn = document.getElementById('dh-cc-alert-new');
+          if (newBtn) newBtn.onclick = function () {
+            if (typeof NS.openAlertEdit === 'function') {
+              NS.openAlertEdit();
+            } else {
+              NS.toast && NS.toast('告警编辑 modal 待 Task 10 实现', 'info');
+            }
           };
-          // 手动添加
-          const addBtn = document.getElementById('dh-cc-alert-add');
-          if (addBtn) addBtn.onclick = () => {
-            NS.toast && NS.toast('手动添加: 简化实现 — 暂不支持 (TBD)', 'info');
-          };
-          // 删除
-          document.querySelectorAll('[data-alert-del]').forEach((btn) => {
-            btn.onclick = () => {
-              const idx = parseInt(btn.getAttribute('data-alert-del'), 10);
-              if (!cardsWithRange[idx]) return;
-              if (!confirm('确认删除卡片 ' + cardsWithRange[idx].id + ' 的告警规则?\n(卡片本身的 range 不会变)')) return;
-              // 简化: 直接去掉该卡片的 range,触发重建
-              const cardId = cardsWithRange[idx].id;
-              const card = NS.CARDS.find((c) => c.id === cardId);
-              if (card) delete card.range;
-              NS._configCenterTabRenderers.alerts();
-              const alertBadge = document.getElementById('dh-cc-alerts-badge');
-              if (alertBadge) alertBadge.textContent = NS.CARDS.filter((c) => c.range).length;
+          // bind 编辑 (行) → Task 10 openAlertEdit
+          document.querySelectorAll('[data-alert-edit]').forEach(function (b) {
+            b.onclick = function () {
+              const idx = parseInt(b.getAttribute('data-alert-edit'), 10);
+              if (!NS.ALERTS[idx]) return;
+              if (typeof NS.openAlertEdit === 'function') {
+                NS.openAlertEdit(NS.ALERTS[idx].id);
+              } else {
+                NS.toast && NS.toast('告警编辑 modal 待 Task 10 实现', 'info');
+              }
             };
           });
+          // bind 删除 (行) → 告警无引用, 直接删
+          document.querySelectorAll('[data-alert-del]').forEach(function (b) {
+            b.onclick = function () {
+              const idx = parseInt(b.getAttribute('data-alert-del'), 10);
+              if (!NS.ALERTS[idx]) return;
+              if (!confirm('确认删除告警 "' + (NS.ALERTS[idx].name || NS.ALERTS[idx].id) + '"?')) return;
+              NS.ALERTS.splice(idx, 1);
+              NS._configCenterTabRenderers.alerts();
+              NS._refreshAlertsBadge();
+            };
+          });
+          // bind 启用 toggle
+          document.querySelectorAll('[data-alert-toggle]').forEach(function (c) {
+            c.onchange = function () {
+              const idx = parseInt(c.getAttribute('data-alert-toggle'), 10);
+              if (NS.ALERTS[idx]) {
+                NS.ALERTS[idx].enabled = c.checked;
+                // 局部刷新统计 (不重渲整表以保 checkbox 焦点)
+                const stat = pane.querySelector('.toolbar span');
+                if (stat) {
+                  const en = (NS.ALERTS || []).filter(function (a) { return a.enabled; }).length;
+                  stat.textContent = '共 ' + NS.ALERTS.length + ' 条规则 · ' + en + ' 启用';
+                }
+              }
+            };
+          });
+        };
+
+        // v1.2 (Task 9): 从卡片 range 派生默认告警规则, 不覆盖已有 (按 name 匹配)
+        NS._rebuildAlertsFromCards = function () {
+          NS.ALERTS = NS.ALERTS || [];
+          let added = 0;
+          let skipped = 0;
+          (NS.CARDS || []).filter(function (c) { return c.range && c.range.length === 2; }).forEach(function (c) {
+            const exists = NS.ALERTS.find(function (a) { return a.name === (c.title || c.id) && a.field === c.field; });
+            if (exists) { skipped++; return; }
+            NS.ALERTS.push({
+              id: 'alert_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+              enabled: true,
+              name: c.title || c.id,
+              protocol: c.protocol || 'proto_bms',
+              cmd: c.cmd != null ? c.cmd : 0,
+              field: c.field || '',
+              op: 'range',
+              value: c.range.slice(),
+              severity: 'warn',
+              notify: ['toast'],
+              debounceMs: 2000
+            });
+            added++;
+          });
+          NS._configCenterTabRenderers.alerts();
+          NS._refreshAlertsBadge();
+          NS.toast && NS.toast('已从卡片重建告警 (+' + added + ' 新增, 跳过 ' + skipped + ' 已有)', 'success');
+        };
+
+        // v1.2 (Task 9): 刷新告警 tab badge 计数 (NS.ALERTS.length, 替换 v1.1.1 的 cards.range 计数)
+        NS._refreshAlertsBadge = function () {
+          const alertBadge = document.getElementById('dh-cc-alerts-badge');
+          if (alertBadge) alertBadge.textContent = (NS.ALERTS || []).length;
         };
 
         // === 配置中心 Tab 5: 导入/导出 ===
