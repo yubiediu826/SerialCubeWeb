@@ -6616,6 +6616,119 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
   text-align: center;
   font-family: var(--font-mono, monospace);
 }
+
+/* v1.2.1 (Task 4): 协议表 "应用"列 — ●/○ 圆点切换 */
+.apply-dot {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 18px;
+  line-height: 1;
+  border-radius: 4px;
+  color: var(--text-soft);
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+.apply-dot:hover {
+  background: var(--bg-elevated, rgba(0,0,0,0.04));
+}
+.apply-dot:active {
+  transform: scale(0.9);
+}
+.apply-dot.active {
+  color: var(--accent);
+}
+
+/* v1.2.1 (Task 5): 协议编辑 4 段布局 */
+.protocol-edit-4-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+}
+.protocol-edit-4-section .form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.protocol-edit-4-section .section-heading {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.protocol-edit-4-section .form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.protocol-edit-4-section .form-grid-2col label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-soft);
+}
+.protocol-edit-4-section .form-grid-2col input,
+.protocol-edit-4-section .form-grid-2col select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+}
+.protocol-edit-4-section .frame-preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-soft);
+}
+.protocol-edit-4-section .frame-preview-toolbar select {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+}
+.protocol-edit-4-section #pe-frame-preview {
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  min-height: 60px;
+}
+.inline-edit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.inline-edit-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-soft);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.inline-edit-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.inline-edit-table input,
+.inline-edit-table select {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+}
     .dashboard-host     .modal-body { flex: 1; min-height: 0; overflow: auto; padding: 20px; }
 .dashboard-host     .modal-footer {
       display: flex; gap: 8px; justify-content: flex-end;
@@ -7950,12 +8063,18 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <!-- 配置中心 modal (Task 9: 5 tab 骨架 - protocols/commands/cards/alerts/ie) -->
         <div class="modal-backdrop" id="dh-config-center-backdrop"></div>
         <div class="modal xtra-wide" id="dh-config-center-modal">
-          <div class="modal-header">
-            <button aria-label="关闭" class="close-btn" data-close="dh-config-center" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
-            <span class="modal-title">协议配置</span>
-            <span class="modal-subtitle" id="dh-config-center-subtitle">协议 / 命令 / 字段 / 导入导出</span>
-            <span style="flex: 1;"></span>
-            <button class="toolbar-btn" id="dh-config-center-tour" data-svg="plus" data-svg-size="14"><span>新建协议</span></button>
+          <div class="modal-header-standard">
+            <div class="title-block">
+              <div class="title">协议配置</div>
+              <div class="subtitle" id="dh-config-center-subtitle">管理协议 + 选择激活协议</div>
+              <div class="breadcrumb">配置中心 / 协议</div>
+            </div>
+            <button aria-label="关闭" class="close-btn" data-close="dh-config-center" title="关闭">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="4" x2="12" y2="12"/>
+                <line x1="12" y1="4" x2="4" y2="12"/>
+              </svg>
+            </button>
           </div>
           <div class="editor-tabs" id="dh-config-center-tabs">
             <button class="editor-tab active" data-tab="protocols" data-svg="network" data-svg-size="14"><span>协议</span></button>
@@ -13319,6 +13438,24 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           NS.openModal('dh-select-proto');
         };
 
+        // v1.2.1 (Task 4): 切换 active 协议。点 ● 取消激活, 点 ○ 激活。激活后重渲染仪表盘。
+        NS.toggleActiveProtocol = function (id) {
+          if (!id) return;
+          if (NS.activeProtoId === id) {
+            NS.activeProtoId = null;  // 点 ● 取消激活
+          } else {
+            NS.activeProtoId = id;     // 点 ○ 激活
+          }
+          // 写 localStorage (沿用 v1.2 习惯)
+          try { localStorage.setItem('serialcube.lastProtoId', NS.activeProtoId || ''); } catch (e) {}
+          // 触发重渲染
+          if (typeof NS._renderConfigCenter === 'function') NS._renderConfigCenter();
+          if (typeof NS.updateDashboardProtoBar === 'function') NS.updateDashboardProtoBar();
+          if (typeof NS.renderKpiCards === 'function') NS.renderKpiCards();
+          if (typeof NS.renderDashboard === 'function') NS.renderDashboard();
+          NS.toast && NS.toast('已切换到 ' + ((NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId) || {}).name || '未选择'), 'success');
+        };
+
         NS._renderConfigCenter = function () {
           // 更新 tab active class
           document.querySelectorAll('#dh-config-center-tabs .editor-tab').forEach((btn) => {
@@ -13365,6 +13502,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const cardCount = (NS.CARDS || []).filter((c) => c.protocol === p.id).length;
             const kindClass = (p.id || '').replace('proto_', '').toLowerCase();
             return '<tr data-proto-row="' + NS.escapeHtml(p.id) + '">' +
+              // v1.2.1 (Task 4): 应用列 — ●/○ 圆点切换 active
+              '<td style="text-align: center; width: 60px;"><button class="apply-dot' + (isActive ? ' active' : '') + '" data-apply-proto="' + NS.escapeHtml(p.id) + '" title="' + (isActive ? '使用中 (点击取消)' : '设为使用中') + '">' + (isActive ? '●' : '○') + '</button></td>' +
               '<td><span class="pill ' + (isActive ? 'used' : 'unused') + '">' + (isActive ? '● 使用中' : '未使用') + '</span></td>' +
               '<td><code>' + NS.escapeHtml(p.id) + '</code></td>' +
               '<td><span class="pill ' + kindClass + '" style="margin-right: 6px;">' + NS.escapeHtml((p.id || '').replace('proto_', '').toUpperCase()) + '</span><strong>' + NS.escapeHtml(p.name || p.id) + '</strong></td>' +
@@ -13390,8 +13529,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             '<div class="table-wrap" style="border: 1px solid var(--border); border-radius: 6px;">' +
             '<table class="table min-wide">' +
             '<thead><tr>' +
-            '<th>状态</th><th>ID</th><th>显示名</th><th>类型</th><th style="text-align: right;">字段</th><th style="text-align: right;">命令</th><th style="text-align: right;">关联卡片</th><th>字节序</th><th>CRC</th><th></th>' +
-            '</tr></thead><tbody>' + (rows || '<tr><td colspan="10" style="padding: 20px; text-align: center; color: var(--text-soft);">没有协议, 点右上 "新建协议" 开始</td></tr>') + '</tbody></table></div>';
+            '<th style="width: 60px;">应用</th><th>状态</th><th>ID</th><th>显示名</th><th>类型</th><th style="text-align: right;">字段</th><th style="text-align: right;">命令</th><th style="text-align: right;">关联卡片</th><th>字节序</th><th>CRC</th><th></th>' +
+            '</tr></thead><tbody>' + (rows || '<tr><td colspan="11" style="padding: 20px; text-align: center; color: var(--text-soft);">没有协议, 点右上 "新建协议" 开始</td></tr>') + '</tbody></table></div>';
           // bind 新建 → 复用 3 步向导
           const newBtn = document.getElementById('dh-cc-proto-new');
           if (newBtn) newBtn.onclick = () => {
@@ -13436,6 +13575,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             if (!p) return;
             NS.activeProtoId = p.id;
             NS.openModal('dh-proto');
+          });
+          // v1.2.1 (Task 4): bind 应用列 — 点 ○/● 切换 active
+          document.querySelectorAll('[data-apply-proto]').forEach((b) => b.onclick = (e) => {
+            e.stopPropagation();
+            NS.toggleActiveProtocol(b.getAttribute('data-apply-proto'));
           });
           // bind 复制 (行) → 浅拷贝 + 新 ID
           document.querySelectorAll('[data-proto-dup]').forEach((b) => b.onclick = () => {
