@@ -13601,7 +13601,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           }
           NS.openModal('dh-select-proto');
         };
-        } // v1.2.1: end if (false) disable block
+        // v1.2.1: end if (false) disable block (}; on line above closes it)
 
         // v1.2.1 (Task 4): 切换 active 协议。点 ● 取消激活, 点 ○ 激活。激活后重渲染仪表盘。
         NS.toggleActiveProtocol = function (id) {
