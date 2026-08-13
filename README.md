@@ -8,7 +8,15 @@
 
 ---
 
-## 🚀 最新版本 v1.3.0 (2026-08-13)
+## 🚀 最新版本 v1.3.1 (2026-08-13)
+
+**三选项级联 modal** — 替换 v1.2 browser confirm, 协议/命令/卡片删除时弹自定义 modal, 3 选项 (仅删自己 / 级联 / 取消), 引用预览用 chip 分类 (cmd/card/alert 蓝紫/绿/红), "仅删自己" 按钮自动算孤儿数 hint, 浅/深主题一致, 旧 `NS._cascadeConfirm` 保留兼容 (不调用), 告警删除简单 confirm 不变。
+
+详细：[`docs/changelog/2026-08-13-v1.3.1-cascade-delete-modal.md`](docs/changelog/2026-08-13-v1.3.1-cascade-delete-modal.md) · 设计 spec [`docs/superpowers/specs/2026-08-13-v1.3.1-cascade-delete-modal-design.md`](docs/superpowers/specs/2026-08-13-v1.3.1-cascade-delete-modal-design.md) · 实施 plan [`docs/superpowers/plans/2026-08-13-v1.3.1-cascade-delete-modal-plan.md`](docs/superpowers/plans/2026-08-13-v1.3.1-cascade-delete-modal-plan.md) · UI mockup [`docs/design/v1.3.1-cascade-delete-modal-mockup.html`](docs/design/v1.3.1-cascade-delete-modal-mockup.html)
+
+---
+
+## 📌 v1.3.0 (2026-08-13)
 
 **真实模拟调试面板** — 实装 v1.2.0 留的"调试面板"占位。仪表盘右下角 ⚙ 折叠浮窗 (Lucide settings SVG, 去 emoji), 4 段布局: Role (客户端/设备端) / Channel (状态 + 启停) / Mutator (单条 + 预设 chip) / Stats (tx/rx/err 实时)。BroadcastChannel 'serialcube-debug-v1' 同源通信, 1 人多 tab 模拟设备未到调试, 抽象 `NS._debugTransport` 接口留 hook 升 WebRTC。Mutator 单条注入: 客户端改 `NS.currentVals` 触发告警, 设备端改 `NS._debugDeviceState` (同步副本, 不污染 currentVals) 下次 ack 用新值。预设场景 chip 按 active protocol dataFields 自动推: 过压/欠压/通信超时 (mute 5s)/CRC 错/边界值。设备端 ack 帧生成复用 `NS.buildFrame`, 临时切换 currentVals 编码后立即还原。
 

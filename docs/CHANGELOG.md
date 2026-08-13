@@ -13,6 +13,7 @@
 
 ### 2026-08-13
 
+- [`changelog/2026-08-13-v1.3.1-cascade-delete-modal.md`](changelog/2026-08-13-v1.3.1-cascade-delete-modal.md) — v1.3.1 三选项级联 modal: 协议/命令/卡片删除升级 (替换 v1.2 browser confirm) + 引用预览 chip + "仅删自己" hint
 - [`changelog/2026-08-13-v1.3.0-debug-panel.md`](changelog/2026-08-13-v1.3.0-debug-panel.md) — v1.3.0 真实模拟调试面板: BroadcastChannel 主从 + Mutator 单条 + 预设场景 chip + Stats 实时计数 (Lucide SVG ⚙, 4 段布局)
 - [`changelog/2026-08-13-v1.2.2-ui-cleanup.md`](changelog/2026-08-13-v1.2.2-ui-cleanup.md) — v1.2.2 hotfix: dh-pair-trigger-modal 结构错位修复 (v1.2.1 遗留) + 协议条 5→3 元素精简 + 补 bump VERSION 1.2.1→1.2.2
 - 🔧 工作流改造: B+C — `serialcube-workflow` 加 "新建/大改 UI" 强制 brainstorming/mockup 流程 + `ui-ux-pro-max` 加 "风格基线比对" 必跑步骤

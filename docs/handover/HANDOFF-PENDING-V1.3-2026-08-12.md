@@ -13,9 +13,20 @@
 - **设计 spec:** [`../superpowers/specs/2026-08-13-v1.3.0-debug-panel-design.md`](../superpowers/specs/2026-08-13-v1.3.0-debug-panel-design.md) (430 行, 已 commit 07392f9)
 - **UI 预览:** [`../design/v1.3-debug-panel-mockups.html`](../design/v1.3-debug-panel-mockups.html) (3 候选 mockup, 已 commit 07392f9)
 - **实施 plan:** [`../superpowers/plans/2026-08-13-v1.3.0-debug-panel-plan.md`](../superpowers/plans/2026-08-13-v1.3.0-debug-panel-plan.md) (4 task / 968 行, 已 commit 4126797)
-- **实施进度:** Task 1 (VERSION + changelog + 3 e2e) 进行中, 后续 Task 2-4 待实施
-- **commits:** v1.3.0 spec/plan 2 个本地, v1.2.2 hotfix 3 个本地 — 共 5 commit 待 push, 等用户拍板
-- **剩余 v1.3.1+ backlog:** 6 项 (恢复设置值 / 三选项级联 modal / 告警编辑升级 / modal 切协议缓存 / checkAlert 性能 / 自定义域名), 等 v1.3.0 完成后按优先级排
+- **实施进度:** ✅ 4 task 全完成, 4 commit 本地 (Task 1-4: 5408146/35d9b91/fafa45c/2884333)
+- **commits:** v1.3.0 调试面板 4 + v1.3.0 文档 4 = 8 commit 本地, 累计 v1.2.2 hotfix 3 = 11 commit 待 push, 等用户拍板
+- **剩余 v1.3.1+ backlog:** 5 项 (恢复设置值 / 告警编辑升级 / modal 切协议缓存 / checkAlert 性能 / 自定义域名), 等 v1.3.1 完成后按优先级排
+
+## v1.3.1 启动记录 (2026-08-13)
+
+- **首个任务:** 三选项级联 modal (v1.3.1 backlog 候选 B, 已上轮的 v1.3 backlog B 之后)
+- **3 决策齐:** 引用预览 A 简单计数 / 范围 A 只升 3 个 (协议/命令/卡片) / 仅删自己 A 3 选项统一
+- **设计 spec:** [`../superpowers/specs/2026-08-13-v1.3.1-cascade-delete-modal-design.md`](../superpowers/specs/2026-08-13-v1.3.1-cascade-delete-modal-design.md) (12KB, 已 commit fc5c84f)
+- **UI 预览:** [`../design/v1.3.1-cascade-delete-modal-mockup.html`](../design/v1.3.1-cascade-delete-modal-mockup.html) (3 场景切换, 已 commit c48adbe)
+- **实施 plan:** [`../superpowers/plans/2026-08-13-v1.3.1-cascade-delete-modal-plan.md`](../superpowers/plans/2026-08-13-v1.3.1-cascade-delete-modal-plan.md) (3 task / 36KB, 已 commit fc5c84f)
+- **实施进度:** Task 1 (VERSION + changelog + 3 e2e) 进行中
+- **commits:** mockup + spec/plan 共 2 个本地, Task 1-3 待 commit
+- **剩余 v1.3.1+ backlog:** 4 项 (恢复设置值 / 告警编辑升级 / modal 切协议缓存 / checkAlert 性能), 等 v1.3.1 完成后按优先级排
 
 ---
 
