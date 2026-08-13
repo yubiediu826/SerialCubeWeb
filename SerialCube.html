@@ -5849,8 +5849,11 @@
     .dashboard-host     .dash-proto-bar .dash-meta { font-size: 12px; color: var(--text-soft); }
     .dashboard-host     .dash-proto-bar .pill { font-size: 11px; }
     .dashboard-host     .dash-empty {
+      /* v1.2.2 (UI 清理): 占位区填满主区 + 实线边框, 突出 '未连接' 状态 */
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      flex: 1; min-height: 320px;
       text-align: center; padding: 48px 24px;
-      border: 2px dashed var(--border); border-radius: var(--radius);
+      border: 1px solid var(--border); border-radius: var(--radius);
       background: var(--bg-panel); margin: 14px;
     }
     .dashboard-host     .dash-empty svg { margin: 0 auto 12px; display: block; }
@@ -8266,6 +8269,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               <span class="meta" id="dh-config-center-subtitle">管理协议 + 选择激活协议 · 配置中心 / 协议</span>
             </div>
             <div class="actions">
+              <!-- v1.2.2: 引导按钮加到 modal header 旁 — 跟配置中心 4 tab 引导 (协议/命令/卡片/告警) 自包含 -->
+              <button class="action-btn" id="dh-cc-proto-tour-header" title="配置中心引导 (4 步: 协议/命令/卡片/告警)">
+                <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h12v8H2z"/><path d="M5 13v1h6v-1"/><path d="M5 3a3 3 0 0 1 6 0v2H5z"/></svg>
+                引导
+              </button>
               <button class="action-btn" id="dh-cc-proto-import-header" title="导入 JSON">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v10M5 5l3-3 3 3M3 14h10"/></svg>
                 导入
@@ -11969,11 +11977,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         };
 
         // v1.2.1 (Task 10): 切换协议按钮 (在协议条右侧, 直接打开协议配置 modal)
+        // v1.2.2 (bug fix): 改调 NS.openConfigCenter('protocols') — 之前引用不存在的 NS.openConfigCenterModal
         NS._bindProtoBarEvents = function () {
           const switchBtn = document.getElementById('dh-dash-proto-switch');
           if (switchBtn) switchBtn.onclick = () => {
-            // v1.2.1: 改用协议配置 modal + 行内"应用"列, 不再独立弹"选择协议" modal
-            if (typeof NS.openConfigCenterModal === 'function') NS.openConfigCenterModal('protocol');
+            // v1.2.2: 改调正确的 NS.openConfigCenter(tabName), tab 名是 'protocols' (复数)
+            if (typeof NS.openConfigCenter === 'function') NS.openConfigCenter('protocols');
             else if (typeof NS.openSelectProtocolModal === 'function') NS.openSelectProtocolModal();
           };
           const choosePortBtn = document.getElementById('dh-dash-choose-port');
@@ -15438,6 +15447,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           bind('dh-new-cmd-save', () => NS._saveNewCommand());
           // 配置中心 (Task 9): toolbar 按钮 / tab 切换 / 引导 / 导出
           bind('dh-open-config-center', () => NS.openConfigCenter());
+          // v1.2.2: 工具栏"引导"按钮 (onboarding 引导 4 步: 协议/命令/卡片/告警) — 之前没绑 onclick
+          bind('dh-open-tour', () => NS.startGuidedTour && NS.startGuidedTour());
+          // v1.2.2: modal header "引导" 按钮 — 自包含体验, 打开 modal 即可引导
+          bind('dh-cc-proto-tour-header', () => NS.startGuidedTour && NS.startGuidedTour());
           document.querySelectorAll('#dh-config-center-tabs .editor-tab').forEach((btn) => {
             btn.addEventListener('click', () => NS._switchConfigCenterTab(btn.dataset.tab));
           });
