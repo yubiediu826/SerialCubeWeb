@@ -10801,6 +10801,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         };
 
         // v1.3.0: 调试面板 - 拉取 active protocol 字段填充 Mutator select
+        // v1.3 修: 用 NS.CARDS 拉 range (v1.2 仪表盘卡片有 range, cmd.dataFields 没有)
         NS._populateDebugMutatorFields = function () {
           const sel = document.getElementById('dh-debug-mutator-field');
           const input = document.getElementById('dh-debug-mutator-value');
@@ -10812,8 +10813,15 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             sel.disabled = true; input.disabled = true; inject.disabled = true;
             return;
           }
-          const fields = (proto.commands || []).flatMap(c => c.dataFields || []);
-          const numericFields = fields.filter(f => f.range && f.range.length === 2);
+          // 从 NS.CARDS 拉 numeric field (field 名 + range + unit), 按 field 名去重
+          const numericFields = [];
+          const seen = new Set();
+          (NS.CARDS || []).forEach(card => {
+            if (card.range && card.range.length === 2 && card.field && !seen.has(card.field)) {
+              seen.add(card.field);
+              numericFields.push({ name: card.field, range: card.range, unit: card.unit || '' });
+            }
+          });
           if (!numericFields.length) {
             sel.innerHTML = '<option value="">-- 无 numeric field --</option>';
             sel.disabled = true; input.disabled = true; inject.disabled = true;
@@ -10838,11 +10846,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           };
         };
 
-        // v1.3.0: 调试面板 - 推预设场景 (从 active protocol dataFields)
+        // v1.3.0: 调试面板 - 推预设场景 (从 NS.CARDS 拉 numeric field, 同 _populateDebugMutatorFields)
         NS._presetScenariosFor = function (proto) {
           if (!proto) return [];
-          const fields = (proto.commands || []).flatMap(c => c.dataFields || []);
-          const numericFields = fields.filter(f => f.range && f.range.length === 2);
+          const numericFields = [];
+          const seen = new Set();
+          (NS.CARDS || []).forEach(card => {
+            if (card.range && card.range.length === 2 && card.field && !seen.has(card.field)) {
+              seen.add(card.field);
+              numericFields.push({ name: card.field, range: card.range, unit: card.unit || '' });
+            }
+          });
           if (!numericFields.length) return [];
           const scenarios = [];
           const f0 = numericFields[0];
@@ -10975,17 +10989,18 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         };
 
         // v1.3.0: 调试面板 - Mutator 单条注入 (client 改 currentVals / device 改 device state)
+        // v1.3 修: 范围校验从 NS.CARDS 拉 (v1.2 仪表盘卡片有 range, cmd.dataFields 没有)
         NS._injectMutation = function (fieldName, value) {
           if (!fieldName) return;
           const proto = (NS.PROTOCOLS || []).find(p => p.id === NS.activeProtoId);
           if (!proto) { NS.toast('请先选协议', 'warn'); return; }
-          const field = (proto.commands || []).flatMap(c => c.dataFields || []).find(f => f.name === fieldName);
-          if (!field) { NS.toast('字段不存在: ' + fieldName, 'error'); return; }
-          // 范围校验
+          // 从 NS.CARDS 找 range
+          const card = (NS.CARDS || []).find(c => c.field === fieldName);
+          if (!card || !card.range) { NS.toast('字段无 range (非 numeric): ' + fieldName, 'warn'); return; }
           const v = Number(value);
           if (isNaN(v)) { NS.toast('值必须是数字', 'error'); return; }
-          if (field.range && (v < field.range[0] || v > field.range[1])) {
-            NS.toast(`${fieldName} 超出范围 [${field.range[0]}, ${field.range[1]}]`, 'warn');
+          if (v < card.range[0] || v > card.range[1]) {
+            NS.toast(`${fieldName} 超出范围 [${card.range[0]}, ${card.range[1]}]`, 'warn');
             return;
           }
           if (NS._debugRole === 'device') {
@@ -16018,6 +16033,26 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               });
             }
           });
+          // v1.3.0: Mutator 注入按钮 + 实时校验
+          const injectBtn = document.getElementById('dh-debug-mutator-inject');
+          const mutField = document.getElementById('dh-debug-mutator-field');
+          const mutValue = document.getElementById('dh-debug-mutator-value');
+          if (injectBtn && mutField && mutValue) {
+            injectBtn.onclick = () => {
+              if (!mutField.value) return;
+              NS._injectMutation(mutField.value, mutValue.value);
+            };
+            mutValue.oninput = () => {
+              const v = Number(mutValue.value);
+              const min = parseFloat(mutValue.dataset.min);
+              const max = parseFloat(mutValue.dataset.max);
+              if (!isNaN(min) && !isNaN(max) && (isNaN(v) || v < min || v > max)) {
+                mutValue.classList.add('invalid');
+              } else {
+                mutValue.classList.remove('invalid');
+              }
+            };
+          }
         };
       })();
       // 早期绑定 modal handlers, 不依赖用户进入 dashboard 模式 (这样 verify 跟配置中心还没接 dashboardMode 之前都能直接调)
