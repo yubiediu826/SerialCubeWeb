@@ -8259,7 +8259,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               </button>
               <button class="action-btn primary" id="dh-cc-proto-new-header" title="新建协议">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
-                新建
+                新建协议
               </button>
             </div>
             <button aria-label="关闭" class="close-btn" data-close="dh-config-center" title="关闭">
@@ -13155,6 +13155,19 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           document.getElementById('dh-ce-lower').value = c.range ? c.range[0] : '';
           document.getElementById('dh-ce-upper').value = c.range ? c.range[1] : '';
           document.getElementById('dh-ce-precision').value = c.precision != null ? c.precision : 2;
+          // v1.2.2 (bug fix): 手动同步 custom-select 包装的 trigger label (syncCustomSelects 在 IIFE 私有, 不直接调)
+          //   之前 select 有 options 但 trigger label 文字空, 看着像下拉框没数据
+          const syncCustomSelectLabel = (selectEl) => {
+            const shell = selectEl && selectEl.parentElement;
+            if (!shell || !shell.classList.contains('custom-select')) return;
+            const label = shell.querySelector('.custom-select-label');
+            if (!label) return;
+            const opt = selectEl.options[selectEl.selectedIndex] || selectEl.options[0];
+            label.textContent = opt ? opt.textContent.trim() : '';
+            const trigger = shell.querySelector('.custom-select-trigger');
+            if (trigger) trigger.title = label.textContent;
+          };
+          ['dh-ce-cmd', 'dh-ce-field', 'dh-ce-type'].forEach((id) => syncCustomSelectLabel(document.getElementById(id)));
           NS.openModal('dh-card-edit');
         };
 
@@ -14210,6 +14223,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           const m = document.createElement('div');
           m.className = 'modal-backdrop';
           m.id = 'dh-new-card-modal';
+          // v1.2.2 (bug fix): 加 position: fixed + z-index: 1100 — 之前没定位, 被配置中心 modal (z-index 1001) 盖住看不见
+          m.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1100; display: flex; align-items: center; justify-content: center;';
           m.innerHTML = '<div class="modal" style="max-width: 480px;">' +
             '<button aria-label="关闭" class="close-btn" id="dh-new-card-close" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>' +
             '<div class="modal-head"><span class="modal-title">新建卡片 — 选协议+命令</span></div>' +
