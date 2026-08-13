@@ -6,9 +6,9 @@
 
 ## 🚀 当前状态
 
-**最新版本**: v1.2.1 (2026-08-13) — UI 一致性修复：4 modal header 统一 / 协议编辑 4 段重构 / 选协议 modal 合并 / 仪表盘底部挪到 modal
+**最新版本**: v1.2.2 (2026-08-13) — v1.2.1 后续 hotfix：pair-trigger-modal 结构错位 / 协议条 5→3 元素 / 主题 segmented 强化 / 引导入口挪到 modal / **新建卡片弹窗样式错乱** / 配置中心 tab 断层 / **toast 被 modal 虚化挡住**
 **当前分支**: `main`
-**最近 release**: v1.2.1 ([changelog](changelog/2026-08-13-v1.2.1-ui-consistency.md)) | v1.2.0 ([changelog](changelog/2026-08-12-v1.2.0-config-center-refactor.md)) | v1.1.1 ([changelog](changelog/2026-08-12-v1.1.1-fixes.md)) | v1.1.0 ([release notes](handover/release-v1.1.0-2026-08-12.md))
+**最近 release**: v1.2.2 ([changelog](changelog/2026-08-13-v1.2.2-ui-cleanup.md)) | v1.2.1 ([changelog](changelog/2026-08-13-v1.2.1-ui-consistency.md)) | v1.2.0 ([changelog](changelog/2026-08-12-v1.2.0-config-center-refactor.md)) | v1.1.1 ([changelog](changelog/2026-08-12-v1.1.1-fixes.md)) | v1.1.0 ([release notes](handover/release-v1.1.0-2026-08-12.md))
 
 ---
 
@@ -18,7 +18,7 @@
 
 1. 读完 [`handover/HANDOFF-QUICKSTART-2026-08-11.md`](handover/HANDOFF-QUICKSTART-2026-08-11.md) — 30 秒快速接手卡
 2. 跑一次 **preflight**：`pwsh -File .minimax/skills/serialcube-workflow/preflight.ps1`（9 项健康检查）
-3. 知道项目是单 HTML 串口调试工具，主文件 `SerialCube.html`，当前版本 `v1.2.1`
+3. 知道项目是单 HTML 串口调试工具，主文件 `SerialCube.html`，当前版本 `v1.2.2`
 
 ### ⏱ 2 分钟（开始干活前）
 

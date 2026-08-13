@@ -8,7 +8,15 @@
 
 ---
 
-## 🚀 最新版本 v1.2.1 (2026-08-13)
+## 🚀 最新版本 v1.2.2 (2026-08-13)
+
+**v1.2.1 后续 hotfix** — 修复 v1.2.1 部署后用户实测的 6 个 UI bug：① `dh-pair-trigger-modal` HTML 结构错位（v1.2.1 删 `openSelectProtocolModal()` 时漏 `</div>`）；② 协议条 5→3 元素（删未连接端口 + 默认隐藏"设置值"）；③ 系统菜单 主题/配置 风格统一；④ 主题 segmented active 强化（修 `--bg-elev` 未定义 + accent 蓝紫背景）；⑤ 选择协议按钮修复 + 占位区填满 + 引导入口挪到 modal；⑥ **本次 3 bug** — 新建卡片弹窗样式错乱（append 到 body 拿不到 `.dashboard-host .modal` 样式 + label/select 错位改 label-above-input 模式）/ 配置中心 tab bar 断层（`.cc-tab-pane` padding 20px→14px）/ **消息提示弹窗被虚化挡住**（`toast-layer` z-index 200 < modal backdrop 1000+，backdrop-filter 把 toast 虚化 → 200→2000）。配套 B+C 工作流改造（serialcube-workflow + ui-ux-pro-max）+ A 新建 serialcube-modal-review 6 步 guard。
+
+详细：[`docs/changelog/2026-08-13-v1.2.2-ui-cleanup.md`](docs/changelog/2026-08-13-v1.2.2-ui-cleanup.md)
+
+---
+
+## 📌 v1.2.1 (2026-08-13)
 
 **UI 一致性修复** — 一次性解决 v1.2.0 部署后用户实测反馈的 8 个 UI/UX 问题。4 个 modal header 统一用 `.modal-header-standard`（X 右上 + title 左上 + 副标题/面包屑）；协议编辑 modal 重构为 1 步长表单 4 段（基础 / 帧预览 / 帧字段 / 命令列表）；"选择协议 modal"合并到协议配置 modal（行内"应用"列切换 active）；仪表盘协议条"引导"按钮删除 + 底部"设置值/字节预览"挪到 modal；抽 `renderFramePreview()` 共享函数复用帧预览实现。
 

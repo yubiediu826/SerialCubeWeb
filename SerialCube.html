@@ -4915,7 +4915,7 @@
       bottom: 8px;
       display: grid;
       gap: 8px;
-      z-index: 50;
+      z-index: 2000;  /* v1.2.2: 50 → 2000 — modal stack backdrop z-index 1000+ (NS.openModal 动态) 会盖在 toast 上面, backdrop-filter: blur(2px) 把 toast 虚化 */
       pointer-events: none;
     }
 
@@ -7146,7 +7146,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
     .dashboard-host     .system-menu .menu-row .menu-input:focus { border-color: var(--accent); }
 
     /* toast */
-.dashboard-host     .toast-layer { position: fixed; top: 70px; right: 16px; z-index: 200; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.dashboard-host     .toast-layer { position: fixed; top: 70px; right: 16px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }  /* v1.2.2: 200 → 2000 — modal stack 1000+ backdrop 覆盖在 toast 之上 + backdrop-filter: blur(2px) 虚化 toast, 必须比 modal stack 最高 z 大 */
 .dashboard-host     .toast-layer .toast { pointer-events: auto; }
     /* toast-layer 跟随 system-menu 弹窗位置 (右上/左上/右下/左下) */
     body.toast-pos-tl .toast-layer { top: 70px; left: 16px; right: auto; }
@@ -7198,7 +7198,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .dashboard-host     .editor-tab:hover { color: var(--text); background: var(--bg-elev); }
 .dashboard-host     .editor-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--bg); }
 .dashboard-host     .editor-tab .badge { background: var(--accent-soft); color: var(--accent); border-radius: 9px; padding: 1px 6px; font-size: 10px; font-weight: 600; }
-.dashboard-host     .cc-tab-pane { display: none; padding: 20px 24px; }
+.dashboard-host     .cc-tab-pane { display: none; padding: 14px 20px 20px; }  /* v1.2.2: 20px → 14px top padding — 之前 tab bar 到工具栏 28px 断层, 缩到 14+10 让内容紧贴 tab 栏 */
 .dashboard-host     .cc-tab-pane.active { display: block; }
 .dashboard-host     .cc-body { min-height: 400px; }
 
@@ -14208,12 +14208,18 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             return;
           }
           const protoOptions = NS.PROTOCOLS.map((p) => '<option value="' + NS.escapeHtml(p.id) + '"' + (p.id === NS.activeProtoId ? ' selected' : '') + '>' + NS.escapeHtml(p.name || p.id) + ' (' + (p.commands || []).length + ' cmd)</option>').join('');
+          // v1.2.2 (bug fix): label-above-input 标准 form 排版
+          //   之前 grid 80px 1fr 左右并排 + align-items: center, select 高度 32px > label 16px, label 视觉错位到 select 中部偏下
           const html = '<div style="padding: 18px 22px;">' +
-            '<div style="display: grid; grid-template-columns: 80px 1fr; gap: 8px 12px; align-items: center;">' +
-              '<label style="font-size: 12px; color: var(--text-soft);">协议</label>' +
-              '<select id="dh-new-card-proto" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;">' + protoOptions + '</select>' +
-              '<label style="font-size: 12px; color: var(--text-soft);">命令</label>' +
-              '<select id="dh-new-card-cmd" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;"></select>' +
+            '<div style="display: flex; flex-direction: column; gap: 12px;">' +
+              '<div>' +
+                '<label style="display: block; margin-bottom: 5px; font-size: 12px; color: var(--text-soft); font-weight: 600;">协议</label>' +
+                '<select id="dh-new-card-proto" style="width: 100%; box-sizing: border-box; padding: 7px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;">' + protoOptions + '</select>' +
+              '</div>' +
+              '<div>' +
+                '<label style="display: block; margin-bottom: 5px; font-size: 12px; color: var(--text-soft); font-weight: 600;">命令</label>' +
+                '<select id="dh-new-card-cmd" style="width: 100%; box-sizing: border-box; padding: 7px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;"></select>' +
+              '</div>' +
             '</div>' +
             '<div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px;">' +
               '<button class="tbtn" id="dh-new-card-cancel">取消</button>' +
@@ -14221,15 +14227,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             '</div>' +
           '</div>';
           const m = document.createElement('div');
-          m.className = 'modal-backdrop';
+          // v1.2.2 (bug fix): 自定义 wrapper class (不再用 .modal-backdrop, 避免被 .modal-backdrop display:none + z-index:100 基础样式覆盖)
+          //   append 到 .dashboard-host 内 (不在 body 上), 让内层 .modal / .modal-title / .close-btn 拿到限定在 .dashboard-host 下的样式
+          m.className = 'dh-modal-wrapper';
           m.id = 'dh-new-card-modal';
-          // v1.2.2 (bug fix): 加 position: fixed + z-index: 1100 — 之前没定位, 被配置中心 modal (z-index 1001) 盖住看不见
-          m.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1100; display: flex; align-items: center; justify-content: center;';
-          m.innerHTML = '<div class="modal" style="max-width: 480px;">' +
+          m.style.cssText = 'position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); pointer-events: auto;';
+          m.innerHTML = '<div class="modal open" style="max-width: 480px;">' +
             '<button aria-label="关闭" class="close-btn" id="dh-new-card-close" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>' +
             '<div class="modal-head"><span class="modal-title">新建卡片 — 选协议+命令</span></div>' +
             html + '</div>';
-          document.body.appendChild(m);
+          const host = document.querySelector('.dashboard-host') || document.body;
+          host.appendChild(m);
           const protoSel = m.querySelector('#dh-new-card-proto');
           const cmdSel = m.querySelector('#dh-new-card-cmd');
           const refreshCmds = () => {
