@@ -14431,38 +14431,59 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           if (typeof NS._renderNewCmdFramePreview === 'function') NS._renderNewCmdFramePreview();
         };
 
-        // v1.2 (Task 7): 帧预览 — 实时拼 hex 帧
-        //   简化版: HEADER (协议 fields type=header) + CMD (1B) + DATA (dataFields default) + CRC (2B 占位)
-        //   真实 CRC 计算留待后续 Task, 这里占位 00 00
-        NS._renderNewCmdFramePreview = function () {
-          const s = NS._newCmdState;
-          if (!s) return;
-          const proto = NS.PROTOCOLS.find((p) => p.id === s.protoId);
-          const headerFields = (proto && proto.fields) ? proto.fields.filter((f) => f.type === 'header') : [];
+        // v1.2.1 (Task 2): 抽 renderFramePreview 共享函数
+        //   替代原 _renderNewCmdFramePreview 内联实现
+        //   命令编辑 / 协议编辑 / 仪表盘设置值 3 处 modal 复用
+        //   接受 (containerId, cmdOrState) — 命令对象 或 _newCmdState (含 cmd + dataFields)
+        //   输出: HEADER + CMD + DATA + CRC + 完整帧 5 段
+        NS.renderFramePreview = function (containerId, cmdOrState) {
+          const el = document.getElementById(containerId);
+          if (!el) {
+            console.warn('[renderFramePreview] container not found:', containerId);
+            return;
+          }
+          if (!cmdOrState) {
+            el.innerHTML = '<div class="frame-preview-empty">—</div>';
+            return;
+          }
+          // 提取 cmd (可能直接是 cmd 对象, 也可能是 _newCmdState 含 cmd 字段)
+          const cmd = cmdOrState.cmd || cmdOrState;
+          const stateDataFields = cmdOrState.dataFields; // 命令编辑 modal 走这条
+          const proto = NS.PROTOCOLS.find((p) => p.id === (cmdOrState.protoId || (cmd && cmd._protoId)));
+          // 实际找协议: 命令对象本身可能带 _protoId, 或通过 NS.PROTOCOLS 找
+          let actualProto = proto;
+          if (!actualProto) {
+            // 试从 _protoId 或遍历协议找命令
+            if (cmd._protoId) actualProto = NS.PROTOCOLS.find((p) => p.id === cmd._protoId);
+            else {
+              for (const p of NS.PROTOCOLS) {
+                if ((p.commands || []).some((c) => c.id === cmd.id)) { actualProto = p; break; }
+              }
+            }
+          }
+          const headerFields = (actualProto && actualProto.fields) ? actualProto.fields.filter((f) => f.type === 'header') : [];
           const headerBytes = headerFields.map((f) => {
-            // 默认 0xAA, 也可读 default 字段 (hex 字符串)
             const def = (f.default || '0xAA').toString().replace(/^0x/i, '');
             const n = parseInt(def, 16);
             return isNaN(n) ? 0xAA : n;
           });
-          const cmdByte = (typeof s.id === 'number') ? s.id : 0;
+          const cmdByte = (typeof cmd.id === 'number') ? cmd.id : 0;
           const dataBytes = [];
-          (s.dataFields || []).forEach((df) => {
+          const dataFields = stateDataFields || cmd.dataFields || [];
+          dataFields.forEach((df) => {
             const t = NS.DATA_TYPES.find((tt) => tt.name === df.type);
             const size = t ? t.size : 1;
             const def = (df.default || '0x00').toString().replace(/^0x/i, '');
             const n = parseInt(def, 16);
             const v = isNaN(n) ? 0 : n;
-            // 对应 size 字节 big-endian
             for (let i = size - 1; i >= 0; i--) {
               dataBytes.push((v >> (i * 8)) & 0xFF);
             }
           });
-          // CRC 2B 占位 (00 00, 真实 CRC 由 NS.computeCrc 计算 — 留待后续)
           const crcBytes = [0, 0];
           const allBytes = [...headerBytes, cmdByte, ...dataBytes, ...crcBytes];
           const fmt = (arr) => arr.map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
-          const html =
+          el.innerHTML =
             '<div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center; line-height: 1.8;">' +
               '<span><span style="color: var(--text-soft); font-size: 10px; margin-right: 4px;">HEADER</span><span style="color: var(--signal); font-weight: 600;">' + (headerBytes.length ? fmt(headerBytes) : '—') + '</span></span>' +
               '<span><span style="color: var(--text-soft); font-size: 10px; margin-right: 4px;">CMD</span><span style="color: var(--signal); font-weight: 600;">' + cmdByte.toString(16).padStart(2, '0').toUpperCase() + '</span></span>' +
@@ -14470,8 +14491,28 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               '<span><span style="color: var(--text-soft); font-size: 10px; margin-right: 4px;">CRC</span><span style="color: var(--text-soft);">' + fmt(crcBytes) + '</span></span>' +
             '</div>' +
             '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); font-size: 11px; color: var(--text-soft);">完整帧: <code style="color: var(--text);">' + fmt(allBytes) + '</code></div>';
-          const el = document.getElementById('dh-new-cmd-frame-preview');
-          if (el) el.innerHTML = html;
+        };
+
+        // v1.2 (Task 7): 帧预览 — 实时拼 hex 帧 (v1.2.1 wrapper, 复用 renderFramePreview)
+        //   简化版: HEADER (协议 fields type=header) + CMD (1B) + DATA (dataFields default) + CRC (2B 占位)
+        //   真实 CRC 计算留待后续 Task, 这里占位 00 00
+        NS._renderNewCmdFramePreview = function () {
+          const s = NS._newCmdState;
+          if (!s) return;
+          NS.renderFramePreview('dh-new-cmd-frame-preview', s);
+          // 兼容保留 #dh-new-cmd-frame-size 字节数提示
+          const allBytes = [];
+          const proto = NS.PROTOCOLS.find((p) => p.id === s.protoId);
+          if (proto) {
+            const headerFields = (proto.fields || []).filter((f) => f.type === 'header');
+            allBytes.push(...headerFields.map(() => 0xAA));
+          }
+          allBytes.push((typeof s.id === 'number') ? s.id : 0);
+          (s.dataFields || []).forEach((df) => {
+            const t = NS.DATA_TYPES.find((tt) => tt.name === df.type);
+            allBytes.push(...new Array(t ? t.size : 1).fill(0));
+          });
+          allBytes.push(0, 0);
           const sizeEl = document.getElementById('dh-new-cmd-frame-size');
           if (sizeEl) sizeEl.textContent = '共 ' + allBytes.length + ' 字节';
         };
