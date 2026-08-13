@@ -8537,15 +8537,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             <button class="toolbar-btn primary" id="dh-pair-trigger-confirm-btn">触发</button>
           </div>
         </div>
-      </div>
-    </section>
-  </div>
 
-  <input id="timeline-file-input" type="file" class="hidden" accept=".csv,.txt,.bin,.timeline">
-
-  <!-- v1.3.1: 三选项级联删除 modal (替换 v1.2 browser confirm) -->
+  <!-- v1.3.1: 三选项级联删除 modal (替换 v1.2 browser confirm)
+       必须放在 .dashboard-host 内部, 否则 .dashboard-host .modal { display:none } 不匹配,
+       modal 默认 display:block 一直 inline 渲染在 page 末尾 -->
   <div class="modal-backdrop" id="dh-cascade-delete-backdrop"></div>
-  <div class="modal" id="dh-cascade-delete-modal" style="display: none;">
+  <div class="modal" id="dh-cascade-delete-modal">
     <div class="modal-header-standard">
       <div class="modal-icon" style="background: var(--warn, #f59e0b); color: white;">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -8588,6 +8585,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       </button>
     </div>
   </div>
+      </div>
+    </section>
+  </div>
+
+  <input id="timeline-file-input" type="file" class="hidden" accept=".csv,.txt,.bin,.timeline">
   <div id="version-modal-backdrop" class="version-modal-backdrop" aria-hidden="true">
     <section class="version-modal" role="dialog" aria-modal="true" aria-labelledby="version-modal-title">
       <div class="version-modal-head">
@@ -8719,7 +8721,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.3.1';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.1 三选项级联 modal 实装 bump)
+      const VERSION = '1.3.1.1';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.1.1 hotfix: v1.3.1 modal 位置 + inline display:none 修复)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
