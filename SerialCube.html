@@ -13526,6 +13526,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             NS.activeProtoId = newProto.id;
             NS.toast('已添加协议: ' + newProto.name, 'success');
             NS.closeModal('dh-new-proto-wizard');
+            // v1.2.2: 新建协议后立刻重渲染配置中心, 避免协议列表不刷新
+            if (typeof NS._renderConfigCenter === 'function') NS._renderConfigCenter();
           }
         };
 
@@ -13865,7 +13867,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                       }
                     });
                     NS.toast && NS.toast('已导入 ' + json.protocols.length + ' 个协议', 'success');
-                    NS._configCenterTabRenderers.protocols();
+                    if (typeof NS._renderConfigCenter === 'function') NS._renderConfigCenter();
                   } else {
                     NS.toast && NS.toast('JSON 中未找到 protocols 数组', 'warn');
                   }
@@ -13902,7 +13904,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             newProto.commands = newProto.commands || [];
             NS.PROTOCOLS.push(newProto);
             NS.toast && NS.toast('已复制协议: ' + newId, 'success');
-            NS._configCenterTabRenderers.protocols();
+            if (typeof NS._renderConfigCenter === 'function') NS._renderConfigCenter();
           });
           // bind 删除 (行) → 级联 confirm (Task 11)
           document.querySelectorAll('[data-proto-del]').forEach((b) => b.onclick = () => {
