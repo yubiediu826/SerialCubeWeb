@@ -14210,18 +14210,18 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           const protoOptions = NS.PROTOCOLS.map((p) => '<option value="' + NS.escapeHtml(p.id) + '"' + (p.id === NS.activeProtoId ? ' selected' : '') + '>' + NS.escapeHtml(p.name || p.id) + ' (' + (p.commands || []).length + ' cmd)</option>').join('');
           // v1.2.2 (bug fix): label-above-input 标准 form 排版
           //   之前 grid 80px 1fr 左右并排 + align-items: center, select 高度 32px > label 16px, label 视觉错位到 select 中部偏下
-          const html = '<div style="padding: 18px 22px;">' +
-            '<div style="display: flex; flex-direction: column; gap: 12px;">' +
+          const html = '<div style="padding: 16px 20px;">' +
+            '<div style="display: flex; flex-direction: column; gap: 14px;">' +
               '<div>' +
-                '<label style="display: block; margin-bottom: 5px; font-size: 12px; color: var(--text-soft); font-weight: 600;">协议</label>' +
-                '<select id="dh-new-card-proto" style="width: 100%; box-sizing: border-box; padding: 7px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;">' + protoOptions + '</select>' +
+                '<label style="display: block; margin-bottom: 6px; font-size: 12px; color: var(--text-soft); font-weight: 600;">协议</label>' +
+                '<select id="dh-new-card-proto" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;">' + protoOptions + '</select>' +
               '</div>' +
               '<div>' +
-                '<label style="display: block; margin-bottom: 5px; font-size: 12px; color: var(--text-soft); font-weight: 600;">命令</label>' +
-                '<select id="dh-new-card-cmd" style="width: 100%; box-sizing: border-box; padding: 7px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;"></select>' +
+                '<label style="display: block; margin-bottom: 6px; font-size: 12px; color: var(--text-soft); font-weight: 600;">命令</label>' +
+                '<select id="dh-new-card-cmd" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;"></select>' +
               '</div>' +
             '</div>' +
-            '<div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px;">' +
+            '<div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);">' +
               '<button class="tbtn" id="dh-new-card-cancel">取消</button>' +
               '<button class="tbtn primary" id="dh-new-card-confirm">下一步</button>' +
             '</div>' +
@@ -14233,8 +14233,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           m.id = 'dh-new-card-modal';
           m.style.cssText = 'position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); pointer-events: auto;';
           m.innerHTML = '<div class="modal open" style="max-width: 480px;">' +
-            '<button aria-label="关闭" class="close-btn" id="dh-new-card-close" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>' +
-            '<div class="modal-head"><span class="modal-title">新建卡片 — 选协议+命令</span></div>' +
+            // v1.2.2 (bug fix): 用 .modal-header-standard 标准组件 (X 右上 + title 左上 + meta 副标题) — 之前 .modal-head 是没定义类名, X 飘出 header 跟 title 不对齐
+            '<div class="modal-header-standard">' +
+              '<div class="title-block"><span class="title">新建卡片</span><span class="meta">选协议 + 命令</span></div>' +
+              '<div class="actions"></div>' +
+              '<button aria-label="关闭" class="close-btn" id="dh-new-card-close" title="关闭"><svg viewBox="0 0 16 16"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>' +
+            '</div>' +
             html + '</div>';
           const host = document.querySelector('.dashboard-host') || document.body;
           host.appendChild(m);
