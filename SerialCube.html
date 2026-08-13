@@ -6872,6 +6872,58 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       border-top: 1px solid var(--border);
     }
 .dashboard-host     .modal-footer .spacer { flex: 1; }
+    /* v1.3.1: 三选项级联 modal (替换 v1.2 browser confirm) */
+.dashboard-host     .cascade-modal-body { padding: 16px 20px; }
+.dashboard-host     .cascade-modal-body .section-label {
+      font-size: 11px; color: var(--text-soft);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      font-weight: 600; margin-bottom: 6px;
+    }
+.dashboard-host     .cascade-modal-body .refs {
+      display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px;
+      background: var(--bg-panel); border: 1px solid var(--border-soft);
+      border-radius: var(--radius);
+    }
+.dashboard-host     .cascade-modal-body .ref-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px; font-size: 12px; font-weight: 500;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; color: var(--text-soft);
+    }
+.dashboard-host     .cascade-modal-body .ref-chip .num {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600;
+      color: var(--text);
+    }
+.dashboard-host     .cascade-modal-body .ref-chip.cmd .num { color: var(--accent); }
+.dashboard-host     .cascade-modal-body .ref-chip.card .num { color: var(--success, #10b981); }
+.dashboard-host     .cascade-modal-body .ref-chip.alert .num { color: var(--danger); }
+.dashboard-host     .cascade-modal-body .refs-empty { font-size: 12px; color: var(--text-soft); font-style: italic; }
+.dashboard-host     .cascade-modal-body .self-hint {
+      margin-top: 6px; padding: 6px 10px;
+      background: var(--warn, #f59e0b); color: white;
+      font-size: 11px; border-radius: var(--radius-small);
+      display: flex; align-items: center; gap: 4px;
+    }
+.dashboard-host     .cascade-modal-body .modal-section { margin-bottom: 14px; }
+.dashboard-host     .cascade-modal-body .modal-section:last-child { margin-bottom: 0; }
+.dashboard-host     .cascade-modal-body .section-desc { font-size: 13px; color: var(--text-soft); line-height: 1.55; }
+.dashboard-host     .cascade-modal-footer {
+      padding: 12px 20px 16px; border-top: 1px solid var(--border-soft);
+      display: flex; gap: 8px; justify-content: flex-end;
+      background: var(--bg-panel);
+    }
+.dashboard-host     .cascade-modal-footer .btn {
+      padding: 8px 14px; border: 1px solid var(--border);
+      background: var(--bg-card); color: var(--text);
+      border-radius: var(--radius-small); cursor: pointer;
+      font-size: 13px; font-weight: 500; font-family: inherit;
+    }
+.dashboard-host     .cascade-modal-footer .btn:hover { background: var(--bg-elevated); }
+.dashboard-host     .cascade-modal-footer .btn.primary { background: var(--danger); color: white; border-color: var(--danger); }
+.dashboard-host     .cascade-modal-footer .btn.primary:hover { background: #e11d48; }
+.dashboard-host     .cascade-modal-footer .btn.ghost { border-color: transparent; color: var(--text-soft); }
+.dashboard-host     .cascade-modal-footer .btn.ghost:hover { background: var(--bg-elevated); }
+.dashboard-host     .cascade-modal-footer .btn svg { vertical-align: -1px; margin-right: 4px; }
 
     /* Form */
 .dashboard-host     .form-row { display: grid; grid-template-columns: 140px 1fr; gap: 10px 16px; align-items: center; margin-bottom: 12px; }
@@ -8490,6 +8542,52 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
   </div>
 
   <input id="timeline-file-input" type="file" class="hidden" accept=".csv,.txt,.bin,.timeline">
+
+  <!-- v1.3.1: 三选项级联删除 modal (替换 v1.2 browser confirm) -->
+  <div class="modal-backdrop" id="dh-cascade-delete-backdrop"></div>
+  <div class="modal" id="dh-cascade-delete-modal" style="display: none;">
+    <div class="modal-header-standard">
+      <div class="modal-icon" style="background: var(--warn, #f59e0b); color: white;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <div style="flex:1;">
+        <div class="modal-title" id="dh-cascade-delete-title">确认删除</div>
+        <div class="modal-meta" id="dh-cascade-delete-meta"></div>
+      </div>
+      <button class="modal-close" data-result="cancel" title="取消">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="cascade-modal-body">
+      <div class="modal-section">
+        <div class="section-label">引用预览</div>
+        <div class="refs" id="dh-cascade-delete-refs"></div>
+        <div class="self-hint" id="dh-cascade-delete-hint" style="display: none;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="dh-cascade-delete-hint-text"></span>
+        </div>
+      </div>
+      <div class="modal-section">
+        <div class="section-label">删除方式</div>
+        <div class="section-desc">请选择如何处理被引用的对象。</div>
+      </div>
+    </div>
+    <div class="cascade-modal-footer">
+      <button class="btn ghost" data-result="cancel" title="取消 (Esc)">取消</button>
+      <button class="btn" data-result="self" id="dh-cascade-delete-btn-self" title="仅删除当前对象, 保留被引用方">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 7l-7 7-7-7M19 7v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7"/></svg>
+        仅删自己
+      </button>
+      <button class="btn primary" data-result="cascade" id="dh-cascade-delete-btn-cascade" title="删除当前对象 + 所有被引用方">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        级联删除 <span id="dh-cascade-delete-cascade-count">(0)</span>
+      </button>
+    </div>
+  </div>
   <div id="version-modal-backdrop" class="version-modal-backdrop" aria-hidden="true">
     <section class="version-modal" role="dialog" aria-modal="true" aria-labelledby="version-modal-title">
       <div class="version-modal-head">
@@ -14467,10 +14565,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             NS.toast && NS.toast('已复制协议: ' + newId, 'success');
             if (typeof NS._renderConfigCenter === 'function') NS._renderConfigCenter();
           });
-          // bind 删除 (行) → 级联 confirm (Task 11)
-          document.querySelectorAll('[data-proto-del]').forEach((b) => b.onclick = () => {
+          // bind 删除 (行) → 三选项级联 modal (v1.3.1, 替换 v1.2 _cascadeConfirm)
+          document.querySelectorAll('[data-proto-del]').forEach((b) => b.onclick = async () => {
             const delId = b.getAttribute('data-proto-del');
-            const result = NS._cascadeConfirm('protocol', delId, '协议 ' + delId);
+            const result = await NS._openCascadeModal('protocol', delId, '协议 ' + delId);
             if (result === 'cancel') return;
             // result === 'self' 或 'cascade' 都删协议 (self 模式保留引用方仅删自己; 当前 v1.2 简化为两种结果都删, 自定义 modal 留 v1.3+)
             const refs = NS._findReferences('protocol', delId);
@@ -14571,14 +14669,14 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               NS.openNewCommandModal(proto.id, proto.commands[idx], 'dup');
             };
           });
-          // 删除按钮 (Task 11 级联 confirm)
+          // 删除按钮 (v1.3.1 三选项级联 modal, 替换 v1.2 _cascadeConfirm)
           document.querySelectorAll('[data-cmd-del]').forEach((btn) => {
-            btn.onclick = () => {
+            btn.onclick = async () => {
               const idx = parseInt(btn.getAttribute('data-cmd-del'), 10);
               if (!proto || !proto.commands[idx]) return;
               const cmdId = proto.commands[idx].id;
               const label = '命令 0x' + (cmdId || 0).toString(16).padStart(2, '0').toUpperCase() + ' ' + proto.commands[idx].name;
-              const result = NS._cascadeConfirm('command', cmdId, label);
+              const result = await NS._openCascadeModal('command', cmdId, label);
               if (result === 'cancel') return;
               if (result === 'cascade') {
                 // 级联: 删引用此 cmd 的卡片 + alerts
@@ -14655,14 +14753,14 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               NS.openCardEdit && NS.openCardEdit(card.id);
             };
           });
-          // 删除 (Task 11 级联 confirm)
+          // 删除 (v1.3.1 三选项级联 modal, 替换 v1.2 _cascadeConfirm)
           document.querySelectorAll('[data-card-del]').forEach((btn) => {
-            btn.onclick = () => {
+            btn.onclick = async () => {
               const idx = parseInt(btn.getAttribute('data-card-del'), 10);
               if (!NS.CARDS[idx]) return;
               const card = NS.CARDS[idx];
               const label = '卡片 ' + (card.id || '—') + (card.title ? ' ' + card.title : '');
-              const result = NS._cascadeConfirm('card', card.id || card.title, label);
+              const result = await NS._openCascadeModal('card', card.id || card.title, label);
               if (result === 'cancel') return;
               if (result === 'cascade') {
                 // 级联: 删引用此 card 的 alerts (用 name/title 匹配)
@@ -15193,11 +15291,117 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           return refs;
         };
 
-        // v1.2 (Task 11): 级联删除 confirm
+        // v1.3.1: 三选项级联 modal - 替换 v1.2 browser confirm
+        //   type: 'protocol' | 'command' | 'card'
+        //   返回 Promise<'self' | 'cascade' | 'cancel'>
+        NS._cascadeResolve = null;
+        NS._openCascadeModal = function (type, id, label) {
+          return new Promise((resolve) => {
+            const refs = NS._findReferences(type, id);
+            const orphanCount = (refs.commands ? refs.commands.length : 0)
+                              + (refs.cards ? refs.cards.length : 0)
+                              + (refs.alerts ? refs.alerts.length : 0);
+            NS._renderCascadeModal(type, label, refs, orphanCount);
+            NS._cascadeResolve = resolve;
+            NS.openModal('dh-cascade-delete');
+          });
+        };
+
+        NS._renderCascadeModal = function (type, label, refs, orphanCount) {
+          // title + meta
+          const titleText = {
+            protocol: '确认删除协议 ' + label + '?',
+            command: '确认删除命令 ' + label + '?',
+            card: '确认删除卡片 ' + label + '?'
+          }[type] || ('确认删除 ' + label + '?');
+          const titleEl = document.getElementById('dh-cascade-delete-title');
+          if (titleEl) titleEl.textContent = titleText;
+          // meta: 按 type 查 protocol/cmd/card 元信息
+          let metaText = label;
+          if (type === 'protocol') {
+            // label 形如 "协议 proto_bms" — 提取 proto id
+            const m = label.match(/协议\s+(\S+)/);
+            const protoId = m ? m[1] : label;
+            const proto = (NS.PROTOCOLS || []).find(p => p.id === protoId);
+            metaText = proto ? (proto.name + ' · ' + (proto.commands || []).length + ' 条命令') : label;
+          } else if (type === 'command') {
+            // label 形如 "命令 0x01 Read Voltage" — 找 proto
+            const proto = (NS.PROTOCOLS || []).find(p => (p.commands || []).some(c => {
+              const hex = '0x' + (c.id || 0).toString(16).padStart(2, '0').toUpperCase();
+              return label.indexOf(hex) >= 0;
+            }));
+            metaText = proto ? ('所属协议 ' + proto.id + ' · ' + (proto.name || '')) : label;
+          } else {
+            // card: label 形如 "卡片 c1 Cell 1 电压"
+            const m = label.match(/卡片\s+(\S+)/);
+            const cardId = m ? m[1] : label;
+            const card = (NS.CARDS || []).find(c => c.id === cardId);
+            metaText = card ? ('所属协议 ' + (card.protocol || '-') + ' · cmd ' + (card.cmd || '-')) : label;
+          }
+          const metaEl = document.getElementById('dh-cascade-delete-meta');
+          if (metaEl) metaEl.textContent = metaText;
+          // 引用预览 chip
+          const refsEl = document.getElementById('dh-cascade-delete-refs');
+          if (refsEl) {
+            if (orphanCount === 0) {
+              refsEl.innerHTML = '<span class="refs-empty">无引用对象, 仅删自己 = 级联删除</span>';
+            } else {
+              const chips = [];
+              if (refs.commands && refs.commands.length) chips.push('<span class="ref-chip cmd"><span class="num">' + refs.commands.length + '</span> 条命令</span>');
+              if (refs.cards && refs.cards.length) chips.push('<span class="ref-chip card"><span class="num">' + refs.cards.length + '</span> 张卡片</span>');
+              if (refs.alerts && refs.alerts.length) chips.push('<span class="ref-chip alert"><span class="num">' + refs.alerts.length + '</span> 条告警</span>');
+              refsEl.innerHTML = chips.join('');
+            }
+          }
+          // 仅删自己 hint
+          const hintEl = document.getElementById('dh-cascade-delete-hint');
+          if (hintEl) {
+            if (orphanCount > 0) {
+              const parts = [];
+              if (refs.commands && refs.commands.length) parts.push(refs.commands.length + ' 条孤儿命令');
+              if (refs.cards && refs.cards.length) parts.push(refs.cards.length + ' 张孤儿卡片');
+              if (refs.alerts && refs.alerts.length) parts.push(refs.alerts.length + ' 条孤儿告警');
+              document.getElementById('dh-cascade-delete-hint-text').textContent = '选"仅删自己"会留下 ' + parts.join(' + ') + ', 引用悬挂';
+              hintEl.style.display = 'flex';
+            } else {
+              hintEl.style.display = 'none';
+            }
+          }
+          // 级联按钮文案 (总数 = 1 自己 + orphanCount)
+          const countEl = document.getElementById('dh-cascade-delete-cascade-count');
+          if (countEl) countEl.textContent = '(' + (orphanCount + 1) + ')';
+        };
+
+        // 绑定 3 按钮 + 背景 + Esc
+        NS._bindCascadeModalHandlers = function () {
+          // 3 按钮 data-result
+          document.querySelectorAll('#dh-cascade-delete-modal [data-result]').forEach((btn) => {
+            btn.onclick = (e) => {
+              e.stopPropagation();
+              const result = btn.getAttribute('data-result');
+              if (typeof NS.closeModal === 'function') NS.closeModal('dh-cascade-delete');
+              if (NS._cascadeResolve) { NS._cascadeResolve(result); NS._cascadeResolve = null; }
+            };
+          });
+          // 背景点击 = 取消
+          const bd = document.getElementById('dh-cascade-delete-backdrop');
+          if (bd) bd.onclick = () => {
+            if (typeof NS.closeModal === 'function') NS.closeModal('dh-cascade-delete');
+            if (NS._cascadeResolve) { NS._cascadeResolve('cancel'); NS._cascadeResolve = null; }
+          };
+          // Esc = 取消
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('dh-cascade-delete-modal') && document.getElementById('dh-cascade-delete-modal').classList.contains('open')) {
+              if (typeof NS.closeModal === 'function') NS.closeModal('dh-cascade-delete');
+              if (NS._cascadeResolve) { NS._cascadeResolve('cancel'); NS._cascadeResolve = null; }
+            }
+          });
+        };
+
+        // v1.2 (Task 11): 级联删除 confirm (保留兼容, v1.3.1 升级为 _openCascadeModal, 此函数不再调用)
         //   简化实现: 弹 confirm "删除 X? N 条命令 / N 张卡片 / N 条告警将一起删"
         //   - [确定] = 'cascade' (删自己 + 引用方)
         //   - [取消] = 'cancel' (不删)
-        //   v1.3+ 计划升级为三选项自定义 modal (仅删自己 / 级联 / 取消)
         //   0 引用时直接返回 'self' (无引用, 不弹 confirm, 单击即删)
         NS._cascadeConfirm = function (type, id, label) {
           const refs = NS._findReferences(type, id);
@@ -16064,6 +16268,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               }
             };
           }
+          // v1.3.1: 绑定三选项级联 modal 按钮
+          if (NS._bindCascadeModalHandlers) NS._bindCascadeModalHandlers();
         };
       })();
       // 早期绑定 modal handlers, 不依赖用户进入 dashboard 模式 (这样 verify 跟配置中心还没接 dashboardMode 之前都能直接调)
