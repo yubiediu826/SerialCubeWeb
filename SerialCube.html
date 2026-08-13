@@ -6922,6 +6922,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       border: 1px solid var(--border);
       border-radius: 6px;
       padding: 12px 14px;
+      overflow-x: auto;
+      overflow-y: hidden;
     }
 .dashboard-host     .frame-bytes {
       font-family: var(--font-mono); font-size: 0.875rem;
@@ -6929,7 +6931,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       color: var(--text);
       letter-spacing: 0.1em;
       line-height: 1.7;
-      word-break: break-all;
+      white-space: nowrap;
     }
 .dashboard-host     .frame-bytes .byte { display: inline-block; padding: 1px 3px; border-radius: 3px; }
 .dashboard-host     .frame-bytes .byte.header { background: rgba(129, 140, 248, 0.18); color: var(--c-header); }
@@ -7250,6 +7252,89 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 .dashboard-host     .row-action.danger { color: var(--text-soft); }
 .dashboard-host     .row-action.danger:hover { color: #ef4444; border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.06); }
 .dashboard-host     .row-action svg { width: 14px; height: 14px; }
+
+/* v1.2.2: 命令列表表格 — 干净背景 (无 frame-preview 灰底) + 文本对齐 + 操作按钮间距 + hover 虚化 */
+.dashboard-host     .cmd-list-wrap {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+.dashboard-host     .cmd-list-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.8125rem;
+      background: var(--bg);
+    }
+.dashboard-host     .cmd-list-table thead th {
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-soft);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: var(--bg-subtle);
+      white-space: nowrap;
+    }
+.dashboard-host     .cmd-list-table thead th.col-id { width: 84px; }
+.dashboard-host     .cmd-list-table thead th.col-name { }
+.dashboard-host     .cmd-list-table thead th.col-dir { width: 70px; }
+.dashboard-host     .cmd-list-table thead th.col-frame { width: 120px; }
+.dashboard-host     .cmd-list-table thead th.col-cadence { width: 110px; }
+.dashboard-host     .cmd-list-table thead th.col-actions { width: 76px; text-align: right; }
+.dashboard-host     .cmd-list-table tbody tr {
+      transition: background 0.12s ease;
+    }
+.dashboard-host     .cmd-list-table tbody tr:hover {
+      background: rgba(47, 111, 94, 0.05);
+    }
+.dashboard-host     .cmd-list-table tbody tr:hover .cmd-actions {
+      opacity: 1;
+    }
+.dashboard-host     .cmd-list-table tbody tr.cmd-row-active {
+      background: rgba(47, 111, 94, 0.08);
+    }
+.dashboard-host     .cmd-list-table tbody tr.cmd-row-active:hover {
+      background: rgba(47, 111, 94, 0.12);
+    }
+.dashboard-host     .cmd-list-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border-soft, var(--border));
+      vertical-align: middle;
+    }
+.dashboard-host     .cmd-list-table tbody tr:last-child td { border-bottom: none; }
+.dashboard-host     .cmd-list-table td.col-id code {
+      font-family: var(--font-mono, 'JetBrains Mono', monospace);
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--bg-subtle);
+      color: var(--accent);
+      padding: 2px 7px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+.dashboard-host     .cmd-list-table td.col-dir,
+.dashboard-host     .cmd-list-table td.col-frame,
+.dashboard-host     .cmd-list-table td.col-cadence {
+      font-family: var(--font-mono, 'JetBrains Mono', monospace);
+      font-size: 0.75rem;
+      color: var(--text-soft);
+    }
+.dashboard-host     .cmd-list-table td.col-cadence { color: var(--text); }
+.dashboard-host     .cmd-list-table td.col-actions { text-align: right; }
+.dashboard-host     .cmd-list-table td.col-empty {
+      padding: 24px 12px; text-align: center; color: var(--text-soft); font-size: 0.8125rem;
+    }
+.dashboard-host     .cmd-actions {
+      display: inline-flex;
+      gap: 6px;
+      opacity: 0.55;
+      transition: opacity 0.12s ease;
+    }
+.dashboard-host     .cmd-actions .row-action { margin-right: 0; }
+.dashboard-host     .cmd-row-active .cmd-actions { opacity: 1; }
 
     /* 新建命令 modal (dh-new-command) */
 .dashboard-host     .new-cmd-form { display: flex; flex-direction: column; gap: 16px; }
@@ -10243,6 +10328,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       // ============================================================
       (function initDashboardState() {
         const NS = window.__serialWebDashboard = window.__serialWebDashboard || {};
+        // v1.2.2: 挂 NS 到 window, 让 inline on*="NS.xxx()" attribute handler 也能找到
+        //   原因: const NS 不会自动挂 window, element scope 上溯到 window 找不到 NS
+        //   之前 _protoEditFrameCmdChange() 等 inline onchange/onclick 静默 ReferenceError 不生效
+        window.NS = NS;
 
         // === Lucide inline SVG 图标库 (24x24, stroke 1.5 跟现有 SerialCube 风格一致) ===
         // 来源 lucide.dev (ISC License)
@@ -12730,6 +12819,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           if (!proto) { bodyEl.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-soft);">未选择协议</div>'; return; }
           const previewCmd = NS.allCommands().find((c) => c.protocol === proto.id) || NS.allCommands()[0];
           const frame = NS.buildFrame(proto, previewCmd);
+          // v1.2.2: 4 段新顺序 — ① 帧字段 → ② 帧预览 → ③ CRC 设置 → ④ 命令列表 (数据字段已删)
           bodyEl.innerHTML = `
             <div class="proto-section">
               <div class="form-row" style="margin-bottom: 8px;">
@@ -12751,11 +12841,33 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               <div class="proto-section-head">
                 <div class="proto-section-title">
                   <span class="num">2</span>
-                  <span>数据字段 (u8/u16/u32/float + 字节序)</span>
+                  <span>帧预览</span>
                 </div>
-                <button class="toolbar-btn" id="dh-add-data-field-btn" style="height: 24px; padding: 0 10px; font-size: 0.6875rem;">+ 添加字段</button>
+                <span style="font-size: 0.6875rem; color: var(--text-soft); display: flex; align-items: center; gap: 6px;">
+                  基于
+                  <select id="dh-proto-frame-cmd-select" onchange="NS._protoEditFrameCmdChange()" style="padding: 2px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-size: 11px;">
+                    ${(proto.commands || []).map((c) => '<option value="' + NS.escapeHtml(String(c.id)) + '">' + '0x' + c.id.toString(16).padStart(2, '0').toUpperCase() + ' ' + NS.escapeHtml(c.name) + '</option>').join('')}
+                  </select>
+                </span>
               </div>
-              <div class="data-field-list" id="dh-data-field-list"></div>
+              <div class="frame-preview">
+                <div class="frame-bytes" id="dh-frame-bytes"></div>
+                <div class="frame-meta">
+                  <div class="meta-item"><span class="meta-key">总字节</span><span class="meta-val" id="dh-meta-total">—</span></div>
+                  <div class="meta-item"><span class="meta-key">CRC 类型</span><span class="meta-val" id="dh-meta-crc-type">—</span></div>
+                  <div class="meta-item"><span class="meta-key">CRC 值</span><span class="meta-val" id="dh-meta-crc">—</span></div>
+                  <div class="meta-item"><span class="meta-key">校验范围</span><span class="meta-val" id="dh-meta-crc-range">—</span></div>
+                </div>
+                <div class="legend">
+                  <span class="legend-item"><span class="dot header"></span>header 帧头</span>
+                  <span class="legend-item"><span class="dot addr"></span>addr 地址</span>
+                  <span class="legend-item"><span class="dot cmd"></span>cmd 命令</span>
+                  <span class="legend-item"><span class="dot length"></span>length 长度</span>
+                  <span class="legend-item"><span class="dot data"></span>data 数据</span>
+                  <span class="legend-item"><span class="dot crc"></span>crc 校验</span>
+                  <span class="legend-item"><span class="dot tail"></span>tail 帧尾</span>
+                </div>
+              </div>
             </div>
             <div class="proto-section">
               <div class="proto-section-head">
@@ -12793,38 +12905,6 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 </select>
               </div>
             </div>
-            <div class="proto-section">
-              <div class="proto-section-head">
-                <div class="proto-section-title">
-                  <span class="num">4</span>
-                  <span>帧预览</span>
-                </div>
-                <span style="font-size: 0.6875rem; color: var(--text-soft); display: flex; align-items: center; gap: 6px;">
-                  基于
-                  <select id="dh-proto-frame-cmd-select" onchange="NS._protoEditFrameCmdChange()" style="padding: 2px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-size: 11px;">
-                    ${(proto.commands || []).map((c) => '<option value="' + NS.escapeHtml(String(c.id)) + '">' + '0x' + c.id.toString(16).padStart(2, '0').toUpperCase() + ' ' + NS.escapeHtml(c.name) + '</option>').join('')}
-                  </select>
-                </span>
-              </div>
-              <div class="frame-preview">
-                <div class="frame-bytes" id="dh-frame-bytes"></div>
-                <div class="frame-meta">
-                  <div class="meta-item"><span class="meta-key">总字节</span><span class="meta-val" id="dh-meta-total">—</span></div>
-                  <div class="meta-item"><span class="meta-key">CRC 类型</span><span class="meta-val" id="dh-meta-crc-type">—</span></div>
-                  <div class="meta-item"><span class="meta-key">CRC 值</span><span class="meta-val" id="dh-meta-crc">—</span></div>
-                  <div class="meta-item"><span class="meta-key">校验范围</span><span class="meta-val" id="dh-meta-crc-range">—</span></div>
-                </div>
-                <div class="legend">
-                  <span class="legend-item"><span class="dot header"></span>header 帧头</span>
-                  <span class="legend-item"><span class="dot addr"></span>addr 地址</span>
-                  <span class="legend-item"><span class="dot cmd"></span>cmd 命令</span>
-                  <span class="legend-item"><span class="dot length"></span>length 长度</span>
-                  <span class="legend-item"><span class="dot data"></span>data 数据</span>
-                  <span class="legend-item"><span class="dot crc"></span>crc 校验</span>
-                  <span class="legend-item"><span class="dot tail"></span>tail 帧尾</span>
-                </div>
-              </div>
-            </div>
           `;
           NS._renderFieldList(proto, frame, previewCmd);
           NS._renderFramePreview(frame, proto);
@@ -12854,12 +12934,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             NS._renderFieldList(proto, NS.buildFrame(proto, previewCmd), previewCmd);
             onChange();
           };
-          document.getElementById('dh-add-data-field-btn').onclick = () => {
-            NS.DATA_FIELDS.push({ name: 'new_field_' + (NS.DATA_FIELDS.length + 1), type: 'u16', default: '0x0000' });
-            // TODO Task 7 wizard: data field 编辑将改由新建协议向导接管, 这里只 push 不渲染
-          };
-          // v1.2.1 (Task 5): append ④ (5 段编号) 命令列表段
-          NS._renderProtoEditCommandsSection(proto);
+          // v1.2.1 (Task 5): append ④ 命令列表段 (v1.2.2: 4 段新顺序 ①帧字段→②帧预览→③CRC→④命令列表)
+          NS._renderProtoEditCommandsSection(proto, previewCmd && previewCmd.id);
         };
 
         NS._renderFieldList = function (proto, frame, previewCmd) {
@@ -12954,19 +13030,31 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           if (!proto) return;
           const sel = document.getElementById('dh-proto-frame-cmd-select');
           if (!sel) return;
-          const cmdId = parseInt(sel.value, 10);
-          const cmd = (proto.commands || []).find((c) => c.id === cmdId);
-          if (!cmd) return;
+          const raw = sel.value;
+          // v1.2.2: 兼容各种 cmd.id 格式 (decimal string / hex string / number)
+          //   优先用 c.id === Number(raw), 失败再试 === raw 字符串
+          const cmdIdNum = Number(raw);
+          let cmd = (proto.commands || []).find((c) => c.id === cmdIdNum);
+          if (!cmd) cmd = (proto.commands || []).find((c) => String(c.id) === raw);
+          if (!cmd) cmd = (proto.commands || []).find((c) => c.id === raw);
+          if (!cmd) {
+            console.warn('[protoEditFrameCmdChange] 未找到 cmd, raw=' + raw);
+            return;
+          }
           try {
             const frame = NS.buildFrame(proto, cmd);
             NS._renderFramePreview(frame, proto);
+            // v1.2.2: 同步刷新命令列表高亮 (当前帧预览的 cmd 用 active class)
+            if (typeof NS._renderProtoEditCommandsSection === 'function') {
+              NS._renderProtoEditCommandsSection(proto, cmd.id);
+            }
           } catch (e) {
             console.error('[protoEditFrameCmdChange]', e);
           }
         };
 
         // v1.2.1 (Task 5): 协议编辑 modal ④ 命令列表段 — append 到 dh-proto-body 末尾
-        NS._renderProtoEditCommandsSection = function (proto) {
+        NS._renderProtoEditCommandsSection = function (proto, currentFrameCmdId) {
           if (!proto) return;
           const cmds = proto.commands || [];
           const section = document.createElement('div');
@@ -12974,30 +13062,33 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           section.innerHTML =
             '<div class="proto-section-head">' +
               '<div class="proto-section-title">' +
-                '<span class="num">5</span>' +
+                '<span class="num">4</span>' +
                 '<span>命令列表 (' + cmds.length + ')</span>' +
               '</div>' +
               '<button class="toolbar-btn" id="dh-proto-add-cmd-btn" style="height: 24px; padding: 0 10px; font-size: 0.6875rem;">+ 新建命令</button>' +
             '</div>' +
-            '<div class="frame-preview" style="padding: 0;">' +
-              '<table class="inline-edit-table">' +
+            '<div class="cmd-list-wrap">' +
+              '<table class="cmd-list-table">' +
                 '<thead><tr>' +
-                  '<th>ID</th><th>name</th><th>dir</th><th>frameType</th><th>cadence</th><th style="width: 100px;">操作</th>' +
+                  '<th class="col-id">ID</th><th class="col-name">name</th><th class="col-dir">dir</th><th class="col-frame">frameType</th><th class="col-cadence">cadence</th><th class="col-actions">操作</th>' +
                 '</tr></thead>' +
                 '<tbody>' +
                   (cmds.length === 0
-                    ? '<tr><td colspan="6" style="padding: 20px; text-align: center; color: var(--text-soft);">没有命令, 点右上 "新建命令" 开始</td></tr>'
+                    ? '<tr><td colspan="6" class="col-empty">没有命令, 点右上 "新建命令" 开始</td></tr>'
                     : cmds.map((c) => {
                         const idHex = '0x' + c.id.toString(16).padStart(2, '0').toUpperCase();
-                        return '<tr>' +
-                          '<td><code>' + idHex + '</code></td>' +
-                          '<td>' + NS.escapeHtml(c.name || '—') + '</td>' +
-                          '<td>' + NS.escapeHtml(c.direction || '—') + '</td>' +
-                          '<td>' + NS.escapeHtml(c.frameType || '—') + '</td>' +
-                          '<td style="text-align: right;">' + (c.cadence || 0) + ' ms</td>' +
-                          '<td style="white-space: nowrap;">' +
-                            '<button class="row-action accent" data-edit-cmd="' + NS.escapeHtml(String(c.id)) + '" title="编辑命令"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' +
-                            '<button class="row-action danger" data-del-cmd="' + NS.escapeHtml(String(c.id)) + '" title="删除命令"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>' +
+                        const isActive = c.id === currentFrameCmdId;
+                        return '<tr' + (isActive ? ' class="cmd-row-active"' : '') + '>' +
+                          '<td class="col-id"><code>' + idHex + '</code></td>' +
+                          '<td class="col-name">' + NS.escapeHtml(c.name || '—') + (isActive ? ' <span style="color: var(--accent); font-size: 0.6875rem; margin-left: 4px;">— 当前帧预览</span>' : '') + '</td>' +
+                          '<td class="col-dir">' + NS.escapeHtml(c.direction || '—') + '</td>' +
+                          '<td class="col-frame">' + NS.escapeHtml(c.frameType || '—') + '</td>' +
+                          '<td class="col-cadence">' + (c.cadence || 0) + ' ms</td>' +
+                          '<td class="col-actions">' +
+                            '<span class="cmd-actions">' +
+                              '<button class="row-action accent" data-edit-cmd="' + NS.escapeHtml(String(c.id)) + '" title="编辑命令"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z"/><path d="M10 3 L13 6"/></svg></button>' +
+                              '<button class="row-action danger" data-del-cmd="' + NS.escapeHtml(String(c.id)) + '" title="删除命令"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4 L13 4 M5 4 L5 13 L11 13 L11 4 M6 4 L6 2 L10 2 L10 4"/></svg></button>' +
+                            '</span>' +
                           '</td>' +
                         '</tr>';
                       }).join('')
@@ -13006,7 +13097,13 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               '</table>' +
             '</div>';
           const bodyEl = document.getElementById('dh-proto-body');
-          if (bodyEl) bodyEl.appendChild(section);
+          if (bodyEl) {
+            // v1.2.2: 先移除旧段 (避免重复 append, 同时支持 dropdown 切换实时刷新高亮)
+            const oldSection = bodyEl.querySelector('.proto-section.dh-cmd-list-section');
+            if (oldSection) oldSection.remove();
+            section.classList.add('dh-cmd-list-section');
+            bodyEl.appendChild(section);
+          }
 
           // bind 新建命令
           const newBtn = document.getElementById('dh-proto-add-cmd-btn');
