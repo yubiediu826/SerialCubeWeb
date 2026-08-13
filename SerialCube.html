@@ -7998,11 +7998,18 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <!-- 新建命令 modal (Task 8) -->
         <div class="modal-backdrop" id="dh-new-command-modal-backdrop"></div>
         <div class="modal" id="dh-new-command-modal">
-          <div class="modal-header">
-            <button aria-label="关闭" class="close-btn" data-close="dh-new-command" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
-            <span class="modal-title">新建命令</span>
-            <span class="modal-subtitle" id="dh-new-cmd-proto-label">协议: -</span>
-            <span style="flex: 1;"></span>
+          <div class="modal-header-standard">
+            <div class="title-block">
+              <div class="title" id="dh-new-cmd-modal-title">新建命令</div>
+              <div class="subtitle" id="dh-new-cmd-proto-label">协议: -</div>
+              <div class="breadcrumb">协议 / 命令</div>
+            </div>
+            <button aria-label="关闭" class="close-btn" data-close="dh-new-command" title="关闭">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="4" x2="12" y2="12"/>
+                <line x1="12" y1="4" x2="4" y2="12"/>
+              </svg>
+            </button>
           </div>
           <div class="modal-body">
             <div class="new-cmd-form">
@@ -8048,11 +8055,18 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <!-- 告警编辑 modal (Task 10) -->
         <div class="modal-backdrop" id="dh-alert-edit-modal-backdrop"></div>
         <div class="modal" id="dh-alert-edit-modal">
-          <div class="modal-header">
-            <button aria-label="关闭" class="close-btn" data-close="dh-alert-edit" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
-            <span class="modal-title" id="dh-alert-edit-title">新建告警</span>
-            <span class="modal-subtitle" id="dh-alert-edit-id-label">ID: -</span>
-            <span style="flex: 1;"></span>
+          <div class="modal-header-standard">
+            <div class="title-block">
+              <div class="title" id="dh-alert-edit-title">新建告警</div>
+              <div class="subtitle" id="dh-alert-edit-id-label">ID: -</div>
+              <div class="breadcrumb">配置中心 / 告警</div>
+            </div>
+            <button aria-label="关闭" class="close-btn" data-close="dh-alert-edit" title="关闭">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="4" x2="12" y2="12"/>
+                <line x1="12" y1="4" x2="4" y2="12"/>
+              </svg>
+            </button>
           </div>
           <div class="modal-body">
             <div id="dh-alert-edit-body"></div>
