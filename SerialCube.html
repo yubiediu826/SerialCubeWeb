@@ -7916,9 +7916,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 <button class="toolbar-btn" id="dh-open-config-center" data-svg="settings" data-svg-size="14">
                   <span>协议配置</span>
                 </button>
-                <button class="toolbar-btn" id="dh-open-tour" data-svg="graduation-cap" data-svg-size="14">
-                  <span>引导</span>
-                </button>
+                <!-- v1.2.2: 工具栏"引导"按钮移除 — 引导入口已搬到协议配置 modal header 旁 -->
                 <span class="toolbar-status"><span class="dot"></span>实时 800ms</span>
                 <span class="spacer"></span>
                 <span style="font-size: 0.6875rem; color: var(--text-soft); font-weight: 600;">布局</span>
@@ -7949,27 +7947,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                   <span id="dh-toggle-edit-label">编辑模式</span>
                 </button>
               </div>
-              <!-- v1.2: 协议条 (单协议聚焦) -->
-              <div class="dash-proto-bar" id="dh-dash-proto-bar">
-                <span class="pill bms" id="dh-dash-proto-pill">● 当前协议</span>
-                <span class="dash-meta" id="dh-dash-proto-name">—</span>
-                <div style="flex: 1;"></div>
-                <!-- v1.2.1 (Task 8): "⚙ 设置值" 按钮 — 已连接 + 已选协议时可用 -->
-                <!-- v1.2.2 (UI 清理): 未连接/未选协议时整个按钮 hidden, 跟未连接占位去重 -->
-                <button class="tbtn" id="dh-dash-settings-btn" onclick="NS.openDashboardSettingsModal()" title="设置值 / 字节预览" style="display: none;">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="8" cy="8" r="2.5"/>
-                    <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/>
-                  </svg>
-                  <span>设置值</span>
-                </button>
-                <button class="tbtn" id="dh-dash-proto-switch" style="display: none;">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-                  </svg>
-                  <span id="dh-dash-proto-switch-label">选择协议</span>
-                </button>
-              </div>
+              <!-- v1.2.2: 协议条 (dash-proto-bar) 整块移除 — 未选协议时冗余, 已选协议时由配置中心 modal 接替
+                   注意: '设置值' 功能 (dh-dash-settings-btn) 暂时没入口, 留待 v1.3 恢复 -->
               <div class="command-panel" id="dh-command-panel">
                 <span class="cmd-chip-label">命令:</span>
               </div>
@@ -11928,68 +11907,25 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           // 替换为完整命令面板 + 卡片网格 (兼容 调用点)
           NS.renderCommandPanel();
           NS.renderCardGrid();
-          // v1.2: 单协议聚焦 - 更新协议条 + 未连接占位显隐
+          // v1.2.2: 协议条 (#dh-dash-proto-bar) 整块移除, 函数简化 — 只控制占位区显隐 (卡片区也接管)
           NS.updateDashboardProtoBar();
         };
 
-        // v1.2: 协议条 + 未连接占位 状态更新
-        //   activeProtoId 设了 + 串口已连: 显示协议条 + 卡片
-        //   activeProtoId null (未连接): 显示未连接占位, 卡片区隐藏
-        // v1.2.2 (UI 清理): 删 port 显示 (跟左侧连接管理面板重复), settings 按钮改 display 条件控制
+        // v1.2.2: 协议条移除后 updateDashboardProtoBar 简化 — 只控制 dh-dash-empty (占位区) + dh-card-grid (卡片区)
+        //   原来还控制 dh-dash-proto-bar (协议条) / dh-dash-proto-pill / dh-dash-settings-btn / dh-dash-proto-switch — 这些元素已删除
         NS.updateDashboardProtoBar = function () {
-          const bar = document.getElementById('dh-dash-proto-bar');
           const empty = document.getElementById('dh-dash-empty');
-          const pill = document.getElementById('dh-dash-proto-pill');
-          const name = document.getElementById('dh-dash-proto-name');
-          const settingsBtn = document.getElementById('dh-dash-settings-btn');
           const cardGrid = document.getElementById('dh-card-grid');
-          const switchBtn = document.getElementById('dh-dash-proto-switch');
-          const switchLabel = document.getElementById('dh-dash-proto-switch-label');
           const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
           if (NS.activeProtoId && proto) {
-            // 已激活协议: 显示协议条 + 卡片
-            if (bar) bar.style.display = 'flex';
+            // 已选协议: 隐藏占位, 显示卡片
             if (empty) empty.style.display = 'none';
             if (cardGrid) cardGrid.style.display = '';
-            if (name) name.textContent = (proto.name || proto.id) + ' (' + proto.id + ')';
-            // 设置值按钮: 仅在已连接 + 已选协议时显示 (避免未连接/未选时占位)
-            if (settingsBtn) settingsBtn.style.display = NS._serialConnected ? '' : 'none';
-            if (switchBtn) switchBtn.style.display = '';
-            if (switchLabel) switchLabel.textContent = '切换协议';
-            // pill 颜色根据协议 kind/id
-            if (pill) {
-              const kind = (proto.id || '').replace('proto_', '').toUpperCase();
-              pill.className = 'pill ' + (kind === 'BMS' ? 'bms' : kind === 'EMS' ? 'ems' : kind === 'PCS' ? 'pcs' : 'info');
-              pill.textContent = '● 当前协议';
-            }
           } else {
-            // 未激活: 显示未连接占位
-            if (bar) bar.style.display = 'flex';
-            if (empty) empty.style.display = 'block';
+            // 未选协议: 显示占位, 隐藏卡片
+            if (empty) empty.style.display = 'flex';
             if (cardGrid) cardGrid.style.display = 'none';
-            if (name) name.textContent = '—';
-            // 设置值按钮: 未选协议时隐藏
-            if (settingsBtn) settingsBtn.style.display = 'none';
-            if (switchBtn) switchBtn.style.display = '';
-            if (switchLabel) switchLabel.textContent = '选择协议';
-            if (pill) { pill.className = 'pill unused'; pill.textContent = '○ 未选择协议'; }
           }
-        };
-
-        // v1.2.1 (Task 10): 切换协议按钮 (在协议条右侧, 直接打开协议配置 modal)
-        // v1.2.2 (bug fix): 改调 NS.openConfigCenter('protocols') — 之前引用不存在的 NS.openConfigCenterModal
-        NS._bindProtoBarEvents = function () {
-          const switchBtn = document.getElementById('dh-dash-proto-switch');
-          if (switchBtn) switchBtn.onclick = () => {
-            // v1.2.2: 改调正确的 NS.openConfigCenter(tabName), tab 名是 'protocols' (复数)
-            if (typeof NS.openConfigCenter === 'function') NS.openConfigCenter('protocols');
-            else if (typeof NS.openSelectProtocolModal === 'function') NS.openSelectProtocolModal();
-          };
-          const choosePortBtn = document.getElementById('dh-dash-choose-port');
-          if (choosePortBtn) choosePortBtn.onclick = () => {
-            if (typeof NS._openConnectModal === 'function') NS._openConnectModal();
-            else if (refs && refs.connectBtn) refs.connectBtn.click();
-          };
         };
 
         // === 控制: start / stop ===
@@ -12002,8 +11938,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             NS.initMockData();
             NS.renderKpiCards();
             NS.attachModalHandlers();
-            // v1.2: 协议条 + 调试面板事件
-            NS._bindProtoBarEvents();
+            // v1.2.2: 协议条移除后 _bindProtoBarEvents 也删除, 不再调用
             // 单一挂载点: 扫描所有 [data-svg] 元素渲染 inline SVG
             if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', NS_renderIcons); } else { NS_renderIcons(); }
           }
