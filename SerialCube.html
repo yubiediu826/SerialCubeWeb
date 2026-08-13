@@ -7904,13 +7904,18 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <!-- 5 个 modals (协议编辑器/命令管理/卡片配置/卡片编辑/导入导出/告警配置) -->
         <div class="modal-backdrop" id="dh-proto-backdrop"></div>
         <div class="modal xtra-wide" id="dh-proto-modal">
-          <div class="modal-header">
-            <button aria-label="关闭" class="close-btn" data-close="dh-proto" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
-            <span class="modal-title">协议编辑器</span>
-            <span class="modal-subtitle">TLV 帧结构 · 字段 / 大小端 / 数据段 / 帧预览</span>
-            <span style="flex: 1;"></span>
-            <button class="toolbar-btn" id="dh-proto-import"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"><path d="M3 8 H13 M9 4 L13 8 L9 12"/></svg>导入 JSON</button>
-            <button class="toolbar-btn" id="dh-proto-export"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"><path d="M3 8 H13 M9 4 L13 8 L9 12"/></svg>导出 JSON</button>
+          <div class="modal-header-standard">
+            <div class="title-block">
+              <div class="title" id="dh-proto-modal-title">协议编辑器</div>
+              <div class="subtitle" id="dh-proto-modal-subtitle">TLV 帧结构 · 字段 / 大小端 / 数据段 / 帧预览</div>
+              <div class="breadcrumb">配置中心 / 协议 / 编辑</div>
+            </div>
+            <button aria-label="关闭" class="close-btn" data-close="dh-proto" title="关闭">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="4" x2="12" y2="12"/>
+                <line x1="12" y1="4" x2="4" y2="12"/>
+              </svg>
+            </button>
           </div>
           <div class="proto-tabs" id="dh-proto-tabs"></div>
           <div class="modal-body" style="padding: 0;">
@@ -12697,7 +12702,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                   <span class="num">4</span>
                   <span>帧预览</span>
                 </div>
-                <span style="font-size: 0.6875rem; color: var(--text-soft);">基于 <strong>${previewCmd ? '0x' + previewCmd.id.toString(16).padStart(2, '0').toUpperCase() + ' ' + previewCmd.name : '无'}</strong></span>
+                <span style="font-size: 0.6875rem; color: var(--text-soft); display: flex; align-items: center; gap: 6px;">
+                  基于
+                  <select id="dh-proto-frame-cmd-select" onchange="NS._protoEditFrameCmdChange()" style="padding: 2px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-size: 11px;">
+                    ${(proto.commands || []).map((c) => '<option value="' + NS.escapeHtml(String(c.id)) + '">' + '0x' + c.id.toString(16).padStart(2, '0').toUpperCase() + ' ' + NS.escapeHtml(c.name) + '</option>').join('')}
+                  </select>
+                </span>
               </div>
               <div class="frame-preview">
                 <div class="frame-bytes" id="dh-frame-bytes"></div>
@@ -12751,6 +12761,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             NS.DATA_FIELDS.push({ name: 'new_field_' + (NS.DATA_FIELDS.length + 1), type: 'u16', default: '0x0000' });
             // TODO Task 7 wizard: data field 编辑将改由新建协议向导接管, 这里只 push 不渲染
           };
+          // v1.2.1 (Task 5): append ④ (5 段编号) 命令列表段
+          NS._renderProtoEditCommandsSection(proto);
         };
 
         NS._renderFieldList = function (proto, frame, previewCmd) {
@@ -12837,6 +12849,106 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const rEl = document.getElementById('dh-meta-crc-range');
             if (rEl) rEl.textContent = NS.crcRangeLabel(proto.crcRange || 'all');
           }
+        };
+
+        // v1.2.1 (Task 5): 协议编辑 modal 帧预览 dropdown 切换命令 → 实时 buildFrame
+        NS._protoEditFrameCmdChange = function () {
+          const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
+          if (!proto) return;
+          const sel = document.getElementById('dh-proto-frame-cmd-select');
+          if (!sel) return;
+          const cmdId = parseInt(sel.value, 10);
+          const cmd = (proto.commands || []).find((c) => c.id === cmdId);
+          if (!cmd) return;
+          try {
+            const frame = NS.buildFrame(proto, cmd);
+            NS._renderFramePreview(frame, proto);
+          } catch (e) {
+            console.error('[protoEditFrameCmdChange]', e);
+          }
+        };
+
+        // v1.2.1 (Task 5): 协议编辑 modal ④ 命令列表段 — append 到 dh-proto-body 末尾
+        NS._renderProtoEditCommandsSection = function (proto) {
+          if (!proto) return;
+          const cmds = proto.commands || [];
+          const section = document.createElement('div');
+          section.className = 'proto-section';
+          section.innerHTML =
+            '<div class="proto-section-head">' +
+              '<div class="proto-section-title">' +
+                '<span class="num">5</span>' +
+                '<span>命令列表 (' + cmds.length + ')</span>' +
+              '</div>' +
+              '<button class="toolbar-btn" id="dh-proto-add-cmd-btn" style="height: 24px; padding: 0 10px; font-size: 0.6875rem;">+ 新建命令</button>' +
+            '</div>' +
+            '<div class="frame-preview" style="padding: 0;">' +
+              '<table class="inline-edit-table">' +
+                '<thead><tr>' +
+                  '<th>ID</th><th>name</th><th>dir</th><th>frameType</th><th>cadence</th><th style="width: 100px;">操作</th>' +
+                '</tr></thead>' +
+                '<tbody>' +
+                  (cmds.length === 0
+                    ? '<tr><td colspan="6" style="padding: 20px; text-align: center; color: var(--text-soft);">没有命令, 点右上 "新建命令" 开始</td></tr>'
+                    : cmds.map((c) => {
+                        const idHex = '0x' + c.id.toString(16).padStart(2, '0').toUpperCase();
+                        return '<tr>' +
+                          '<td><code>' + idHex + '</code></td>' +
+                          '<td>' + NS.escapeHtml(c.name || '—') + '</td>' +
+                          '<td>' + NS.escapeHtml(c.direction || '—') + '</td>' +
+                          '<td>' + NS.escapeHtml(c.frameType || '—') + '</td>' +
+                          '<td style="text-align: right;">' + (c.cadence || 0) + ' ms</td>' +
+                          '<td style="white-space: nowrap;">' +
+                            '<button class="row-action accent" data-edit-cmd="' + NS.escapeHtml(String(c.id)) + '" title="编辑命令"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' +
+                            '<button class="row-action danger" data-del-cmd="' + NS.escapeHtml(String(c.id)) + '" title="删除命令"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>' +
+                          '</td>' +
+                        '</tr>';
+                      }).join('')
+                  ) +
+                '</tbody>' +
+              '</table>' +
+            '</div>';
+          const bodyEl = document.getElementById('dh-proto-body');
+          if (bodyEl) bodyEl.appendChild(section);
+
+          // bind 新建命令
+          const newBtn = document.getElementById('dh-proto-add-cmd-btn');
+          if (newBtn) {
+            newBtn.onclick = () => {
+              if (typeof NS.openNewCommandModal === 'function') {
+                NS.openNewCommandModal(proto.id);
+              } else {
+                NS.toast && NS.toast('命令编辑 modal 不可用', 'warn');
+              }
+            };
+          }
+          // bind 编辑命令 (行) → 打开命令编辑 modal
+          document.querySelectorAll('#dh-proto-body [data-edit-cmd]').forEach((b) => b.onclick = () => {
+            const cmdId = b.getAttribute('data-edit-cmd');
+            if (typeof NS.openNewCommandModal === 'function') {
+              const cmd = (proto.commands || []).find((c) => String(c.id) === cmdId);
+              NS.openNewCommandModal(proto.id, cmd);
+            }
+          });
+          // bind 删除命令 (行)
+          document.querySelectorAll('#dh-proto-body [data-del-cmd]').forEach((b) => b.onclick = () => {
+            const cmdId = b.getAttribute('data-del-cmd');
+            const cmd = (proto.commands || []).find((c) => String(c.id) === cmdId);
+            if (!cmd) return;
+            // v1.2 删命令级联 confirm: 检查引用
+            const cardRefs = (NS.CARDS || []).filter((c) => c.cmd === cmd.id && c.protocol === proto.id);
+            if (cardRefs.length > 0) {
+              const ok = confirm('该命令被 ' + cardRefs.length + ' 个卡片引用, 确认删除命令并解除引用?\n\n被影响卡片: ' + cardRefs.map((c) => c.title || c.id).join(', '));
+              if (!ok) return;
+              cardRefs.forEach((c) => { c.cmd = null; c.field = null; });
+            } else {
+              if (!confirm('确认删除命令 "' + cmd.name + '"?')) return;
+            }
+            proto.commands = proto.commands.filter((c) => c.id !== cmd.id);
+            NS.saveConfig && NS.saveConfig();
+            if (typeof NS.renderProtoEditor === 'function') NS.renderProtoEditor();
+            NS.toast && NS.toast('已删除命令 ' + cmd.name, 'success');
+          });
         };
 
         // --- 卡片配置 (card-config + card-edit modals) ---
