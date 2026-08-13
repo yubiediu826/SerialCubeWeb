@@ -7949,9 +7949,9 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 <span class="pill bms" id="dh-dash-proto-pill">● 当前协议</span>
                 <span class="dash-meta" id="dh-dash-proto-name">—</span>
                 <div style="flex: 1;"></div>
-                <span class="dash-meta" id="dh-dash-proto-port">未连接</span>
                 <!-- v1.2.1 (Task 8): "⚙ 设置值" 按钮 — 已连接 + 已选协议时可用 -->
-                <button class="tbtn" id="dh-dash-settings-btn" onclick="NS.openDashboardSettingsModal()" title="设置值 / 字节预览" disabled style="opacity: 0.4; cursor: not-allowed;">
+                <!-- v1.2.2 (UI 清理): 未连接/未选协议时整个按钮 hidden, 跟未连接占位去重 -->
+                <button class="tbtn" id="dh-dash-settings-btn" onclick="NS.openDashboardSettingsModal()" title="设置值 / 字节预览" style="display: none;">
                   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="8" cy="8" r="2.5"/>
                     <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/>
@@ -8366,9 +8366,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             <span class="modal-title" id="dh-pair-trigger-title">触发命令</span>
             <span class="modal-subtitle" id="dh-pair-trigger-subtitle">字段</span>
           </div>
-        </div>
-
-        <!-- v1.2.1 (Task 10): dh-select-proto-modal 已删除 (合并到协议配置 modal) -->
+          <!-- v1.2.1 (Task 10): dh-select-proto-modal 已删除 (合并到协议配置 modal) -->
+          <!-- v1.2.2 (UI 清理): modal-body 和 modal-footer 重新放回 modal 内部 (之前 v1.2.1 删除 openSelectProtocolModal 时结构错位) -->
           <div class="modal-body">
             <div class="form-section-title">设置值</div>
             <div id="dh-pair-trigger-fields"></div>
@@ -8493,7 +8492,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.2.1';  // 同步 README/PRODUCT/About 弹窗版本号
+      const VERSION = '1.2.2';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.2.2 hotfix 补 bump)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
@@ -11926,12 +11925,13 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         // v1.2: 协议条 + 未连接占位 状态更新
         //   activeProtoId 设了 + 串口已连: 显示协议条 + 卡片
         //   activeProtoId null (未连接): 显示未连接占位, 卡片区隐藏
+        // v1.2.2 (UI 清理): 删 port 显示 (跟左侧连接管理面板重复), settings 按钮改 display 条件控制
         NS.updateDashboardProtoBar = function () {
           const bar = document.getElementById('dh-dash-proto-bar');
           const empty = document.getElementById('dh-dash-empty');
           const pill = document.getElementById('dh-dash-proto-pill');
           const name = document.getElementById('dh-dash-proto-name');
-          const port = document.getElementById('dh-dash-proto-port');
+          const settingsBtn = document.getElementById('dh-dash-settings-btn');
           const cardGrid = document.getElementById('dh-card-grid');
           const switchBtn = document.getElementById('dh-dash-proto-switch');
           const switchLabel = document.getElementById('dh-dash-proto-switch-label');
@@ -11942,7 +11942,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             if (empty) empty.style.display = 'none';
             if (cardGrid) cardGrid.style.display = '';
             if (name) name.textContent = (proto.name || proto.id) + ' (' + proto.id + ')';
-            if (port) port.textContent = NS._serialConnected ? '已连接' : '未连接';
+            // 设置值按钮: 仅在已连接 + 已选协议时显示 (避免未连接/未选时占位)
+            if (settingsBtn) settingsBtn.style.display = NS._serialConnected ? '' : 'none';
             if (switchBtn) switchBtn.style.display = '';
             if (switchLabel) switchLabel.textContent = '切换协议';
             // pill 颜色根据协议 kind/id
@@ -11957,10 +11958,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             if (empty) empty.style.display = 'block';
             if (cardGrid) cardGrid.style.display = 'none';
             if (name) name.textContent = '—';
-            if (port) port.textContent = '未连接';
+            // 设置值按钮: 未选协议时隐藏
+            if (settingsBtn) settingsBtn.style.display = 'none';
             if (switchBtn) switchBtn.style.display = '';
             if (switchLabel) switchLabel.textContent = '选择协议';
-            if (pill) { pill.className = 'pill unused'; pill.textContent = '○ 未激活'; }
+            if (pill) { pill.className = 'pill unused'; pill.textContent = '○ 未选择协议'; }
           }
         };
 

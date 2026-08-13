@@ -13,6 +13,10 @@
 
 ### 2026-08-13
 
+- [`changelog/2026-08-13-v1.2.2-ui-cleanup.md`](changelog/2026-08-13-v1.2.2-ui-cleanup.md) — v1.2.2 hotfix: dh-pair-trigger-modal 结构错位修复 (v1.2.1 遗留) + 协议条 5→3 元素精简 + 补 bump VERSION 1.2.1→1.2.2
+- 🔧 工作流改造: B+C — `serialcube-workflow` 加 "新建/大改 UI" 强制 brainstorming/mockup 流程 + `ui-ux-pro-max` 加 "风格基线比对" 必跑步骤
+- 🆕 新 skill: A — `serialcube-modal-review` (6 步 guard: 必要性/位置/嵌套/标题/字段对齐/主题适配) — 第一次实战验证 (协议编辑器 UI 清理)
+- 📐 基线报告: [`design/modal-review-2026-08-13-protocol-editor-ui-cleanup.md`](../design/modal-review-2026-08-13-protocol-editor-ui-cleanup.md)
 - [`changelog/2026-08-13-v1.2.1-ui-consistency.md`](changelog/2026-08-13-v1.2.1-ui-consistency.md) — v1.2.1 UI 一致性修复: 4 modal header 统一 + 协议编辑 4 段重构 + 选协议 modal 合并 + 仪表盘底部挪到 modal
 - 📘 完整交接: [`handover/HANDOFF-V1.2.1-2026-08-13.md`](handover/HANDOFF-V1.2.1-2026-08-13.md) (待实施后回填, 12 tasks / +200 -150)
 - 📋 Plan: [`superpowers/plans/2026-08-13-v1.2.1-ui-consistency-plan.md`](superpowers/plans/2026-08-13-v1.2.1-ui-consistency-plan.md) (12 tasks / 1546 lines)
