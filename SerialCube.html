@@ -13386,7 +13386,21 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         //   z-index 动态: 1000 + stack.length * 20, 栈顶永远最上
         //   Esc 键只关栈顶 modal, 不一次关所有
         NS._modalStack = NS._modalStack || [];
+        // v1.2.2: 重新计算 stack 中各 modal 的 dimmed 状态
+        //   规则: 栈内除顶部外都加 modal-dimmed, 顶部 (用户当前 focus 的) 不加
+        //   每次 open/close 后调一次, 避免"重复打开把自己 dimmed" 的 bug
+        NS._refreshModalDimmed = function () {
+          document.querySelectorAll('.dashboard-host .modal.modal-dimmed').forEach((m) => m.classList.remove('modal-dimmed'));
+          for (let i = 0; i < NS._modalStack.length - 1; i++) {
+            const m = document.getElementById(NS._modalStack[i] + '-modal');
+            if (m) m.classList.add('modal-dimmed');
+          }
+        };
         NS.openModal = function (name) {
+          // dedup: 如果同名 modal 已在栈里, 先关掉 (防止重复 push + 自己被 dimmed)
+          if (NS._modalStack.indexOf(name) >= 0) {
+            NS.closeModal(name);
+          }
           const baseZ = 1000;
           const z = baseZ + NS._modalStack.length * 20;
           const backdrop = document.getElementById(name + '-backdrop');
@@ -13397,12 +13411,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             modal.classList.add('open');
             // 重要弹窗始终居中 (回到 .dashboard-host .modal 默认样式), 不再用 body.toast-pos-XX 强改
           }
-          // v1.2.2: 嵌套 modal 时给栈内所有下层 modal 加 modal-dimmed 虚化
-          NS._modalStack.forEach((n) => {
-            const m = document.getElementById(n + '-modal');
-            if (m) m.classList.add('modal-dimmed');
-          });
           NS._modalStack.push(name);
+          NS._refreshModalDimmed();
           if (name === 'dh-proto') NS.renderProtoEditor();
         };
         NS.closeModal = function (name) {
@@ -13415,13 +13425,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             // 关闭时清掉任何可能残留的 inline style, 回归默认居中
             try { modal.style.cssText = ''; } catch (e) {}
           }
-          const idx = NS._modalStack.lastIndexOf(name);
-          if (idx >= 0) NS._modalStack.splice(idx, 1);
-          // v1.2.2: 关闭后, 栈内剩余的 modal 取消 dimmed (栈顶重新可交互)
-          NS._modalStack.forEach((n) => {
-            const m = document.getElementById(n + '-modal');
-            if (m) m.classList.remove('modal-dimmed');
-          });
+          // 全删同名残留 (防 stack 重复)
+          for (let i = NS._modalStack.length - 1; i >= 0; i--) {
+            if (NS._modalStack[i] === name) NS._modalStack.splice(i, 1);
+          }
+          NS._refreshModalDimmed();
         };
         // Esc 键只关栈顶 modal (避免嵌套时一次关到仪表盘)
         document.addEventListener('keydown', (e) => {
