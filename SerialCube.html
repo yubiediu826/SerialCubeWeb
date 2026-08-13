@@ -6554,39 +6554,80 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .dashboard-host     .modal-subtitle { font-size: 0.6875rem; color: var(--text-soft); }
 
 /* v1.2.1 (Task 3): Modal Header Standard — 统一 4 modal header 布局 (X 右上 + title 左上 + 副标题/面包屑) */
+/* v1.2.2: 重构为单行紧凑布局 — title + meta (副标题/面包屑) 同基线 + 工具按钮区 (可选) + 关闭 X */
 .modal-header-standard {
   display: flex;
   align-items: center;
-  padding: 16px 20px;
+  padding: 12px 20px;
   border-bottom: 1px solid var(--border);
-  gap: 12px;
+  gap: 10px;
+  min-height: 56px;
 }
 .modal-header-standard .title-block {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: baseline;
+  gap: 8px;
   min-width: 0;
   flex: 0 1 auto;
+  overflow: hidden;
 }
 .modal-header-standard .title-block .title {
   font-weight: 600;
   font-size: 16px;
   color: var(--text);
   line-height: 1.3;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
-.modal-header-standard .title-block .subtitle {
+.modal-header-standard .title-block .meta {
   color: var(--text-soft);
   font-size: 12px;
   line-height: 1.3;
-}
-.modal-header-standard .title-block .breadcrumb {
-  color: var(--text-soft);
-  font-size: 11px;
-  line-height: 1.3;
   font-family: var(--font-mono, monospace);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.modal-header-standard .actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  align-items: center;
+  flex-shrink: 0;
+}
+.modal-header-standard .actions .action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.modal-header-standard .actions .action-btn:hover {
+  border-color: var(--text);
+  background: var(--bg-elevated, rgba(0,0,0,0.04));
+}
+.modal-header-standard .actions .action-btn.primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.modal-header-standard .actions .action-btn.primary:hover {
+  filter: brightness(0.95);
+}
+.modal-header-standard .actions .action-btn svg {
+  width: 12px;
+  height: 12px;
 }
 .modal-header-standard .close-btn {
-  margin-left: auto;
   background: none;
   border: none;
   cursor: pointer;
@@ -6597,6 +6638,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
   align-items: center;
   justify-content: center;
   transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
 }
 .modal-header-standard .close-btn:hover {
   background: var(--bg-elevated, rgba(0,0,0,0.04));
@@ -7914,10 +7956,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="modal xtra-wide" id="dh-proto-modal">
           <div class="modal-header-standard">
             <div class="title-block">
-              <div class="title" id="dh-proto-modal-title">协议编辑器</div>
-              <div class="subtitle" id="dh-proto-modal-subtitle">TLV 帧结构 · 字段 / 大小端 / 数据段 / 帧预览</div>
-              <div class="breadcrumb">配置中心 / 协议 / 编辑</div>
+              <span class="title" id="dh-proto-modal-title">协议编辑器</span>
+              <span class="meta">TLV 帧结构 · 字段 / 大小端 / 数据段 / 帧预览 · 配置中心 / 协议 / 编辑</span>
             </div>
+            <div class="actions"></div>
             <button aria-label="关闭" class="close-btn" data-close="dh-proto" title="关闭">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="4" y1="4" x2="12" y2="12"/>
@@ -8008,10 +8050,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="modal" id="dh-new-command-modal">
           <div class="modal-header-standard">
             <div class="title-block">
-              <div class="title" id="dh-new-cmd-modal-title">新建命令</div>
-              <div class="subtitle" id="dh-new-cmd-proto-label">协议: -</div>
-              <div class="breadcrumb">协议 / 命令</div>
+              <span class="title" id="dh-new-cmd-modal-title">新建命令</span>
+              <span class="meta" id="dh-new-cmd-proto-label">协议: - · 协议 / 命令</span>
             </div>
+            <div class="actions"></div>
             <button aria-label="关闭" class="close-btn" data-close="dh-new-command" title="关闭">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="4" y1="4" x2="12" y2="12"/>
@@ -8065,10 +8107,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="modal" id="dh-alert-edit-modal">
           <div class="modal-header-standard">
             <div class="title-block">
-              <div class="title" id="dh-alert-edit-title">新建告警</div>
-              <div class="subtitle" id="dh-alert-edit-id-label">ID: -</div>
-              <div class="breadcrumb">配置中心 / 告警</div>
+              <span class="title" id="dh-alert-edit-title">新建告警</span>
+              <span class="meta" id="dh-alert-edit-id-label">ID: - · 配置中心 / 告警</span>
             </div>
+            <div class="actions"></div>
             <button aria-label="关闭" class="close-btn" data-close="dh-alert-edit" title="关闭">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="4" y1="4" x2="12" y2="12"/>
@@ -8130,9 +8172,18 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="modal xtra-wide" id="dh-config-center-modal">
           <div class="modal-header-standard">
             <div class="title-block">
-              <div class="title">协议配置</div>
-              <div class="subtitle" id="dh-config-center-subtitle">管理协议 + 选择激活协议</div>
-              <div class="breadcrumb">配置中心 / 协议</div>
+              <span class="title">协议配置</span>
+              <span class="meta" id="dh-config-center-subtitle">管理协议 + 选择激活协议 · 配置中心 / 协议</span>
+            </div>
+            <div class="actions">
+              <button class="action-btn" id="dh-cc-proto-import-header" title="导入 JSON">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v10M5 5l3-3 3 3M3 14h10"/></svg>
+                导入
+              </button>
+              <button class="action-btn primary" id="dh-cc-proto-new-header" title="新建协议">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+                新建
+              </button>
             </div>
             <button aria-label="关闭" class="close-btn" data-close="dh-config-center" title="关闭">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -8158,6 +8209,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             </div>
           </div>
           <div class="modal-footer">
+            <span id="dh-config-center-proto-count" style="font-size: 11px; color: var(--text-soft);">共 0 个协议</span>
             <span class="spacer"></span>
             <span id="dh-config-center-status" style="font-size: 11px; color: var(--text-soft); margin-right: 12px;">已自动保存</span>
             <button class="toolbar-btn" id="dh-config-center-export" data-svg="download" data-svg-size="14"><span>导出</span></button>
@@ -13781,24 +13833,20 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               '</td>' +
               '</tr>';
           }).join('');
-          pane.innerHTML = '<div class="toolbar" style="margin-bottom: 12px;">' +
-            '<span style="font-size: 12px; color: var(--text-soft);">共 ' + NS.PROTOCOLS.length + ' 个协议</span>' +
-            '<div style="flex: 1;"></div>' +
-            '<button class="tbtn primary" id="dh-cc-proto-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg> 新建协议</button>' +
-            '<button class="tbtn" id="dh-cc-proto-import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg> 导入 JSON</button>' +
-            '</div>' +
-            '<div class="table-wrap" style="border: 1px solid var(--border); border-radius: 6px;">' +
+          pane.innerHTML = '<div class="table-wrap" style="border: 1px solid var(--border); border-radius: 6px;">' +
             '<table class="table min-wide">' +
             '<thead><tr>' +
             '<th style="width: 60px;">应用</th><th>状态</th><th>ID</th><th>显示名</th><th>类型</th><th style="text-align: right;">字段</th><th style="text-align: right;">命令</th><th style="text-align: right;">关联卡片</th><th>字节序</th><th>CRC</th><th></th>' +
-            '</tr></thead><tbody>' + (rows || '<tr><td colspan="11" style="padding: 20px; text-align: center; color: var(--text-soft);">没有协议, 点右上 "新建协议" 开始</td></tr>') + '</tbody></table></div>';
-          // bind 新建 → 复用 3 步向导
-          const newBtn = document.getElementById('dh-cc-proto-new');
+            '</tr></thead><tbody>' + (rows || '<tr><td colspan="11" style="padding: 20px; text-align: center; color: var(--text-soft);">没有协议, 点 header 右上 "新建" 开始</td></tr>') + '</tbody></table></div>';
+          // v1.2.2: 更新 footer "共 N 个协议" 文本 (从表格 toolbar 移过来)
+          const countEl = document.getElementById('dh-config-center-proto-count');
+          if (countEl) countEl.textContent = '共 ' + NS.PROTOCOLS.length + ' 个协议';
+          // v1.2.2: header 工具按钮 (新建 / 导入) — 替代原表格 toolbar
+          const newBtn = document.getElementById('dh-cc-proto-new-header');
           if (newBtn) newBtn.onclick = () => {
             NS.openNewProtocolWizard();
           };
-          // bind 导入 JSON
-          const importBtn = document.getElementById('dh-cc-proto-import');
+          const importBtn = document.getElementById('dh-cc-proto-import-header');
           if (importBtn) importBtn.onclick = () => {
             const input = document.createElement('input');
             input.type = 'file';
