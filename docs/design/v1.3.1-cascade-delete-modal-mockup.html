@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>v1.3.1 三选项级联 modal — Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-page: #fafafa;
+    --bg-card: #ffffff;
+    --bg-elev: #f4f4f5;
+    --bg-panel: #f9fafb;
+    --border: #e4e4e7;
+    --border-soft: #f1f1f4;
+    --text-1: #18181b;
+    --text-2: #52525b;
+    --text-3: #a1a1aa;
+    --accent: #6366f1;
+    --accent-soft: #eef2ff;
+    --warn: #f59e0b;
+    --warn-soft: #fef3c7;
+    --danger: #f43f5e;
+    --danger-soft: #fee2e2;
+    --success: #10b981;
+    --success-soft: #d1fae5;
+    --radius: 6px;
+    --radius-sm: 4px;
+    --shadow-soft: 0 2px 8px rgba(0,0,0,0.04);
+    --shadow-modal: 0 8px 24px rgba(0,0,0,0.08);
+    --font: 'Outfit', system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 24px;
+    font-family: var(--font);
+    background: var(--bg-page); color: var(--text-1);
+    font-size: 14px; line-height: 1.5;
+  }
+  .container { max-width: 920px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 24px; }
+  h1 { font-size: 26px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .subtitle { color: var(--text-2); font-size: 13px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; background: var(--accent-soft); color: var(--accent); margin-left: 6px; vertical-align: 2px; }
+
+  /* 场景切换 */
+  .scenarios { display: flex; gap: 8px; margin-bottom: 20px; justify-content: center; }
+  .scenarios button {
+    padding: 6px 14px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    cursor: pointer; font-family: var(--font); font-size: 12px; color: var(--text-2);
+  }
+  .scenarios button.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* 上下文背景 (仪表盘 / 配置中心) */
+  .context {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; min-height: 460px;
+    box-shadow: var(--shadow-soft); position: relative;
+  }
+  .context-title { font-size: 12px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 12px; }
+
+  /* 配置中心简化背景 (协议/命令/卡片 tab) */
+  .cc-rows { display: flex; flex-direction: column; gap: 8px; opacity: 0.4; }
+  .cc-row {
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+    background: var(--bg-panel); border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+    font-size: 13px;
+  }
+  .cc-row .id { font-family: var(--mono); color: var(--text-3); font-size: 11px; min-width: 60px; }
+  .cc-row .name { flex: 1; }
+  .cc-row .icon-btn {
+    width: 24px; height: 24px; border: 1px solid var(--border);
+    background: var(--bg-card); border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-3);
+  }
+  .cc-row .icon-btn.danger { color: var(--danger); }
+
+  /* ===== Modal (核心) ===== */
+  .modal-backdrop {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.32); backdrop-filter: blur(2px);
+    z-index: 10; display: flex; align-items: center; justify-content: center;
+    border-radius: 12px;
+  }
+  .modal {
+    width: 420px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: var(--shadow-modal); overflow: hidden;
+  }
+  .modal-header {
+    padding: 16px 20px 12px; border-bottom: 1px solid var(--border-soft);
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .modal-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--warn-soft); color: var(--warn);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .modal-title { font-size: 15px; font-weight: 600; flex: 1; }
+  .modal-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .modal-close {
+    width: 24px; height: 24px; border: none; background: transparent;
+    cursor: pointer; color: var(--text-3);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-close:hover { color: var(--text-1); }
+
+  .modal-body { padding: 16px 20px; }
+  .modal-section { margin-bottom: 14px; }
+  .modal-section:last-child { margin-bottom: 0; }
+  .section-label {
+    font-size: 11px; color: var(--text-3);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    font-weight: 600; margin-bottom: 6px;
+  }
+  .section-desc { font-size: 13px; color: var(--text-2); line-height: 1.55; }
+
+  /* 引用预览 (核心 1) */
+  .refs {
+    display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px;
+    background: var(--bg-panel); border: 1px solid var(--border-soft);
+    border-radius: var(--radius);
+  }
+  .ref-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; font-size: 12px; font-weight: 500;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text-2);
+  }
+  .ref-chip .num {
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    color: var(--text-1);
+  }
+  .ref-chip.cmd .num { color: var(--accent); }
+  .ref-chip.card .num { color: var(--success); }
+  .ref-chip.alert .num { color: var(--danger); }
+  .refs-empty { font-size: 12px; color: var(--text-3); font-style: italic; }
+
+  /* 仅删自己 hint */
+  .self-hint {
+    margin-top: 6px; padding: 6px 10px;
+    background: var(--warn-soft); color: #92400e;
+    font-size: 11px; border-radius: var(--radius-sm);
+    display: flex; align-items: center; gap: 4px;
+  }
+
+  /* 按钮区 */
+  .modal-footer {
+    padding: 12px 20px 16px; border-top: 1px solid var(--border-soft);
+    display: flex; gap: 8px; justify-content: flex-end;
+    background: var(--bg-panel);
+  }
+  .btn {
+    padding: 8px 14px; border: 1px solid var(--border);
+    background: var(--bg-card); color: var(--text-1);
+    border-radius: var(--radius-sm); cursor: pointer;
+    font-size: 13px; font-weight: 500; font-family: var(--font);
+  }
+  .btn:hover { background: var(--bg-elev); }
+  .btn.primary { background: var(--danger); color: white; border-color: var(--danger); }
+  .btn.primary:hover { background: #e11d48; }
+  .btn.ghost { border-color: transparent; color: var(--text-2); }
+  .btn.ghost:hover { background: var(--bg-elev); }
+
+  /* 比较表 */
+  .compare { margin-top: 32px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .compare h2 { margin: 0 0 12px; font-size: 17px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-soft); }
+  th { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; }
+  .check { color: var(--success); font-weight: 600; }
+  .cross { color: var(--danger); font-weight: 600; }
+
+  /* v1.2 vs v1.3.1 对比 */
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .vs-card { background: var(--bg-panel); border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px 12px; }
+  .vs-card.v1 { opacity: 0.7; }
+  .vs-card.v2 { border-color: var(--accent); }
+  .vs-card h4 { margin: 0 0 4px; font-size: 12px; }
+  .vs-card code {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text-2); background: var(--bg-card);
+    padding: 1px 5px; border-radius: 3px; border: 1px solid var(--border-soft);
+  }
+  .vs-card pre {
+    margin: 6px 0 0; font-family: var(--mono); font-size: 10px;
+    color: var(--text-2); white-space: pre-wrap; line-height: 1.4;
+  }
+
+  @media (max-width: 720px) { .candidates, .vs { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>v1.3.1 三选项级联 modal <span class="badge">brainstorming</span></h1>
+    <div class="subtitle">替换 v1.2 browser confirm · 协议/命令/卡片删除 · 3 选项 + 简单计数引用预览</div>
+  </header>
+
+  <!-- 场景切换 -->
+  <div class="scenarios">
+    <button class="active" data-scenario="protocol" onclick="showScenario('protocol')">删除协议</button>
+    <button data-scenario="command" onclick="showScenario('command')">删除命令</button>
+    <button data-scenario="card" onclick="showScenario('card')">删除卡片</button>
+  </div>
+
+  <!-- 上下文 + Modal -->
+  <div class="context">
+    <div class="context-title">配置中心 → 协议 Tab (背景, modal 浮起时 dim)</div>
+
+    <!-- 协议 Tab rows -->
+    <div class="cc-rows" id="cc-rows">
+      <div class="cc-row">
+        <span class="id">proto_bms</span>
+        <span class="name">BMS TLV v1 (Legacy)</span>
+        <button class="icon-btn" title="编辑"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+        <button class="icon-btn danger" title="删除"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+      </div>
+      <div class="cc-row">
+        <span class="id">proto_modbus</span>
+        <span class="name">Modbus RTU (Legacy)</span>
+        <button class="icon-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+        <button class="icon-btn danger"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+      </div>
+    </div>
+
+    <!-- ===== Modal ===== -->
+    <div class="modal-backdrop">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div style="flex:1;">
+            <div class="modal-title" id="modal-title">确认删除协议 proto_bms?</div>
+            <div class="modal-meta" id="modal-meta">BMS TLV v1 (Legacy) · 8 条命令</div>
+          </div>
+          <button class="modal-close" title="取消">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="modal-section">
+            <div class="section-label">引用预览</div>
+            <div class="refs" id="refs">
+              <span class="ref-chip cmd"><span class="num">8</span> 条命令</span>
+              <span class="ref-chip card"><span class="num">12</span> 张卡片</span>
+              <span class="ref-chip alert"><span class="num">4</span> 条告警</span>
+            </div>
+            <div class="self-hint" id="self-hint">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              选"仅删自己"会留下 12 张孤儿卡片 + 4 条孤儿告警, 引用悬挂
+            </div>
+          </div>
+
+          <div class="modal-section">
+            <div class="section-label">删除方式</div>
+            <div class="section-desc">请选择如何处理被引用的对象。</div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn ghost" id="btn-cancel">取消</button>
+          <button class="btn" id="btn-self">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:4px;"><path d="M19 7l-7 7-7-7M19 7v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7"/></svg>
+            仅删自己
+          </button>
+          <button class="btn primary" id="btn-cascade">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:4px;"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            级联删除 (24 个)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- v1.2 vs v1.3.1 对比 -->
+  <div class="compare">
+    <h2>v1.2 → v1.3.1 升级</h2>
+    <div class="vs">
+      <div class="vs-card v1">
+        <h4>v1.2 browser confirm</h4>
+        <pre>确认删除 协议 proto_bms?
+将被级联删除: 8 条命令 / 12 张卡片 / 4 条告警
+
+[确定] = 级联删除
+[取消] = 不删除</pre>
+        <code>NS._cascadeConfirm('protocol', id, label)</code>
+      </div>
+      <div class="vs-card v2">
+        <h4>v1.3.1 三选项 modal</h4>
+        <pre>┌─ 引用预览 (chip)
+│  [8 条命令] [12 张卡片] [4 条告警]
+├─ 删除方式 (3 选项)
+│  [取消] [仅删自己] [级联删除 (24)]</pre>
+        <code>NS._openCascadeModal(type, id, label) → 'self'|'cascade'|'cancel'</code>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>维度</th>
+          <th>v1.2 (现状)</th>
+          <th>v1.3.1 (升级)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>UI</td><td>browser confirm (原生)</td><td>自定义 modal (跟其他 modal 一致)</td></tr>
+        <tr><td>选项数</td><td>2 (级联 / 取消)</td><td>3 (仅删自己 / 级联 / 取消)</td></tr>
+        <tr><td>预览</td><td>纯文本 "8 条命令 / 12 张卡片"</td><td>chip 显示 (彩色分类) + 仅删自己 hint</td></tr>
+        <tr><td>主题适配</td><td>原生, 不跟 SerialCube 主题</td><td>CSS 变量, 浅色 + 深色一致</td></tr>
+        <tr><td>告警删除</td><td>简单 confirm (1 处)</td><td>保持简单 confirm (不变)</td></tr>
+        <tr><td>协议/命令/卡片</td><td>_cascadeConfirm 3 处</td><td>_openCascadeModal 3 处</td></tr>
+        <tr><td>工作日</td><td>-</td><td>1-2 天</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  const scenarios = {
+    protocol: {
+      title: '确认删除协议 proto_bms?',
+      meta: 'BMS TLV v1 (Legacy) · 8 条命令',
+      refs: [
+        { type: 'cmd', label: '条命令', num: 8 },
+        { type: 'card', label: '张卡片', num: 12 },
+        { type: 'alert', label: '条告警', num: 4 }
+      ],
+      selfHint: '选"仅删自己"会留下 12 张孤儿卡片 + 4 条孤儿告警, 引用悬挂',
+      cascadeCount: 24
+    },
+    command: {
+      title: '确认删除命令 0x01 Read Voltage?',
+      meta: '所属协议 proto_bms · 5 个 dataFields',
+      refs: [
+        { type: 'card', label: '张卡片引用', num: 4 },
+        { type: 'alert', label: '条告警引用', num: 1 }
+      ],
+      selfHint: '选"仅删自己"会清空 4 张卡片的 cmd 引用 (card.cmd = null)',
+      cascadeCount: 6
+    },
+    card: {
+      title: '确认删除卡片 c1 Cell 1 电压?',
+      meta: '所属协议 proto_bms · 读 0x01 cmd · field: cell_1_v',
+      refs: [
+        { type: 'alert', label: '条告警引用', num: 1 }
+      ],
+      selfHint: '选"仅删自己"会留下 1 条孤儿告警, 告警不再触发',
+      cascadeCount: 2
+    }
+  };
+  function showScenario(name) {
+    const s = scenarios[name];
+    document.querySelectorAll('.scenarios button').forEach(b => b.classList.toggle('active', b.dataset.scenario === name));
+    document.getElementById('modal-title').textContent = s.title;
+    document.getElementById('modal-meta').textContent = s.meta;
+    document.getElementById('refs').innerHTML = s.refs.map(r =>
+      `<span class="ref-chip ${r.type}"><span class="num">${r.num}</span> ${r.label}</span>`
+    ).join('');
+    document.getElementById('self-hint').textContent = s.selfHint;
+    document.getElementById('btn-cascade').innerHTML =
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:4px;"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>级联删除 (' + s.cascadeCount + ' 个)';
+  }
+  // 初始化 rows (背景)
+  // 简化: 已经在 HTML 里写死
+</script>
+
+</body>
+</html>
