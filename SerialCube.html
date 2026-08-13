@@ -15285,8 +15285,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             refs.cards = (NS.CARDS || []).filter(function (c) { return c.cmd === id; });
             refs.alerts = (NS.ALERTS || []).filter(function (a) { return a.cmd === id; });
           } else if (type === 'card') {
-            // card.id 是 string (e.g. 'card_xxx') 或用 title 匹配
-            refs.alerts = (NS.ALERTS || []).filter(function (a) { return a.name === id; });
+            // v1.3.1 修: 兼容 v1.2 line 14657 实际删除行为 (a.name === card.title || card.id)
+            //   之前用 a.name === id, 但 card id 不一定是 a.name (a.name 可能是 card.title)
+            const card = (NS.CARDS || []).find(function (c) { return c.id === id; });
+            refs.alerts = (NS.ALERTS || []).filter(function (a) {
+              return a.name === id || (card && a.name === (card.title || card.id));
+            });
           }
           return refs;
         };
