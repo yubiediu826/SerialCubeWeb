@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>SerialCube v1.2.1 UI 一致性 — 设计预览</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-elevated: #ffffff;
+      --bg-panel: #f9fafb;
+      --bg-subtle: #f6f6f7;
+      --bg-terminal: #f6f6f7;
+      --border: rgba(60, 60, 67, 0.16);
+      --border-strong: rgba(60, 60, 67, 0.24);
+      --text: #3c3c43;
+      --text-soft: #6b7280;
+      --accent: #3b82f6;
+      --c-header: #6366f1;
+      --c-addr: #3a5ccc;
+      --c-cmd: #d97706;
+      --c-length: #16a34a;
+      --c-data: #374151;
+      --c-crc: #dc2626;
+      --c-tail: #6366f1;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 32px; }
+    body.theme-dark {
+      --bg: #1b1b1f;
+      --bg-elevated: #2a2a30;
+      --bg-panel: #161618;
+      --bg-subtle: #161618;
+      --bg-terminal: #161618;
+      --border: rgba(60, 63, 68, 0.32);
+      --border-strong: rgba(60, 63, 68, 0.6);
+      --text: #dfdfd6;
+      --text-soft: #9ca3af;
+      --accent: #60a5fa;
+      --c-header: #a5b4fc;
+      --c-addr: #93b5ff;
+      --c-cmd: #fbbf24;
+      --c-length: #86efac;
+      --c-data: #cbd5e1;
+      --c-crc: #fca5a5;
+      --c-tail: #a5b4fc;
+    }
+    h1 { font-size: 24px; margin: 0 0 4px; }
+    h2 { font-size: 20px; margin: 32px 0 8px; padding-bottom: 6px; border-bottom: 2px solid var(--border-strong); }
+    h3 { font-size: 16px; margin: 16px 0 8px; color: var(--text-soft); }
+    .subtitle { color: var(--text-soft); font-size: 13px; margin: 0 0 24px; }
+    .theme-btn { background: var(--bg-panel); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; margin-right: 6px; }
+    .mockup { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin: 16px 0; background: var(--bg-elevated); }
+    .mockup-header { background: var(--bg-panel); color: var(--text-soft); padding: 8px 14px; font-size: 12px; font-family: ui-monospace, monospace; border-bottom: 1px solid var(--border); }
+    .mockup-body { background: var(--bg); }
+    .modal-header-standard { display: flex; align-items: center; background: var(--bg-elevated); padding: 16px 20px; border-bottom: 1px solid var(--border); }
+    .modal-header-standard .title-block .title { font-weight: 600; font-size: 16px; color: var(--text); }
+    .modal-header-standard .title-block .subtitle { color: var(--text-soft); font-size: 12px; margin-top: 2px; }
+    .modal-header-standard .close-btn { margin-left: auto; background: transparent; border: none; font-size: 18px; color: var(--text-soft); cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+    .modal-header-standard .close-btn:hover { color: var(--text); background: var(--bg-subtle); }
+    .frame-preview { background: var(--bg-terminal); border: 1px solid var(--border); padding: 12px 14px; border-radius: 6px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.6; overflow-x: auto; color: var(--text); }
+    .frame-bytes .byte { display: inline-block; padding: 1px 3px; border-radius: 3px; }
+    .frame-bytes .byte.header { background: rgba(129, 140, 248, 0.18); color: var(--c-header); }
+    .frame-bytes .byte.cmd { background: rgba(217, 119, 6, 0.18); color: var(--c-cmd); }
+    .frame-bytes .byte.length { background: rgba(34, 197, 94, 0.18); color: var(--c-length); }
+    .frame-bytes .byte.data { background: var(--bg); color: var(--c-data); }
+    .frame-bytes .byte.crc { background: rgba(224, 87, 94, 0.18); color: var(--c-crc); }
+    .frame-bytes .byte.tail { background: rgba(129, 140, 248, 0.18); color: var(--c-tail); }
+    .frame-meta { display: flex; gap: 14px; margin-top: 8px; font-size: 11px; color: var(--text-soft); font-family: ui-monospace, monospace; flex-wrap: wrap; }
+    .frame-meta .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+    .summary { margin-top: 32px; padding: 16px; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 8px; }
+    .summary table { width: 100%; font-size: 13px; border-collapse: collapse; }
+    .summary td { padding: 6px; border-bottom: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<h1>SerialCube v1.2.1 UI 一致性修复 — 设计预览</h1>
+<p class="subtitle">A1 + A2 + B2 + C3+ + D1 + D6 整合后的样子, 4 个关键界面 mockup + 帧预览主题切换 (v6) 验证</p>
+
+<div style="margin-bottom:24px">
+  <span style="color:var(--text-soft);font-size:12px;margin-right:8px">切主题 (测帧预览 data 段 var(--bg) 微差"切开"感):</span>
+  <button class="theme-btn" onclick="document.body.classList.remove('theme-dark')">🌞 浅色</button>
+  <button class="theme-btn" onclick="document.body.classList.add('theme-dark')">🌙 深色</button>
+</div>
+
+<!-- 1. 仪表盘 修复后 (A1 + A2) -->
+<h2>1. 仪表盘 — 修复后 (A1 + A2)</h2>
+<div class="mockup">
+  <div class="mockup-header">Dashboard (disconnected) — 设置值挪到 modal, 引导按钮删除</div>
+  <div class="mockup-body" style="padding:0">
+    <div style="border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:12px;background:var(--bg-elevated)">
+      <div style="font-weight:600">● 协议条: BMS TLV v1</div>
+      <div style="color:var(--text-soft);margin-left:auto">未连接</div>
+      <button class="theme-btn" style="opacity:0.5;cursor:not-allowed" disabled>⚙ 设置值</button>
+      <button style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer">选择协议</button>
+    </div>
+    <div style="padding:24px;text-align:center;border:2px dashed var(--border);border-radius:8px;margin:24px;background:var(--bg-subtle)">
+      <div style="font-size:32px;color:var(--text-soft);margin-bottom:8px">⌬</div>
+      <div style="font-weight:600;color:var(--text)">未连接串口</div>
+      <div style="color:var(--text-soft);margin-top:4px">连接后选择协议, 仪表盘会显示该协议的卡片</div>
+      <button style="margin-top:12px;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:8px 16px;cursor:pointer">连接设备</button>
+    </div>
+    <div style="padding:0 24px 24px;color:var(--text-soft);text-align:center">
+      <small>(已删除: 引导按钮 / 设置值底部常驻区 / 引导灯泡)</small>
+    </div>
+  </div>
+</div>
+
+<!-- 2. 协议配置 modal (D1 + B2 + D6) -->
+<h2>2. 协议配置 Modal — 合并选择协议 + 应用列 + 新建协议去重 (D1 + B2 + D6)</h2>
+<div class="mockup">
+  <div class="mockup-header">"选择协议" 和 "协议配置" 合并为 1 个 modal — 右上 X (B2), 列表行"应用"列 (D1), 只 1 个"新建协议"按钮 (D6)</div>
+  <div class="mockup-body" style="padding:0;background:var(--bg-panel)">
+    <div class="modal-header-standard">
+      <div class="title-block">
+        <div class="title">协议配置</div>
+        <div class="subtitle">协议 / 命令 / 字段 / 导入导出</div>
+      </div>
+      <button class="close-btn">✕</button>
+    </div>
+    <div style="background:var(--bg-elevated);padding:8px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;font-size:14px">
+      <span style="color:var(--accent);border-bottom:2px solid var(--accent);padding:6px 0">● 协议</span>
+      <span style="color:var(--text-soft);padding:6px 0">命令 (8)</span>
+      <span style="color:var(--text-soft);padding:6px 0">卡片 (12)</span>
+      <span style="color:var(--text-soft);padding:6px 0">告警 (0)</span>
+      <button style="margin-left:auto;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer">+ 新建协议</button>
+    </div>
+    <div style="padding:16px 20px">
+      <table style="width:100%;font-size:13px;border-collapse:collapse">
+        <thead><tr style="background:var(--bg-subtle);text-align:left">
+          <th style="padding:8px;width:60px">应用</th>
+          <th style="padding:8px">状态</th>
+          <th style="padding:8px">显示名</th>
+          <th style="padding:8px">类型</th>
+          <th style="padding:8px">字段</th>
+          <th style="padding:8px">命令</th>
+          <th style="padding:8px">CRC</th>
+          <th style="padding:8px">操作</th>
+        </tr></thead>
+        <tbody>
+          <tr style="background:rgba(59,130,246,0.05)">
+            <td style="padding:8px;color:var(--accent);font-size:16px;text-align:center">●</td>
+            <td style="padding:8px"><span style="background:rgba(59,130,246,0.15);color:var(--accent);padding:2px 8px;border-radius:10px;font-size:11px">使用中</span></td>
+            <td style="padding:8px"><strong>BMS TLV v1</strong> <small style="color:var(--text-soft)">(Legacy)</small></td>
+            <td style="padding:8px">fixed-header</td>
+            <td style="padding:8px">7</td>
+            <td style="padding:8px">8</td>
+            <td style="padding:8px">crc16-modbus</td>
+            <td style="padding:8px;color:var(--text-soft)">✎ ⎘ 🗑</td>
+          </tr>
+          <tr>
+            <td style="padding:8px;color:var(--text-soft);font-size:16px;text-align:center">○</td>
+            <td style="padding:8px;color:var(--text-soft);font-size:11px">未使用</td>
+            <td style="padding:8px">Modbus RTU <small style="color:var(--text-soft)">(Legacy)</small></td>
+            <td style="padding:8px">fixed-header</td>
+            <td style="padding:8px">7</td>
+            <td style="padding:8px">0</td>
+            <td style="padding:8px">crc16-modbus</td>
+            <td style="padding:8px;color:var(--text-soft)">✎ ⎘ 🗑</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="background:var(--bg-elevated);padding:12px 20px;border-top:1px solid var(--border);display:flex;align-items:center;color:var(--text-soft);font-size:12px">
+      <span>已自动保存</span>
+      <button class="theme-btn" style="margin-left:auto">导出</button>
+      <button style="margin-left:8px;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer">完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- 3. 协议编辑 modal 4 段 (C3+ + B2) -->
+<h2>3. 协议编辑 Modal — 4 段 (C3+ + B2)</h2>
+<div class="mockup">
+  <div class="mockup-header">1 步长表单 (C3+) — 4 段: ① 基础 / ② 帧预览 / ③ 帧字段 / ④ 命令列表; 右上 X (B2)</div>
+  <div class="mockup-body" style="padding:0;background:var(--bg-panel);max-height:600px;overflow:auto">
+    <div class="modal-header-standard">
+      <div class="title-block">
+        <div class="title">编辑协议: BMS TLV v1</div>
+        <div class="subtitle">协议 / 命令 / 字段 / 导入导出</div>
+      </div>
+      <button class="close-btn">✕</button>
+    </div>
+    <div style="padding:20px">
+
+      <div style="font-weight:600;font-size:14px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)">① 基础</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">
+        <label>显示名 <input style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px;background:var(--bg-elevated);color:var(--text)" value="BMS TLV v1"></label>
+        <label>内部 ID <input style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px;background:var(--bg-elevated);color:var(--text)" value="proto_bms"></label>
+        <label>类型 <select style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px;background:var(--bg-elevated);color:var(--text)"><option>fixed-header</option></select></label>
+        <label>标签 <input style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px;background:var(--bg-elevated);color:var(--text)" value="BMS"></label>
+      </div>
+
+      <div style="font-weight:600;font-size:14px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border);display:flex;align-items:center">
+        ② 帧预览
+        <span style="margin-left:8px;font-size:11px;color:var(--text-soft);font-weight:400">实时根据协议 header + dataFields default 拼帧 · 字节用空格分隔</span>
+        <select style="margin-left:auto;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;background:var(--bg-elevated);color:var(--text)">
+          <option>命令 01: Read Voltage (RX)</option>
+          <option>命令 02: Read Current (RX)</option>
+        </select>
+      </div>
+      <div class="frame-preview">
+        <div class="frame-bytes">
+          <span class="byte header">AA</span>
+          <span class="byte length">00 0C</span>
+          <span class="byte cmd">01</span>
+          <span class="byte data">00 00 00 00 00 00 00 00 00</span>
+          <span class="byte crc">9F 55</span>
+        </div>
+      </div>
+      <div class="frame-meta">
+        <span><span class="dot" style="background:rgba(129,140,248,0.6)"></span>header</span>
+        <span><span class="dot" style="background:rgba(217,119,6,0.6)"></span>cmd</span>
+        <span><span class="dot" style="background:rgba(34,197,94,0.6)"></span>length</span>
+        <span><span class="dot" style="background:var(--bg);border:1px solid var(--border)"></span>payload (data = --bg)</span>
+        <span><span class="dot" style="background:rgba(224,87,94,0.6)"></span>crc</span>
+      </div>
+
+      <div style="font-weight:600;font-size:14px;margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)">③ 帧字段 (7)</div>
+      <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:24px">
+        <thead><tr style="background:var(--bg-subtle);text-align:left">
+          <th style="padding:6px">name</th><th style="padding:6px">type</th><th style="padding:6px">len</th><th style="padding:6px">endian</th><th style="padding:6px">default</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:4px 6px">header</td><td style="padding:4px 6px">u8</td><td style="padding:4px 6px">1</td><td style="padding:4px 6px">BE</td><td style="padding:4px 6px">0xAA</td></tr>
+          <tr><td style="padding:4px 6px">length</td><td style="padding:4px 6px">u16</td><td style="padding:4px 6px">2</td><td style="padding:4px 6px">BE</td><td style="padding:4px 6px">—</td></tr>
+          <tr><td style="padding:4px 6px">cmd</td><td style="padding:4px 6px">u8</td><td style="padding:4px 6px">1</td><td style="padding:4px 6px">—</td><td style="padding:4px 6px">—</td></tr>
+          <tr style="color:var(--text-soft)"><td style="padding:4px 6px" colspan="5">+ 4 more (collapsed)</td></tr>
+        </tbody>
+      </table>
+
+      <div style="font-weight:600;font-size:14px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)">④ 命令列表 (8)</div>
+      <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:24px">
+        <thead><tr style="background:var(--bg-subtle);text-align:left">
+          <th style="padding:6px">ID</th><th style="padding:6px">name</th><th style="padding:6px">dir</th><th style="padding:6px">payload fields</th><th style="padding:6px">操作</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:4px 6px">01</td><td style="padding:4px 6px">Read Voltage</td><td style="padding:4px 6px">RX</td><td style="padding:4px 6px">2 fields</td><td style="padding:4px 6px;color:var(--text-soft)">✎ ⎘ 🗑</td></tr>
+          <tr><td style="padding:4px 6px">02</td><td style="padding:4px 6px">Read Current</td><td style="padding:4px 6px">RX</td><td style="padding:4px 6px">2 fields</td><td style="padding:4px 6px;color:var(--text-soft)">✎ ⎘ 🗑</td></tr>
+          <tr style="color:var(--text-soft)"><td style="padding:4px 6px" colspan="5">+ 6 more (collapsed)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="background:var(--bg-elevated);padding:12px 20px;border-top:1px solid var(--border);display:flex;align-items:center">
+      <button class="theme-btn">+ 新建命令</button>
+      <span style="margin-left:auto;color:var(--text-soft);font-size:12px">已自动保存</span>
+      <button style="margin-left:8px;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer">完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- 4. 命令编辑 modal (B2 一致性) -->
+<h2>4. 命令编辑 Modal — 复用 .modal-header-standard (B2 一致性)</h2>
+<div class="mockup">
+  <div class="mockup-header">同 1 个 .modal-header-standard 组件 — 右上 X + 左上 title + 副标题 (与协议编辑/协议配置/告警编辑一致)</div>
+  <div class="mockup-body" style="padding:0;background:var(--bg-panel)">
+    <div class="modal-header-standard">
+      <div class="title-block">
+        <div class="title">编辑命令: Read Voltage</div>
+        <div class="subtitle">协议 BMS TLV v1 / 命令</div>
+      </div>
+      <button class="close-btn">✕</button>
+    </div>
+    <div style="padding:20px;color:var(--text-soft);text-align:center">
+      <small>(内部表单复用 v1.2 已有命令编辑 modal — 4 段: 基础 / 帧预览 / 数据字段 / 批量操作, 不重画; 仅顶部 header 改用统一组件)</small>
+    </div>
+  </div>
+</div>
+
+<!-- 决策汇总 -->
+<div class="summary">
+  <h3 style="margin-top:0">决策汇总</h3>
+  <table>
+    <tr><td style="width:60px"><strong>A1</strong></td><td>仪表盘"设置值/字节预览"挪到 modal (⚙ 按钮触发); 删"引导"按钮</td></tr>
+    <tr><td><strong>A2</strong></td><td>协议条"引导"按钮删除 (与 A1 一并做)</td></tr>
+    <tr><td><strong>B2</strong></td><td>统一 .modal-header-standard 组件 (右上 X + 左上 title + 副标题/面包屑); 4 个现有 modal 一次对齐</td></tr>
+    <tr><td><strong>C3+</strong></td><td>协议编辑 modal = 1 步长表单 (4 段: ① 基础 / ② 帧预览 / ③ 帧字段 / ④ 命令列表); 帧预览沿用 .frame-preview 现有样式 + .byte.data 用 var(--bg) 微差"切开"</td></tr>
+    <tr><td><strong>D1</strong></td><td>合并"选择协议 modal"和"协议配置 modal"; 列表行"应用"列 (●/○) 替代独立选择 modal</td></tr>
+    <tr><td><strong>D6</strong></td><td>协议配置 modal 内"新建协议"按钮去重, 只留 1 个 (内容区右上)</td></tr>
+  </table>
+</div>
+
+<p class="subtitle" style="margin-top:24px">
+  <strong>测试提示:</strong> 点 [🌙 深色] 切到深色, 看 ② 帧预览 data 段 (中间 9 个 00) 是不是跟 frame 容器有"切开"感 (深黑 #1b1b1f vs 深灰 #161618, 浅色下白 #ffffff vs 浅灰 #f6f6f7).
+</p>
+
+</body>
+</html>
