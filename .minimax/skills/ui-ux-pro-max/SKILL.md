@@ -1,11 +1,27 @@
 ---
 name: ui-ux-pro-max
-description: "UI/UX 设计数据查询库 — 84 风格 / 192 配色 / 74 字体 / 25 chart 类型 / 22 栈的本地 BM25 搜索。**当用户说「配色 / 字体 / 风格 / chart 类型 / 选个 UI 库」时触发**，先 `search.py` 查 data/ 再读结果。SerialCube 项目优先用 HTML/CSS / Tailwind / shadcn 相关数据（不用 Android/iOS/桌面端 stack）。"
+description: "UI/UX 设计数据查询库 + 风格基线比对 — 84 风格 / 192 配色 / 74 字体 / 25 chart 类型 / 22 栈的本地 BM25 搜索。**两类触发场景**：(1) 用户主动问「配色 / 字体 / 风格 / chart 类型 / 选个 UI 库」时查数据；(2) **新建 UI 组件 / 新建 modal / 新建页面 / 大改 UI 风格 / UI 一致性问题**时**必跑** `--design-system` 做风格基线 + 跟既有组件比对。**SerialCube 是 desktop web vanilla HTML/CSS**（无 Tailwind / 无框架），优先用 styles/colors/typography/icons 4 个 domain，**不**用 Android/iOS/桌面端 stack data。"
 ---
 
 # UI/UX Pro Max - Design Intelligence
 
 Searchable database of UI/UX design rules with priority-based recommendations: 84 styles, 192 color palettes, 74 font pairings, 192 product types with reasoning rules, 98 UX guidelines, 104 icon entries, 16 GSAP motion presets, and 25 chart types across 22 technology stacks.
+
+## 两类使用场景（强制区分）
+
+### 场景 1: 用户主动问设计数据
+触发词：「配色 / 字体 / 风格 / chart 类型 / 选个 UI 库 / 这个组件怎么设计」→ 查 `data/` 拿推荐
+
+### 场景 2: 新建/大改 UI（**强制触发**）
+触发词：「新建 modal / 新建组件 / 新建页面 / 改 UI 风格 / UI 不一致 / UI 错乱 / 风格统一 / 大改 header / 加新页内段」
+
+**强制动作**（不查数据 = 未完成）：
+1. 跑 `--design-system` 拿完整风格基线（不只是配色）
+2. 跑 `--domain style/colors/typography/icons` 4 个 domain 做**风格基线比对**
+3. **跟 SerialCube 既有 modal/组件做横向对比**（相同元素是否同款样式）
+4. 输出基线报告（pattern / style / colors / typography / icons / anti-patterns）
+
+**为什么是强制**: v1.2.2 教训——6 个 hotfix 修 10 个 UI bug，本质是建新 modal 时没跟既有 modal 做风格基线比对，结果按钮高度/间距/标题位置各做各的。
 
 ## When to Apply
 
@@ -113,6 +129,35 @@ python "${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/search.py" "<
 python "${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/search.py" "internal analytics dashboard" --design-system --variance 8 --motion 7 --density 8 -p "Ops Console"
 ```
 
+### Step 2d: 风格基线比对（**新建/大改 UI 必跑**）
+
+当新建 modal / 新建组件 / 大改 UI 风格时，**除了**跑 `--design-system`，还要跟项目里**既有**的同款元素做横向对比——v1.2.2 教训：6 个 hotfix 修 10 个 UI bug，本质就是缺这一步。
+
+**4 步比对**：
+
+1. **跑 4 个 domain**（每个 5-10 条结果）：
+   ```bash
+   python scripts/search.py "<modal 类型>" --domain style -n 8
+   python scripts/search.py "<modal 类型>" --domain color -n 8
+   python scripts/search.py "<modal 类型>" --domain typography -n 5
+   python scripts/search.py "<modal 类型>" --domain icons -n 10
+   ```
+
+2. **读项目里既有同款元素的 CSS**（grep `SerialCube.html`）：
+   - 同款 modal 的 header 高度/位置/字号
+   - 同款 modal 的 button padding/height/border-radius
+   - 同款 modal 的 input/select 高度
+   - 同款 modal 的 section 间距
+   - 同款 modal 的浅色/深色主题配色
+
+3. **生成基线表**：
+   | 元素 | 既有规范 | 新建/大改方案 | 一致? |
+   |---|---|---|---|
+   | Modal header | 56px, X 右上, title 左上 | 同 | ✓ |
+   | 按钮 | 32px 高, 6px padding, 1px border | 28px, 8px padding | ✗ 改 |
+
+4. **基线报告输出**：写到 `docs/design/baseline-<date>-<feature>.md`，作为 spec 附录。**没有基线表 = 未完成基线比对**。
+
 ### Step 3: Supplement with Detailed Searches (as needed)
 
 ```bash
@@ -194,3 +239,23 @@ Then synthesize the design system + detailed searches and implement.
 ## Before Delivering App UI
 
 Read `references/pro-rules.md` and run through its canonical Pre-Delivery Checklist. It covers icon/visual-element discipline, interaction feedback, light/dark contrast, safe-area layout, and accessibility — scoped to native/mobile app UI (iOS/Android/React Native/Flutter).
+
+## 项目类型适配（必读）
+
+不同项目类型用不同的 data 子集 + 不同的 pro-rules 适配：
+
+| 项目类型 | 用的 data | 用的 pro-rules | 触觉目标 |
+|---|---|---|---|
+| **Desktop web (vanilla HTML/CSS, like SerialCube)** | `html-tailwind` data 当参考 / `styles/colors/typography/icons` 4 个 domain 必查 | `quick-reference.md`（不是 pro-rules）| min 32×32px click target |
+| **React/Next/Vue web** | 对应 stack data + `react-performance` | `quick-reference.md` | min 32×32px |
+| **Native iOS/Android/RN/Flutter** | 对应 stack data + `web` domain | `pro-rules.md`（原生版）| min 44×44pt |
+
+**SerialCube 项目特别注意**（desktop web vanilla HTML/CSS）:
+- ⚠️ **不用** pro-rules.md（声明了 native/mobile scope，不适用）
+- ⚠️ **不用** `flutter/jetpack-compose/swiftui/react-native` 等 mobile stack
+- ✅ 用 `html-tailwind` data 当**参考**（不强制套用，因为 SerialCube 无 Tailwind）
+- ✅ 4 个必查 domain: `style` / `color` / `typography` / `icons`
+- ✅ 必读 `references/quick-reference.md`（stack-agnostic）
+- ✅ Click target **≥ 32×32px**（不是 44×44pt，桌面 web 32 够用）
+- ✅ 中文字体串行布局陷阱：避免在 flex 容器里直接放多个 inline 中文 text node（v1.2.2 教训：基于 + dropdown 被拆字）
+- ✅ Modal scrim 4-8% 透明度（或 modal-dimmed blur(3px)），不是 native 的 40-60% 黑色 scrim
