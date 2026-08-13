@@ -7820,6 +7820,14 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 <span class="dash-meta" id="dh-dash-proto-name">—</span>
                 <div style="flex: 1;"></div>
                 <span class="dash-meta" id="dh-dash-proto-port">未连接</span>
+                <!-- v1.2.1 (Task 8): "⚙ 设置值" 按钮 — 已连接 + 已选协议时可用 -->
+                <button class="tbtn" id="dh-dash-settings-btn" onclick="NS.openDashboardSettingsModal()" title="设置值 / 字节预览" disabled style="opacity: 0.4; cursor: not-allowed;">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="8" cy="8" r="2.5"/>
+                    <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/>
+                  </svg>
+                  <span>设置值</span>
+                </button>
                 <button class="tbtn" id="dh-dash-proto-switch" style="display: none;">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
@@ -8076,6 +8084,44 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             <span class="spacer"></span>
             <button class="toolbar-btn" id="dh-alert-edit-save-as" title="基于当前表单存为新告警 (不覆盖原)">另存为副本</button>
             <button class="toolbar-btn primary" id="dh-alert-edit-save">保存</button>
+          </div>
+        </div>
+
+        <!-- v1.2.1 (Task 9): 仪表盘 "设置值 / 字节预览" modal -->
+        <div class="modal-backdrop" id="dash-settings-modal-backdrop"></div>
+        <div class="modal" id="dash-settings-modal" style="display: none;">
+          <div class="modal-header-standard">
+            <div class="title-block">
+              <div class="title">设置值 / 字节预览</div>
+              <div class="subtitle" id="dash-settings-subtitle">—</div>
+              <div class="breadcrumb">仪表盘 / 调试</div>
+            </div>
+            <button aria-label="关闭" class="close-btn" onclick="NS.closeDashboardSettingsModal()" title="关闭">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="4" x2="12" y2="12"/>
+                <line x1="12" y1="4" x2="4" y2="12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-section">
+              <div class="form-section-title">命令</div>
+              <select id="dash-settings-cmd-select" class="form-select" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 13px;"></select>
+            </div>
+            <div class="form-section" style="margin-top: 18px;">
+              <div class="form-section-title">字段值</div>
+              <div id="dash-settings-fields" class="form-grid-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"></div>
+            </div>
+            <div class="form-section" style="margin-top: 18px;">
+              <div class="form-section-title">字节预览</div>
+              <div id="dash-frame-preview-modal" class="frame-preview" style="background: var(--bg-terminal); color: var(--text); padding: 12px 14px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; overflow-x: auto; border: 1px solid var(--border);">
+                <div class="frame-preview-empty">—</div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <span class="spacer"></span>
+            <button class="toolbar-btn" onclick="NS.closeDashboardSettingsModal()">关闭</button>
           </div>
         </div>
 
@@ -13579,7 +13625,103 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           if (typeof NS.updateDashboardProtoBar === 'function') NS.updateDashboardProtoBar();
           if (typeof NS.renderKpiCards === 'function') NS.renderKpiCards();
           if (typeof NS.renderDashboard === 'function') NS.renderDashboard();
+          if (typeof NS.updateDashboardSettingsBtn === 'function') NS.updateDashboardSettingsBtn();
           NS.toast && NS.toast('已切换到 ' + ((NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId) || {}).name || '未选择'), 'success');
+        };
+
+        // v1.2.1 (Task 8/9): 更新仪表盘 "⚙ 设置值" 按钮 disabled 态
+        NS.updateDashboardSettingsBtn = function () {
+          const btn = document.getElementById('dh-dash-settings-btn');
+          if (!btn) return;
+          const enabled = NS.serialConnected && !!NS.activeProtoId;
+          btn.disabled = !enabled;
+          btn.style.opacity = enabled ? '1' : '0.4';
+          btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+        };
+
+        // v1.2.1 (Task 9): 打开"设置值 / 字节预览" modal — 复用 NS.renderFramePreview
+        NS.openDashboardSettingsModal = function () {
+          if (!NS.serialConnected) { alert('请先连接串口'); return; }
+          if (!NS.activeProtoId) { alert('请先选择协议'); return; }
+          const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
+          if (!proto || !proto.commands || proto.commands.length === 0) { alert('当前协议无命令'); return; }
+
+          // 副标题
+          const subtitleEl = document.getElementById('dash-settings-subtitle');
+          if (subtitleEl) subtitleEl.textContent = proto.name;
+
+          // 填充命令下拉
+          const cmdSelect = document.getElementById('dash-settings-cmd-select');
+          if (cmdSelect) {
+            cmdSelect.innerHTML = (proto.commands || []).map((c) =>
+              '<option value="' + NS.escapeHtml(String(c.id)) + '">' +
+              '0x' + c.id.toString(16).padStart(2, '0').toUpperCase() + ' ' + NS.escapeHtml(c.name) +
+              '</option>'
+            ).join('');
+          }
+
+          // 填充字段输入 (取第 1 个命令的字段)
+          const fieldsEl = document.getElementById('dash-settings-fields');
+          if (fieldsEl) {
+            const firstCmd = proto.commands[0];
+            fieldsEl.innerHTML = (firstCmd.dataFields || []).map((df) => {
+              // dataFields 是 [{name, type, default, size}, ...]
+              const name = (typeof df === 'string') ? df : df.name;
+              return '<label><span>' + NS.escapeHtml(name) + '</span>' +
+                '<input type="text" data-cmd-field="' + NS.escapeHtml(name) + '" value="' + NS.escapeHtml((df && df.default) || '0') + '" />' +
+                '</label>';
+            }).join('');
+            // 绑定 input 事件
+            fieldsEl.querySelectorAll('input').forEach((inp) => {
+              inp.addEventListener('input', () => NS._updateDashboardSettingsPreviewDebounced());
+            });
+          }
+
+          // 切换命令时刷新字段
+          if (cmdSelect) {
+            cmdSelect.onchange = () => {
+              const newCmd = proto.commands.find((c) => String(c.id) === cmdSelect.value);
+              if (!newCmd) return;
+              if (subtitleEl) subtitleEl.textContent = proto.name + ' / ' + newCmd.name;
+              if (fieldsEl) {
+                fieldsEl.innerHTML = (newCmd.dataFields || []).map((df) => {
+                  const name = (typeof df === 'string') ? df : df.name;
+                  return '<label><span>' + NS.escapeHtml(name) + '</span>' +
+                    '<input type="text" data-cmd-field="' + NS.escapeHtml(name) + '" value="' + NS.escapeHtml((df && df.default) || '0') + '" />' +
+                    '</label>';
+                }).join('');
+                fieldsEl.querySelectorAll('input').forEach((inp) => {
+                  inp.addEventListener('input', () => NS._updateDashboardSettingsPreviewDebounced());
+                });
+              }
+              NS._updateDashboardSettingsPreviewDebounced();
+            };
+          }
+
+          // 显示 modal
+          if (typeof NS.openModal === 'function') NS.openModal('dash-settings-modal');
+          else document.getElementById('dash-settings-modal').style.display = 'flex';
+
+          // 首次渲染
+          NS._updateDashboardSettingsPreviewDebounced();
+        };
+
+        NS.closeDashboardSettingsModal = function () {
+          if (typeof NS.closeModal === 'function') NS.closeModal('dash-settings-modal');
+          else document.getElementById('dash-settings-modal').style.display = 'none';
+        };
+
+        NS._updateDashboardSettingsPreviewDebounced = function () {
+          clearTimeout(NS._dashSettingsPreviewTimer);
+          NS._dashSettingsPreviewTimer = setTimeout(() => {
+            const cmdSelect = document.getElementById('dash-settings-cmd-select');
+            if (!cmdSelect || !cmdSelect.value) return;
+            const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
+            if (!proto) return;
+            const cmd = proto.commands.find((c) => String(c.id) === cmdSelect.value);
+            if (!cmd) return;
+            NS.renderFramePreview('dash-frame-preview-modal', cmd);
+          }, 150);
         };
 
         NS._renderConfigCenter = function () {
