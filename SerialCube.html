@@ -6308,6 +6308,8 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
        回到 .dashboard-host .modal 默认 top:5vh; left:50%; transform:translateX(-50%) 居中.
        只有 toast 提示 (信息/警告, 5s 自动消失) 才跟随 body.toast-pos-XX 在右下/左下/右上/左上. */
 .dashboard-host     .modal.open { display: flex; }
+/* v1.2.2: 嵌套 modal 时下层虚化 (focus 聚焦到栈顶) */
+.dashboard-host     .modal.modal-dimmed { filter: blur(3px); opacity: 0.5; pointer-events: none; transition: filter 0.18s ease, opacity 0.18s ease; }
 .dashboard-host     .modal.wide { width: min(1100px, calc(100vw - 32px)); }
 .dashboard-host     .modal.xtra-wide { width: min(1400px, calc(100vw - 32px)); }
 /* 卡片详情 modal — 固定 900x720 + 单页布局 (header / toolbar / timerange / body) */
@@ -6925,6 +6927,7 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       overflow-x: auto;
       overflow-y: hidden;
     }
+.dashboard-host     .frame-preview-host { display: block; }
 .dashboard-host     .frame-bytes {
       font-family: var(--font-mono); font-size: 0.875rem;
       font-weight: 700;
@@ -8175,7 +8178,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 <span style="font-size: 11px; color: var(--text-soft); font-weight: 400;">实时根据协议 header + dataFields default 拼帧 · 字节用空格分隔</span>
                 <span style="margin-left: auto; font-size: 11px; color: var(--text-soft); font-weight: 400;" id="dh-new-cmd-frame-size">共 0 字节</span>
               </h4>
-              <div id="dh-new-cmd-frame-preview" style="background: var(--bg-terminal); color: var(--text); padding: 12px 14px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; overflow-x: auto; border: 1px solid var(--border);">
+              <div id="dh-new-cmd-frame-preview" class="frame-preview-host">
                 <span style="color: var(--text-soft);">—</span>
               </div>
             </div>
@@ -8241,7 +8244,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             </div>
             <div class="form-section" style="margin-top: 18px;">
               <div class="form-section-title">字节预览</div>
-              <div id="dash-frame-preview-modal" class="frame-preview" style="background: var(--bg-terminal); color: var(--text); padding: 12px 14px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; overflow-x: auto; border: 1px solid var(--border);">
+              <div id="dash-frame-preview-modal" class="frame-preview">
                 <div class="frame-preview-empty">—</div>
               </div>
             </div>
@@ -13394,6 +13397,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             modal.classList.add('open');
             // 重要弹窗始终居中 (回到 .dashboard-host .modal 默认样式), 不再用 body.toast-pos-XX 强改
           }
+          // v1.2.2: 嵌套 modal 时给栈内所有下层 modal 加 modal-dimmed 虚化
+          NS._modalStack.forEach((n) => {
+            const m = document.getElementById(n + '-modal');
+            if (m) m.classList.add('modal-dimmed');
+          });
           NS._modalStack.push(name);
           if (name === 'dh-proto') NS.renderProtoEditor();
         };
@@ -13403,11 +13411,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           if (backdrop) backdrop.classList.remove('open');
           if (modal) {
             modal.classList.remove('open');
+            modal.classList.remove('modal-dimmed');
             // 关闭时清掉任何可能残留的 inline style, 回归默认居中
             try { modal.style.cssText = ''; } catch (e) {}
           }
           const idx = NS._modalStack.lastIndexOf(name);
           if (idx >= 0) NS._modalStack.splice(idx, 1);
+          // v1.2.2: 关闭后, 栈内剩余的 modal 取消 dimmed (栈顶重新可交互)
+          NS._modalStack.forEach((n) => {
+            const m = document.getElementById(n + '-modal');
+            if (m) m.classList.remove('modal-dimmed');
+          });
         };
         // Esc 键只关栈顶 modal (避免嵌套时一次关到仪表盘)
         document.addEventListener('keydown', (e) => {
@@ -15048,10 +15062,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         };
 
         // v1.2.1 (Task 2): 抽 renderFramePreview 共享函数
-        //   替代原 _renderNewCmdFramePreview 内联实现
-        //   命令编辑 / 协议编辑 / 仪表盘设置值 3 处 modal 复用
+        // v1.2.2: 改用与协议编辑器 .frame-bytes + .frame-meta + .legend 同款 DOM 结构
+        //   命令编辑 / 仪表盘设置值 2 处 modal 复用同一 UI
         //   接受 (containerId, cmdOrState) — 命令对象 或 _newCmdState (含 cmd + dataFields)
-        //   输出: HEADER + CMD + DATA + CRC + 完整帧 5 段
+        //   直接构造 frame (用 cmd.id 算 cmd byte, state.dataFields 算 data bytes),
+        //   不调 NS.buildFrame (后者依赖 cmd.dataFields, state 没存进去)
         NS.renderFramePreview = function (containerId, cmdOrState) {
           const el = document.getElementById(containerId);
           if (!el) {
@@ -15059,31 +15074,32 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             return;
           }
           if (!cmdOrState) {
-            el.innerHTML = '<div class="frame-preview-empty">—</div>';
+            el.innerHTML = '<div class="frame-preview-empty" style="padding: 20px; text-align: center; color: var(--text-soft); font-size: 12px;">— 暂无可预览命令 —</div>';
             return;
           }
           // 提取 cmd (可能直接是 cmd 对象, 也可能是 _newCmdState 含 cmd 字段)
           const cmd = cmdOrState.cmd || cmdOrState;
           const stateDataFields = cmdOrState.dataFields; // 命令编辑 modal 走这条
-          const proto = NS.PROTOCOLS.find((p) => p.id === (cmdOrState.protoId || (cmd && cmd._protoId)));
-          // 实际找协议: 命令对象本身可能带 _protoId, 或通过 NS.PROTOCOLS 找
-          let actualProto = proto;
+          // 找协议
+          let actualProto = NS.PROTOCOLS.find((p) => p.id === (cmdOrState.protoId || (cmd && cmd._protoId)));
+          if (!actualProto && cmd._protoId) actualProto = NS.PROTOCOLS.find((p) => p.id === cmd._protoId);
           if (!actualProto) {
-            // 试从 _protoId 或遍历协议找命令
-            if (cmd._protoId) actualProto = NS.PROTOCOLS.find((p) => p.id === cmd._protoId);
-            else {
-              for (const p of NS.PROTOCOLS) {
-                if ((p.commands || []).some((c) => c.id === cmd.id)) { actualProto = p; break; }
-              }
+            for (const p of NS.PROTOCOLS) {
+              if ((p.commands || []).some((c) => c.id === cmd.id)) { actualProto = p; break; }
             }
           }
+          // 构造 sections (跟 _renderFramePreview 同结构, 这样颜色 chip 渲染一致)
+          const sections = [];
           const headerFields = (actualProto && actualProto.fields) ? actualProto.fields.filter((f) => f.type === 'header') : [];
           const headerBytes = headerFields.map((f) => {
             const def = (f.default || '0xAA').toString().replace(/^0x/i, '');
             const n = parseInt(def, 16);
             return isNaN(n) ? 0xAA : n;
           });
+          if (headerBytes.length) sections.push({ type: 'header', name: 'header', bytes: headerBytes });
           const cmdByte = (typeof cmd.id === 'number') ? cmd.id : 0;
+          sections.push({ type: 'cmd', name: 'cmd', bytes: [cmdByte] });
+          // length (按 data 长度算, 1B)
           const dataBytes = [];
           const dataFields = stateDataFields || cmd.dataFields || [];
           dataFields.forEach((df) => {
@@ -15096,41 +15112,70 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               dataBytes.push((v >> (i * 8)) & 0xFF);
             }
           });
-          const crcBytes = [0, 0];
-          const allBytes = [...headerBytes, cmdByte, ...dataBytes, ...crcBytes];
-          const fmt = (arr) => arr.map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+          sections.push({ type: 'length', name: 'length', bytes: [dataBytes.length & 0xFF] });
+          if (dataBytes.length) sections.push({ type: 'data', name: 'data', bytes: dataBytes });
+          // CRC 占位 (2B, 不算)
+          sections.push({ type: 'crc', name: 'crc', bytes: [0, 0] });
+          const tailFields = (actualProto && actualProto.fields) ? actualProto.fields.filter((f) => f.type === 'tail') : [];
+          const tailBytes = tailFields.map((f) => {
+            const def = (f.default || '0x55').toString().replace(/^0x/i, '');
+            const n = parseInt(def, 16);
+            return isNaN(n) ? 0x55 : n;
+          });
+          if (tailBytes.length) sections.push({ type: 'tail', name: 'tail', bytes: tailBytes });
+          // 拼 bytes + 渲染 (跟 _renderFramePreview 同模板)
+          const allBytes = sections.flatMap((s) => s.bytes);
+          const fmt = (b) => b.toString(16).padStart(2, '0').toUpperCase();
+          const bytesHtml = allBytes.map((b, i) => {
+            let cur = 0;
+            for (const s of sections) {
+              if (i >= cur && i < cur + s.bytes.length) return '<span class="byte ' + s.type + '" title="' + s.name + '">' + fmt(b) + '</span>';
+              cur += s.bytes.length;
+            }
+            return '<span class="byte">' + fmt(b) + '</span>';
+          }).join(' ');
+          const crcType = (actualProto && actualProto.crcType) || 'crc16-modbus';
+          const crcRange = (actualProto && actualProto.crcRange) || 'all';
           el.innerHTML =
-            '<div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center; line-height: 1.8;">' +
-              '<span><span style="color: var(--text-soft); font-size: 10px; margin-right: 4px;">HEADER</span><span style="color: var(--signal); font-weight: 600;">' + (headerBytes.length ? fmt(headerBytes) : '—') + '</span></span>' +
-              '<span><span style="color: var(--text-soft); font-size: 10px; margin-right: 4px;">CMD</span><span style="color: var(--signal); font-weight: 600;">' + cmdByte.toString(16).padStart(2, '0').toUpperCase() + '</span></span>' +
-              '<span><span style="color: var(--text-soft); font-size: 10px; margin-right: 4px;">DATA</span><span style="color: var(--accent); font-weight: 600;">' + (dataBytes.length ? fmt(dataBytes) : '—') + '</span></span>' +
-              '<span><span style="color: var(--text-soft); font-size: 10px; margin-right: 4px;">CRC</span><span style="color: var(--text-soft);">' + fmt(crcBytes) + '</span></span>' +
+            '<div class="frame-bytes">' + bytesHtml + '</div>' +
+            '<div class="frame-meta">' +
+              '<div class="meta-item"><span class="meta-key">总字节</span><span class="meta-val">' + allBytes.length + ' 字节</span></div>' +
+              '<div class="meta-item"><span class="meta-key">CRC 类型</span><span class="meta-val">' + NS.escapeHtml(NS.crcTypeLabel ? NS.crcTypeLabel(crcType) : crcType) + '</span></div>' +
+              '<div class="meta-item"><span class="meta-key">CRC 值</span><span class="meta-val">— (实时占位)</span></div>' +
+              '<div class="meta-item"><span class="meta-key">校验范围</span><span class="meta-val">' + NS.escapeHtml(NS.crcRangeLabel ? NS.crcRangeLabel(crcRange) : crcRange) + '</span></div>' +
             '</div>' +
-            '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); font-size: 11px; color: var(--text-soft);">完整帧: <code style="color: var(--text);">' + fmt(allBytes) + '</code></div>';
+            '<div class="legend">' +
+              '<span class="legend-item"><span class="dot header"></span>header 帧头</span>' +
+              '<span class="legend-item"><span class="dot cmd"></span>cmd 命令</span>' +
+              '<span class="legend-item"><span class="dot length"></span>length 长度</span>' +
+              '<span class="legend-item"><span class="dot data"></span>data 数据</span>' +
+              '<span class="legend-item"><span class="dot crc"></span>crc 校验</span>' +
+              '<span class="legend-item"><span class="dot tail"></span>tail 帧尾</span>' +
+            '</div>';
         };
 
         // v1.2 (Task 7): 帧预览 — 实时拼 hex 帧 (v1.2.1 wrapper, 复用 renderFramePreview)
-        //   简化版: HEADER (协议 fields type=header) + CMD (1B) + DATA (dataFields default) + CRC (2B 占位)
-        //   真实 CRC 计算留待后续 Task, 这里占位 00 00
+        // v1.2.2: renderFramePreview 改用统一 DOM, 这里简化为只刷 #dh-new-cmd-frame-size 字节数 (跟 frame bytes 行一致)
         NS._renderNewCmdFramePreview = function () {
           const s = NS._newCmdState;
           if (!s) return;
           NS.renderFramePreview('dh-new-cmd-frame-preview', s);
           // 兼容保留 #dh-new-cmd-frame-size 字节数提示
-          const allBytes = [];
           const proto = NS.PROTOCOLS.find((p) => p.id === s.protoId);
+          let allBytes = 0;
           if (proto) {
             const headerFields = (proto.fields || []).filter((f) => f.type === 'header');
-            allBytes.push(...headerFields.map(() => 0xAA));
+            allBytes += headerFields.length; // 1B 每 header
           }
-          allBytes.push((typeof s.id === 'number') ? s.id : 0);
+          allBytes += 1; // cmd
           (s.dataFields || []).forEach((df) => {
             const t = NS.DATA_TYPES.find((tt) => tt.name === df.type);
-            allBytes.push(...new Array(t ? t.size : 1).fill(0));
+            allBytes += t ? t.size : 1;
           });
-          allBytes.push(0, 0);
+          // length 1B + crc 2B + tail (按协议 fields 数)
+          allBytes += 1 + 2 + ((proto && (proto.fields || []).filter((f) => f.type === 'tail').length) || 0);
           const sizeEl = document.getElementById('dh-new-cmd-frame-size');
-          if (sizeEl) sizeEl.textContent = '共 ' + allBytes.length + ' 字节';
+          if (sizeEl) sizeEl.textContent = '共 ' + allBytes + ' 字节';
         };
 
         // v1.2 (Task 6): 区分新建 / 编辑 / 复制 三模式
