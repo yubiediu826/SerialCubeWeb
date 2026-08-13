@@ -1,10 +1,21 @@
 # SerialCube v1.2 → v1.3 接力交接 — 未完成 + 进行中
 
 > **用途:** v1.2 已推完 (commit 9ccf560, origin main 同步), 这份文档专门记**还没做的事**和**正在进行的事**。
-> **最后更新:** 2026-08-12
-> **当前版本:** v1.2.0 (已发布到 remote main)
-> **下一步版本:** v1.3.0 (计划)
+> **最后更新:** 2026-08-13
+> **当前版本:** v1.3.0 (本地已 commit, 待 push)
+> **下一步版本:** v1.3.1+ (backlog 剩余 6 项)
 > **关联文档:** [`HANDOFF-V1.2-2026-08-12.md`](HANDOFF-V1.2-2026-08-12.md) (v1.2 完整交接 + 已知限制)
+
+## v1.3.0 启动记录 (2026-08-13)
+
+- **首个任务:** 真实模拟调试面板 (原 v1.3 backlog 第 1)
+- **4 决策齐:** 核心场景 = B 主从协同 / 通信层 = A 同浏览器多 tab / UI 形态 = A 折叠浮窗 / Mutator 颗粒度 = C 单条+预设 chip
+- **设计 spec:** [`../superpowers/specs/2026-08-13-v1.3.0-debug-panel-design.md`](../superpowers/specs/2026-08-13-v1.3.0-debug-panel-design.md) (430 行, 已 commit 07392f9)
+- **UI 预览:** [`../design/v1.3-debug-panel-mockups.html`](../design/v1.3-debug-panel-mockups.html) (3 候选 mockup, 已 commit 07392f9)
+- **实施 plan:** [`../superpowers/plans/2026-08-13-v1.3.0-debug-panel-plan.md`](../superpowers/plans/2026-08-13-v1.3.0-debug-panel-plan.md) (4 task / 968 行, 已 commit 4126797)
+- **实施进度:** Task 1 (VERSION + changelog + 3 e2e) 进行中, 后续 Task 2-4 待实施
+- **commits:** v1.3.0 spec/plan 2 个本地, v1.2.2 hotfix 3 个本地 — 共 5 commit 待 push, 等用户拍板
+- **剩余 v1.3.1+ backlog:** 6 项 (恢复设置值 / 三选项级联 modal / 告警编辑升级 / modal 切协议缓存 / checkAlert 性能 / 自定义域名), 等 v1.3.0 完成后按优先级排
 
 ---
 

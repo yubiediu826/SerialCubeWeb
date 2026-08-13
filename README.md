@@ -8,7 +8,15 @@
 
 ---
 
-## 🚀 最新版本 v1.2.2 (2026-08-13)
+## 🚀 最新版本 v1.3.0 (2026-08-13)
+
+**真实模拟调试面板** — 实装 v1.2.0 留的"调试面板"占位。仪表盘右下角 ⚙ 折叠浮窗 (Lucide settings SVG, 去 emoji), 4 段布局: Role (客户端/设备端) / Channel (状态 + 启停) / Mutator (单条 + 预设 chip) / Stats (tx/rx/err 实时)。BroadcastChannel 'serialcube-debug-v1' 同源通信, 1 人多 tab 模拟设备未到调试, 抽象 `NS._debugTransport` 接口留 hook 升 WebRTC。Mutator 单条注入: 客户端改 `NS.currentVals` 触发告警, 设备端改 `NS._debugDeviceState` (同步副本, 不污染 currentVals) 下次 ack 用新值。预设场景 chip 按 active protocol dataFields 自动推: 过压/欠压/通信超时 (mute 5s)/CRC 错/边界值。设备端 ack 帧生成复用 `NS.buildFrame`, 临时切换 currentVals 编码后立即还原。
+
+详细：[`docs/changelog/2026-08-13-v1.3.0-debug-panel.md`](docs/changelog/2026-08-13-v1.3.0-debug-panel.md) · 设计 spec [`docs/superpowers/specs/2026-08-13-v1.3.0-debug-panel-design.md`](docs/superpowers/specs/2026-08-13-v1.3.0-debug-panel-design.md) · 实施 plan [`docs/superpowers/plans/2026-08-13-v1.3.0-debug-panel-plan.md`](docs/superpowers/plans/2026-08-13-v1.3.0-debug-panel-plan.md) · 3 候选 UI mockup [`docs/design/v1.3-debug-panel-mockups.html`](docs/design/v1.3-debug-panel-mockups.html)
+
+---
+
+## 📌 v1.2.2 (2026-08-13)
 
 **v1.2.1 后续 hotfix** — 修复 v1.2.1 部署后用户实测的 6 个 UI bug：① `dh-pair-trigger-modal` HTML 结构错位（v1.2.1 删 `openSelectProtocolModal()` 时漏 `</div>`）；② 协议条 5→3 元素（删未连接端口 + 默认隐藏"设置值"）；③ 系统菜单 主题/配置 风格统一；④ 主题 segmented active 强化（修 `--bg-elev` 未定义 + accent 蓝紫背景）；⑤ 选择协议按钮修复 + 占位区填满 + 引导入口挪到 modal；⑥ **本次 3 bug** — 新建卡片弹窗样式错乱（append 到 body 拿不到 `.dashboard-host .modal` 样式 + label/select 错位改 label-above-input 模式）/ 配置中心 tab bar 断层（`.cc-tab-pane` padding 20px→14px）/ **消息提示弹窗被虚化挡住**（`toast-layer` z-index 200 < modal backdrop 1000+，backdrop-filter 把 toast 虚化 → 200→2000）。配套 B+C 工作流改造（serialcube-workflow + ui-ux-pro-max）+ A 新建 serialcube-modal-review 6 步 guard。
 

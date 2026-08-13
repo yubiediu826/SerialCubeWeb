@@ -8405,6 +8405,19 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.3.0 版本 · 26/8/13</strong>
+            <ul>
+              <li>新增: 真实模拟调试面板 (v1.2.0 占位实装) — 仪表盘右下角 ⚙ 折叠浮窗 (Lucide settings SVG, 去 emoji), 4 段布局 (Role/Channel/Mutator/Stats)。</li>
+              <li>新增: BroadcastChannel 通信层 'serialcube-debug-v1' — 1 人多 tab 模拟设备未到调试, 抽象 NS._debugTransport 接口留 hook 升 WebRTC。</li>
+              <li>新增: Role 切换 (客户端/设备端 segmented) — 切换时关闭现有 BC, 按新 role 重新初始化 + 广播 hello。</li>
+              <li>新增: Channel 状态显示 — ● 已连接 (绿) / ● 未连接 (灰), 通道名 + peer 数, NS._debugStats 实时计数 (debounce 100ms)。</li>
+              <li>新增: Mutator 单条注入 — 选 field + 输入值 + 注入, 客户端改 NS.currentVals (触发 checkAlert) / 设备端改 NS._debugDeviceState (下次 ack 用新值)。</li>
+              <li>新增: 预设场景 chip (4-6 个, 按 active protocol dataFields 自动推) — 过压 / 欠压 / 通信超时 (mute 5s) / CRC 错 / 边界值。</li>
+              <li>新增: 设备端 ack 帧生成 — 复用 NS.buildFrame, 临时切换 currentVals = device state 编码, 立即还原 (不污染客户端 currentVals)。</li>
+              <li>新增: 3 个 e2e 场景 — 10-debug-panel-role-switch / 11-debug-panel-mutator-inject / 12-debug-panel-multi-tab-sync。</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.2.1 版本 · 26/8/13</strong>
             <ul>
               <li>修复: 4 modal header 统一 — 关闭 X 挪到右上 + title 左上 + 副标题/面包屑 (.modal-header-standard 组件, 协议配置/协议编辑/命令编辑/告警编辑 一次对齐)。</li>
@@ -8481,7 +8494,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.2.2';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.2.2 hotfix 补 bump)
+      const VERSION = '1.3.0';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.0 调试面板实装 bump)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
