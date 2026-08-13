@@ -8228,24 +8228,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           </div>
         </div>
 
-        <!-- v1.2: 选择协议 modal (串口连接后弹, 仪表盘切换协议也弹) -->
-        <div class="modal-backdrop" id="dh-select-proto-backdrop"></div>
-        <div class="modal" id="dh-select-proto-modal" style="max-width: 520px;">
-          <div class="modal-header">
-            <button aria-label="关闭" class="close-btn" data-close="dh-select-proto" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
-            <span class="modal-title">选择协议</span>
-            <span class="modal-subtitle" id="dh-select-proto-subtitle">仪表盘会显示该协议的卡片</span>
-          </div>
-          <div class="modal-body" id="dh-select-proto-body" style="padding: 18px 22px;"></div>
-          <div class="modal-foot">
-            <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-soft); cursor: pointer;">
-              <input type="checkbox" id="dh-select-proto-remember" checked> 记住选择, 下次自动用
-            </label>
-            <span style="flex: 1;"></span>
-            <button class="tbtn" data-close="dh-select-proto">取消</button>
-            <button class="tbtn primary" id="dh-select-proto-confirm">确认</button>
-          </div>
-        </div>
+        <!-- v1.2.1 (Task 10): dh-select-proto-modal 已删除 (合并到协议配置 modal) -->
           <div class="modal-body">
             <div class="form-section-title">设置值</div>
             <div id="dh-pair-trigger-fields"></div>
@@ -11837,11 +11820,13 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           }
         };
 
-        // v1.2: 切换协议按钮 (在协议条右侧, 弹 openSelectProtocolModal)
+        // v1.2.1 (Task 10): 切换协议按钮 (在协议条右侧, 直接打开协议配置 modal)
         NS._bindProtoBarEvents = function () {
           const switchBtn = document.getElementById('dh-dash-proto-switch');
           if (switchBtn) switchBtn.onclick = () => {
-            if (typeof NS.openSelectProtocolModal === 'function') NS.openSelectProtocolModal();
+            // v1.2.1: 改用协议配置 modal + 行内"应用"列, 不再独立弹"选择协议" modal
+            if (typeof NS.openConfigCenterModal === 'function') NS.openConfigCenterModal('protocol');
+            else if (typeof NS.openSelectProtocolModal === 'function') NS.openSelectProtocolModal();
           };
           const choosePortBtn = document.getElementById('dh-dash-choose-port');
           if (choosePortBtn) choosePortBtn.onclick = () => {
@@ -13555,11 +13540,18 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           NS.openModal('dh-config-center');
         };
 
-        // v1.2: 选择协议 modal (串口连接后弹, 仪表盘切换协议也弹)
-        //   弹个 3 选 1 (N 选 1) radio + 记住选择 checkbox
-        //   确认后: 设 NS.activeProtoId + 写 localStorage + 重渲染仪表盘
-        NS.openSelectProtocolModal = function (remember) {
-          if (remember === undefined) remember = true;
+        // v1.2.1 (Task 10): 选择协议 modal 已合并到协议配置 modal (openConfigCenterModal + 行内"应用"列)
+        //   原 openSelectProtocolModal 函数体删除, 保留 stub 以防 v1.2 老代码引用
+        NS.openSelectProtocolModal = function () {
+          if (typeof NS.openConfigCenterModal === 'function') {
+            NS.openConfigCenterModal('protocol');
+          } else {
+            console.warn('[openSelectProtocolModal] 已废弃, 改用协议配置 modal');
+          }
+        };
+        /* v1.2.1 (Task 10): 已删除原函数体 —— (见下 backup) */
+        if (false) { // v1.2.1: disable 原 openSelectProtocolModal 函数体 (已合并到协议配置 modal)
+        if (remember === undefined) remember = true;
           if (!NS.PROTOCOLS || NS.PROTOCOLS.length === 0) {
             NS.toast && NS.toast('没有可用协议, 请先导入或新建', 'warn');
             return;
@@ -13609,6 +13601,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           }
           NS.openModal('dh-select-proto');
         };
+        } // v1.2.1: end if (false) disable block
 
         // v1.2.1 (Task 4): 切换 active 协议。点 ● 取消激活, 点 ○ 激活。激活后重渲染仪表盘。
         NS.toggleActiveProtocol = function (id) {
