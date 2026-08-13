@@ -8,7 +8,25 @@
 
 ---
 
-## 🚀 最新版本 v1.2.0 (2026-08-12)
+## 🚀 最新版本 v1.2.1 (2026-08-13)
+
+**UI 一致性修复** — 一次性解决 v1.2.0 部署后用户实测反馈的 8 个 UI/UX 问题。4 个 modal header 统一用 `.modal-header-standard`（X 右上 + title 左上 + 副标题/面包屑）；协议编辑 modal 重构为 1 步长表单 4 段（基础 / 帧预览 / 帧字段 / 命令列表）；"选择协议 modal"合并到协议配置 modal（行内"应用"列切换 active）；仪表盘协议条"引导"按钮删除 + 底部"设置值/字节预览"挪到 modal；抽 `renderFramePreview()` 共享函数复用帧预览实现。
+
+| 改动 | 说明 |
+|------|------|
+| 4 modal header 统一 | `.modal-header-standard` 组件，X 右上 + title 左上 + 副标题/面包屑（协议配置/协议编辑/命令编辑/告警编辑） |
+| 协议编辑 4 段重构 | ① 基础 / ② 帧预览（dropdown 切换命令实时刷新）/ ③ 帧字段 / ④ 命令列表 |
+| 选协议 modal 合并 | 协议列表行内"应用"列（●/○ 切换 active），删 `openSelectProtocolModal()` |
+| 仪表盘改 | 删"引导"按钮 + 加"⚙ 设置值"按钮（已连接 + 已选协议时可用）+ 底部预览区挪到 modal |
+| 新建协议按钮去重 | 协议配置 modal 只剩 1 个"新建协议"按钮（内容区右上） |
+| 抽共享函数 | `NS.renderFramePreview(containerId, commandId)` 命令编辑 + 协议编辑 + 仪表盘设置值 3 处复用 |
+| 帧预览主题适配 | `.byte.data` 用 `var(--bg)` 而非 `var(--bg-terminal)`，浅色 + 深色都保持微差"切开"感 |
+
+详细：[`docs/changelog/2026-08-13-v1.2.1-ui-consistency.md`](docs/changelog/2026-08-13-v1.2.1-ui-consistency.md) · [`docs/handover/HANDOFF-V1.2.1-2026-08-13.md`](docs/handover/HANDOFF-V1.2.1-2026-08-13.md) · [`docs/design/v1.2.1-ui-consistency-preview.html`](docs/design/v1.2.1-ui-consistency-preview.html)
+
+---
+
+## 📌 v1.2.0 (2026-08-12)
 
 **配置中心重构** — 一次性解决 5 个 UI/逻辑自洽性问题。仪表盘改为单协议聚焦（串口 1 对 1 物理事实），连接时弹选择协议 modal；命令编辑支持新建/编辑/复制三模式；告警从派生改为独立规则（NS.ALERTS）；调试面板占位为 v1.3 真实模拟预留。
 
@@ -118,6 +136,7 @@ cd SerialCubeWeb
 | 改代码 / 调试 / 部署 SOP | [docs/guides/DEVELOPER-GUIDE.md](docs/guides/DEVELOPER-GUIDE.md) |
 | AI Agent 接手标准动作 | [docs/guides/AGENT-START-HERE.md](docs/guides/AGENT-START-HERE.md) |
 | 项目当前状态 / 关键决策 | [docs/handover/PROJECT-HANDOVER-2026-08-11.md](docs/handover/PROJECT-HANDOVER-2026-08-11.md) |
+| v1.2.1 UI 一致性修复交接 | [docs/handover/HANDOFF-V1.2.1-2026-08-13.md](docs/handover/HANDOFF-V1.2.1-2026-08-13.md) |
 | v1.2 配置中心重构交接 | [docs/handover/HANDOFF-V1.2-2026-08-12.md](docs/handover/HANDOFF-V1.2-2026-08-12.md) |
 | v1.1.1 修复交接 | [docs/handover/HANDOFF-V1.1.1-FIXES-2026-08-12.md](docs/handover/HANDOFF-V1.1.1-FIXES-2026-08-12.md) |
 | v1.1.0 协议多命令交接 | [docs/handover/HANDOFF-PROTOCOL-MULTI-COMMAND-2026-08-12.md](docs/handover/HANDOFF-PROTOCOL-MULTI-COMMAND-2026-08-12.md) |

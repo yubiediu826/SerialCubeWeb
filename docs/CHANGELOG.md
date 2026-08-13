@@ -11,6 +11,13 @@
 
 ## 📑 子文件索引
 
+### 2026-08-13
+
+- [`changelog/2026-08-13-v1.2.1-ui-consistency.md`](changelog/2026-08-13-v1.2.1-ui-consistency.md) — v1.2.1 UI 一致性修复: 4 modal header 统一 + 协议编辑 4 段重构 + 选协议 modal 合并 + 仪表盘底部挪到 modal
+- 📘 完整交接: [`handover/HANDOFF-V1.2.1-2026-08-13.md`](handover/HANDOFF-V1.2.1-2026-08-13.md) (待实施后回填, 12 tasks / +200 -150)
+- 📋 Plan: [`superpowers/plans/2026-08-13-v1.2.1-ui-consistency-plan.md`](superpowers/plans/2026-08-13-v1.2.1-ui-consistency-plan.md) (12 tasks / 1546 lines)
+- 📐 Spec: [`superpowers/specs/2026-08-13-v1.2.1-ui-consistency-design.md`](superpowers/specs/2026-08-13-v1.2.1-ui-consistency-design.md) (4 决策 A1/A2/B2/C3+/D1/D6)
+
 ### 2026-08-12
 
 - [`changelog/2026-08-12-v1.2.0-config-center-refactor.md`](changelog/2026-08-12-v1.2.0-config-center-refactor.md) — v1.2.0 配置中心重构: 仪表盘单协议聚焦 + 4 tab 表格化 + 命令三模式 + 告警独立规则 + 调试面板占位

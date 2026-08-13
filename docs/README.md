@@ -6,9 +6,9 @@
 
 ## 🚀 当前状态
 
-**最新版本**: v1.2.0 (2026-08-12) — 配置中心重构：单协议聚焦 / 4 tab 表格化 / 命令三模式 / 告警独立 / 调试面板占位
+**最新版本**: v1.2.1 (2026-08-13) — UI 一致性修复：4 modal header 统一 / 协议编辑 4 段重构 / 选协议 modal 合并 / 仪表盘底部挪到 modal
 **当前分支**: `main`
-**最近 release**: v1.2.0 ([changelog](changelog/2026-08-12-v1.2.0-config-center-refactor.md)) | v1.1.1 ([changelog](changelog/2026-08-12-v1.1.1-fixes.md)) | v1.1.0 ([release notes](handover/release-v1.1.0-2026-08-12.md))
+**最近 release**: v1.2.1 ([changelog](changelog/2026-08-13-v1.2.1-ui-consistency.md)) | v1.2.0 ([changelog](changelog/2026-08-12-v1.2.0-config-center-refactor.md)) | v1.1.1 ([changelog](changelog/2026-08-12-v1.1.1-fixes.md)) | v1.1.0 ([release notes](handover/release-v1.1.0-2026-08-12.md))
 
 ---
 
@@ -18,7 +18,7 @@
 
 1. 读完 [`handover/HANDOFF-QUICKSTART-2026-08-11.md`](handover/HANDOFF-QUICKSTART-2026-08-11.md) — 30 秒快速接手卡
 2. 跑一次 **preflight**：`pwsh -File .minimax/skills/serialcube-workflow/preflight.ps1`（9 项健康检查）
-3. 知道项目是单 HTML 串口调试工具，主文件 `SerialCube.html`，当前版本 `v1.2.0`
+3. 知道项目是单 HTML 串口调试工具，主文件 `SerialCube.html`，当前版本 `v1.2.1`
 
 ### ⏱ 2 分钟（开始干活前）
 
@@ -46,7 +46,8 @@ docs/
 ├── handover/                              ← 交接文档
 │   ├── HANDOFF-QUICKSTART-2026-08-11.md              ← 30 秒接手卡（agent 必看）
 │   ├── PROJECT-HANDOVER-2026-08-11.md                ← 完整项目交接
-│   ├── HANDOFF-V1.2-2026-08-12.md                   ← v1.2 配置中心重构交接（最新）
+│   ├── HANDOFF-V1.2.1-2026-08-13.md                 ← v1.2.1 UI 一致性修复交接（最新）
+│   ├── HANDOFF-V1.2-2026-08-12.md                   ← v1.2 配置中心重构交接
 │   ├── HANDOFF-V1.1.1-FIXES-2026-08-12.md            ← v1.1.1 4 修复交接
 │   ├── HANDOFF-PROTOCOL-MULTI-COMMAND-2026-08-12.md  ← v1.1.0 协议多命令交接
 │   ├── HANDOFF-POST-V1.1.0-2026-08-12.md             ← v1.1.0 发版后状态
@@ -97,6 +98,7 @@ docs/
 | **新接手 agent** | 改代码前必跑 preflight | `.minimax/skills/serialcube-workflow/preflight.ps1` |
 | **任何接手者** | 了解项目全貌 | [`handover/PROJECT-HANDOVER-2026-08-11.md`](handover/PROJECT-HANDOVER-2026-08-11.md) |
 | **任何接手者** | 看变更记录 | [`CHANGELOG.md`](CHANGELOG.md) |
+| **任何接手者** | v1.2.1 UI 一致性修复详情 | [`handover/HANDOFF-V1.2.1-2026-08-13.md`](handover/HANDOFF-V1.2.1-2026-08-13.md) |
 | **任何接手者** | v1.2 配置中心重构详情 | [`handover/HANDOFF-V1.2-2026-08-12.md`](handover/HANDOFF-V1.2-2026-08-12.md) |
 | **任何接手者** | v1.1.1 修复详情 | [`handover/HANDOFF-V1.1.1-FIXES-2026-08-12.md`](handover/HANDOFF-V1.1.1-FIXES-2026-08-12.md) |
 | **使用者** | 工具怎么用 | [`guides/USER-GUIDE.md`](guides/USER-GUIDE.md) |

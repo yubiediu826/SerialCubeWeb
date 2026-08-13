@@ -8046,6 +8046,19 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.2.1 版本 · 26/8/13</strong>
+            <ul>
+              <li>修复: 4 modal header 统一 — 关闭 X 挪到右上 + title 左上 + 副标题/面包屑 (.modal-header-standard 组件, 协议配置/协议编辑/命令编辑/告警编辑 一次对齐)。</li>
+              <li>修复: 协议编辑 modal 重构为 1 步长表单 4 段 — ① 基础 / ② 帧预览 (dropdown 切换命令实时刷新 byte 序列) / ③ 帧字段 / ④ 命令列表。</li>
+              <li>修复: 独立"选择协议 modal"合并到协议配置 modal — 协议列表每行加"应用"列 (●/○ 切换 NS.activeProtoId), 删 openSelectProtocolModal()。</li>
+              <li>修复: 仪表盘协议条"引导"按钮删除 (从未使用), 旁边加"⚙ 设置值"按钮 (已连接 + 已选协议时可用)。</li>
+              <li>修复: 仪表盘底部"设置值/字节预览"常驻区挪到 modal (点 ⚙ 触发 dashboard-settings-modal, 复用 buildFrame + 字段输入)。</li>
+              <li>修复: 协议配置 modal"新建协议"按钮去重 — 删顶部 header + 底部 footer 的重复按钮, 只剩 1 个 (内容区右上, 离协议列表最近)。</li>
+              <li>优化: 抽 renderFramePreview(containerId, commandId) 共享函数 — 命令编辑 + 协议编辑 + 仪表盘设置值 3 处 modal 复用同一帧预览实现 (line 7848-7856 抽出)。</li>
+              <li>优化: 帧预览主题适配 — .byte.data 用 var(--bg) 而非 var(--bg-terminal), 浅色 + 深色下 data 段与 frame 容器保持微差"切开"感。</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.2.0 版本 · 26/8/12</strong>
             <ul>
               <li>新增: 配置中心重构 — 仪表盘单协议聚焦 (串口 1 对 1, 当前协议卡片), 连接时弹选择协议 modal。</li>
@@ -8109,7 +8122,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.2.0';  // 同步 README/PRODUCT/About 弹窗版本号
+      const VERSION = '1.2.1';  // 同步 README/PRODUCT/About 弹窗版本号
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
