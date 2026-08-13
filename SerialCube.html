@@ -10906,6 +10906,99 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           NS._injectMutation(scenario.field, scenario.value);
         };
 
+        // v1.3.0: 调试面板 - 客户端发送命令帧 (走 BC)
+        NS._sendDebugCmd = function (cmdId) {
+          if (NS._debugRole !== 'client') return;
+          const proto = (NS.PROTOCOLS || []).find(p => p.id === NS.activeProtoId);
+          if (!proto) { NS.toast('请先选协议', 'warn'); return; }
+          const cmd = (proto.commands || []).find(c => c.id === cmdId);
+          if (!cmd) { NS.toast('命令不存在', 'warn'); return; }
+          let frame;
+          try { frame = NS.buildFrame(proto, cmd); }
+          catch (e) { NS._debugStats.err++; NS._updateDebugStatsUI(); NS.toast('帧生成失败: ' + e.message, 'error'); return; }
+          if (frame.error) { NS._debugStats.err++; NS._updateDebugStatsUI(); NS.toast('帧生成失败: ' + frame.error, 'error'); return; }
+          NS._debugBcTransport.send({
+            type: 'cmd-frame',
+            payload: frame.bytes,
+            cmdId: cmd.id,
+            ts: Date.now()
+          });
+          NS._debugStats.tx++;
+          NS._updateDebugStatsUI();
+        };
+
+        // v1.3.0: 调试面板 - 设备端接收命令帧 + 生成 ack
+        NS._recvDebugFrame = function (msg) {
+          if (NS._debugRole !== 'device') return;
+          // mute 检查
+          if (NS._debugMutedUntil > Date.now()) {
+            NS.toast('设备端 mute 中, 已丢弃命令', 'info', 1000);
+            return;
+          }
+          // 解析 cmd 帧
+          const proto = (NS.PROTOCOLS || []).find(p => p.id === NS.activeProtoId);
+          if (!proto) return;
+          const cmd = (proto.commands || []).find(c => c.id === msg.cmdId);
+          if (!cmd) { NS._debugStats.err++; NS._updateDebugStatsUI(); return; }
+          // 找 ack cmd (按 cmd.ackCmdId 关联, 找不到就用 cmdId 自己)
+          const ackCmd = (proto.commands || []).find(c => c.id === (cmd.ackCmdId || msg.cmdId));
+          if (!ackCmd) { NS._debugStats.err++; NS._updateDebugStatsUI(); return; }
+          // 临时切换 currentVals 到 device state, buildFrame 用 currentVals 编码
+          const _savedVals = { ...NS.currentVals };
+          try {
+            NS.currentVals = { ...NS._debugDeviceState };
+            const ack = NS.buildFrame(proto, ackCmd);
+            NS.currentVals = _savedVals;  // 立即还原
+            if (ack.error) { NS._debugStats.err++; NS._updateDebugStatsUI(); return; }
+            // CRC override
+            if (NS._crcOverride === 'force-bad' && ack.bytes.length >= 2) {
+              // 倒数 2 字节翻转 (假设 CRC 在帧尾, v1.2 BMS 协议)
+              ack.bytes[ack.bytes.length - 2] = (ack.bytes[ack.bytes.length - 2] ^ 0xFF) & 0xFF;
+              ack.bytes[ack.bytes.length - 1] = (ack.bytes[ack.bytes.length - 1] ^ 0xFF) & 0xFF;
+              NS._crcOverride = null;  // 一次有效
+            }
+            // 发 ack
+            NS._debugBcTransport.send({
+              type: 'ack-frame',
+              payload: ack.bytes,
+              ackCmdId: ackCmd.id,
+              ts: Date.now()
+            });
+            NS._debugStats.tx++;
+            NS._updateDebugStatsUI();
+          } catch (e) {
+            NS.currentVals = _savedVals;  // 异常也还原
+            NS._debugStats.err++;
+            NS._updateDebugStatsUI();
+            NS.toast('设备端生成 ack 失败: ' + e.message, 'error');
+          }
+        };
+
+        // v1.3.0: 调试面板 - Mutator 单条注入 (client 改 currentVals / device 改 device state)
+        NS._injectMutation = function (fieldName, value) {
+          if (!fieldName) return;
+          const proto = (NS.PROTOCOLS || []).find(p => p.id === NS.activeProtoId);
+          if (!proto) { NS.toast('请先选协议', 'warn'); return; }
+          const field = (proto.commands || []).flatMap(c => c.dataFields || []).find(f => f.name === fieldName);
+          if (!field) { NS.toast('字段不存在: ' + fieldName, 'error'); return; }
+          // 范围校验
+          const v = Number(value);
+          if (isNaN(v)) { NS.toast('值必须是数字', 'error'); return; }
+          if (field.range && (v < field.range[0] || v > field.range[1])) {
+            NS.toast(`${fieldName} 超出范围 [${field.range[0]}, ${field.range[1]}]`, 'warn');
+            return;
+          }
+          if (NS._debugRole === 'device') {
+            NS._debugDeviceState[fieldName] = v;
+            NS.toast(`设备端 ${fieldName} = ${v}`, 'info', 1000);
+          } else {
+            NS.currentVals[fieldName] = v;
+            if (typeof NS.checkAlert === 'function') NS.checkAlert();
+            if (typeof NS.renderKpiCards === 'function') NS.renderKpiCards();
+            NS.toast(`客户端 ${fieldName} = ${v}`, 'info', 1000);
+          }
+        };
+
         // 数据类型库 (Phase 2 Step 1.2): type → 字节数 + 默认字节序映射
         //   cmd.dataFields[i].type 从这里查 size, 替代原 NS.DATA_FIELDS[name].type 字符串硬编码
         NS.DATA_TYPES = [
