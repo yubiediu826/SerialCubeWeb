@@ -6904,6 +6904,16 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       font-size: 11px; border-radius: var(--radius-small);
       display: flex; align-items: center; gap: 4px;
     }
+    /* v1.3.4: 蓝色信息条 (替换橙色 self-hint) */
+    .dashboard-host     .cascade-modal-body .cascade-summary {
+      margin-top: 8px; padding: 8px 12px;
+      background: var(--accent-soft); color: var(--accent);
+      font-size: 12px; border-radius: var(--radius);
+      display: flex; align-items: center; gap: 6px; line-height: 1.4;
+    }
+    .dashboard-host     .cascade-modal-body .cascade-summary.empty {
+      background: var(--bg-elevated); color: var(--text-soft);
+    }
 .dashboard-host     .cascade-modal-body .modal-section { margin-bottom: 14px; }
 .dashboard-host     .cascade-modal-body .modal-section:last-child { margin-bottom: 0; }
 .dashboard-host     .cascade-modal-body .section-desc { font-size: 13px; color: var(--text-soft); line-height: 1.55; }
@@ -8547,7 +8557,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           </div>
         </div>
 
-  <!-- v1.3.1: 三选项级联删除 modal (替换 v1.2 browser confirm)
+  <!-- v1.3.4: 统一删除 modal (替换 v1.3.1 三选项 + v1.3.3 协议 window.confirm)
        必须放在 .dashboard-host 内部, 否则 .dashboard-host .modal { display:none } 不匹配,
        modal 默认 display:block 一直 inline 渲染在 page 末尾 -->
   <div class="modal-backdrop" id="dh-cascade-delete-backdrop"></div>
@@ -8572,25 +8582,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       <div class="modal-section">
         <div class="section-label">引用预览</div>
         <div class="refs" id="dh-cascade-delete-refs"></div>
-        <div class="self-hint" id="dh-cascade-delete-hint" style="display: none;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span id="dh-cascade-delete-hint-text"></span>
+        <div class="cascade-summary" id="dh-cascade-delete-summary" style="display: none;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+          <span id="dh-cascade-delete-summary-text">引用对象会一并删除: 0 个</span>
         </div>
-      </div>
-      <div class="modal-section">
-        <div class="section-label">删除方式</div>
-        <div class="section-desc">请选择如何处理被引用的对象。</div>
       </div>
     </div>
     <div class="cascade-modal-footer">
       <button class="btn ghost" data-result="cancel" title="取消 (Esc)">取消</button>
-      <button class="btn" data-result="self" id="dh-cascade-delete-btn-self" title="仅删除当前对象, 保留被引用方">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 7l-7 7-7-7M19 7v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7"/></svg>
-        仅删自己
-      </button>
-      <button class="btn primary" data-result="cascade" id="dh-cascade-delete-btn-cascade" title="删除当前对象 + 所有被引用方">
+      <button class="btn primary" data-result="confirm" id="dh-cascade-delete-btn-confirm" title="删除当前对象 + 引用方 (自动级联)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-        级联删除 <span id="dh-cascade-delete-cascade-count">(0)</span>
+        确认删除
       </button>
     </div>
   </div>
@@ -8629,6 +8631,29 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         </div>
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
+          <div class="version-release">
+            <strong>1.3.4 版本 · 26/8/14</strong>
+            <ul>
+              <li><strong>3 个删除 modal 统一 (UI 一致性, 用户反馈):</strong></li>
+              <li>修复: 命令/卡片删除弹窗 title 重复 "确认删除命令 命令 0x01..." — 当前代码 title 前缀 + label 都带类型前缀, "命令" 出现 2 次。改为 label 去掉前缀 ("0x01 Read Voltage" 不带 "命令"), title 统一用 "确认删除 + label" (无类型前缀, 避免重复)。卡片同样 "确认删除 c1 Cell 1 电压?"。协议同样 "确认删除 proto_bms?"。</li>
+              <li>修复: 命令/卡片删除弹窗"删除方式" section 是死的 — body 有 label + 描述"请选择如何处理被引用的对象", 但下面没有任何 radio/checkbox 控件, 实际选择发生在底部 3 按钮 (仅删自己/级联/取消), body 跟 footer 选择机制矛盾。删除整个"删除方式"死 section + 简化 footer 为 2 按钮 (取消 / 确认删除)。</li>
+              <li>修复: 命令/卡片删除 3 按钮 (仅删自己/级联/取消) 简化为 2 按钮 (取消/确认删除) — 命令/卡片只属其协议, 引用方离开被引用方就没意义, 没必要"仅删自己/级联"二选一。删除行为改为自动级联 (跟协议删除 v1.3.3 一致)。</li>
+              <li>修复: 协议删除从 window.confirm() 迁移到统一 modal — 之前协议用原生 confirm, 命令/卡片用三选项 modal, 3 modal UX 不一致。现在协议/命令/卡片 全部用统一 modal, 引用预览 chip + 蓝色信息条"引用对象会一并删除: N 条命令 + M 张卡片 + K 条告警"。</li>
+              <li>优化: 橙色 "选'仅删自己'会留下孤儿" 提示条 改为 蓝色 "引用对象会一并删除: N 个" 信息条 — 橙色太抢眼跟主操作视觉冲突, 蓝色跟 modal 主题色一致更和谐。无引用时显示 "无引用对象, 仅删除当前项" 灰色态。</li>
+              <li><strong>持久化 bug 修复 (用户实测反馈命令/卡片删除刷新后复活):</strong></li>
+              <li>修复: 命令删除 (line 14795) 和 卡片删除 (line 14895) handler splice 后漏调 NS._saveUserConfig() — 之前只协议删除 + 切协议 调了 _saveUserConfig, 命令/卡片修改路径没覆盖, 浏览器刷新后被 _loadUserConfig + _defaultProtocols() 默认值覆盖。splice 后加 NS._saveUserConfig &amp;&amp; NS._saveUserConfig(); 跟协议删除对齐。</li>
+              <li><strong>edit mode 按钮 2x 触发 bug (用户实测):</strong></li>
+              <li>修复: 点"编辑模式"按钮弹 2 个 toast ("编辑模式: 可删除/添加/编辑卡片" + "已退出编辑模式"), 实际效果是进入后立刻退出 — 根因是 NS.attachModalHandlers 被调 2 次 (脚本末尾 L16469 + NS.start 内部 L12659), 所有 bind() 重复添加 listener, 单次点击触发 2 次 toggle。加一次性守卫 NS._modalHandlersBound, reset() 同步清 flag 让 reset 后能重绑。</li>
+              <li><strong>编辑模式前置条件 (用户反馈):</strong></li>
+              <li>修复: 进入编辑模式前需判断"已连接串口" + "已应用协议" — 用户反馈"没连接串口就无法应用协议自然也无法编辑"。在 dh-toggle-edit handler 入口加守卫: 没连串口 → toast 提示"请先连接串口" + return; 没激活协议 → toast 提示"请先在配置中心激活协议" + return。退出编辑模式不受影响 (可正常退出)。</li>
+              <li><strong>编辑模式下删卡片持久化 bug (用户实测):</strong></li>
+              <li>修复: 编辑模式下点 list 卡片 del 按钮, 卡片从界面消失但刷新后又恢复 — 根因是 data-action='del' handler (line 11688) splice/filter 后漏调 NS._saveUserConfig, 浏览器刷新被 _loadUserConfig + 默认值覆盖。补 NS._saveUserConfig &amp;&amp; NS._saveUserConfig(); 跟配置中心 card 删除对齐。</li>
+              <li>修复: 顺手补另外 3 处 card 修改路径漏 _saveUserConfig: (1) 编辑模式 trend 卡片 del 按钮 onclick (line 11623) (2) 卡片编辑 modal 列表 del 按钮 onclick (line 13865) (3) 卡片编辑 modal 保存/删除按钮 (line 16278/16296)。全部补 NS._saveUserConfig &amp;&amp; NS._saveUserConfig(); 否则用户在 dashboard 内的卡片修改刷新后都会丢失。</li>
+              <li><strong>代码清理:</strong></li>
+              <li>优化: _openCascadeModal 返回值从 'self' | 'cascade' | 'cancel' 简化为 'confirm' | 'cancel' — 移除 self 路径 (auto-cascade 是唯一行为), 3 个 delete handler 逻辑更简洁。旧 NS._cascadeConfirm 保留兼容 (不删不调用)。</li>
+              <li>优化: _renderCascadeModal 移除橙色 self-hint 渲染逻辑 (改用蓝色 cascade-summary), 简化 title 计算 (统一 "确认删除 + label" 无类型前缀)。</li>
+            </ul>
+          </div>
           <div class="version-release">
             <strong>1.3.3 版本 · 26/8/14</strong>
             <ul>
@@ -8769,7 +8794,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.3.3';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.3: 协议配置中心 3 tab 按 activeProtoId 过滤 — 顶部 badge + commands 协议下拉 + cards / alerts 表格内容 + 全局下标修复)
+      const VERSION = '1.3.4';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.4: 3 个删除 modal 统一 — 协议/命令/卡片 全部用简单 confirm + 自动级联, 修 title 重复 + 死删除方式 section + 持久化 bug)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
@@ -11596,7 +11621,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               // 通用垃圾桶 SVG: 盖子 + 提手 + 桶身 + 桶内 2 竖线
               del.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4 H13 M5 4 V3 H11 V4 M4 4 L5 13 H11 L12 4 M6.5 7 V11.5 M9.5 7 V11.5"/></svg>';
               del.title = '删除卡片';
-              del.onclick = (e) => { e.stopPropagation(); NS.CARDS = NS.CARDS.filter((x) => x.id !== c.id); NS.renderCardGrid(); NS.renderCardEditList(); NS.toast('已删除卡片 ' + c.id, 'success'); };
+              // v1.3.4: 编辑模式 trend 卡片删除 — 调 _saveUserConfig 持久化 (跟 list 卡片删除 + 配置中心对齐)
+              del.onclick = (e) => { e.stopPropagation(); NS.CARDS = NS.CARDS.filter((x) => x.id !== c.id); NS._saveUserConfig && NS._saveUserConfig(); NS.renderCardGrid(); NS.renderCardEditList(); NS.toast('已删除卡片 ' + c.id, 'success'); };
               actionsEl.appendChild(del);
             }
           }
@@ -11666,7 +11692,9 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               e.stopPropagation();
               if (act === 'edit') NS.openCardEdit(c.id);
               else if (act === 'del') {
+                // v1.3.4: 编辑模式下 list 卡片删除 — 调 _saveUserConfig 持久化 (修刷新复活 bug, 跟配置中心 card 删除对齐)
                 NS.CARDS = NS.CARDS.filter((x) => x.id !== c.id);
+                NS._saveUserConfig && NS._saveUserConfig();
                 NS.renderCardGrid();
                 NS.renderCardEditList();
                 NS.toast('已删除卡片 ' + c.id, 'success');
@@ -12663,6 +12691,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         NS.reset = function () {
           NS.stop();
           NS._initialized = false;
+          // v1.3.4: 同时清 _modalHandlersBound, 让 attachModalHandlers 守卫允许重绑 (reset 后 DOM 可能重渲染)
+          NS._modalHandlersBound = false;
           NS.currentVals = {}; NS.trendData = {}; NS.lastValues = {};
           // v1.3.3: 重置清空持久化, 让默认配置生效
           NS.PROTOCOLS = NS._defaultProtocols();
@@ -13833,8 +13863,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               <button class="del-btn" title="删除" aria-label="删除"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M3 3 L13 13 M13 3 L3 13"/></svg></button>
             `;
             row.querySelector('.edit-btn').onclick = () => NS.openCardEdit(c.id);
+            // v1.3.4: 卡片编辑 modal 内的删除按钮 — 调 _saveUserConfig 持久化 (跟配置中心 + 编辑模式对齐)
             row.querySelector('.del-btn').onclick = () => {
               NS.CARDS = NS.CARDS.filter((x) => x.id !== c.id);
+              NS._saveUserConfig && NS._saveUserConfig();
               NS.renderCardEditList();
               NS.toast(`已移除卡片 ${c.id}`, 'success');
             };
@@ -14687,20 +14719,18 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             NS.toast && NS.toast('已复制协议: ' + newId, 'success');
             if (typeof NS._renderConfigCenter === 'function') NS._renderConfigCenter();
           });
-          // v1.3.3 改: 协议删除改为直接级联 (简单 confirm, 不弹三选项 modal) — 用户反馈"默认删除协议就是全部删除"
-          //   之前用 _openCascadeModal 三选项, 用户觉得"复杂/不安全", 现在改为: 弹简单 confirm 提示引用数 → 确认 → 直接级联删协议+所有引用
-          //   命令/卡片删除仍保留三选项 modal (cascade 仍可用, 仅协议默认级联)
+          // v1.3.4 改: 协议删除改用统一 modal (跟命令/卡片 一致 — 简单 confirm + 自动级联)
+          //   v1.3.3 之前用 window.confirm(), v1.3.1 之前用三选项 modal — 都不一致
+          //   现在: 弹统一 modal 显示引用预览 chip + 蓝色信息条"引用对象会一并删除" → 用户确认 → 级联删
           document.querySelectorAll('[data-proto-del]').forEach((b) => b.onclick = async () => {
             const delId = b.getAttribute('data-proto-del');
+            const result = await NS._openCascadeModal('protocol', delId, delId);
+            if (result !== 'confirm') return;
+            // 直接级联删: 协议 + 所有引用对象 (v1.3.4: 自动级联, 跟 modal 一致)
             const refs = NS._findReferences('protocol', delId);
             const cmdCount = (refs.commands || []).length;
             const cardCount = (refs.cards || []).length;
             const alertCount = (refs.alerts || []).length;
-            const refSummary = (cmdCount + cardCount + alertCount) > 0
-              ? `\n\n引用对象会一起删除: ${cmdCount} 条命令 + ${cardCount} 张卡片 + ${alertCount} 条告警`
-              : '\n\n该协议无引用对象';
-            if (!confirm('确认删除协议 ' + delId + '?' + refSummary)) return;
-            // 直接级联删: 协议 + 所有引用对象
             NS.PROTOCOLS = NS.PROTOCOLS.filter((p) => p.id !== delId);
             NS.CARDS = NS.CARDS.filter((c) => c.protocol !== delId);
             NS.ALERTS = NS.ALERTS.filter((a) => a.protocol !== delId);
@@ -14791,23 +14821,22 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               NS.openNewCommandModal(proto.id, proto.commands[idx], 'dup');
             };
           });
-          // 删除按钮 (v1.3.1 三选项级联 modal, 替换 v1.2 _cascadeConfirm)
+          // 删除按钮 (v1.3.4 统一 modal, 替换 v1.3.1 三选项)
           document.querySelectorAll('[data-cmd-del]').forEach((btn) => {
             btn.onclick = async () => {
               const idx = parseInt(btn.getAttribute('data-cmd-del'), 10);
               if (!proto || !proto.commands[idx]) return;
               const cmdId = proto.commands[idx].id;
-              const label = '命令 0x' + (cmdId || 0).toString(16).padStart(2, '0').toUpperCase() + ' ' + proto.commands[idx].name;
+              // v1.3.4: label 去 "命令" 前缀 (避免跟 title "确认删除命令" 重复 → 改成 "确认删除 0x01 Read Voltage?")
+              const label = '0x' + (cmdId || 0).toString(16).padStart(2, '0').toUpperCase() + ' ' + proto.commands[idx].name;
               const result = await NS._openCascadeModal('command', cmdId, label);
-              if (result === 'cancel') return;
-              if (result === 'cascade') {
-                // 级联: 删引用此 cmd 的卡片 + alerts
-                const refs = NS._findReferences('command', cmdId);
-                NS.CARDS = NS.CARDS.filter((c) => c.cmd !== cmdId);
-                NS.ALERTS = (NS.ALERTS || []).filter((a) => a.cmd !== cmdId);
-              }
+              if (result !== 'confirm') return;
+              // v1.3.4: 自动级联 — 删引用此 cmd 的卡片 + alerts (命令/卡片只属其协议, 引用方离开被引用方没意义)
+              NS.CARDS = NS.CARDS.filter((c) => c.cmd !== cmdId);
+              NS.ALERTS = (NS.ALERTS || []).filter((a) => a.cmd !== cmdId);
               proto.commands.splice(idx, 1);
-              NS.toast && NS.toast('已删除' + (result === 'cascade' ? ' 命令 (含引用)' : ' 命令'), 'success');
+              NS._saveUserConfig && NS._saveUserConfig();
+              NS.toast && NS.toast('已删除 命令 (含引用)', 'success');
               NS._configCenterTabRenderers.commands();
               if (typeof NS._configCenterTabRenderers.cards === 'function') NS._configCenterTabRenderers.cards();
               if (typeof NS._configCenterTabRenderers.alerts === 'function') NS._configCenterTabRenderers.alerts();
@@ -14892,21 +14921,21 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               NS.openCardEdit && NS.openCardEdit(card.id);
             };
           });
-          // 删除 (v1.3.1 三选项级联 modal, 替换 v1.2 _cascadeConfirm)
+          // 删除 (v1.3.4 统一 modal, 替换 v1.3.1 三选项)
           document.querySelectorAll('[data-card-del]').forEach((btn) => {
             btn.onclick = async () => {
               const idx = parseInt(btn.getAttribute('data-card-del'), 10);
               if (!NS.CARDS[idx]) return;
               const card = NS.CARDS[idx];
-              const label = '卡片 ' + (card.id || '—') + (card.title ? ' ' + card.title : '');
+              // v1.3.4: label 去 "卡片" 前缀 (避免跟 title "确认删除卡片" 重复 → 改成 "确认删除 c1 Cell 1 电压?")
+              const label = (card.id || '—') + (card.title ? ' ' + card.title : '');
               const result = await NS._openCascadeModal('card', card.id || card.title, label);
-              if (result === 'cancel') return;
-              if (result === 'cascade') {
-                // 级联: 删引用此 card 的 alerts (用 name/title 匹配)
-                NS.ALERTS = (NS.ALERTS || []).filter((a) => !(a.name === (card.title || card.id)));
-              }
+              if (result !== 'confirm') return;
+              // v1.3.4: 自动级联 — 删引用此 card 的 alerts (用 name/title 匹配)
+              NS.ALERTS = (NS.ALERTS || []).filter((a) => !(a.name === (card.title || card.id)));
               const removed = NS.CARDS.splice(idx, 1)[0];
-              NS.toast && NS.toast('已删除' + (result === 'cascade' ? ' 卡片 (含引用告警)' : ' 卡片') + ' ' + removed.id, 'success');
+              NS._saveUserConfig && NS._saveUserConfig();
+              NS.toast && NS.toast('已删除 卡片 (含引用告警) ' + removed.id, 'success');
               NS._configCenterTabRenderers.cards();
               NS._configCenterTabRenderers.alerts();
               // v1.3.3: 3 个 badge 一起刷新 (按 activeProtoId 过滤)
@@ -15472,49 +15501,42 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           return refs;
         };
 
-        // v1.3.1: 三选项级联 modal - 替换 v1.2 browser confirm
+        // v1.3.4: 统一删除 modal (替换 v1.3.1 三选项 + v1.3.3 协议 window.confirm)
         //   type: 'protocol' | 'command' | 'card'
-        //   返回 Promise<'self' | 'cascade' | 'cancel'>
+        //   label: 不含类型前缀 (e.g. 'proto_bms' / '0x01 Read Voltage' / 'c1 Cell 1 电压')
+        //   返回 Promise<'confirm' | 'cancel'> — confirm = 自动级联 (引用方一并删)
+        //   行为: 命令/卡片只属其协议, 引用方离开被引用方就没意义, 无需"仅删自己"选项 (跟协议删除一致)
         NS._cascadeResolve = null;
         NS._openCascadeModal = function (type, id, label) {
           return new Promise((resolve) => {
             const refs = NS._findReferences(type, id);
-            const orphanCount = (refs.commands ? refs.commands.length : 0)
-                              + (refs.cards ? refs.cards.length : 0)
-                              + (refs.alerts ? refs.alerts.length : 0);
-            NS._renderCascadeModal(type, label, refs, orphanCount);
+            const refCount = (refs.commands ? refs.commands.length : 0)
+                           + (refs.cards ? refs.cards.length : 0)
+                           + (refs.alerts ? refs.alerts.length : 0);
+            NS._renderCascadeModal(type, label, refs, refCount);
             NS._cascadeResolve = resolve;
             NS.openModal('dh-cascade-delete');
           });
         };
 
-        NS._renderCascadeModal = function (type, label, refs, orphanCount) {
-          // title + meta
-          const titleText = {
-            protocol: '确认删除协议 ' + label + '?',
-            command: '确认删除命令 ' + label + '?',
-            card: '确认删除卡片 ' + label + '?'
-          }[type] || ('确认删除 ' + label + '?');
+        NS._renderCascadeModal = function (type, label, refs, refCount) {
+          // title: 统一 "确认删除 + label" (label 不含类型前缀, 避免重复)
           const titleEl = document.getElementById('dh-cascade-delete-title');
-          if (titleEl) titleEl.textContent = titleText;
+          if (titleEl) titleEl.textContent = '确认删除 ' + label + '?';
           // meta: 按 type 查 protocol/cmd/card 元信息
           let metaText = label;
           if (type === 'protocol') {
-            // label 形如 "协议 proto_bms" — 提取 proto id
-            const m = label.match(/协议\s+(\S+)/);
-            const protoId = m ? m[1] : label;
-            const proto = (NS.PROTOCOLS || []).find(p => p.id === protoId);
+            const proto = (NS.PROTOCOLS || []).find(p => p.id === label);
             metaText = proto ? (proto.name + ' · ' + (proto.commands || []).length + ' 条命令') : label;
           } else if (type === 'command') {
-            // label 形如 "命令 0x01 Read Voltage" — 找 proto
-            const proto = (NS.PROTOCOLS || []).find(p => (p.commands || []).some(c => {
-              const hex = '0x' + (c.id || 0).toString(16).padStart(2, '0').toUpperCase();
-              return label.indexOf(hex) >= 0;
-            }));
+            // label 形如 "0x01 Read Voltage" — 找 cmd + proto
+            const m = label.match(/0x([0-9a-fA-F]+)/);
+            const cmdHex = m ? parseInt(m[1], 16) : null;
+            const proto = (NS.PROTOCOLS || []).find(p => (p.commands || []).some(c => c.id === cmdHex));
             metaText = proto ? ('所属协议 ' + proto.id + ' · ' + (proto.name || '')) : label;
           } else {
-            // card: label 形如 "卡片 c1 Cell 1 电压"
-            const m = label.match(/卡片\s+(\S+)/);
+            // card: label 形如 "c1 Cell 1 电压" — 找 card
+            const m = label.match(/^(\S+)/);
             const cardId = m ? m[1] : label;
             const card = (NS.CARDS || []).find(c => c.id === cardId);
             metaText = card ? ('所属协议 ' + (card.protocol || '-') + ' · cmd ' + (card.cmd || '-')) : label;
@@ -15524,8 +15546,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           // 引用预览 chip
           const refsEl = document.getElementById('dh-cascade-delete-refs');
           if (refsEl) {
-            if (orphanCount === 0) {
-              refsEl.innerHTML = '<span class="refs-empty">无引用对象, 仅删自己 = 级联删除</span>';
+            if (refCount === 0) {
+              refsEl.innerHTML = '<span class="refs-empty">无引用对象</span>';
             } else {
               const chips = [];
               if (refs.commands && refs.commands.length) chips.push('<span class="ref-chip cmd"><span class="num">' + refs.commands.length + '</span> 条命令</span>');
@@ -15534,28 +15556,31 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               refsEl.innerHTML = chips.join('');
             }
           }
-          // 仅删自己 hint
-          const hintEl = document.getElementById('dh-cascade-delete-hint');
-          if (hintEl) {
-            if (orphanCount > 0) {
-              const parts = [];
-              if (refs.commands && refs.commands.length) parts.push(refs.commands.length + ' 条孤儿命令');
-              if (refs.cards && refs.cards.length) parts.push(refs.cards.length + ' 张孤儿卡片');
-              if (refs.alerts && refs.alerts.length) parts.push(refs.alerts.length + ' 条孤儿告警');
-              document.getElementById('dh-cascade-delete-hint-text').textContent = '选"仅删自己"会留下 ' + parts.join(' + ') + ', 引用悬挂';
-              hintEl.style.display = 'flex';
+          // v1.3.4: 蓝色信息条 — 告诉用户会一并删哪些 (替换橙色 self-hint)
+          const summaryEl = document.getElementById('dh-cascade-delete-summary');
+          const summaryText = document.getElementById('dh-cascade-delete-summary-text');
+          if (summaryEl && summaryText) {
+            if (refCount === 0) {
+              summaryText.textContent = '无引用对象, 仅删除当前项';
+              summaryEl.classList.add('empty');
             } else {
-              hintEl.style.display = 'none';
+              const parts = [];
+              if (refs.commands && refs.commands.length) parts.push(refs.commands.length + ' 条命令');
+              if (refs.cards && refs.cards.length) parts.push(refs.cards.length + ' 张卡片');
+              if (refs.alerts && refs.alerts.length) parts.push(refs.alerts.length + ' 条告警');
+              summaryText.textContent = '引用对象会一并删除: ' + parts.join(' + ');
+              summaryEl.classList.remove('empty');
             }
+            summaryEl.style.display = 'flex';
           }
-          // 级联按钮文案 (总数 = 1 自己 + orphanCount)
-          const countEl = document.getElementById('dh-cascade-delete-cascade-count');
-          if (countEl) countEl.textContent = '(' + (orphanCount + 1) + ')';
+          // 隐藏旧 self-hint (v1.3.1 残留, 不再使用)
+          const oldHintEl = document.getElementById('dh-cascade-delete-hint');
+          if (oldHintEl) oldHintEl.style.display = 'none';
         };
 
-        // 绑定 3 按钮 + 背景 + Esc
+        // 绑定 2 按钮 (取消 / 确认删除) + 背景 + Esc
         NS._bindCascadeModalHandlers = function () {
-          // 3 按钮 data-result
+          // 2 按钮 data-result
           document.querySelectorAll('#dh-cascade-delete-modal [data-result]').forEach((btn) => {
             btn.onclick = (e) => {
               e.stopPropagation();
@@ -16069,6 +16094,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         };
 
         NS.attachModalHandlers = function () {
+          // v1.3.4 修: attachModalHandlers 被调 2 次 (脚本末尾 L16469 + NS.start 内部 L12659), 所有 bind() 重复添加 listener
+          //   导致所有按钮点击触发 2 次 (e.g. 编辑模式按钮 1 次点击 → 进入 + 退出 → 显示 2 个 toast)
+          //   加一次性守卫, 防止重复绑定
+          if (NS._modalHandlersBound) return;
+          NS._modalHandlersBound = true;
           const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
           // v1.3.0: 初始化调试面板 (BC + Role seg 绑定 + 预设渲染)
           if (NS._debugBcAvailable) {
@@ -16259,6 +16289,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const hi = parseFloat(document.getElementById('dh-ce-upper').value);
             c.range = (!isNaN(lo) && !isNaN(hi)) ? [lo, hi] : undefined;
             c.precision = parseInt(document.getElementById('dh-ce-precision').value) || 2;
+            // v1.3.4: 卡片编辑保存 → 调 _saveUserConfig 持久化 (跟配置中心 card 修改对齐)
+            NS._saveUserConfig && NS._saveUserConfig();
             NS.renderCardEditList();
             NS.renderKpiCards();
             NS.closeModal('dh-card-edit');
@@ -16267,6 +16299,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           bind('dh-ce-delete', () => {
             if (!NS.editingCardId) return;
             NS.CARDS = NS.CARDS.filter((c) => c.id !== NS.editingCardId);
+            // v1.3.4: 卡片编辑 modal 删除 → 调 _saveUserConfig 持久化 (跟配置中心 + 编辑模式对齐)
+            NS._saveUserConfig && NS._saveUserConfig();
             NS.renderCardEditList();
             NS.renderKpiCards();
             NS.closeModal('dh-card-edit');
@@ -16329,6 +16363,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
           // 编辑模式 toggle
           bind('dh-toggle-edit', () => {
+            // v1.3.4: 进入编辑模式前置条件 — 需已连串口 + 已应用协议 (没连串口就应用不了协议, 也编辑不了)
+            if (!NS.editMode) {
+              if (!NS._serialConnected) {
+                NS.toast && NS.toast('请先连接串口 (编辑模式需基于已应用的协议)', 'warn');
+                return;
+              }
+              if (!NS.activeProtoId) {
+                NS.toast && NS.toast('请先在配置中心激活协议 (编辑模式需基于已应用的协议)', 'warn');
+                return;
+              }
+            }
             NS.editMode = !NS.editMode;
             const host = document.getElementById('dashboard-host');
             if (host) host.classList.toggle('edit-mode', NS.editMode);
