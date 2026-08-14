@@ -11,6 +11,10 @@
 
 ## 📑 子文件索引
 
+### 2026-08-14
+
+- [`changelog/2026-08-14-rollback-v1.4.0.md`](changelog/2026-08-14-rollback-v1.4.0.md) — **v1.4.0 回滚**: force-push main `4e7249b` → `c4d8b08`,移除 13 commit (V1.13 协议集成 + slave 工具 + chrome-cdp skill + agent-browser 弃用); backup 分支 `backup-pre-rollback-2026-08-14` 保留 37 文件 / 6075 行
+
 ### 2026-08-13
 
 - [`changelog/2026-08-13-v1.3.1-cascade-delete-modal.md`](changelog/2026-08-13-v1.3.1-cascade-delete-modal.md) — v1.3.1 三选项级联 modal: 协议/命令/卡片删除升级 (替换 v1.2 browser confirm) + 引用预览 chip + "仅删自己" hint

@@ -41,6 +41,9 @@ screenshots/
 .cache/
 .tmp/                  # 工作区临时目录 (脚本/测试/cleanup backup)
 
+# Skill 工作文件 (brainstorm session state, planning 中间产物, 不入 git)
+.superpowers/
+
 # 仓库相关（不提交上游整包，.minimax/skills/ 是单独维护的精简版）
 .minimax/repos/
 .minimax/.cache/
