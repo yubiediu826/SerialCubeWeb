@@ -8092,6 +8092,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 <span class="cmd-chip-label">命令:</span>
               </div>
               <!-- v1.2: 未连接占位 (默认显示, 连上串口后隐藏) -->
+              <!-- v1.3.2.1: 拆 3 段文案, JS 按 activeProtoId + serialConnected 状态切显示哪段:
+                   - 串口未连 + 未应用协议 → 引导连串口 (默认)
+                   - 串口已连 + 未应用协议 → 引导去配置中心选协议
+                   - 串口未连 + 已应用协议 → 提示"协议已应用,请连串口" -->
               <div class="dash-empty" id="dh-dash-empty" style="display: none;">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-soft)" stroke-width="1.2">
                   <path d="M4 8 L4 16 C4 17.1 4.9 18 6 18 L18 18 C19.1 18 20 17.1 20 16 L20 8 C20 6.9 19.1 6 18 6 L6 6 C4.9 6 4 6.9 4 8 Z"/>
@@ -8101,9 +8105,21 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                   <line x1="17" y1="13" x2="17" y2="13.01"/>
                   <rect x="10" y="3" width="4" height="3" stroke="var(--text-soft)" fill="none"/>
                 </svg>
-                <div class="empty-title">未连接串口</div>
-                <div class="empty-desc">连接后选择协议, 仪表盘会显示该协议的卡片</div>
-                <button class="tbtn primary" id="dh-dash-choose-port">选择串口</button>
+                <div class="empty-block" data-empty-state="disconnected-no-proto">
+                  <div class="empty-title">未连接串口</div>
+                  <div class="empty-desc">连接后选择协议, 仪表盘会显示该协议的卡片</div>
+                  <button class="tbtn primary" id="dh-dash-choose-port">选择串口</button>
+                </div>
+                <div class="empty-block" data-empty-state="connected-no-proto" style="display: none;">
+                  <div class="empty-title">未应用协议</div>
+                  <div class="empty-desc">串口已连接, 但还没选协议。去配置中心选一个协议激活吧</div>
+                  <button class="tbtn primary" id="dh-dash-open-config">打开配置中心</button>
+                </div>
+                <div class="empty-block" data-empty-state="disconnected-with-proto" style="display: none;">
+                  <div class="empty-title">未连接串口</div>
+                  <div class="empty-desc">协议 <span id="dh-empty-proto-name"></span> 已应用, 请连接串口开始接收数据</div>
+                  <button class="tbtn primary" id="dh-dash-choose-port-2">选择串口</button>
+                </div>
               </div>
               <div class="card-grid-area" id="dh-card-grid"></div>
               <!-- v1.3.0: 调试面板 (BroadcastChannel 主从 + Mutator) -->
@@ -8421,14 +8437,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h12v8H2z"/><path d="M5 13v1h6v-1"/><path d="M5 3a3 3 0 0 1 6 0v2H5z"/></svg>
                 引导
               </button>
-              <button class="action-btn" id="dh-cc-proto-import-header" title="导入 JSON">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v10M5 5l3-3 3 3M3 14h10"/></svg>
-                导入
-              </button>
-              <button class="action-btn primary" id="dh-cc-proto-new-header" title="新建协议">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
-                新建协议
-              </button>
+              <!-- v1.3.3: 顶部"导入"按钮删除 (跟"导入/导出" tab 重复), "新建协议" 按钮挪到协议 tab 内容区右上 -->
             </div>
             <button aria-label="关闭" class="close-btn" data-close="dh-config-center" title="关闭">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -8457,7 +8466,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             <span id="dh-config-center-proto-count" style="font-size: 11px; color: var(--text-soft);">共 0 个协议</span>
             <span class="spacer"></span>
             <span id="dh-config-center-status" style="font-size: 11px; color: var(--text-soft); margin-right: 12px;">已自动保存</span>
-            <button class="toolbar-btn" id="dh-config-center-export" data-svg="download" data-svg-size="14"><span>导出</span></button>
+            <!-- v1.3.3: 底部"导出"按钮删除 (跟"导入/导出" tab 重复) -->
             <button class="toolbar-btn primary" data-close="dh-config-center"><span>完成</span></button>
           </div>
         </div>
@@ -8621,6 +8630,45 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.3.3 版本 · 26/8/14</strong>
+            <ul>
+              <li><strong>修复 (用户实测发现 v1.3.2 配置中心 bug):</strong></li>
+              <li>修复: 协议配置中心顶部 3 个 tab 计数 badge (命令/卡片/告警) 之前用 NS.allCommands().length / NS.CARDS.length / NS.ALERTS.length 跨协议总数, 选 modbus 协议后顶部还显示 bms 8/12 (用户实测反馈)。抽公共函数 NS._refreshConfigCenterBadges(), 按 activeProtoId 过滤: 选 modbus → 0/0/0, 选 bms → 8/12/0, 没选 → 全部 (向后兼容)。9 处调用点 (含 8 处增量操作) 全部统一走新函数。</li>
+              <li>修复: 协议配置中心"命令" tab 协议下拉默认值不跟 activeProtoId 联动 — 之前用 NS._ccSelectedProtoId || PROTOCOLS[0].id 独立状态, 选 modbus 后切到命令 tab 仍默认显示 bms 8 条。改为 activeProtoId 优先, 跟仪表盘聚焦逻辑对齐。</li>
+              <li>修复: 协议配置中心"卡片" tab 不过滤 activeProtoId — 之前 NS.CARDS.map 遍历全部, 选 modbus 还显示 bms 12 张卡片。加 filter(c.protocol === activeProtoId), toolbar 加"已按当前激活协议 X 过滤"提示。</li>
+              <li>修复: 协议配置中心"告警" tab 不过滤 activeProtoId — 跟 cards tab 同根因, 同样修。</li>
+              <li>修复: cards / alerts 表格行 data-*-idx 用 filtered 局部下标, 编辑/删除按钮调 NS.CARDS[idx] 拿全局下标错位 (选了 modbus 之后, 点 modbus 卡片编辑会打开 bms 卡片) — 改用 NS.CARDS.indexOf(c) / NS.ALERTS.indexOf(a) 拿全局下标。</li>
+              <li><strong>UI 一致性 (用户实测反馈 modal 重复入口):</strong></li>
+              <li>修复: 协议配置中心顶部"导入"按钮删除 (dh-cc-proto-import-header) — 跟"导入/导出" tab 重复, 引导按钮保留。</li>
+              <li>修复: 协议配置中心底部"导出"按钮删除 (dh-config-center-export) — 跟"导入/导出" tab 重复, 完整导出逻辑只在"导入/导出" tab 提供。</li>
+              <li>优化: 协议配置中心顶部"新建协议"按钮挪到协议 tab 内容区右上 toolbar (id 改 dh-cc-proto-new-inside) — 离协议列表更近, 避免顶部 3 个 tab (命令/卡片/告警) 也显示"新建协议"按钮造成的语义混淆 (新建只对协议 tab 有效)。toolbar 加"共 N 个协议 · 当前激活 X / 未选"提示。</li>
+              <li><strong>UI 简化 (用户实测反馈 "一一对应" 原则):</strong></li>
+              <li>优化: 协议配置中心"命令" tab 协议下拉框删除 (dh-cc-cmd-proto-select) — 用户反馈"命令这边就不需要做下拉框了, 不是一一对应了吗"。命令 tab 跟 activeProtoId 一一对应, 选协议在"协议" tab 用 ●/○ 应用列切换, 命令 tab 只显示当前激活协议的命令。删 _ccSelectedProtoId 独立状态。</li>
+              <li>优化: 协议配置中心"命令" / "卡片" / "告警" 3 个 tab 严格按 activeProtoId 一一对应, 不再"没选回退全部"。没选协议时显示"未选择协议"占位 + 引导"去 协议 tab 激活"按钮 (一键切到 protocols tab), toolbar 文字改为"协议 X · 共 N 条命令"。</li>
+              <li>修复: 协议配置中心 footer "共 N 个协议" 切到非 protocols tab 时不更新 (之前只在 protocols tab renderer 末尾更新, 切到命令/卡片/告警 tab 时显示初始 0)。改为 _renderConfigCenter 入口处总是更新, 切 tab 立即反映真实数字。</li>
+              <li><strong>实测反馈 3 个新问题修复 (用户连续反馈):</strong></li>
+              <li>修复: 协议配置中心顶部 badge (命令/卡片/告警) 严格按 activeProtoId 过滤, 没选协议 = 0/0/0 (跟 tab 内容"未选占位"一致)。之前"没选回退全部"让用户困惑 "为什么未激活 tab 还显示 8/12"。</li>
+              <li>优化: 协议删除改为简单 confirm (替代三选项级联 modal) — 用户反馈"默认删除协议就是全部删除, 包含相关卡片/命令/告警, 同时修改 UI 样式"。点删除按钮 → 弹 "确认删除协议 X? 引用对象会一起删除: N 条命令 + M 张卡片 + K 条告警" → 确认 → 直接级联删 (协议 + 所有引用对象)。命令/卡片删除仍保留三选项 modal (用户可二选一, 仅协议默认级联)。</li>
+              <li>修复: 协议/命令/卡片/告警自动持久化到 localStorage (新增 NS._loadUserConfig / NS._saveUserConfig / NS._clearUserConfig) — 用户反馈"为什么我删除协议重新刷新浏览器又显示之前删除的协议"。之前只 exportConfig 手动导出, 没有自动保存, 删了协议刷新就回 _defaultProtocols() 默认值。启动时 _loadUserConfig 恢复, modify 路径(切协议/删除协议/新建删除/导入/重置)显式 _saveUserConfig。Key = `serialcube.userConfig.v1`。</li>
+            </ul>
+          </div>
+          <div class="version-release">
+            <strong>1.3.2 版本 · 26/8/14 (v1.3.2.1 修复已合并)</strong>
+            <ul>
+              <li><strong>v1.3.2.1 修复 (用户实测发现 3 个新问题):</strong></li>
+              <li>修复: 仪表盘占位区文案 3 状态分支 — 之前只有 1 段"未连接串口"文案, 串口已连 + 未应用协议时也显示"未连接串口"(用户报图 1 bug)。改为 3 段: disconnected-no-proto (默认, 引导连串口) / connected-no-proto (引导去配置中心) / disconnected-with-proto (提示协议已应用, 请连串口)。第 2/3 段按钮也加了 binding (dh-dash-choose-port-2 / dh-dash-open-config)。</li>
+              <li>修复: 仪表盘卡片区串口未连时也隐藏 — 之前 renderCardGrid 只看 activeProtoId, activeProtoId 有值就渲染卡片, 跟占位区"未连接串口"同时显示 (用户报图 2 bug)。加 NS._serialConnected 检查, 跟 updateDashboardProtoBar 双条件对齐。</li>
+              <li>修复: toggleActiveProtocol 加 rAF 防御性重渲染 — 之前 user 报告切协议后命令/卡片不刷新 (图 3 bug), 怀疑是 modal 还在动画时首次 render 被吞。requestAnimationFrame 第二次调 updateDashboardProtoBar + renderCommandPanel + renderCardGrid, 兜底保证渲染生效。</li>
+              <li>修复: NS.serialConnected 拼写错误 (line 14371/14379) — v1.3.2 之前这俩地方用 NS.serialConnected (永远 undefined), 改 NS._serialConnected。影响: updateDashboardSettingsBtn 之前永远 disabled, openDashboardSettingsModal 永远 alert "请先连接串口"。</li>
+              <li><strong>v1.3.2 修复 (用户初始报 3 个阻断 bug):</strong></li>
+              <li>修复: 仪表盘命令 tab 默认显示所有协议命令 (BMS 8 条) — renderCommandPanel 之前用 allCommands() 跨协议 flatMap 不过滤 activeProtoId, 跟 renderCardGrid (line 11612) 行为不一致。改为直接遍历 NS.PROTOCOLS[i].commands (因为 cmd 对象没 own protocol 字段, flatMap 后丢失协议关联), 跟卡片/告警一致按 activeProtoId 过滤。默认未选协议时整个 panel 不显示任何 chip, 引导用户去配置中心选协议。</li>
+              <li>修复: 仪表盘占位区"选择串口"按钮完全无反应 — 之前 dh-dash-choose-port (HTML line 8106) 没有 click handler, 全文件 grep 只出现 1 次, 点了什么都不发生。绑定转发到主应用 #connect-btn.click() → connectSerial('manual') → Web Serial API, 兜底直接 navigator.serial.requestPort()。</li>
+              <li>修复: 仪表盘激活协议后 "未连接串口" 占位区消失但用户没连串口 — updateDashboardProtoBar 之前只看 activeProtoId, 现在改看 activeProtoId + serialConnected 双条件。NS._serialConnected 由主应用 updateSerialStatus 末尾同步 state.serial.connected (新增, 之前 NS.serialConnected 从未被赋值, 导致 updateDashboardSettingsBtn 永远 disabled / openDashboardSettingsModal 永远弹 alert)。</li>
+              <li>修复: 协议编辑器"应用协议"按钮只 toast + 关闭 modal 不真正应用 — 之前 dh-proto-apply 没调任何 render, 编辑协议后命令/卡片不刷新。改为: 写 localStorage.serialcube.lastProtoId + 调 NS.renderKpiCards() 重渲染命令/卡片/告警 + toast + 关闭 modal。</li>
+              <li>修复: 告警列表协议切换不刷新 — renderAlerts 之前遍历所有 NS.CARDS 不按 activeProtoId 过滤, 现在跟 renderCardGrid 一致按协议过滤。</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.3.1 版本 · 26/8/13</strong>
             <ul>
               <li>新增: 三选项级联 modal — 协议/命令/卡片删除时弹自定义 modal (替换 v1.2 browser confirm), 3 选项 (仅删自己 / 级联 / 取消)。</li>
@@ -8721,7 +8769,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.3.1.1';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.1.1 hotfix: v1.3.1 modal 位置 + inline display:none 修复)
+      const VERSION = '1.3.3';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.3: 协议配置中心 3 tab 按 activeProtoId 过滤 — 顶部 badge + commands 协议下拉 + cards / alerts 表格内容 + 全局下标修复)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
@@ -10775,6 +10823,34 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           ];
         };
         NS.PROTOCOLS = NS._defaultProtocols();
+        // v1.3.3 新增: 自动持久化 (协议/命令/卡片/告警 + activeProtoId) — 之前只 exportConfig 手动导出, 没有自动保存, 删了协议刷新就回默认 (用户反馈 "为什么我删除协议重新刷新浏览器又显示之前删除的协议")
+        //   启动时 _loadUserConfig 从 localStorage 覆盖默认值; 修改后所有 modify 路径调 _saveUserConfig
+        NS._USER_CONFIG_KEY = 'serialcube.userConfig.v1';
+        NS._loadUserConfig = function () {
+          try {
+            const raw = localStorage.getItem(NS._USER_CONFIG_KEY);
+            if (!raw) return;
+            const cfg = JSON.parse(raw);
+            if (Array.isArray(cfg.protocols) && cfg.protocols.length) NS.PROTOCOLS = cfg.protocols;
+            if (Array.isArray(cfg.cards)) NS.CARDS = cfg.cards;
+            if (Array.isArray(cfg.alerts)) NS.ALERTS = cfg.alerts;
+            if (cfg.activeProtoId !== undefined) NS.activeProtoId = cfg.activeProtoId || null;
+          } catch (e) { /* 读失败回退默认 */ }
+        };
+        NS._saveUserConfig = function () {
+          try {
+            localStorage.setItem(NS._USER_CONFIG_KEY, JSON.stringify({
+              protocols: NS.PROTOCOLS,
+              cards: NS.CARDS,
+              alerts: NS.ALERTS,
+              activeProtoId: NS.activeProtoId
+            }));
+          } catch (e) { /* 写失败不阻塞 UI */ }
+        };
+        NS._clearUserConfig = function () {
+          try { localStorage.removeItem(NS._USER_CONFIG_KEY); } catch (e) {}
+        };
+        // [v1.3.3] _loadUserConfig call moved to AFTER NS.CARDS default init (line 11224+), see below
         // 兼容垫片: 旧 NS.COMMANDS 全局数组 → 跨协议 flatMap
         //   旧代码 NS.COMMANDS.find / .forEach / .length / .filter 等都换成 NS.allCommands()
         NS.allCommands = function () { return (NS.PROTOCOLS || []).flatMap(function (p) { return p.commands || []; }); };
@@ -11197,6 +11273,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           return base + (Math.random() - 0.5) * 2 * r;
         };
 
+        // [v1.3.3] 保存 CARDS 默认值副本 (在 _loadUserConfig 覆盖前), reset 时恢复
+        NS._defaultCards = JSON.parse(JSON.stringify(NS.CARDS));
+        NS._defaultAlerts = [];
+        // 启动时从 localStorage 恢复用户配置 (覆盖 _defaultProtocols / NS.CARDS / NS.ALERTS 默认值)
+        NS._loadUserConfig();
+
         NS.initMockData = function () {
           // charge_v_set 初始 56.0V (mock 充电电压), pack_v_avg 初始 56.4V (4 cell 串联 3.71*4≈14.8V? 实际 pack_v_avg 是 cell 平均 ≈3.71V, pair 卡 act = pack_v_avg * 15 ≈ 55.65V 模拟 4 cell 串联总电压)
           const initVals = {
@@ -11332,12 +11414,23 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           const scrollEl = el.querySelector('#dh-cmd-scroll');
           const prevBtn = el.querySelector('#dh-cmd-nav-prev');
           const nextBtn = el.querySelector('#dh-cmd-nav-next');
+          // v1.3.2 修: 未选协议 (activeProtoId=null) 时整个命令 panel 不显示任何 chip, 跟 renderCardGrid (line 11607) 行为一致
+          //   之前 allCommands() 跨协议 flatMap, 默认 activeProtoId=null 时也显示所有协议命令 (BMS 8 条), 跟"未选协议时引导用户去配置中心"的设计冲突
+          if (!NS.activeProtoId) {
+            // ALL chip 也不显示 — 让命令 panel 留出"命令:"标签但 chip 区空, 视觉上引导用户去选协议
+            if (prevBtn) prevBtn.disabled = true;
+            if (nextBtn) nextBtn.disabled = true;
+            return;
+          }
           const allChip = document.createElement('button');
           allChip.className = 'cmd-chip rx' + (NS.selectedCmd === 'all' ? ' selected' : '');
           allChip.innerHTML = '<span class="dir-badge">ALL</span><span>全部命令</span>';
           allChip.onclick = () => { NS.selectedCmd = 'all'; NS.renderCommandPanel(); NS.renderCardGrid(); };
           scrollEl.appendChild(allChip);
-          NS.allCommands().forEach((cmd) => {
+          // v1.3.2 修: 按 activeProtoId 过滤 (activeProtoId 有值时才走到这, 过滤掉其他协议的命令)
+          // allCommands() flatMap 后 cmd.protocol 丢失 (commands 对象没 own protocol 字段), 所以直接遍历 NS.PROTOCOLS 拿 p.id
+          const activeProto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
+          (activeProto ? (activeProto.commands || []) : []).forEach((cmd) => {
             const chip = document.createElement('button');
             const idHex = cmd.id.toString(16).padStart(2, '0').toUpperCase();
             chip.className = 'cmd-chip ' + cmd.direction + (NS.selectedCmd === idHex ? ' selected' : '');
@@ -11608,6 +11701,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             el.style.display = 'none';
             return;
           }
+          // v1.3.2.1 修: 串口未连时也不渲染卡片 (之前 activeProtoId 有值就渲染, 跟占位区"未连接串口"冲突 — 用户报图 2 bug)
+          //   跟 updateDashboardProtoBar 双条件对齐: activeProtoId + serialConnected 都满足才显示卡片
+          if (!NS._serialConnected) {
+            el.style.display = 'none';
+            return;
+          }
           el.style.display = '';
           const protocolFiltered = NS.CARDS.filter((c) => c.protocol === NS.activeProtoId || !c.protocol);
           const filtered = protocolFiltered.filter((c) => NS.selectedCmd === 'all' || NS.matchCard(c, NS.selectedCmd));
@@ -11694,9 +11793,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           const el = document.getElementById('dh-alert-list');
           if (!el) return;
           // v1.2 (Task 12): 遍历 NS.CARDS,每张卡用 NS.checkAlert (基于 NS.ALERTS) 检查,触发的写入列表
+          // v1.3.2 修: 按 activeProtoId 过滤 CARDS (跟 renderCardGrid 一致) — 之前遍历所有 cards, 协议切换时不刷新告警
+          const cardsToCheck = (NS.CARDS || []).filter((c) => !NS.activeProtoId || c.protocol === NS.activeProtoId);
           const items = [];
           const now = NS.nowStr();
-          (NS.CARDS || []).forEach(function (c) {
+          cardsToCheck.forEach(function (c) {
             const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : null;
             if (v == null) return;
             const alertInfo = NS.checkAlert(v, c.field, c.protocol, c.range);
@@ -12494,19 +12595,38 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
         // v1.2.2: 协议条移除后 updateDashboardProtoBar 简化 — 只控制 dh-dash-empty (占位区) + dh-card-grid (卡片区)
         //   原来还控制 dh-dash-proto-bar (协议条) / dh-dash-proto-pill / dh-dash-settings-btn / dh-dash-proto-switch — 这些元素已删除
+        // v1.3.2 修: 占位区显隐同时看 activeProtoId + serialConnected
+        //   之前只看 activeProtoId, 用户没连串口就激活协议 → 占位区消失, 体验断裂 (用户报 bug 2)
+        //   NS._serialConnected 由主应用 updateSerialStatus 末尾同步 (line ~16983)
+        // v1.3.2.1 修: 占位区按 3 状态切显示哪段文案 (disconnected-no-proto / connected-no-proto / disconnected-with-proto)
+        //   之前只有 1 段固定"未连接串口"文案, 串口已连时显示不正确 (用户报图 1 bug)
         NS.updateDashboardProtoBar = function () {
           const empty = document.getElementById('dh-dash-empty');
           const cardGrid = document.getElementById('dh-card-grid');
           const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
-          if (NS.activeProtoId && proto) {
-            // 已选协议: 隐藏占位, 显示卡片
+          const hasProto = NS.activeProtoId && proto;
+          const connected = !!NS._serialConnected;
+          const ready = hasProto && connected;
+          if (ready) {
+            // 已选协议 + 串口已连: 隐藏占位, 显示卡片
             if (empty) empty.style.display = 'none';
             if (cardGrid) cardGrid.style.display = '';
-          } else {
-            // 未选协议: 显示占位, 隐藏卡片
-            if (empty) empty.style.display = 'flex';
-            if (cardGrid) cardGrid.style.display = 'none';
+            return;
           }
+          // 占位区显示 — 按状态切 3 段文案
+          if (empty) empty.style.display = 'flex';
+          if (cardGrid) cardGrid.style.display = 'none';
+          // 切 3 段 empty-block
+          const blocks = empty ? empty.querySelectorAll('.empty-block') : [];
+          let stateKey = 'disconnected-no-proto';
+          if (!hasProto && connected) stateKey = 'connected-no-proto';
+          else if (hasProto && !connected) {
+            stateKey = 'disconnected-with-proto';
+            // 填协议名
+            const nameEl = document.getElementById('dh-empty-proto-name');
+            if (nameEl) nameEl.textContent = proto ? proto.name : NS.activeProtoId;
+          }
+          blocks.forEach((b) => { b.style.display = b.getAttribute('data-empty-state') === stateKey ? '' : 'none'; });
         };
 
         // === 控制: start / stop ===
@@ -12544,6 +12664,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           NS.stop();
           NS._initialized = false;
           NS.currentVals = {}; NS.trendData = {}; NS.lastValues = {};
+          // v1.3.3: 重置清空持久化, 让默认配置生效
+          NS.PROTOCOLS = NS._defaultProtocols();
+          NS.CARDS = NS._defaultCards ? JSON.parse(JSON.stringify(NS._defaultCards)) : [];
+          NS.ALERTS = [];
+          NS.activeProtoId = null;
+          NS._clearUserConfig && NS._clearUserConfig();
           NS.start();
         };
 
@@ -14319,6 +14445,9 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         // v1.2.1: end if (false) disable block (}; on line above closes it)
 
         // v1.2.1 (Task 4): 切换 active 协议。点 ● 取消激活, 点 ○ 激活。激活后重渲染仪表盘。
+        // v1.3.2.1 修: 加 setTimeout(requestAnimationFrame) 防御性重渲染 — 之前 user 报告切协议后命令/卡片不刷新 (图 3 bug)
+        //   怀疑是 race condition: renderKpiCards 调了但 DOM 更新被其他 modal 渲染阻塞
+        //   强制在 rAF + 50ms 双重保险, 即使第一次没生效, 第二次也补上
         NS.toggleActiveProtocol = function (id) {
           if (!id) return;
           if (NS.activeProtoId === id) {
@@ -14328,28 +14457,38 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           }
           // 写 localStorage (沿用 v1.2 习惯)
           try { localStorage.setItem('serialcube.lastProtoId', NS.activeProtoId || ''); } catch (e) {}
+          // v1.3.3: 切协议后自动持久化
+          NS._saveUserConfig && NS._saveUserConfig();
           // 触发重渲染
           if (typeof NS._renderConfigCenter === 'function') NS._renderConfigCenter();
           if (typeof NS.updateDashboardProtoBar === 'function') NS.updateDashboardProtoBar();
           if (typeof NS.renderKpiCards === 'function') NS.renderKpiCards();
           if (typeof NS.renderDashboard === 'function') NS.renderDashboard();
           if (typeof NS.updateDashboardSettingsBtn === 'function') NS.updateDashboardSettingsBtn();
+          // 防御性 rAF 二次重渲染 (处理配置中心 modal 还在动画/被遮时首次 render 被吞)
+          requestAnimationFrame(() => {
+            if (typeof NS.updateDashboardProtoBar === 'function') NS.updateDashboardProtoBar();
+            if (typeof NS.renderCommandPanel === 'function') NS.renderCommandPanel();
+            if (typeof NS.renderCardGrid === 'function') NS.renderCardGrid();
+          });
           NS.toast && NS.toast('已切换到 ' + ((NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId) || {}).name || '未选择'), 'success');
         };
 
         // v1.2.1 (Task 8/9): 更新仪表盘 "⚙ 设置值" 按钮 disabled 态
+        // v1.3.2.1 修: 改用 NS._serialConnected (v1.3.2 之前的 NS.serialConnected 拼写错误, 从未被赋值, 按钮永远 disabled)
         NS.updateDashboardSettingsBtn = function () {
           const btn = document.getElementById('dh-dash-settings-btn');
           if (!btn) return;
-          const enabled = NS.serialConnected && !!NS.activeProtoId;
+          const enabled = NS._serialConnected && !!NS.activeProtoId;
           btn.disabled = !enabled;
           btn.style.opacity = enabled ? '1' : '0.4';
           btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
         };
 
         // v1.2.1 (Task 9): 打开"设置值 / 字节预览" modal — 复用 NS.renderFramePreview
+        // v1.3.2.1 修: 改用 NS._serialConnected
         NS.openDashboardSettingsModal = function () {
-          if (!NS.serialConnected) { alert('请先连接串口'); return; }
+          if (!NS._serialConnected) { alert('请先连接串口'); return; }
           if (!NS.activeProtoId) { alert('请先选择协议'); return; }
           const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
           if (!proto || !proto.commands || proto.commands.length === 0) { alert('当前协议无命令'); return; }
@@ -14441,20 +14580,24 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           document.querySelectorAll('#dh-config-center-body .cc-tab-pane').forEach((pane) => {
             pane.classList.toggle('active', pane.dataset.tabContent === NS._configCenterActiveTab);
           });
-          // 更新 badge (try/catch 防止 NS.allCommands / NS.CARDS 暂时为 undefined)
-          try {
-            const cmdBadge = document.getElementById('dh-cc-commands-badge');
-            if (cmdBadge && typeof NS.allCommands === 'function') cmdBadge.textContent = NS.allCommands().length;
-            const cardBadge = document.getElementById('dh-cc-cards-badge');
-            if (cardBadge) cardBadge.textContent = (NS.CARDS || []).length;
-            const alertBadge = document.getElementById('dh-cc-alerts-badge');
-            if (alertBadge) alertBadge.textContent = (NS.ALERTS || []).length;  // v1.2 (Task 9): 从 cards.range 改为 NS.ALERTS.length
-          } catch (e) { /* badge 失败不阻塞渲染 */ }
+          // v1.3.3 修: footer "共 N 个协议" 总是更新 (不依赖 protocols tab 渲染) — 切到其他 tab 时也是真实数字
+          const countEl = document.getElementById('dh-config-center-proto-count');
+          if (countEl) countEl.textContent = '共 ' + (NS.PROTOCOLS || []).length + ' 个协议';
+          // 更新 badge (v1.3.3: 按 activeProtoId 过滤, 走 _refreshConfigCenterBadges)
+          NS._refreshConfigCenterBadges();
           // 调用对应 tab 渲染函数 (Task 10-13 注册)
           const renderer = NS._configCenterTabRenderers[NS._configCenterActiveTab];
           if (typeof renderer === 'function') {
             try { renderer(); } catch (e) { console.error('cc tab render err:', e); }
           }
+        };
+
+        // v1.3.3 新增: debounced 自动持久化 — 配置中心所有 modify 路径 (新建/删除/编辑/导入) 都会调 _renderConfigCenter,
+        //   在 _renderConfigCenter 末尾触发 save (debounce 300ms 避免短时间内多次写)
+        let _saveCfgTimer = null;
+        NS._saveUserConfigDebounced = function () {
+          if (_saveCfgTimer) clearTimeout(_saveCfgTimer);
+          _saveCfgTimer = setTimeout(() => { NS._saveUserConfig && NS._saveUserConfig(); _saveCfgTimer = null; }, 300);
         };
 
         NS._switchConfigCenterTab = function (tabName) {
@@ -14496,49 +14639,26 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               '</td>' +
               '</tr>';
           }).join('');
-          pane.innerHTML = '<div class="table-wrap" style="border: 1px solid var(--border); border-radius: 6px;">' +
+          pane.innerHTML = '<div class="toolbar" style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">' +
+            '<span style="font-size: 12px; color: var(--text-soft); flex: 1;">共 ' + NS.PROTOCOLS.length + ' 个协议' + (NS.activeProtoId ? ' · 当前激活 ' + NS.activeProtoId.replace('proto_', '').toUpperCase() : ' · 未选') + '</span>' +
+            // v1.3.3: 新建协议按钮挪到这里 (从 modal header 移过来, 跟内容区贴近)
+            '<button class="tbtn primary" id="dh-cc-proto-new-inside" title="新建协议">' +
+              '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>' +
+              ' 新建协议' +
+            '</button>' +
+            '</div>' +
+            '<div class="table-wrap" style="border: 1px solid var(--border); border-radius: 6px;">' +
             '<table class="table min-wide">' +
             '<thead><tr>' +
             '<th style="width: 60px;">应用</th><th>状态</th><th>ID</th><th>显示名</th><th>类型</th><th style="text-align: right;">字段</th><th style="text-align: right;">命令</th><th style="text-align: right;">关联卡片</th><th>字节序</th><th>CRC</th><th></th>' +
-            '</tr></thead><tbody>' + (rows || '<tr><td colspan="11" style="padding: 20px; text-align: center; color: var(--text-soft);">没有协议, 点 header 右上 "新建" 开始</td></tr>') + '</tbody></table></div>';
+            '</tr></thead><tbody>' + (rows || '<tr><td colspan="11" style="padding: 20px; text-align: center; color: var(--text-soft);">没有协议, 点右上 "新建协议" 开始</td></tr>') + '</tbody></table></div>';
           // v1.2.2: 更新 footer "共 N 个协议" 文本 (从表格 toolbar 移过来)
           const countEl = document.getElementById('dh-config-center-proto-count');
           if (countEl) countEl.textContent = '共 ' + NS.PROTOCOLS.length + ' 个协议';
-          // v1.2.2: header 工具按钮 (新建 / 导入) — 替代原表格 toolbar
-          const newBtn = document.getElementById('dh-cc-proto-new-header');
+          // v1.3.3: 绑定"新建协议"按钮 (id 改 dh-cc-proto-new-inside, 之前 dh-cc-proto-new-header 头部按钮已删)
+          const newBtn = document.getElementById('dh-cc-proto-new-inside');
           if (newBtn) newBtn.onclick = () => {
             NS.openNewProtocolWizard();
-          };
-          const importBtn = document.getElementById('dh-cc-proto-import-header');
-          if (importBtn) importBtn.onclick = () => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'application/json,.json';
-            input.onchange = (e) => {
-              const file = e.target.files[0];
-              if (!file) return;
-              const reader = new FileReader();
-              reader.onload = (ev) => {
-                try {
-                  const json = JSON.parse(ev.target.result);
-                  if (Array.isArray(json.protocols) && json.protocols.length) {
-                    json.protocols.forEach((p) => {
-                      if (!NS.PROTOCOLS.find((x) => x.id === p.id)) {
-                        NS.PROTOCOLS.push({ ...p, kind: p.kind || 'fixed-header', commands: p.commands || [] });
-                      }
-                    });
-                    NS.toast && NS.toast('已导入 ' + json.protocols.length + ' 个协议', 'success');
-                    if (typeof NS._renderConfigCenter === 'function') NS._renderConfigCenter();
-                  } else {
-                    NS.toast && NS.toast('JSON 中未找到 protocols 数组', 'warn');
-                  }
-                } catch (err) {
-                  NS.toast && NS.toast('导入失败: ' + err.message, 'danger');
-                }
-              };
-              reader.readAsText(file);
-            };
-            input.click();
           };
           // bind 编辑 (行) → 打开 dh-proto 协议编辑器
           document.querySelectorAll('[data-proto-edit]').forEach((b) => b.onclick = () => {
@@ -14567,31 +14687,32 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             NS.toast && NS.toast('已复制协议: ' + newId, 'success');
             if (typeof NS._renderConfigCenter === 'function') NS._renderConfigCenter();
           });
-          // bind 删除 (行) → 三选项级联 modal (v1.3.1, 替换 v1.2 _cascadeConfirm)
+          // v1.3.3 改: 协议删除改为直接级联 (简单 confirm, 不弹三选项 modal) — 用户反馈"默认删除协议就是全部删除"
+          //   之前用 _openCascadeModal 三选项, 用户觉得"复杂/不安全", 现在改为: 弹简单 confirm 提示引用数 → 确认 → 直接级联删协议+所有引用
+          //   命令/卡片删除仍保留三选项 modal (cascade 仍可用, 仅协议默认级联)
           document.querySelectorAll('[data-proto-del]').forEach((b) => b.onclick = async () => {
             const delId = b.getAttribute('data-proto-del');
-            const result = await NS._openCascadeModal('protocol', delId, '协议 ' + delId);
-            if (result === 'cancel') return;
-            // result === 'self' 或 'cascade' 都删协议 (self 模式保留引用方仅删自己; 当前 v1.2 简化为两种结果都删, 自定义 modal 留 v1.3+)
             const refs = NS._findReferences('protocol', delId);
-            // 级联: 删引用方
-            if (result === 'cascade') {
-              refs.cards.forEach((c) => {
-                // 同步清掉卡的 alerts
-                NS.ALERTS = (NS.ALERTS || []).filter((a) => a.name !== (c.title || c.id));
-              });
-              NS.CARDS = NS.CARDS.filter((c) => c.protocol !== delId);
-              NS.ALERTS = (NS.ALERTS || []).filter((a) => a.protocol !== delId);
-            }
+            const cmdCount = (refs.commands || []).length;
+            const cardCount = (refs.cards || []).length;
+            const alertCount = (refs.alerts || []).length;
+            const refSummary = (cmdCount + cardCount + alertCount) > 0
+              ? `\n\n引用对象会一起删除: ${cmdCount} 条命令 + ${cardCount} 张卡片 + ${alertCount} 条告警`
+              : '\n\n该协议无引用对象';
+            if (!confirm('确认删除协议 ' + delId + '?' + refSummary)) return;
+            // 直接级联删: 协议 + 所有引用对象
             NS.PROTOCOLS = NS.PROTOCOLS.filter((p) => p.id !== delId);
+            NS.CARDS = NS.CARDS.filter((c) => c.protocol !== delId);
+            NS.ALERTS = NS.ALERTS.filter((a) => a.protocol !== delId);
             if (NS.activeProtoId === delId) NS.activeProtoId = NS.PROTOCOLS[0] ? NS.PROTOCOLS[0].id : null;
+            NS._saveUserConfig && NS._saveUserConfig();
             NS._configCenterTabRenderers.protocols();
             if (typeof NS._configCenterTabRenderers.commands === 'function') NS._configCenterTabRenderers.commands();
             if (typeof NS._configCenterTabRenderers.cards === 'function') NS._configCenterTabRenderers.cards();
             if (typeof NS._configCenterTabRenderers.alerts === 'function') NS._configCenterTabRenderers.alerts();
             NS._refreshAlertsBadge();
             NS.updateDashboardProtoBar && NS.updateDashboardProtoBar();
-            NS.toast && NS.toast('已删除协议 ' + delId + (result === 'cascade' ? ' (含引用)' : ''), 'success');
+            NS.toast && NS.toast('已删除协议 ' + delId + (cmdCount + cardCount + alertCount > 0 ? ' (含 ' + cmdCount + ' 命令 + ' + cardCount + ' 卡片 + ' + alertCount + ' 告警)' : ''), 'success');
           });
         };
 
@@ -14600,12 +14721,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         NS._configCenterTabRenderers.commands = function () {
           const pane = document.querySelector('#dh-config-center-body [data-tab-content="commands"]');
           if (!pane) return;
-          const selProtoId = NS._ccSelectedProtoId || (NS.PROTOCOLS[0] && NS.PROTOCOLS[0].id);
-          const proto = NS.PROTOCOLS.find((p) => p.id === selProtoId);
+          // v1.3.3 修: commands tab 跟 activeProtoId 一一对应 (删协议下拉框 — 用户反馈冗余)
+          //   之前用 _ccSelectedProtoId || PROTOCOLS[0].id 独立状态, 现在跟仪表盘聚焦逻辑对齐: 严格按 activeProtoId
+          //   没选协议 (activeProtoId=null) → 显示"未选"占位 + 跳到协议 tab 按钮, 引导用户激活
+          const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
           const cmds = (proto && proto.commands) || [];
-          const protoOptions = NS.PROTOCOLS.map((p) =>
-            '<option value="' + NS.escapeHtml(p.id) + '"' + (p.id === selProtoId ? ' selected' : '') + '>' + NS.escapeHtml(p.name || p.id) + ' (' + (p.commands || []).length + ' cmd)</option>'
-          ).join('');
           const dirPill = (d) => d === 'tx' ? '<span class="pill bms">TX 发送</span>' : d === 'rx' ? '<span class="pill ems">RX 接收</span>' : '<span class="pill unused">—</span>';
           const typePill = (t) => ({ query: '<span class="pill info">查询</span>', control: '<span class="pill warn">控制</span>', response: '<span class="pill unused">响应</span>' }[t] || '<span class="pill unused">' + NS.escapeHtml(t || '—') + '</span>');
           const rows = cmds.map((cmd, i) => {
@@ -14626,10 +14746,20 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               '</td>' +
               '</tr>';
           }).join('');
+          // v1.3.3 改: 没 activeProtoId → 显示"未选"占位 (跟仪表盘聚焦逻辑对齐, 删下拉)
+          if (!proto) {
+            pane.innerHTML = '<div style="padding: 40px 20px; text-align: center; color: var(--text-soft);">' +
+              '<svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4; margin-bottom: 12px;"><circle cx="24" cy="24" r="20"/><path d="M16 24h16M24 16v16"/></svg>' +
+              '<div style="font-size: 14px; margin-bottom: 8px;">未选择协议</div>' +
+              '<div style="font-size: 12px; margin-bottom: 16px;">命令 tab 跟激活协议一一对应, 请在 协议 tab 选/激活一个协议</div>' +
+              '<button class="tbtn primary" id="dh-cc-cmd-goto-protos">去 协议 tab 激活</button>' +
+              '</div>';
+            const gotoBtn = document.getElementById('dh-cc-cmd-goto-protos');
+            if (gotoBtn) gotoBtn.onclick = () => NS._switchConfigCenterTab('protocols');
+            return;
+          }
           pane.innerHTML = '<div class="toolbar" style="margin-bottom: 12px;">' +
-            '<label style="font-size: 12px; color: var(--text-soft);">协议:</label>' +
-            '<select id="dh-cc-cmd-proto-select" style="padding: 5px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px; flex: 1; max-width: 360px;">' + protoOptions + '</select>' +
-            '<div style="flex: 1;"></div>' +
+            '<span style="font-size: 12px; color: var(--text-soft); flex: 1;">协议 ' + NS.escapeHtml((proto.name || proto.id)) + ' · 共 ' + cmds.length + ' 条命令 · ' + cmds.filter((c) => c.direction === 'rx').length + ' RX / ' + cmds.filter((c) => c.direction === 'tx').length + ' TX</span>' +
             '<button class="tbtn primary" id="dh-cc-cmd-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg> 新建命令</button>' +
             '</div>' +
             '<div class="table-wrap" style="border: 1px solid var(--border); border-radius: 6px;">' +
@@ -14638,17 +14768,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               '<th>ID</th><th>名称</th><th>方向</th><th>类型</th><th style="text-align: right;">周期</th><th>字段</th><th style="text-align: center;">大小</th><th></th>' +
             '</tr></thead>' +
             '<tbody>' + (rows || '<tr><td colspan="8" style="padding: 20px; text-align: center; color: var(--text-soft);">该协议下没有命令, 点右上 "新建命令" 开始</td></tr>') + '</tbody>' +
-            '</table></div>' +
-            '<div style="margin-top: 12px; font-size: 11px; color: var(--text-soft);">' +
-            '共 ' + cmds.length + ' 条命令 · ' + cmds.filter((c) => c.direction === 'rx').length + ' RX / ' + cmds.filter((c) => c.direction === 'tx').length + ' TX' +
-            '</div>';
-          // 协议 select change 同步
-          const protoSel = document.getElementById('dh-cc-cmd-proto-select');
-          if (protoSel) protoSel.onchange = () => {
-            NS._ccSelectedProtoId = protoSel.value;
-            NS._configCenterTabRenderers.protocols();
-            NS._configCenterTabRenderers.commands();
-          };
+            '</table></div>';
           // 新建按钮
           const newBtn = document.getElementById('dh-cc-cmd-new');
           if (newBtn) newBtn.onclick = () => {
@@ -14691,9 +14811,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               NS._configCenterTabRenderers.commands();
               if (typeof NS._configCenterTabRenderers.cards === 'function') NS._configCenterTabRenderers.cards();
               if (typeof NS._configCenterTabRenderers.alerts === 'function') NS._configCenterTabRenderers.alerts();
-              NS._refreshAlertsBadge();
-              const cmdBadge = document.getElementById('dh-cc-commands-badge');
-              if (cmdBadge) cmdBadge.textContent = NS.allCommands().length;
+              // v1.3.3: 3 个 badge 一起刷新 (按 activeProtoId 过滤)
+              NS._refreshConfigCenterBadges();
             };
           });
         };
@@ -14710,11 +14829,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             return '<span style="color: var(--danger);">0x' + (cmdId || 0).toString(16).padStart(2, '0').toUpperCase() + ' (orphan)</span>';
           };
           const kindClass = (protoId) => (protoId || '').replace('proto_', '').toLowerCase();
-          const rows = NS.CARDS.map((c, i) => {
+          // v1.3.3 修: 按 activeProtoId 过滤 (选 modbus → 只显示 modbus 卡片; 没选 → 全部)
+          //   之前用 NS.CARDS.map 不过滤, 选 modbus 还显示 bms 12 张卡片
+          const cardsScoped = NS.activeProtoId ? (NS.CARDS || []).filter((c) => c.protocol === NS.activeProtoId) : (NS.CARDS || []);
+          const rows = cardsScoped.map((c) => {
+            // v1.3.3 修: data-card-index/edit/del 用全局下标 (NS.CARDS.indexOf) 而不是 filtered 下标
+            //   之前用 filtered 下标, 删除/编辑按钮调 NS.CARDS[idx] 会拿到错位的卡片
+            const globalIdx = (NS.CARDS || []).indexOf(c);
             const rangeStr = c.range ? c.range[0] + ' - ' + c.range[1] : '—';
             const typeStr = c.type === 'pair' ? '<span class="pill pcs">PAIR 对比</span>' : '<span class="pill info">TREND 趋势</span>';
             const protoId = c.protocol || 'proto_bms';
-            return '<tr data-card-index="' + i + '">' +
+            return '<tr data-card-index="' + globalIdx + '">' +
               '<td><code>' + NS.escapeHtml(c.id || '—') + '</code></td>' +
               '<td><strong>' + NS.escapeHtml(c.title || '—') + '</strong></td>' +
               '<td><span class="pill ' + kindClass(protoId) + '">' + NS.escapeHtml(protoId.replace('proto_', '').toUpperCase()) + '</span></td>' +
@@ -14725,13 +14850,25 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               '<td style="text-align: center;">' + (c.precision || 0) + '</td>' +
               '<td style="font-size: 11px;">' + NS.escapeHtml(c.unit || '—') + '</td>' +
               '<td style="text-align: right; white-space: nowrap;">' +
-                '<button class="row-action accent" data-card-edit="' + i + '" title="编辑卡片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' +
-                '<button class="row-action danger" data-card-del="' + i + '" title="删除卡片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>' +
+                '<button class="row-action accent" data-card-edit="' + globalIdx + '" title="编辑卡片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' +
+                '<button class="row-action danger" data-card-del="' + globalIdx + '" title="删除卡片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>' +
               '</td>' +
               '</tr>';
           }).join('');
+          // v1.3.3 改: 没 activeProtoId → 显示"未选"占位 (跟 commands tab 一一对应一致)
+          if (!NS.activeProtoId) {
+            pane.innerHTML = '<div style="padding: 40px 20px; text-align: center; color: var(--text-soft);">' +
+              '<svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4; margin-bottom: 12px;"><rect x="8" y="8" width="14" height="14" rx="1"/><rect x="26" y="8" width="14" height="14" rx="1"/><rect x="8" y="26" width="14" height="14" rx="1"/><rect x="26" y="26" width="14" height="14" rx="1"/></svg>' +
+              '<div style="font-size: 14px; margin-bottom: 8px;">未选择协议</div>' +
+              '<div style="font-size: 12px; margin-bottom: 16px;">卡片 tab 跟激活协议一一对应, 请在 协议 tab 选/激活一个协议</div>' +
+              '<button class="tbtn primary" id="dh-cc-card-goto-protos">去 协议 tab 激活</button>' +
+              '</div>';
+            const gotoBtn = document.getElementById('dh-cc-card-goto-protos');
+            if (gotoBtn) gotoBtn.onclick = () => NS._switchConfigCenterTab('protocols');
+            return;
+          }
           pane.innerHTML = '<div class="toolbar" style="margin-bottom: 12px;">' +
-            '<span style="font-size: 12px; color: var(--text-soft); flex: 1;">共 ' + NS.CARDS.length + ' 张卡片 (TREND ' + NS.CARDS.filter(c => c.type === 'trend').length + ' / PAIR ' + NS.CARDS.filter(c => c.type === 'pair').length + ')</span>' +
+            '<span style="font-size: 12px; color: var(--text-soft); flex: 1;">协议 ' + NS.activeProtoId.replace('proto_', '').toUpperCase() + ' · 共 ' + cardsScoped.length + ' 张卡片 (TREND ' + cardsScoped.filter(c => c.type === 'trend').length + ' / PAIR ' + cardsScoped.filter(c => c.type === 'pair').length + ')</span>' +
             '<button class="tbtn primary" id="dh-cc-card-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg> 新建卡片</button>' +
             '</div>' +
             '<div class="table-wrap" style="border: 1px solid var(--border); border-radius: 6px;">' +
@@ -14772,11 +14909,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               NS.toast && NS.toast('已删除' + (result === 'cascade' ? ' 卡片 (含引用告警)' : ' 卡片') + ' ' + removed.id, 'success');
               NS._configCenterTabRenderers.cards();
               NS._configCenterTabRenderers.alerts();
-              NS._refreshAlertsBadge();
-              const cardBadge = document.getElementById('dh-cc-cards-badge');
-              if (cardBadge) cardBadge.textContent = NS.CARDS.length;
-              const alertBadge = document.getElementById('dh-cc-alerts-badge');
-              if (alertBadge) alertBadge.textContent = (NS.ALERTS || []).length;
+              // v1.3.3: 3 个 badge 一起刷新 (按 activeProtoId 过滤)
+              NS._refreshConfigCenterBadges();
             };
           });
         };
@@ -14844,10 +14978,9 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             close();
             NS.editingCardId = baseId;
             NS.openCardEdit && NS.openCardEdit(baseId);
-            // 刷新 tab 3 表格 + 顶部 badge
+            // 刷新 tab 3 表格 + 顶部 badge (v1.3.3: badge 按 activeProtoId 过滤)
             if (typeof NS._configCenterTabRenderers.cards === 'function') NS._configCenterTabRenderers.cards();
-            const cardBadge = document.getElementById('dh-cc-cards-badge');
-            if (cardBadge) cardBadge.textContent = NS.CARDS.length;
+            NS._refreshConfigCenterBadges();
           };
         };
 
@@ -14889,16 +15022,21 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const c = (p.commands || []).find(function (x) { return x.id === cmdId; });
             return c ? ('0x' + (c.id < 16 ? '0' : '') + c.id.toString(16).toUpperCase() + ' ' + (c.name || '')) : cmdId;
           };
-          const alerts = NS.ALERTS || [];
+          // v1.3.3 修: 按 activeProtoId 过滤 (选 modbus → 只显示 modbus 告警; 没选 → 全部)
+          //   之前用 NS.ALERTS 不过滤, 选 modbus 还显示 bms 告警
+          const alerts = NS.activeProtoId ? (NS.ALERTS || []).filter((a) => a.protocol === NS.activeProtoId) : (NS.ALERTS || []);
           const enabledCount = alerts.filter(function (a) { return a.enabled; }).length;
-          const rows = alerts.map(function (a, i) {
+          // v1.3.3 修: data-alert-* 用全局下标 (NS.ALERTS.indexOf) 而不是 filtered alerts 下标
+          //   之前用 filtered 下标, 编辑/删除/toggle 调 NS.ALERTS[idx] 会拿到错位的 alert
+          const rows = alerts.map(function (a) {
+            const globalIdx = (NS.ALERTS || []).indexOf(a);
             // 字段/cmd 孤儿检测 (引用不存在的 cmd/field)
             const p = (NS.PROTOCOLS || []).find(function (x) { return x.id === a.protocol; });
             const c = p && (p.commands || []).find(function (x) { return x.id === a.cmd; });
             const fieldExists = c && (c.dataFields || []).some(function (df) { return df.name === a.field; });
             const orphanTag = (!c || !fieldExists) ? ' <span class="pill danger" title="引用的命令/字段已不存在" style="font-size: 9px;">孤儿</span>' : '';
             return '<tr data-alert-row="' + NS.escapeHtml(a.id) + '">' +
-              '<td><input type="checkbox" data-alert-toggle="' + i + '"' + (a.enabled ? ' checked' : '') + ' title="' + (a.enabled ? '禁用规则' : '启用规则') + '"></td>' +
+              '<td><input type="checkbox" data-alert-toggle="' + globalIdx + '"' + (a.enabled ? ' checked' : '') + ' title="' + (a.enabled ? '禁用规则' : '启用规则') + '"></td>' +
               '<td><strong>' + NS.escapeHtml(a.name || '—') + '</strong>' + orphanTag + '<div style="font-size: 10px; color: var(--text-soft); font-family: var(--font-mono);">' + NS.escapeHtml(a.id) + '</div></td>' +
               '<td>' + protoPill(a.protocol) + '<div style="font-size: 10px; color: var(--text-soft); margin-top: 2px;">' + NS.escapeHtml(protoName(a.protocol)) + '</div></td>' +
               '<td><code>' + NS.escapeHtml(a.field || '—') + '</code><div style="font-size: 10px; color: var(--text-soft); margin-top: 2px;">' + NS.escapeHtml(cmdName(a.protocol, a.cmd)) + '</div></td>' +
@@ -14906,13 +15044,25 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               '<td>' + sevPill(a.severity) + '</td>' +
               '<td style="font-size: 11px; color: var(--text-soft);">' + ((a.notify || []).join(' · ') || '—') + (a.debounceMs ? '<div style="font-size: 10px;">' + a.debounceMs + 'ms</div>' : '') + '</td>' +
               '<td style="text-align: right; white-space: nowrap;">' +
-                '<button class="row-action accent" data-alert-edit="' + i + '" title="编辑告警"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' +
-                '<button class="row-action danger" data-alert-del="' + i + '" title="删除告警"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>' +
+                '<button class="row-action accent" data-alert-edit="' + globalIdx + '" title="编辑告警"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' +
+                '<button class="row-action danger" data-alert-del="' + globalIdx + '" title="删除告警"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg></button>' +
               '</td>' +
               '</tr>';
           }).join('');
+          // v1.3.3 改: 没 activeProtoId → 显示"未选"占位 (跟 commands/cards tab 一致)
+          if (!NS.activeProtoId) {
+            pane.innerHTML = '<div style="padding: 40px 20px; text-align: center; color: var(--text-soft);">' +
+              '<svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4; margin-bottom: 12px;"><path d="M24 4a8 8 0 0 0-8 8c0 4 2 6 2 10h12c0-4 2-6 2-10a8 8 0 0 0-8-8z"/><path d="M18 28h12v3H18zM20 34h8v4h-8z"/></svg>' +
+              '<div style="font-size: 14px; margin-bottom: 8px;">未选择协议</div>' +
+              '<div style="font-size: 12px; margin-bottom: 16px;">告警 tab 跟激活协议一一对应, 请在 协议 tab 选/激活一个协议</div>' +
+              '<button class="tbtn primary" id="dh-cc-alert-goto-protos">去 协议 tab 激活</button>' +
+              '</div>';
+            const gotoBtn = document.getElementById('dh-cc-alert-goto-protos');
+            if (gotoBtn) gotoBtn.onclick = () => NS._switchConfigCenterTab('protocols');
+            return;
+          }
           pane.innerHTML = '<div class="toolbar" style="margin-bottom: 12px;">' +
-            '<span style="font-size: 12px; color: var(--text-soft);">共 ' + alerts.length + ' 条规则 · ' + enabledCount + ' 启用</span>' +
+            '<span style="font-size: 12px; color: var(--text-soft);">协议 ' + NS.activeProtoId.replace('proto_', '').toUpperCase() + ' · 共 ' + alerts.length + ' 条规则 · ' + enabledCount + ' 启用</span>' +
             '<div style="flex: 1;"></div>' +
             '<button class="tbtn" id="dh-cc-alert-rebuild"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 从卡片重建</button>' +
             '<button class="tbtn primary" id="dh-cc-alert-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> 新建告警</button>' +
@@ -15010,10 +15160,35 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           NS.toast && NS.toast('已从卡片重建告警 (+' + added + ' 新增, 跳过 ' + skipped + ' 已有)', 'success');
         };
 
-        // v1.2 (Task 9): 刷新告警 tab badge 计数 (NS.ALERTS.length, 替换 v1.1.1 的 cards.range 计数)
+        // v1.3.3 修: 配置中心顶部 badge 按 activeProtoId 过滤 (命令 / 卡片 / 告警 三个 tab 计数)
+        //   之前用 NS.allCommands().length / NS.CARDS.length / NS.ALERTS.length 跨协议总数, 选 modbus 后顶部还显示 bms 8/12 (用户报 v1.3.2 实测 bug)
+        //   改 v1.3.3 强一致: 没选协议 (activeProtoId=null) → 0/0/0 (跟 tab 内容"未选占位"一致, 跟仪表盘"未连接串口"逻辑对齐)
+        //   _renderConfigCenter + 8 处增量操作 (add/del/edit/reset/import) 全部走这一个函数
+        NS._refreshConfigCenterBadges = function () {
+          try {
+            const protoId = NS.activeProtoId;
+            // 命令数: 没选 = 0, 选了 = 该协议 commands.length
+            let cmdsForActive;
+            if (protoId) {
+              const p = NS.PROTOCOLS.find((pp) => pp.id === protoId);
+              cmdsForActive = (p && p.commands) || [];
+            } else {
+              cmdsForActive = [];
+            }
+            // 卡片数 / 告警数: 同样严格按 activeProtoId 过滤
+            const cardsForActive = protoId ? (NS.CARDS || []).filter((c) => c.protocol === protoId) : [];
+            const alertsForActive = protoId ? (NS.ALERTS || []).filter((a) => a.protocol === protoId) : [];
+            const cmdBadge = document.getElementById('dh-cc-commands-badge');
+            if (cmdBadge) cmdBadge.textContent = cmdsForActive.length;
+            const cardBadge = document.getElementById('dh-cc-cards-badge');
+            if (cardBadge) cardBadge.textContent = cardsForActive.length;
+            const alertBadge = document.getElementById('dh-cc-alerts-badge');
+            if (alertBadge) alertBadge.textContent = alertsForActive.length;
+          } catch (e) { /* badge 失败不阻塞渲染 */ }
+        };
+        // 保留旧函数名 (v1.2 Task 9 引入) — 内部走新函数
         NS._refreshAlertsBadge = function () {
-          const alertBadge = document.getElementById('dh-cc-alerts-badge');
-          if (alertBadge) alertBadge.textContent = (NS.ALERTS || []).length;
+          NS._refreshConfigCenterBadges();
         };
 
         // v1.2 (Task 10): 告警编辑 modal (新建 / 编辑 / 另存为副本 三模式)
@@ -15526,13 +15701,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 if (NS._configCenterTabRenderers.commands) NS._configCenterTabRenderers.commands();
                 if (NS._configCenterTabRenderers.cards) NS._configCenterTabRenderers.cards();
                 if (NS._configCenterTabRenderers.alerts) NS._configCenterTabRenderers.alerts();
-                // 更新顶部 badge
-                const cmdBadge = document.getElementById('dh-cc-commands-badge');
-                if (cmdBadge) cmdBadge.textContent = NS.allCommands().length;
-                const cardBadge = document.getElementById('dh-cc-cards-badge');
-                if (cardBadge) cardBadge.textContent = NS.CARDS.length;
-                const alertBadge = document.getElementById('dh-cc-alerts-badge');
-                if (alertBadge) alertBadge.textContent = (NS.ALERTS || []).length;
+                // v1.3.3: badge 按 activeProtoId 过滤
+                NS._refreshConfigCenterBadges();
               }
             };
             reader.readAsText(file);
@@ -15549,12 +15719,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 ['protocols', 'commands', 'cards', 'alerts'].forEach((t) => {
                   if (NS._configCenterTabRenderers[t]) NS._configCenterTabRenderers[t]();
                 });
-                const cmdBadge = document.getElementById('dh-cc-commands-badge');
-                if (cmdBadge) cmdBadge.textContent = NS.allCommands().length;
-                const cardBadge = document.getElementById('dh-cc-cards-badge');
-                if (cardBadge) cardBadge.textContent = NS.CARDS.length;
-                const alertBadge = document.getElementById('dh-cc-alerts-badge');
-                if (alertBadge) alertBadge.textContent = (NS.ALERTS || []).length;
+                // v1.3.3: badge 按 activeProtoId 过滤
+                NS._refreshConfigCenterBadges();
                 NS.toast && NS.toast('已重置为默认配置', 'success');
               }, 50);
             } else {
@@ -15896,10 +16062,9 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             proto.commands.push(newCmd);
             NS.toast('已添加命令: 0x' + s.id.toString(16).toUpperCase() + ' ' + s.name, 'success');
           }
-          // 刷新 tab 2 + tab 1 (badge)
+          // 刷新 tab 2 + tab 1 (badge) — v1.3.3 badge 按 activeProtoId 过滤
           if (typeof NS._configCenterTabRenderers.commands === 'function') NS._configCenterTabRenderers.commands();
-          const cmdBadge = document.getElementById('dh-cc-commands-badge');
-          if (cmdBadge) cmdBadge.textContent = NS.allCommands().length;
+          NS._refreshConfigCenterBadges();
           NS.closeModal('dh-new-command');
         };
 
@@ -16024,7 +16189,14 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             });
           }
           // 协议编辑器: 应用 / 重置 / 导入 / 导出
-          bind('dh-proto-apply', () => { NS.toast('协议已应用', 'success'); NS.closeModal('dh-proto'); });
+          // v1.3.2 修: 之前 dh-proto-apply 只 toast + close, 不刷新仪表盘 (PROTOCOLS 改了, 但命令/卡片不重新渲染)
+          // activeProtoId 已在配置中心"编辑"按钮 (line 14548) 打开 modal 前设好, 这里只调 renderKpiCards 重渲染 + 写 localStorage
+          bind('dh-proto-apply', () => {
+            try { localStorage.setItem('serialcube.lastProtoId', NS.activeProtoId || ''); } catch (e) {}
+            if (typeof NS.renderKpiCards === 'function') NS.renderKpiCards();
+            NS.toast('协议已应用', 'success');
+            NS.closeModal('dh-proto');
+          });
           bind('dh-proto-reset', () => {
             NS.PROTOCOLS = [
               { id: 'proto_bms', kind: 'fixed-header', name: 'BMS TLV v1 (Legacy)', byteOrder: 'BE', crcRange: 'all', crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE',
@@ -16121,20 +16293,24 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             btn.addEventListener('click', () => NS._switchConfigCenterTab(btn.dataset.tab));
           });
           bind('dh-config-center-tour', () => { NS.openNewProtocolWizard && NS.openNewProtocolWizard(); });
-          bind('dh-config-center-export', () => {
-            try {
-              const json = typeof NS.exportConfig === 'function' ? NS.exportConfig() : JSON.stringify({ protocols: NS.PROTOCOLS, cards: NS.CARDS });
-              const blob = new Blob([json], { type: 'application/json' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url; a.download = 'serialcube-config-v2.json'; a.click();
-              URL.revokeObjectURL(url);
-              NS.toast && NS.toast('已导出配置', 'success');
-            } catch (e) {
-              NS.toast && NS.toast('导出失败: ' + e.message, 'danger');
-            }
-          });
+          // v1.3.3: 底部"导出"按钮已删除, 导出功能只在"导入/导出" tab 提供 (避免重复入口)
+
           // 布局切换 (大卡 / 列表)
+          // v1.3.2 修: 仪表盘占位区"选择串口"按钮转发到主应用 connectBtn (line 23764 触发 connectSerial('manual') → Web Serial API)
+          // 之前此按钮无 click handler, 点了完全没反应
+          const triggerConnect = () => {
+            const connectBtn = document.getElementById('connect-btn');
+            if (connectBtn) {
+              connectBtn.click();
+            } else if (navigator.serial && navigator.serial.requestPort) {
+              navigator.serial.requestPort().catch((e) => { if (e && e.name !== 'NotFoundError') console.error(e); });
+            }
+          };
+          bind('dh-dash-choose-port', triggerConnect);
+          // v1.3.2.1: 第 2 段占位区(disconnected-with-proto)的"选择串口"按钮 — 跟 dh-dash-choose-port 同样行为
+          bind('dh-dash-choose-port-2', triggerConnect);
+          // v1.3.2.1: 第 2 段占位区(connected-no-proto)的"打开配置中心"按钮 — 复用 dh-open-config-center 的逻辑
+          bind('dh-dash-open-config', () => NS.openConfigCenter && NS.openConfigCenter());
           bind('dh-layout-card', () => {
             NS.cardLayout = 'card';
             const a = document.getElementById('dh-layout-card'); const b = document.getElementById('dh-layout-list');
@@ -16957,6 +17133,18 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           refs.connectBtn.textContent = '连接设备 | 当前未连接';
         }
         updateSignalControlsUI();
+        // v1.3.2 修: 同步 NS._serialConnected + 调 updateDashboardProtoBar (仪表盘占位区显隐依赖此值)
+        // 之前 NS.serialConnected 从未被赋值, 仪表盘永远不刷新占位区, 协议激活后占位区消失
+        try {
+          const dashNS = window.__serialWebDashboard;
+          if (dashNS) {
+            const prev = dashNS._serialConnected;
+            dashNS._serialConnected = state.serial.connected;
+            if (prev !== state.serial.connected && typeof dashNS.updateDashboardProtoBar === 'function') {
+              dashNS.updateDashboardProtoBar();
+            }
+          }
+        } catch (e) {}
       }
 
       function signalValueLabel(value) {

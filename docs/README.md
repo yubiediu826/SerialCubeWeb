@@ -6,9 +6,9 @@
 
 ## 🚀 当前状态
 
-**最新版本**: v1.3.1 (2026-08-13) — 三选项级联 modal: 协议/命令/卡片删除升级 (替换 v1.2 browser confirm) + 引用预览 chip + "仅删自己" hint
+**最新版本**: v1.3.3 (2026-08-14) — 协议配置中心 3 tab 按 activeProtoId 过滤 (命令 / 卡片 / 告警 badge + 表格内容) + cards / alerts 行 idx 改用全局下标
 **当前分支**: `main`
-**最近 release**: v1.3.1 ([changelog](changelog/2026-08-13-v1.3.1-cascade-delete-modal.md)) | v1.3.0 ([changelog](changelog/2026-08-13-v1.3.0-debug-panel.md)) | v1.2.2 ([changelog](changelog/2026-08-13-v1.2.2-ui-cleanup.md)) | v1.2.1 ([changelog](changelog/2026-08-13-v1.2.1-ui-consistency.md)) | v1.2.0 ([changelog](changelog/2026-08-12-v1.2.0-config-center-refactor.md)) | v1.1.1 ([changelog](changelog/2026-08-12-v1.1.1-fixes.md)) | v1.1.0 ([release notes](handover/release-v1.1.0-2026-08-12.md))
+**最近 release**: v1.3.3 ([changelog](changelog/2026-08-14-v1.3.3-config-center-proto-filter.md)) | v1.3.2.1 ([changelog](changelog/2026-08-14-v1.3.2.1-dashboard-state-3way.md)) | v1.3.2 ([changelog](changelog/2026-08-14-v1.3.2-dashboard-bug-fixes.md)) | v1.3.1 ([changelog](changelog/2026-08-13-v1.3.1-cascade-delete-modal.md)) | v1.3.0 ([changelog](changelog/2026-08-13-v1.3.0-debug-panel.md)) | v1.2.2 ([changelog](changelog/2026-08-13-v1.2.2-ui-cleanup.md)) | v1.2.1 ([changelog](changelog/2026-08-13-v1.2.1-ui-consistency.md)) | v1.2.0 ([changelog](changelog/2026-08-12-v1.2.0-config-center-refactor.md)) | v1.1.1 ([changelog](changelog/2026-08-12-v1.1.1-fixes.md)) | v1.1.0 ([release notes](handover/release-v1.1.0-2026-08-12.md))
 
 ---
 
