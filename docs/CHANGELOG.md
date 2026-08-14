@@ -13,6 +13,7 @@
 
 ### 2026-08-14
 
+- [`changelog/2026-08-14-readme-and-handoff-followup.md`](changelog/2026-08-14-readme-and-handoff-followup.md) — **v1.4.0 回滚 followup**: 根 README 精简 (15.8KB → 4.3KB, 砍 5 段版本历史 + 开发工具表 + 文档导航表) + 新建 [HANDOFF-2026-08-14-V1.4-ROLLBACK-AND-MAINTENANCE.md](../handover/HANDOFF-2026-08-14-V1.4-ROLLBACK-AND-MAINTENANCE.md) (12.5KB, 完整 session 交接含 6 个关键决策 why + 5 个文档 backlog 清单)
 - [`changelog/2026-08-14-rollback-v1.4.0.md`](changelog/2026-08-14-rollback-v1.4.0.md) — **v1.4.0 回滚**: force-push main `4e7249b` → `c4d8b08`,移除 13 commit (V1.13 协议集成 + slave 工具 + chrome-cdp skill + agent-browser 弃用); backup 分支 `backup-pre-rollback-2026-08-14` 保留 37 文件 / 6075 行
 
 ### 2026-08-13
