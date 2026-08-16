@@ -10773,7 +10773,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         };
         NS.PROTOCOLS = NS._defaultProtocols();
         // v1.3.6 P1: 注册 schema 驱动协议 (BMS V1.13) — schema 由 tools/scripts/embed-schema.mjs 生成嵌入
-                                                NS._SCHEMA_BMS_V113 = {
+                                                        NS._SCHEMA_BMS_V113 = {
  "id": "proto_bms_v113",
  "version": "1.13",
  "meta": {
@@ -12126,6 +12126,20 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 1616
      }
     ]
+   },
+   "CB": {
+    "len": 1,
+    "fields": [
+     {
+      "name": "ack",
+      "type": "u8",
+      "bitLen": 8,
+      "enum": {
+       "0": "成功",
+       "1": "失败"
+      }
+     }
+    ]
    }
   },
   "0x07": {
@@ -12138,6 +12152,20 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "type": "ascii",
       "bitLen": 128,
       "startBit": 0
+     }
+    ]
+   },
+   "CB": {
+    "len": 1,
+    "fields": [
+     {
+      "name": "ack",
+      "type": "u8",
+      "bitLen": 8,
+      "enum": {
+       "0": "成功",
+       "1": "失败"
+      }
      }
     ]
    }
@@ -12397,6 +12425,20 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "unit": "mAh"
      }
     ]
+   },
+   "CB": {
+    "len": 1,
+    "fields": [
+     {
+      "name": "ack",
+      "type": "u8",
+      "bitLen": 8,
+      "enum": {
+       "0": "成功",
+       "1": "失败"
+      }
+     }
+    ]
    }
   },
   "0x0C": {
@@ -12409,6 +12451,20 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "type": "u16",
       "bitLen": 16,
       "startBit": 0
+     }
+    ]
+   },
+   "CB": {
+    "len": 1,
+    "fields": [
+     {
+      "name": "ack",
+      "type": "u8",
+      "bitLen": 8,
+      "enum": {
+       "0": "成功",
+       "1": "失败"
+      }
      }
     ]
    }
@@ -13334,7 +13390,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 };
 
 
-                                                NS._SCHEMA_EMS_V143 = {
+                                                        NS._SCHEMA_EMS_V143 = {
  "id": "proto_ems_v143",
  "version": "1.4.3",
  "meta": {

@@ -121,6 +121,10 @@ def main():
         '0x08': {'MB': reserved(1), 'CB': ascii_sn()},
         '0x09': {'MB': {'len': 1, 'fields': [{'name': 'enable', 'type': 'u8', 'bitLen': 8, 'enum': {'0': '关均衡', '1': '开均衡'}}]}, 'CB': ack()},
         '0x0A': {'MB': reserved(1)},
+        '0x0B': {'CB': ack()},   # CB ack 无「数据区」标题, 脚本未解析, 手工补
+        '0x0C': {'CB': ack()},
+        '0x04': {'CB': ack()},   # OCV 配置 CB ack
+        '0x07': {'CB': ack()},   # SN 写入 CB ack
         '0x16': {'MB': {'len': 0, 'fields': [{'name': 'reserved', 'type': 'bytes', 'bitLen': 0}]}},
         # 升级类 0x10-0x15 (md §16)
         '0x10': {'MB': {'len': 4, 'fields': [{'name': 'DEV_T', 'type': 'ascii', 'startBit': 0, 'bitLen': 32}]}, 'CB': ack()},

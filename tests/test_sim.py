@@ -112,6 +112,8 @@ def test_host_device_socket_loop():
     schema = _schema()
     dev = SimDevice(schema)
     a, b = sock.socketpair()
+    a.settimeout(0.5)
+    b.settimeout(5)
     stop = threading.Event()
 
     def device_loop():
