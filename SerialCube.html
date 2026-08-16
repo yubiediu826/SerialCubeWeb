@@ -19047,6 +19047,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               const parsed = NS.parseFrame(proto, bytes.slice(i));
               if (!parsed.ok || parsed.error) continue;
               if (!parsed.crcOk) { handled = true; continue; } // 识别到但 CRC 错, 记一次不消费
+              // v1.3.6 D: device 角色 — 收到查询帧后按 schema 响应布局回帧 (数据源生成)
+              if (NS._simRole === 'device') NS._deviceRespond(bytes.slice(i));
               for (const [k, v] of Object.entries(parsed.values)) {
                 if (typeof v === 'object' && v !== null && !Array.isArray(v)) continue; // todo 对象跳过
                 NS.currentVals[k] = v;
@@ -19059,6 +19061,73 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             if (handled) break;
           }
           return handled;
+        };
+
+        // ============================================================
+        // v1.3.6 D: 主机/从机真串口互调 (双 tab: host 轮询下发 / device 规律响应)
+        // ============================================================
+        NS._simRole = 'host';            // 'host' | 'device'
+        NS._simPollInterval = 0;         // 0 = 用命令 cadence; >0 = 全局覆盖轮询间隔 ms
+        NS._simSources = {};             // { 字段名: {type:'fixed'|'random'|'sine'|'ramp', ...} }
+
+        // 数据源取值 (t = 秒)
+        NS._sourceValue = function (src, fallback) {
+          if (!src || !src.type) return fallback != null ? fallback : 0;
+          const t = Date.now() / 1000;
+          switch (src.type) {
+            case 'fixed':  return src.value != null ? src.value : 0;
+            case 'random': return (src.lo || 0) + Math.random() * ((src.hi || 1) - (src.lo || 0));
+            case 'sine':   return (src.base || 0) + (src.amp || 1) * Math.sin(2 * Math.PI * (t / (src.period || 10)) + (src.phase || 0));
+            case 'ramp': {
+              const base = src.base || 0, step = src.step || 1, span = Math.max(1, (src.max || 100) - base);
+              return base + (Math.floor(t * step) % span);
+            }
+            default: return 0;
+          }
+        };
+
+        // 从机响应: 收到查询帧 → 按 schema 响应布局回帧 (数据源生成字段值)
+        NS._deviceRespond = function (bytes) {
+          if (NS._simRole !== 'device') return false;
+          if (typeof NS._writeSerial !== 'function') return false;
+          const proto = (NS.PROTOCOLS || []).find((p) => p.id === NS.activeProtoId && p.schema);
+          if (!proto) return false;
+          const parsed = NS.parseFrame(proto, bytes);
+          if (!parsed.ok || !parsed.crcOk || parsed.error) return false;
+          const cmd = parsed.cmd;
+          const cmdKey = cmd.toString(16).padStart(2, '0').toUpperCase();
+          const cmdDef = proto.schema.commands[cmdKey] || proto.schema.commands['0x' + cmdKey];
+          if (!cmdDef) return false;
+          const reqDir = parsed.dir || 'MB';
+          const respDir = reqDir === 'MB' ? 'CB' : 'RESP';
+          const layout = cmdDef[respDir] || cmdDef.CB || cmdDef.RESP;
+          if (!layout || !layout.fields) return false;
+          const saved = { ...NS.currentVals };
+          try {
+            for (const f of layout.fields) {
+              if (f.todo || f.type === 'bytes') continue;
+              if (f.type === 'array') {
+                const item = f.item || {}; const count = item.count || 0;
+                const arr = [];
+                for (let k = 0; k < count; k++) {
+                  arr.push(NS._sourceValue(NS._simSources[`${f.name}[${k}]`] || NS._simSources[f.name], 0));
+                }
+                NS.currentVals[f.name] = arr;
+              } else if (f.type === 'ascii') {
+                NS.currentVals[f.name] = (NS._simSources[f.name] && NS._simSources[f.name].value) || f.default || '';
+              } else {
+                NS.currentVals[f.name] = NS._sourceValue(NS._simSources[f.name], f.default != null ? f.default : 0);
+              }
+            }
+            const resp = NS._buildFrameSchema(proto, { id: cmd, schemaDir: respDir });
+            if (resp && resp.bytes && resp.bytes.length) {
+              NS._writeSerial(Uint8Array.from(resp.bytes));
+              return true;
+            }
+            return false;
+          } finally {
+            NS.currentVals = saved;
+          }
         };
 
         // ============================================================
@@ -19172,25 +19241,27 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         NS._schemaPollerLast = {};
         NS._startSchemaPoller = function () {
           NS._stopSchemaPoller();
+          if (NS._simRole !== 'host') return; // device 角色不轮询 (由从机响应引擎驱动)
           const cmds = (NS.PROTOCOLS || []).filter((p) => p && p.schema && p.id === NS.activeProtoId)
             .flatMap((p) => (p.commands || []).filter((c) => c.frameType === 'query' && c.cadence > 0));
           if (!cmds.length) return;
-          const minCadence = Math.min(...cmds.map((c) => c.cadence));
+          const effInterval = NS._simPollInterval > 0 ? NS._simPollInterval : Math.min(...cmds.map((c) => c.cadence));
           NS._schemaPollerLast = {};
           NS._schemaPollerHandle = setInterval(() => {
+            if (NS._simRole !== 'host') return;
             if (!NS._serialConnected || typeof NS._writeSerial !== 'function') return;
             const proto = (NS.PROTOCOLS || []).find((p) => p.id === NS.activeProtoId && p.schema);
             if (!proto) return;
             const now = Date.now();
             for (const c of cmds) {
-              if ((NS._schemaPollerLast[c.id] || 0) > now - c.cadence) continue;
+              if ((NS._schemaPollerLast[c.id] || 0) > now - effInterval) continue;
               const frame = NS.buildFrame(proto, c);
               if (frame && frame.bytes && frame.bytes.length) {
                 NS._writeSerial(Uint8Array.from(frame.bytes));
                 NS._schemaPollerLast[c.id] = now;
               }
             }
-          }, Math.max(50, minCadence));
+          }, Math.max(50, effInterval));
         };
         NS._stopSchemaPoller = function () {
           if (NS._schemaPollerHandle) { clearInterval(NS._schemaPollerHandle); NS._schemaPollerHandle = null; }

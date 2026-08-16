@@ -225,3 +225,51 @@ test('schema 编码器: buildFrame(proto_bms_v113, MB) == golden 帧 + 编解码
   assert.equal(back.values.Enable_Protect_Switch, 16383, '0x02 往返 Enable_Protect_Switch');
   assert.equal(back.values.Cell_FULL_Timer, 30000, '0x02 往返 Cell_FULL_Timer');
 });
+
+test('D 从机响应: 查询帧 → schema 响应回帧 (数据源生成)', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  NS.activeProtoId = 'proto_bms_v113';
+  NS._simRole = 'device';
+  NS._simSources = { RSOC: { type: 'fixed', value: 80 }, BatVolt: { type: 'fixed', value: 212500 }, SysCurr: { type: 'fixed', value: 1000 } };
+  const written = [];
+  NS._writeSerial = (bytes) => written.push(Uint8Array.from(bytes));
+  const q = NS.buildFrame(proto, proto.commands.find((c) => c.id === 0x01));
+  const ok = NS._deviceRespond(q.bytes);
+  assert.equal(ok, true, '从机响应成功');
+  assert.equal(written.length, 1, '回 1 帧');
+  const resp = NS.parseFrame(proto, written[0]);
+  assert.equal(resp.crcOk, true, '响应 CRC 通过');
+  assert.equal(resp.dir, 'CB', '响应方向 CB');
+  assert.equal(resp.values.RSOC, 80, 'RSOC 固定 80');
+  assert.equal(resp.values.BatVolt, 212500, 'BatVolt 缩放 212500 (scale 10)');
+  assert.equal(resp.values.SysCurr, 1000, 'SysCurr 固定 1000');
+  // 还原
+  NS._simRole = 'host'; NS._writeSerial = null; NS._simSources = {};
+});
+
+test('D host→device 回环: 查询经 RX 分发 → 从机响应 (模拟串口对)', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  NS.activeProtoId = 'proto_bms_v113';
+  NS._simRole = 'device';
+  NS._simSources = { RSOC: { type: 'fixed', value: 55 } };
+  const rx = [];
+  NS._writeSerial = (bytes) => rx.push(Uint8Array.from(bytes));
+  // host 查询帧 (0x01 MB, ctrl=0)
+  const q = NS.buildFrame(proto, proto.commands.find((c) => c.id === 0x01));
+  // 回环: host TX = device RX (tryDispatchSchemaFrames)
+  const handled = NS.tryDispatchSchemaFrames(q.bytes);
+  assert.equal(handled, true, 'RX 分发处理查询帧');
+  assert.equal(rx.length, 1, '从机回 1 帧');
+  const resp = NS.parseFrame(proto, rx[0]);
+  assert.equal(resp.crcOk, true, '响应 CRC');
+  assert.equal(resp.values.RSOC, 55, '响应 RSOC=55');
+  NS._simRole = 'host'; NS._writeSerial = null; NS._simSources = {};
+});
+
+test('D 角色门控: device 角色不启动轮询', () => {
+  NS._simRole = 'device';
+  NS._startSchemaPoller();
+  assert.equal(NS._schemaPollerHandle, null, 'device 角色不启动轮询器');
+  NS._simRole = 'host';
+  NS._stopSchemaPoller();
+});
