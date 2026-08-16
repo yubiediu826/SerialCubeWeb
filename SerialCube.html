@@ -6102,6 +6102,40 @@
     .dashboard-host     .card-default.pair .pair-cell.delta .val.ok { background: rgba(34, 197, 94, 0.14); color: #22c55e; }
     .dashboard-host     .card-default.pair .pair-cell.delta .val.warn { background: rgba(217, 119, 6, 0.14); color: #d97706; }
     .dashboard-host     .card-default.pair .pair-cell.delta .val.bad { background: rgba(224, 87, 94, 0.14); color: #e0575e; }
+    /* v1.3.6 P3: control 卡 (主机模式 — ctrl 位切换 + 发送 + 响应遥测) */
+    .dashboard-host     .card-default.control .card-statusbar { background: #d97706; }
+    .dashboard-host     .card-default.control .ctrl-bits {
+      flex: 1; min-height: 0; overflow-y: auto;
+      display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start;
+      padding: 2px 0;
+    }
+    .dashboard-host     .card-default.control .ctrl-bit {
+      font-size: 0.5625rem; line-height: 1; padding: 3px 6px;
+      border: 1px solid var(--border); border-radius: 4px;
+      background: var(--bg-subtle); color: var(--text-soft); cursor: pointer;
+      font-family: inherit; white-space: nowrap;
+    }
+    .dashboard-host     .card-default.control .ctrl-bit.on {
+      background: rgba(217, 119, 6, 0.18); border-color: #d97706; color: #d97706; font-weight: 700;
+    }
+    .dashboard-host     .card-default.control .ctrl-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+      padding: 4px 0;
+    }
+    .dashboard-host     .card-default.control .ctrl-raw {
+      font-size: 0.5625rem; color: var(--text-soft); font-family: "Cascadia Code", Consolas, monospace;
+    }
+    .dashboard-host     .card-default.control .ctrl-send {
+      font-size: 0.625rem; font-weight: 700; padding: 4px 10px;
+      border: 1px solid var(--accent); border-radius: 4px; cursor: pointer;
+      background: var(--accent); color: #fff; font-family: inherit;
+    }
+    .dashboard-host     .card-default.control .ctrl-send:hover { filter: brightness(1.08); }
+    .dashboard-host     .card-default.control .ctrl-resp {
+      font-size: 0.625rem; color: var(--text-soft); cursor: pointer;
+      padding-top: 3px; border-top: 1px solid var(--border);
+    }
+    .dashboard-host     .card-default.control .ctrl-resp strong { color: var(--text); font-size: 0.8125rem; }
     /* widget: sparkline 区 (flex 1, 自动填满中部) — 右侧留 24px 给 icons, 防止数值变化时图标被 sparkline 视觉覆盖 */
     .dashboard-host     .card-default .card-trend {
       flex: 1; min-height: 0;
@@ -6223,6 +6257,7 @@
 .dashboard-host     .list-card .lc-status-ring.warn { background: var(--warning); }
 .dashboard-host     .list-card .lc-status-ring.danger { background: var(--danger); }
 .dashboard-host     .list-card .lc-status-ring.rx { background: var(--signal); }
+.dashboard-host     .list-card .lc-status-ring.tx { background: #d97706; }
 .dashboard-host     .list-card .lc-label {
       font-size: 0.6875rem; color: var(--text-soft); font-weight: 600;
       display: flex; align-items: center; gap: 6px;
@@ -8142,6 +8177,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               <select class="form-select" id="dh-ce-type">
                 <option value="trend">趋势卡</option>
                 <option value="pair">Pair 对比卡</option>
+                <option value="control">控制卡 (发送+响应)</option>
               </select>
               <label style="grid-column: auto; margin-left: 8px;" for="dh-card-form-cmd">命令</label>
               <select class="form-select" id="dh-ce-cmd"></select>
@@ -8150,6 +8186,22 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               <label for="dh-card-form-field">字段</label>
               <select class="form-select" id="dh-ce-field"></select>
               <label class="form-checkbox" style="margin-left: 12px;"><input type="checkbox" id="dh-ce-rx">RX-only</label>
+            </div>
+            <div class="form-row" id="dh-ce-resp-row" style="display:none;">
+              <label for="dh-card-form-resp">响应字段 (显示从机遥测)</label>
+              <select class="form-select" id="dh-ce-resp"></select>
+            </div>
+            <!-- v1.3.6 P3: 从机数据源 (集成在卡片中 — 随机/规律生成, 替代单独仿真 modal) -->
+            <div class="form-row" id="dh-ce-sim-row">
+              <label style="grid-column: 1 / -1; margin-bottom: 4px;">从机数据源 (device 角色下本卡字段生成规律)</label>
+              <select class="form-select" id="dh-ce-sim-type">
+                <option value="">(默认/无)</option>
+                <option value="fixed">固定</option>
+                <option value="random">随机</option>
+                <option value="sine">正弦</option>
+                <option value="ramp">斜坡</option>
+              </select>
+              <input class="form-input mono" id="dh-ce-sim-value" placeholder="值/参数 (如 80 或 0,100)">
             </div>
             <div class="form-row col-3">
               <label for="dh-ce-lower">下限</label>
@@ -8550,11 +8602,20 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.3.7 版本 · 26/8/16</strong>
+            <ul>
+              <li>修复: 协议导入缺失卡片 — 导入 host/slave schema 后自动生成默认卡片 (遥测 trend 卡 + 0x01 控制卡), 不再空白</li>
+              <li>修复: 两个页面 host/slave 只能导入一个 — host/slave 文件改为各含完整双向 schema + 独立协议 id + role 标记, 导入自动设置仿真角色; 导入前先合并 localStorage 最新协议避免跨 tab 覆盖</li>
+              <li>新增: 主机/从机仿真切换 + 控制卡 — 主机模式下 0x01 控制卡可编辑 ctrl 位 (Load/AC/风扇等) + 发送 MB 控制帧 + 显示从机遥测响应 (RSOC); 控制卡支持趋势/列表布局</li>
+              <li>新增: 从机数据源集成到卡片 — 卡片编辑加"从机数据源"(固定/随机/正弦/斜坡), device 角色响应时按卡片数据源生成字段值; 仿真角色持久化</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.3.6 版本 · 26/8/16</strong>
             <ul>
               <li>修复: 新建卡片编辑界面命令/字段下拉框空白 — 之前只同步 custom-select 的 trigger label, 浮动菜单 options 仍是初始化时的空列表; 现改为填充后完整重建菜单</li>
               <li>修复: 0x01 双向解析 — 主机侧 MB(ctrl 位表, 2 字节) / 从机侧 CB(159 字节遥测) 帧头判向 + len 语义归一 (位表权威 159B), 主机发 MB → 从机回 CB → 主机按 CB 解析遥测全链路验证</li>
-              <li>新增: BMS V1.13 协议拆分为主机/从机单独配置 (bms_v113_host.json = MB, bms_v113_slave.json = CB), 运行时自动合并; 补全 0x16 MB 4 字节预留帧 + 0x14 变长升级数据包 (PAC_NUM + PAC[128])</li>
+              <li>新增: BMS V1.13 协议拆分为主机/从机单独配置 (bms_v113_host.json / bms_v113_slave.json), 补全 0x16 MB 4 字节预留帧 + 0x14 变长升级数据包 (PAC_NUM + PAC[128])</li>
               <li>优化: 卡片字段下拉按方向标注 (MB=主机发送 / CB=从机响应), ctrl 控制字段与遥测字段不再混排</li>
             </ul>
           </div>
@@ -8727,7 +8788,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.3.6';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.6: P1/P2/P3 — 0x01 双向解析/新建卡片下拉修复/主机从机配置拆分; v1.3.5: P0 止血; v1.3.4: 3 个删除 modal 统一)
+      const VERSION = '1.3.7';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.7: 双页面主机/从机仿真 + 控制卡 + 卡片级数据源; v1.3.6: P1/P2/P3; v1.3.5: P0 止血; v1.3.4: 3 个删除 modal 统一)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
@@ -10782,7 +10843,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         };
         NS.PROTOCOLS = NS._defaultProtocols();
         // v1.3.6 P1: 注册 schema 驱动协议 (BMS V1.13) — schema 由 tools/scripts/embed-schema.mjs 生成嵌入
-                                                                NS._SCHEMA_BMS_V113 = {
+                                                                        NS._SCHEMA_BMS_V113 = {
  "id": "proto_bms_v113",
  "version": "1.13",
  "meta": {
@@ -13407,7 +13468,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 };
 
 
-                                                                NS._SCHEMA_EMS_V143 = {
+                                                                        NS._SCHEMA_EMS_V143 = {
  "id": "proto_ems_v143",
  "version": "1.4.3",
  "meta": {
@@ -16918,6 +16979,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             if (Array.isArray(cfg.cards)) NS.CARDS = cfg.cards;
             if (Array.isArray(cfg.alerts)) NS.ALERTS = cfg.alerts;
             if (cfg.activeProtoId !== undefined) NS.activeProtoId = cfg.activeProtoId || null;
+            // v1.3.6 P3: 持久化仿真角色 (双页面 host/device 各记各的)
+            if (cfg.simRole === 'host' || cfg.simRole === 'device') NS._simRole = cfg.simRole;
           } catch (e) { /* 读失败回退默认 */ }
         };
         NS._saveUserConfig = function () {
@@ -16926,7 +16989,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               protocols: NS.PROTOCOLS,
               cards: NS.CARDS,
               alerts: NS.ALERTS,
-              activeProtoId: NS.activeProtoId
+              activeProtoId: NS.activeProtoId,
+              simRole: NS._simRole
             }));
           } catch (e) { /* 写失败不阻塞 UI */ }
         };
@@ -17254,6 +17318,39 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           return head;
         };
 
+        // v1.3.6 P3: 控制卡 (type=control) — 主机模式下编辑 MB 字段 + 发送控制帧 + 显示从机响应
+        NS._controlCardBits = function (c) {
+          const proto = (NS.PROTOCOLS || []).find((p) => p.id === c.protocol && p.schema);
+          if (!proto) return [];
+          const cmdKey = c.cmd.toString(16).padStart(2, '0').toUpperCase();
+          const cmdDef = proto.schema.commands && (proto.schema.commands[cmdKey] || proto.schema.commands['0x' + cmdKey]);
+          const layout = cmdDef && (cmdDef.MB || cmdDef.REQ);
+          const f = layout && (layout.fields || []).find((x) => x.name === c.field);
+          return (f && f.type === 'bitset' && Array.isArray(f.bits)) ? f.bits : [];
+        };
+        NS._sendControlFrame = function (c) {
+          const proto = (NS.PROTOCOLS || []).find((p) => p.id === c.protocol && p.schema);
+          if (!proto) { NS.toast('协议无 schema', 'danger'); return false; }
+          const frame = NS._buildFrameSchema(proto, { id: c.cmd, schemaDir: c.schemaDir || 'MB' });
+          if (!frame || frame.error) { NS.toast('组帧失败: ' + (frame && frame.error), 'danger'); return false; }
+          if (typeof NS._writeSerial === 'function' && NS._writeSerial) {
+            NS._writeSerial(Uint8Array.from(frame.bytes));
+            NS.toast('已发送 0x' + c.cmd.toString(16).padStart(2, '0').toUpperCase() + ' 控制帧 (' + frame.bytes.length + 'B)', 'info', 1200);
+            return true;
+          }
+          NS.toast('未连接串口, 无法发送', 'warn');
+          return false;
+        };
+        NS._controlBitValue = function (c) {
+          return NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
+        };
+        NS._toggleControlBit = function (c, b) {
+          const raw = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
+          const on = ((raw >> b.bit) & 1) ? 0 : 1;
+          NS.currentVals[c.field] = on ? (raw | (1 << b.bit)) : (raw & ~(1 << b.bit));
+          NS.currentVals[c.field + '.' + b.name] = on;
+        };
+
         NS.renderCard = function (c) {
           const card = document.createElement('div');
           // widget: 所有卡先加 card-default 基类, 后面再叠 alert/rx
@@ -17299,6 +17396,54 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               + (NS.editMode ? '<div class="card-actions">'
                 + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
                 + '</div>' : '');
+          } else if (c.type === 'control') {
+            // widget: control 卡 (主机模式 — 编辑 ctrl 位 + 发送 + 显示响应遥测)
+            card.classList.add('control');
+            const bits = NS._controlCardBits(c);
+            const raw = NS._controlBitValue(c);
+            const resp = NS.currentVals[c.respField] != null ? NS.currentVals[c.respField] : 0;
+            const bitsHtml = bits.length
+              ? bits.filter((b) => !/^Reserved/i.test(b.name)).map((b) => {
+                  const on = (raw >> b.bit) & 1;
+                  return '<button type="button" class="ctrl-bit' + (on ? ' on' : '') + '" data-bit="' + b.bit + '" title="' + NS.escapeHtml(b.name) + '">' + NS.escapeHtml(b.name) + '</button>';
+                }).join('')
+              : '<span style="font-size:11px;color:var(--text-soft);">无位定义</span>';
+            card.innerHTML =
+              '<div class="card-statusbar"></div>'
+              + '<div class="card-body">'
+              + '<div class="card-header">'
+              + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '</div>'
+              + '<div class="ctrl-bits">' + bitsHtml + '</div>'
+              + '<div class="ctrl-row">'
+              + '<span class="ctrl-raw">ctrl=0x' + (raw >>> 0).toString(16).toUpperCase().padStart(4, '0') + '</span>'
+              + '<button type="button" class="ctrl-send" data-action="send">发送</button>'
+              + '</div>'
+              + '<div class="ctrl-resp" data-action="detail">' + NS.escapeHtml(c.respField || '响应') + ': <strong>' + resp.toFixed(c.precision || 1) + '</strong>' + NS.escapeHtml(c.respUnit || '') + '</div>'
+              + '</div>'
+              + (NS.editMode ? '<div class="card-actions">'
+                + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                + '</div>' : '');
+            // 绑定位切换 + 发送
+            card.querySelectorAll('.ctrl-bit').forEach((btn) => {
+              btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const b = bits.find((x) => x.bit === parseInt(btn.dataset.bit, 10));
+                if (!b) return;
+                NS._toggleControlBit(c, b);
+                NS.renderCardGrid();
+              });
+            });
+            card.querySelectorAll('[data-action]').forEach((btn) => {
+              const act = btn.getAttribute('data-action');
+              btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (act === 'edit') NS.openCardEdit(c.id);
+                else if (act === 'send') NS._sendControlFrame(c);
+                else if (act === 'detail') NS.__openDetail(c.id);
+              });
+            });
+            return card;
           } else {
             // widget: trend 卡
             const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
@@ -17378,7 +17523,20 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         NS.renderListCard = function (c) {
           const card = document.createElement('div');
           card.className = 'list-card' + (c.type === 'pair' ? ' is-pair' : '');
-          if (c.type === 'pair') {
+          if (c.type === 'control') {
+            const raw = NS._controlBitValue(c);
+            const resp = NS.currentVals[c.respField] != null ? NS.currentVals[c.respField] : 0;
+            card.classList.add('is-control');
+            card.innerHTML = '<span class="lc-status-ring tx"></span>'
+              + '<span class="lc-label">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="lc-value">0x' + (raw >>> 0).toString(16).toUpperCase().padStart(4, '0') + '</span>'
+              + '<span class="lc-range">' + NS.escapeHtml(c.respField || '响应') + ' ' + resp.toFixed(c.precision || 1) + NS.escapeHtml(c.respUnit || '') + '</span>'
+              + '<span class="lc-actions">'
+              + '<button aria-label="发送" class="card-action" title="发送 0x' + c.cmd.toString(16).padStart(2, '0').toUpperCase() + '" data-action="send"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13 V3 M4 7 L8 3 L12 7"/></svg></button>'
+              + (NS.editMode ? '<button aria-label="删除" class="card-action del-btn" title="删除" data-action="del"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4 H13 M5 4 V3 H11 V4 M6 7 V12 M10 7 V12 M4 4 L5 13 H11 L12 4"/></svg></button>' : '')
+              + '<button aria-label="编辑" class="card-action edit-btn" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+              + '</span>';
+          } else if (c.type === 'pair') {
             // pair 卡 SET/ACT 派生, 用 c.pairId 决定 (跟 renderCard 一致)
             // 加 'discharge_v' 分支
             let set = 0, act = 0;
@@ -17427,6 +17585,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             btn.addEventListener('click', (e) => {
               e.stopPropagation();
               if (act === 'edit') NS.openCardEdit(c.id);
+              else if (act === 'send') NS._sendControlFrame(c);
               else if (act === 'del') {
                 // v1.3.4: 编辑模式下 list 卡片删除 — 调 _saveUserConfig 持久化 (修刷新复活 bug, 跟配置中心 card 删除对齐)
                 NS.CARDS = NS.CARDS.filter((x) => x.id !== c.id);
@@ -19245,6 +19404,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           const layout = cmdDef[respDir] || cmdDef.CB || cmdDef.RESP;
           if (!layout || !layout.fields) return false;
           const saved = { ...NS.currentVals };
+          // v1.3.6 P3: 卡片级数据源 (card.field → card.sim) 优先于全局 _simSources
+          const cardSim = (field) => {
+            const card = (NS.CARDS || []).find((c) => c.protocol === proto.id && c.field === field && c.sim && c.sim.type);
+            if (card) return card.sim;
+            return NS._simSources[field];
+          };
           try {
             for (const f of layout.fields) {
               if (f.todo || f.type === 'bytes') continue;
@@ -19252,16 +19417,16 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 const item = f.item || {}; const count = item.count || 0;
                 const arr = [];
                 for (let k = 0; k < count; k++) {
-                  arr.push(NS._sourceValue(NS._simSources[`${f.name}[${k}]`] || NS._simSources[f.name], 0));
+                  arr.push(NS._sourceValue(cardSim(`${f.name}[${k}]`) || cardSim(f.name), 0));
                 }
                 NS.currentVals[f.name] = arr;
               } else if (f.type === 'ascii') {
-                NS.currentVals[f.name] = (NS._simSources[f.name] && NS._simSources[f.name].value) || f.default || '';
+                NS.currentVals[f.name] = (cardSim(f.name) && cardSim(f.name).value) || f.default || '';
               } else if (f.type === 'bitset') {
                 // v1.3.6 修: bitset 字段聚合 — 整字段数据源 + 逐位数据源 (ProtectCode.Bit0_xxx)
-                let raw = NS._sourceValue(NS._simSources[f.name], f.default != null ? f.default : 0);
+                let raw = NS._sourceValue(cardSim(f.name), f.default != null ? f.default : 0);
                 (f.bits || []).forEach((b) => {
-                  const src = NS._simSources[`${f.name}.${b.name}`];
+                  const src = cardSim(`${f.name}.${b.name}`);
                   if (src) {
                     const v = NS._sourceValue(src, 0);
                     raw = v ? (raw | (1 << b.bit)) : (raw & ~(1 << b.bit));
@@ -19269,7 +19434,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 });
                 NS.currentVals[f.name] = raw;
               } else {
-                NS.currentVals[f.name] = NS._sourceValue(NS._simSources[f.name], f.default != null ? f.default : 0);
+                NS.currentVals[f.name] = NS._sourceValue(cardSim(f.name), f.default != null ? f.default : 0);
               }
             }
             const resp = NS._buildFrameSchema(proto, { id: cmd, schemaDir: respDir });
@@ -20104,6 +20269,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             default: return { type: 'fixed', value: 0 };
           }
         };
+        // 反向: sim 对象 → 参数字符串 (卡片编辑回填)
+        NS._simParamStr = function (sim) {
+          if (!sim || !sim.type) return '';
+          switch (sim.type) {
+            case 'fixed':  return String(sim.value != null ? sim.value : 0);
+            case 'random': return [sim.lo || 0, sim.hi != null ? sim.hi : 100].join(',');
+            case 'sine':   return [sim.base || 0, sim.amp != null ? sim.amp : 10, sim.period != null ? sim.period : 10].join(',');
+            case 'ramp':   return [sim.base || 0, sim.step != null ? sim.step : 1, sim.max != null ? sim.max : 100].join(',');
+            default: return '';
+          }
+        };
         NS._simFieldNames = function () {
           const proto = (NS.PROTOCOLS || []).find((p) => p.id === NS.activeProtoId && p.schema);
           if (!proto) return [];
@@ -20177,6 +20353,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           const fieldSel = document.getElementById('dh-ce-field');
           const cmdObj = protoCmds.find((cmd) => cmd.id === c.cmd);
           const esc = NS.escapeHtml;
+          const fieldOpts = (cmd) => NS._cardFieldOptions(cmd).map((f) => `<option value="${esc(f.name)}">${esc(f.label)}</option>`).join('');
           fieldSel.innerHTML = NS._cardFieldOptions(cmdObj).map((f) => `<option value="${esc(f.name)}" ${c.field === f.name ? 'selected' : ''}>${esc(f.label)}</option>`).join('');
           // v1.3.6 P2 修: 重建 custom-select 浮动菜单 (仅同步 trigger label 不够 — 菜单 options 仍是初始化时的空列表,
           //   用户点开下拉框看到空白, 误以为"不支持命令/字段选择")
@@ -20184,15 +20361,47 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const modal = document.getElementById('dh-card-edit-modal');
             if (modal) syncCustomSelects(modal);
           };
+          // v1.3.6 P3: control 卡响应字段下拉 (只显示 CB 方向字段)
+          const respSel = document.getElementById('dh-ce-resp');
+          const respRow = document.getElementById('dh-ce-resp-row');
+          const refreshRespOptions = () => {
+            const cmd = protoCmds.find((x) => x.id === parseInt(cmdSel.value));
+            const cmdKey = cmd ? cmd.id.toString(16).padStart(2, '0').toUpperCase() : '';
+            const proto = (NS.PROTOCOLS || []).find((p) => p.id === c.protocol && p.schema);
+            const cmdDef = proto && proto.schema && proto.schema.commands && (proto.schema.commands[cmdKey] || proto.schema.commands['0x' + cmdKey]);
+            const respLayout = cmdDef && (cmdDef.CB || cmdDef.RESP);
+            const names = [];
+            if (respLayout && Array.isArray(respLayout.fields)) {
+              for (const f of respLayout.fields) {
+                if (f.todo || f.type === 'bytes' || f.type === 'array') continue;
+                names.push(f.name);
+                if (f.type === 'bitset' && Array.isArray(f.bits)) f.bits.forEach((b) => names.push(`${f.name}.${b.name}`));
+              }
+            }
+            respSel.innerHTML = names.map((n) => `<option value="${esc(n)}" ${c.respField === n ? 'selected' : ''}>${esc(n)}</option>`).join('') || '<option value="">(无响应字段)</option>';
+          };
+          refreshRespOptions();
+          const refreshTypeVisibility = () => {
+            const t = document.getElementById('dh-ce-type').value;
+            if (respRow) respRow.style.display = t === 'control' ? '' : 'none';
+          };
+          refreshTypeVisibility();
+          document.getElementById('dh-ce-type').onchange = refreshTypeVisibility;
           cmdSel.onchange = () => {
             const newCmd = protoCmds.find((cmd) => cmd.id === parseInt(cmdSel.value));
-            fieldSel.innerHTML = NS._cardFieldOptions(newCmd).map((f) => `<option value="${esc(f.name)}">${esc(f.label)}</option>`).join('');
+            fieldSel.innerHTML = fieldOpts(newCmd);
+            refreshRespOptions();
             resyncCardEditSelects();
           };
           document.getElementById('dh-ce-rx').checked = !!c.fromOtherCmd;
           document.getElementById('dh-ce-lower').value = c.range ? c.range[0] : '';
           document.getElementById('dh-ce-upper').value = c.range ? c.range[1] : '';
           document.getElementById('dh-ce-precision').value = c.precision != null ? c.precision : 2;
+          // v1.3.6 P3: 从机数据源回填
+          const simType = document.getElementById('dh-ce-sim-type');
+          const simVal = document.getElementById('dh-ce-sim-value');
+          if (simType) simType.value = (c.sim && c.sim.type) || '';
+          if (simVal) simVal.value = NS._simParamStr(c.sim);
           // v1.3.6 P2 修: 用完整重建 (浮动菜单 options 一并重建) 替代旧 label-only 同步
           resyncCardEditSelects();
           NS.openModal('dh-card-edit');
@@ -20354,49 +20563,89 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           }
           return target;
         };
+        // v1.3.6 P3 修: 从 schema 自动生成默认卡片 (导入协议后有卡可看)
+        //   host 角色额外生成 0x01 控制卡 (发送 ctrl 位表 + 显示遥测响应); 从机/RX 生成遥测 trend 卡
+        NS._generateSchemaCards = function (protoId, schema, role) {
+          const cards = [];
+          const c01 = schema.commands && schema.commands['0x01'];
+          // RX 遥测卡: 0x01 CB 关键字段
+          const wanted = ['RSOC', 'BatVolt', 'SysCurr', 'SOH', 'Vcell_max', 'CellTempMax'];
+          if (c01 && c01.CB && Array.isArray(c01.CB.fields)) {
+            wanted.forEach((name, i) => {
+              const f = c01.CB.fields.find((x) => x.name === name);
+              if (!f) return;
+              cards.push({ id: protoId + '_rx_' + i, type: 'trend', cmd: 0x01, dir: 'rx', field: name,
+                title: name, unit: f.unit || '', range: NS._fieldRange(name), precision: f.unit === 'mV' ? 0 : 1,
+                fromOtherCmd: true, protocol: protoId });
+            });
+          }
+          // 控制卡: 0x01 MB ctrl 位表 → 发送控制命令 + 显示 RSOC 响应 (主机模式核心)
+          if (c01 && c01.MB && Array.isArray(c01.MB.fields)) {
+            const ctrl = c01.MB.fields.find((x) => x.name === 'ctrl');
+            if (ctrl && role !== 'slave') {
+              cards.push({ id: protoId + '_ctrl_01', type: 'control', cmd: 0x01, dir: 'tx', schemaDir: 'MB',
+                field: 'ctrl', respField: 'RSOC', respUnit: '%', title: '控制 · 0x01', unit: '', precision: 1,
+                protocol: protoId });
+            }
+          }
+          return cards;
+        };
+        NS._fieldRange = function (name) {
+          const map = { RSOC: [0, 100], BatVolt: [0, 300000], SysCurr: [-50000, 50000], SOH: [0, 100], Vcell_max: [2500, 4200], CellTempMax: [-20, 80] };
+          return map[name] || [0, 100];
+        };
         NS.importSchema = function (obj) {
           try {
             if (!obj || !obj.frame || !Array.isArray(obj.frame.fields) || !obj.commands) {
               throw new Error('不是 schema 文件 (缺 frame.fields / commands)');
             }
-            // 归一 id: host/slave 拆分文件 id 形如 proto_bms_v113_host / _slave → 基础 id proto_bms_v113
-            let baseId = obj.id || 'proto_imported';
-            baseId = baseId.replace(/_(host|slave)$/, '');
-            const role = obj.role === 'host' ? 'host' : obj.role === 'slave' ? 'slave' : 'full';
-            // 找已有 schema 协议 (同 id + kind=schema), 有则合并布局
+            // v1.3.6 P3 修: 双 tab 场景下, 先从 localStorage 合并最新协议 (避免本 tab 内存态覆盖另一 tab 刚导入的 host/slave)
+            try {
+              const raw = localStorage.getItem(NS._USER_CONFIG_KEY);
+              if (raw) {
+                const cfg = JSON.parse(raw);
+                const persisted = Array.isArray(cfg.protocols) ? cfg.protocols : [];
+                persisted.forEach((p) => {
+                  if (p && p.id && !(NS.PROTOCOLS || []).some((x) => x.id === p.id)) NS.PROTOCOLS.push(p);
+                });
+              }
+            } catch (e) {}
+            // v1.3.6 P3 修: 保留独立 id (host/slave 各成独立协议, 两个页面各导各的), 不再归一合并
+            const baseId = obj.id || 'proto_imported';
+            const role = obj.role === 'host' ? 'host' : obj.role === 'slave' ? 'device' : 'full';
             let proto = (NS.PROTOCOLS || []).find((p) => p.id === baseId && p.kind === 'schema');
             if (!proto) {
               proto = {
                 id: baseId, kind: 'schema',
                 name: (obj.meta && obj.meta.name) || baseId,
                 byteOrder: (obj.meta && obj.meta.byteOrder) || 'LE',
+                role: role,
                 schema: { id: baseId, version: obj.version, meta: obj.meta, frame: obj.frame, commands: {} },
                 commands: []
               };
               NS.PROTOCOLS.push(proto);
             }
-            // 合并 frame/meta (host/slave 的 frame 应一致, 以首次导入为准)
-            if (obj.frame && (!proto.schema.frame || !Array.isArray(proto.schema.frame.fields) || !proto.schema.frame.fields.length)) {
-              proto.schema.frame = obj.frame;
-            }
-            if (obj.meta && !proto.schema.meta) proto.schema.meta = obj.meta;
-            if (obj.version && !proto.schema.version) proto.schema.version = obj.version;
-            // 合并命令布局
+            // 合并 frame/meta/commands (同 id 重复导入 → 增量合并布局)
+            if (obj.frame) proto.schema.frame = obj.frame;
+            if (obj.meta) proto.schema.meta = obj.meta;
+            if (obj.version) proto.schema.version = obj.version;
             proto.schema.commands = NS._mergeSchemaCommands(proto.schema.commands, obj);
-            // 重建命令列表
             proto.commands = NS._schemaCommands(proto.schema);
-            // 应用 + 持久化 + 重渲染
+            if (obj.role) proto.role = role;
+            // 角色 → 仿真角色
+            if (role === 'host' || role === 'device') NS._simRole = role;
+            // 自动生成卡片 (若该协议还没有卡片)
+            if (!(NS.CARDS || []).some((c) => c.protocol === baseId)) {
+              const gen = NS._generateSchemaCards(baseId, proto.schema, role);
+              NS.CARDS = (NS.CARDS || []).concat(gen);
+            }
             NS.activeProtoId = baseId;
             if (NS._saveUserConfig) NS._saveUserConfig();
             if (NS.initMockData) NS.initMockData();
             if (NS.renderKpiCards) NS.renderKpiCards();
             const complete = NS._schemaIsComplete(proto.schema);
-            const roleLabel = role === 'host' ? '主机(MB)' : role === 'slave' ? '从机(CB)' : '完整';
-            if (!complete) {
-              NS.toast(`已导入 schema 协议 ${baseId} (${roleLabel}, 单向) — 建议再导入另一侧 host/slave 文件以获得双向解析`, 'warn');
-            } else {
-              NS.toast(`已导入 schema 协议 ${baseId} (${roleLabel}, 双向 ${proto.commands.length} 命令)`, 'success');
-            }
+            const roleLabel = role === 'host' ? '主机' : role === 'device' ? '从机' : '完整';
+            NS.toast(`已导入 ${baseId} (${roleLabel}, ${proto.commands.length} 命令, ${NS.CARDS.filter((c) => c.protocol === baseId).length} 卡)`, 'success');
             return true;
           } catch (e) { NS.toast('导入失败: ' + e.message, 'danger'); return false; }
         };
@@ -22645,6 +22894,27 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const hi = parseFloat(document.getElementById('dh-ce-upper').value);
             c.range = (!isNaN(lo) && !isNaN(hi)) ? [lo, hi] : undefined;
             c.precision = parseInt(document.getElementById('dh-ce-precision').value) || 2;
+            // v1.3.6 P3: 从机数据源 (卡片级 sim)
+            const simTypeEl = document.getElementById('dh-ce-sim-type');
+            const simValEl = document.getElementById('dh-ce-sim-value');
+            if (simTypeEl && simTypeEl.value) {
+              c.sim = NS._simSourceParam(simTypeEl.value, simValEl ? simValEl.value : '');
+            } else {
+              delete c.sim;
+            }
+            // v1.3.6 P3: control 卡额外字段 (schemaDir + respField)
+            if (c.type === 'control') {
+              const cmdKey = c.cmd.toString(16).padStart(2, '0').toUpperCase();
+              const proto = (NS.PROTOCOLS || []).find((p) => p.id === c.protocol && p.schema);
+              const cmdDef = proto && proto.schema && proto.schema.commands && (proto.schema.commands[cmdKey] || proto.schema.commands['0x' + cmdKey]);
+              c.schemaDir = cmdDef && cmdDef.MB ? 'MB' : (cmdDef && cmdDef.REQ ? 'REQ' : 'MB');
+              c.respField = document.getElementById('dh-ce-resp').value || c.respField;
+              c.respUnit = (c.respField && c.respField.split('.')[0]) ? ((() => {
+                const respLayout = cmdDef && (cmdDef.CB || cmdDef.RESP);
+                const rf = respLayout && respLayout.fields.find((f) => f.name === c.respField.split('.')[0]);
+                return rf ? (rf.unit || '') : '';
+              })()) : '';
+            }
             // v1.3.4: 卡片编辑保存 → 调 _saveUserConfig 持久化 (跟配置中心 card 修改对齐)
             NS._saveUserConfig && NS._saveUserConfig();
             NS.renderCardEditList();
@@ -22697,6 +22967,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               if (devSec) devSec.style.display = NS._simRole === 'device' ? '' : 'none';
               if (NS._simRole === 'host') { NS._startSchemaPoller && NS._startSchemaPoller(); }
               else { NS._stopSchemaPoller && NS._stopSchemaPoller(); }
+              NS._saveUserConfig && NS._saveUserConfig();
               NS.toast(`角色切换为 ${NS._simRole === 'host' ? '主机' : '从机'}`, 'info', 1000);
             };
           });

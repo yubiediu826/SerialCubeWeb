@@ -7,20 +7,20 @@
 
 | 文件 | 协议 | 状态 |
 |------|------|------|
-| `bms_v113_host.json` | BMS V1.13 主机侧（MB 布局，18 命令） | ✅ 拆分源文件（控制/查询帧） |
-| `bms_v113_slave.json` | BMS V1.13 从机侧（CB 布局，19 命令） | ✅ 拆分源文件（遥测/应答帧） |
-| `bms_v113.json` | BMS V1.13（head+addr+cmd+len+set+crc16） | ✅ 合并产物（由 host/slave 生成，勿手改） |
+| `bms_v113.json` | BMS V1.13（head+addr+cmd+len+set+crc16） | ✅ 权威完整双向 schema（MB+CB 全 19 命令） |
+| `bms_v113_host.json` | BMS V1.13 主机视角（完整双向 + `role:"host"`） | ✅ 双页面仿真主机页导入 |
+| `bms_v113_slave.json` | BMS V1.13 从机视角（完整双向 + `role:"slave"`） | ✅ 双页面仿真从机页导入 |
 | `ems_v143.json` | EMS V1.4.3（0xAA 0xAA + addr2 + cmd + len + data + checksum） | 见文件内 TODO |
 
-> **BMS 拆分约定**：主机(MB) 与从机(CB) 分开维护；运行时由 `merge-bms-schema.mjs` 合并为单一 `bms_v113.json`，因为 `parseFrame` 判向（帧头 0x5A/0x55）需要同一 schema 内同时有 MB+CB。改 BMS 协议请改 host/slave 源文件，再跑 merge。
+> **host/slave 拆分约定**：双页面仿真中，主机页发 MB（控制/查询）+ 收 CB（遥测），从机页收 MB + 发 CB（响应），**两边都需要完整双向布局**。因此 host/slave 文件都是 `bms_v113.json` 的完整副本，区别只在 `role` 标记（导入后自动设置仿真角色）和独立协议 id（`proto_bms_v113_host` / `proto_bms_v113_slave`，两页面各导各的互不覆盖）。改协议只改 `bms_v113.json`，再跑 `split-bms-schema.mjs` 重新生成两个视角副本。
 
 ## 嵌入与同步
 
 schema 在单文件 `SerialCube.html` 中以 `NS._SCHEMA_<ID>` 内嵌（`// @SCHEMA_EMBED_<ID>@` marker）：
 
 ```bash
-node tools/scripts/merge-bms-schema.mjs   # 合并 host/slave → bms_v113.json
-node tools/scripts/embed-schema.mjs       # 修改 tools/schemas/*.json 后必跑, 否则页面不生效 (自动先 merge BMS)
+node tools/scripts/split-bms-schema.mjs   # 从 bms_v113.json 重新生成 host/slave 视角副本
+node tools/scripts/embed-schema.mjs       # 修改 tools/schemas/*.json 后必跑 (bms_v113.json 直接嵌入, host/slave 跳过)
 ```
 
 ## 结构

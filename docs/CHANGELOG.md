@@ -13,7 +13,8 @@
 
 ### 2026-08-16
 
-- [`changelog/2026-08-16-v1.3.6-bms-dual-direction-and-config-split.md`](changelog/2026-08-16-v1.3.6-bms-dual-direction-and-config-split.md) — **v1.3.6**: 0x01 双向 MB/CB 解析 (主机 ctrl 位表 / 从机 159B 遥测, 帧头判向 + len 归一) + 新建卡片编辑命令/字段下拉空白修复 (custom-select 浮动菜单重建) + BMS 主机/从机配置拆分 (bms_v113_host.json=MB / bms_v113_slave.json=CB, 运行时合并) + 0x16 MB 4 字节 + 0x14 变长 PAC 补全 + 卡片字段按方向标注
+- [`changelog/2026-08-16-v1.3.7-host-device-sim-and-control-cards.md`](changelog/2026-08-16-v1.3.7-host-device-sim-and-control-cards.md) — **v1.3.7**: 协议导入自动生成卡片 + host/slave 各成独立双向协议(角色标记+独立 id, 双页面各导各的) + 主机控制卡(编辑 ctrl 位表+发送 MB 控制帧+显示遥测响应) + 卡片级从机数据源(固定/随机/正弦/斜坡) + 仿真角色持久化
+- [`changelog/2026-08-16-v1.3.6-bms-dual-direction-and-config-split.md`](changelog/2026-08-16-v1.3.6-bms-dual-direction-and-config-split.md) — **v1.3.6**: 0x01 双向 MB/CB 解析 (主机 ctrl 位表 / 从机 159B 遥测, 帧头判向 + len 归一) + 新建卡片编辑命令/字段下拉空白修复 (custom-select 浮动菜单重建) + BMS 主机/从机配置拆分 (bms_v113_host.json / bms_v113_slave.json) + 0x16 MB 4 字节 + 0x14 变长 PAC 补全 + 卡片字段按方向标注
 - [`changelog/2026-08-16-v1.3.5-p0-hotfixes.md`](changelog/2026-08-16-v1.3.5-p0-hotfixes.md) — **v1.3.5**: P0 止血 — mock tick 加串口连接守卫 (真实数据不再被抖动覆盖) / 告警对象比较 bug / checkAlert 无参调用 / float·double IEEE754 编码对称 / 类型表单一数据源 / **CRC16-Modbus 修正为标准算法 (真机互操作)** / Mutator·预设 XSS 转义 / link-check 脚本 2 处 bug; 补 v1.3.3·v1.3.4 tag; 确认 v1.3.2·v1.3.2.1 为文档级发布无独立代码版本
 - [`changelog/2026-08-16-protocol-schema-and-sim-tools.md`](changelog/2026-08-16-protocol-schema-and-sim-tools.md) — **P1-P3 (main 未发布)**: 协议位级解析 (BMS V1.13 + EMS V1.4.3 schema/解码/编码/轮询/黄金向量 L1 6/6) + 模拟主机/从机 (L2 8/8 + socket 集成) + CI 7 项门禁 + 坏链 47→0 + 9 个未定义 CSS token 修复; 待推送
 - [`changelog/2026-08-16-p4-governance.md`](changelog/2026-08-16-p4-governance.md) — **P4 持续治理**: 备份分支资产收编 (从机计划/集成交接/v1.2.1 plan) + EMS 长尾转写 (461 字段/14 命令, 解析脚本可复现) + Playwright L3 e2e + CI l3 job; 待推送

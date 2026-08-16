@@ -1,11 +1,10 @@
 // 将 tools/schemas/*.json 嵌入 SerialCube.html (单文件约束下 schema 内嵌)
-// BMS V1.13 为拆分源文件 (host=MB / slave=CB): 先 merge 再嵌入为 NS._SCHEMA_BMS_V113。
+// BMS V1.13: bms_v113.json 为权威完整双向 schema (host/slave 是由它生成的视角副本, 不嵌入)。
 // 两种模式:
 //   1) 首次: 替换注释 marker `// @SCHEMA_EMBED_<ID>@` (marker 来自 SerialCube.html 注册块)
 //   2) 更新: 替换已存在的 `NS._SCHEMA_<ID> = {...};` 赋值块 (marker 已消耗后再次嵌入)
 // 用法: node tools/scripts/embed-schema.mjs
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
-import { mergeBmsSchemas } from './merge-bms-schema.mjs';
 
 const schemaDir = 'tools/schemas';
 const htmlFile = 'SerialCube.html';
@@ -13,14 +12,11 @@ const htmlFile = 'SerialCube.html';
 let html = readFileSync(htmlFile, 'utf8');
 let embedded = 0;
 
-// BMS 拆分源文件 (host/slave) → 合并后嵌入; 跳过它们以免误嵌为独立 schema
+// host/slave 是 bms_v113.json 的视角副本, 跳过 (不嵌入为独立 schema)
 const skipFiles = new Set(['bms_v113_host.json', 'bms_v113_slave.json']);
-const bmsMerged = mergeBmsSchemas(`${schemaDir}/bms_v113_host.json`, `${schemaDir}/bms_v113_slave.json`);
-embedSchema('BMS_V113', bmsMerged);
 
 for (const file of readdirSync(schemaDir).filter((f) => f.endsWith('.json') && !skipFiles.has(f))) {
   const id = file.replace(/\.json$/, '').toUpperCase();
-  if (id === 'BMS_V113') continue; // 已由 host/slave 合并嵌入
   embedSchema(id, JSON.parse(readFileSync(`${schemaDir}/${file}`, 'utf8')));
 }
 

@@ -405,31 +405,28 @@ test('P3 0x14 变长升级数据包: PAC_NUM + PAC[128] 编解码往返', () => 
   }
 });
 
-test('P3 host/slave 拆分源文件结构有效 (MB-only + CB-only, 合并后 19 命令双向 18)', () => {
+test('P3 host/slave 拆分源文件: 各含完整双向 schema + role 标记', () => {
   const fs = { readFileSync };
   const host = JSON.parse(fs.readFileSync(new URL('../tools/schemas/bms_v113_host.json', import.meta.url), 'utf8'));
   const slave = JSON.parse(fs.readFileSync(new URL('../tools/schemas/bms_v113_slave.json', import.meta.url), 'utf8'));
   assert.equal(host.role, 'host', 'host 角色标记');
   assert.equal(slave.role, 'slave', 'slave 角色标记');
-  // host 只含 MB, slave 只含 CB
-  for (const cmdDef of Object.values(host.commands)) {
-    assert.ok(cmdDef.MB && !cmdDef.CB, `host 命令只含 MB 布局`);
+  assert.equal(host.id, 'proto_bms_v113_host', 'host 独立协议 id');
+  assert.equal(slave.id, 'proto_bms_v113_slave', 'slave 独立协议 id');
+  // 双页面仿真: 两边都需要完整双向布局 (host 发 MB+收 CB, slave 收 MB+发 CB)
+  for (const file of [host, slave]) {
+    assert.equal(Object.keys(file.commands).length, 19, `${file.role} 含 19 命令`);
+    assert.ok(file.commands['0x01'].MB && file.commands['0x01'].CB, `${file.role} 0x01 双向布局`);
+    assert.ok(file.commands['0x16'].MB.len === 4, `${file.role} 0x16 MB len=4`);
   }
-  for (const cmdDef of Object.values(slave.commands)) {
-    assert.ok(cmdDef.CB && !cmdDef.MB, `slave 命令只含 CB 布局`);
-  }
-  // 0x15 为 CB-only 主动上行: host 无, slave 有
-  assert.ok(!host.commands['0x15'], '0x15 host 侧无 (主动上行)');
-  assert.ok(slave.commands['0x15'].CB, '0x15 slave 侧有 CB');
-  // 0x01 双向: host 有 ctrl bitset, slave 有遥测
+  // 0x01 双向: host 有 ctrl bitset (发), slave 有遥测 (发)
   assert.ok(host.commands['0x01'].MB.fields[0].name === 'ctrl', 'host 0x01 MB=ctrl');
   assert.ok(slave.commands['0x01'].CB.fields.length >= 35, 'slave 0x01 CB=遥测');
-  // 合并后 19 命令, 双向 18 (0x15 例外), MB-only 0
+  // 内置合并 schema 仍完整
   const merged = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113').schema;
   assert.equal(Object.keys(merged.commands).length, 19, '合并 19 命令');
   const both = Object.values(merged.commands).filter((c) => c.MB && c.CB).length;
   assert.equal(both, 18, `双向 ${both} == 18 (0x15 无 MB)`);
-  assert.ok(merged.commands['0x16'].MB.len === 4, '0x16 MB len=4');
 });
 
 test('P2 卡片编辑: 命令/字段下拉浮动菜单重建 (openCardEdit 后 options 非空)', () => {
@@ -459,39 +456,100 @@ test('P2 卡片编辑: 命令/字段下拉浮动菜单重建 (openCardEdit 后 o
   NS.closeModal('dh-card-edit');
 });
 
-test('P3 schema 文件导入: host/slave 拆分文件合并为单一双向协议', () => {
+test('P3 schema 文件导入: host/slave 各成独立双向协议 + 角色 + 自动卡片', () => {
   const fs = { readFileSync };
-  const hostJson = fs.readFileSync(new URL('../tools/schemas/bms_v113_host.json', import.meta.url), 'utf8');
-  const slaveJson = fs.readFileSync(new URL('../tools/schemas/bms_v113_slave.json', import.meta.url), 'utf8');
-  // 导入一个全新协议 (改名避免与内置 proto_bms_v113 冲突)
-  const hostObj = JSON.parse(hostJson);
-  const slaveObj = JSON.parse(slaveJson);
+  const hostObj = JSON.parse(fs.readFileSync(new URL('../tools/schemas/bms_v113_host.json', import.meta.url), 'utf8'));
+  const slaveObj = JSON.parse(fs.readFileSync(new URL('../tools/schemas/bms_v113_slave.json', import.meta.url), 'utf8'));
   hostObj.id = 'proto_test_import_host';
   slaveObj.id = 'proto_test_import_slave';
-  // 1) 先导 host (单向 MB) → 协议创建, 提示单向
-  let proto = NS.PROTOCOLS.find((p) => p.id === 'proto_test_import');
-  if (proto) NS.PROTOCOLS = NS.PROTOCOLS.filter((p) => p.id !== 'proto_test_import');
-  assert.equal(NS.importSchema(hostObj), true, 'host 导入成功');
-  proto = NS.PROTOCOLS.find((p) => p.id === 'proto_test_import');
-  assert.ok(proto && proto.kind === 'schema', 'host 导入创建 schema 协议');
-  assert.equal(NS._schemaIsComplete(proto.schema), false, '仅 host 时单向 (无 CB)');
-  // 2) 再导 slave (CB) → 合并为双向
-  assert.equal(NS.importSchema(slaveObj), true, 'slave 导入成功');
-  proto = NS.PROTOCOLS.find((p) => p.id === 'proto_test_import');
-  assert.equal(NS._schemaIsComplete(proto.schema), true, 'host+slave 合并后双向');
-  assert.equal(Object.keys(proto.schema.commands).length, 19, '合并 19 命令');
-  assert.equal(proto.commands.find((c) => c.id === 0x01).cadence, 200, '0x01 cadence 200');
-  assert.ok(proto.schema.commands['0x01'].MB && proto.schema.commands['0x01'].CB, '0x01 双向布局');
-  // 3) 完整 schema (合并产物 bms_v113.json) 也能直接导入
-  const fullJson = fs.readFileSync(new URL('../tools/schemas/bms_v113.json', import.meta.url), 'utf8');
-  const fullObj = JSON.parse(fullJson);
-  fullObj.id = 'proto_test_import_full';
-  if (NS.PROTOCOLS.find((p) => p.id === 'proto_test_import_full')) NS.PROTOCOLS = NS.PROTOCOLS.filter((p) => p.id !== 'proto_test_import_full');
-  assert.equal(NS.importSchema(fullObj), true, '完整 schema 导入成功');
-  const fullProto = NS.PROTOCOLS.find((p) => p.id === 'proto_test_import_full');
-  assert.equal(NS._schemaIsComplete(fullProto.schema), true, '完整 schema 直接双向');
-  // 4) 用户配置格式仍走原路径 (非 schema 检测不误判)
-  assert.equal(NS.importSchema({ frame: { fields: [] }, commands: {} }), true, '空 schema 结构也接受 (commands 空)');
-  // 清理
-  NS.PROTOCOLS = NS.PROTOCOLS.filter((p) => !['proto_test_import', 'proto_test_import_full'].includes(p.id));
+  // 清掉可能残留的测试协议
+  NS.PROTOCOLS = NS.PROTOCOLS.filter((p) => !['proto_test_import_host', 'proto_test_import_slave'].includes(p.id));
+  const savedRole = NS._simRole;
+  try {
+    // 1) 导 host → 独立协议, role=host, _simRole=host, 自动生成卡片
+    assert.equal(NS.importSchema(hostObj), true, 'host 导入成功');
+    let hostProto = NS.PROTOCOLS.find((p) => p.id === 'proto_test_import_host');
+    assert.ok(hostProto && hostProto.kind === 'schema', 'host 导入创建 schema 协议');
+    assert.equal(hostProto.role, 'host', 'host 协议 role=host');
+    assert.equal(NS._simRole, 'host', '导入 host 后仿真角色=host');
+    assert.ok(hostProto.schema.commands['0x01'].MB && hostProto.schema.commands['0x01'].CB, 'host 协议 0x01 双向布局');
+    const hostCards = NS.CARDS.filter((c) => c.protocol === 'proto_test_import_host');
+    assert.ok(hostCards.length >= 6, `host 自动生成卡片 ${hostCards.length} ≥ 6`);
+    assert.ok(hostCards.some((c) => c.type === 'control' && c.cmd === 0x01), 'host 含 0x01 控制卡');
+    assert.ok(hostCards.some((c) => c.type === 'trend' && c.field === 'RSOC'), 'host 含 RSOC 遥测卡');
+    // 2) 导 slave → 独立协议 (不覆盖 host), role=device
+    assert.equal(NS.importSchema(slaveObj), true, 'slave 导入成功');
+    const slaveProto = NS.PROTOCOLS.find((p) => p.id === 'proto_test_import_slave');
+    assert.ok(slaveProto && slaveProto.role === 'device', 'slave 协议 role=device');
+    assert.equal(NS._simRole, 'device', '导入 slave 后仿真角色=device');
+    // host 协议仍独立存在 (双页面各导各的)
+    hostProto = NS.PROTOCOLS.find((p) => p.id === 'proto_test_import_host');
+    assert.ok(hostProto && hostProto.role === 'host', 'host 协议仍独立存在');
+  } finally {
+    NS._simRole = savedRole;
+    NS.PROTOCOLS = NS.PROTOCOLS.filter((p) => !['proto_test_import_host', 'proto_test_import_slave'].includes(p.id));
+    NS.CARDS = NS.CARDS.filter((c) => !['proto_test_import_host', 'proto_test_import_slave'].includes(c.protocol));
+  }
+});
+
+test('P3 控制卡: 位切换 + 发送控制帧 (host 发 MB ctrl)', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const card = { id: 'ctrl_test', type: 'control', cmd: 0x01, schemaDir: 'MB', field: 'ctrl', respField: 'RSOC', respUnit: '%', precision: 1, protocol: 'proto_bms_v113' };
+  const savedVals = { ...NS.currentVals };
+  const savedRole = NS._simRole;
+  try {
+    for (const k of Object.keys(NS.currentVals)) if (k === 'ctrl' || k.startsWith('ctrl.')) delete NS.currentVals[k];
+    // 位切换: Load(bit0) + fan_enable(bit9)
+    const load = { bit: 0, name: 'Load' };
+    const fan = { bit: 9, name: 'fan_enable' };
+    NS._toggleControlBit(card, load);
+    NS._toggleControlBit(card, fan);
+    assert.equal(NS.currentVals['ctrl'], 0x0201, 'ctrl = 0x0201 (bit0|bit9)');
+    assert.equal(NS.currentVals['ctrl.Load'], 1, 'ctrl.Load=1');
+    // 发送: 组帧头 0x5A + 写串口
+    const written = [];
+    NS._writeSerial = (bytes) => written.push(Uint8Array.from(bytes));
+    const ok = NS._sendControlFrame(card);
+    assert.equal(ok, true, '控制帧发送成功');
+    assert.equal(written.length, 1, '写 1 帧');
+    assert.equal(written[0][0], 0x5A, 'MB 帧头 0x5A');
+    assert.equal(written[0][3], 2, 'len 字段 2');
+    const parsed = NS.parseFrame(proto, written[0]);
+    assert.equal(parsed.values['ctrl.Load'], 1, '解析 ctrl.Load=1');
+    assert.equal(parsed.values['ctrl.fan_enable'], 1, '解析 ctrl.fan_enable=1');
+  } finally {
+    NS.currentVals = savedVals;
+    NS._simRole = savedRole;
+    NS._writeSerial = null;
+  }
+});
+
+test('P3 从机卡片级数据源: card.sim 驱动 device 响应', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  NS.activeProtoId = 'proto_bms_v113';
+  const savedRole = NS._simRole;
+  const savedSources = { ...NS._simSources };
+  const savedCards = NS.CARDS;
+  try {
+    NS._simRole = 'device';
+    NS._simSources = {};
+    // 卡片级数据源: RSOC 固定 77, BatVolt 正弦
+    NS.CARDS = [
+      { id: 'ds1', type: 'trend', cmd: 0x01, field: 'RSOC', protocol: 'proto_bms_v113', sim: { type: 'fixed', value: 77 } },
+      { id: 'ds2', type: 'trend', cmd: 0x01, field: 'BatVolt', protocol: 'proto_bms_v113', sim: { type: 'sine', base: 200000, amp: 10000, period: 10 } }
+    ];
+    const written = [];
+    NS._writeSerial = (bytes) => written.push(Uint8Array.from(bytes));
+    const q = NS.buildFrame(proto, proto.commands.find((c) => c.id === 0x01));
+    const ok = NS._deviceRespond(q.bytes);
+    assert.equal(ok, true, '从机响应成功');
+    const resp = NS.parseFrame(proto, written[0]);
+    assert.equal(resp.values.RSOC, 77, '卡片数据源 RSOC=77');
+    assert.ok(Math.abs(resp.values.BatVolt - 200000) <= 10000, 'BatVolt 正弦在 [190000,210000] 内');
+  } finally {
+    NS._simRole = savedRole;
+    NS._simSources = savedSources;
+    NS.CARDS = savedCards;
+    NS._writeSerial = null;
+  }
 });
