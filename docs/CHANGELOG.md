@@ -13,6 +13,7 @@
 
 ### 2026-08-16
 
+- [`changelog/2026-08-16-v1.3.10-ux-and-role-fixes.md`](changelog/2026-08-16-v1.3.10-ux-and-role-fixes.md) — **v1.3.10**: 串口日志自动换行 + 卡片按 cmd+类型分段分组 + 角色区分 (host=control+trend / device=set) + 控制卡去 RSOC + 新建命令方向 both + 帧预览换行与非零预览值 + 字段下拉 optgroup 分组
 - [`changelog/2026-08-16-v1.3.9-single-protocol-and-bidirectional-commands.md`](changelog/2026-08-16-v1.3.9-single-protocol-and-bidirectional-commands.md) — **v1.3.9**: 单一 bms_v113.json 协议 + 双向命令模型 (0x01/0x02 tx+rx) + 协议编辑器字段/大小修复 + 位定义编辑器逐位表格 + 单弹窗建卡(支持单bit) + 0x01 控制位拆卡
 - [`changelog/2026-08-16-v1.3.8-host-device-mode-and-cards.md`](changelog/2026-08-16-v1.3.8-host-device-mode-and-cards.md) — **v1.3.8**: 工具栏主机/从机模式切换按钮 (替换仿真按钮) + 默认协议改为 host/slave (移除 legacy/EMS) + 从机参数卡(set, 无图表) + 卡片按角色过滤 + 修复协议字段显示为 0 (命令 tab 读 schema CB/MB 48 字段)
 - [`changelog/2026-08-16-v1.3.7-host-device-sim-and-control-cards.md`](changelog/2026-08-16-v1.3.7-host-device-sim-and-control-cards.md) — **v1.3.7**: 协议导入自动生成卡片 + host/slave 各成独立双向协议(角色标记+独立 id, 双页面各导各的) + 主机控制卡(编辑 ctrl 位表+发送 MB 控制帧+显示遥测响应) + 卡片级从机数据源(固定/随机/正弦/斜坡) + 仿真角色持久化

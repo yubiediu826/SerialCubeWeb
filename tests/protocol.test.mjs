@@ -471,11 +471,12 @@ test('P2 卡片编辑: 命令/字段下拉浮动菜单重建 (openCardEdit 后 o
   const cmdMenu = cmdShell && (cmdShell._customSelectMenu || cmdShell.querySelector('.custom-select-menu'));
   const menuOpts = cmdMenu ? cmdMenu.querySelectorAll('.custom-select-option') : [];
   assert.ok(menuOpts.length >= 19, `命令浮动菜单选项 ${menuOpts.length} >= 19 (重建成功)`);
-  // 字段浮动菜单含位展开项
+  // 字段浮动菜单含位展开项 (v1.3.10: 位项 label 形如 "软件层放电过温保护 [CB · ProtectCode位]", 分组显示)
   const fieldShell = fieldSel && fieldSel.parentElement;
   const fieldMenu = fieldShell && (fieldShell._customSelectMenu || fieldShell.querySelector('.custom-select-menu'));
   const fieldMenuTexts = fieldMenu ? Array.from(fieldMenu.querySelectorAll('.custom-select-option')).map((o) => o.textContent) : [];
-  assert.ok(fieldMenuTexts.some((t) => t.includes('ProtectCode.软件层放电过温保护')), '字段浮动菜单含位展开项');
+  assert.ok(fieldMenuTexts.some((t) => t.includes('软件层放电过温保护')), '字段浮动菜单含位展开项');
+  assert.ok(fieldMenuTexts.some((t) => t.includes('ProtectCode')), '含 ProtectCode 整字段');
   // 清理
   NS.CARDS = NS.CARDS.filter((c) => c.id !== cardId);
   NS.closeModal('dh-card-edit');
@@ -603,7 +604,7 @@ test('P4 卡片按角色过滤 (_cardVisibleInRole)', () => {
     NS._simRole = 'device';
     assert.equal(NS._cardVisibleInRole({ type: 'control' }), false, 'device 模式隐藏控制卡');
     assert.equal(NS._cardVisibleInRole({ type: 'set' }), true, 'device 模式显示 set 卡');
-    assert.equal(NS._cardVisibleInRole({ type: 'trend' }), true, 'device 模式显示 trend 卡');
+    assert.equal(NS._cardVisibleInRole({ type: 'trend' }), false, 'device 模式隐藏 trend 卡 (显示 set 可配置卡)');
   } finally {
     NS._simRole = savedRole;
   }
@@ -623,6 +624,39 @@ test('P5 默认卡片: 单协议含 host(control单bit+trend) + device(set)', ()
   assert.ok(trendCards.length >= 6, 'trend 遥测卡 ≥ 6');
   assert.ok(setCards.length >= 12, 'set 参数卡 ≥ 12');
   assert.ok(setCards.some((c) => c.field === 'ProtectCode' && c.bitset), '含 ProtectCode bitset set 卡');
+  // v1.3.10: 控制卡不再带 RSOC 响应字段
+  assert.ok(controlCards.every((c) => !c.respField), '控制卡不含 respField (RSOC)');
+});
+
+test('P6 字段下拉分组: 位项与普通字段分开 (isBit 标记 + optgroup)', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const cmd = proto.commands.find((c) => c.id === 0x01);
+  const opts = NS._cardFieldOptions(cmd);
+  const fields = opts.filter((o) => !o.isBit);
+  const bits = opts.filter((o) => o.isBit);
+  assert.ok(fields.length >= 48, `普通字段 ${fields.length} ≥ 48`);
+  assert.ok(bits.length >= 50, `位项 ${bits.length} ≥ 50`);
+  assert.ok(bits.every((o) => o.isBit === true), '位项都带 isBit 标记');
+  assert.ok(bits.some((o) => o.name === 'ProtectCode.软件层放电过温保护'), '含 ProtectCode 位项');
+  // optgroup 渲染
+  const html = NS._fieldOptionGroupsHtml(opts, '');
+  assert.ok(html.includes('<optgroup label="字段">'), '含 字段 optgroup');
+  assert.ok(html.includes('<optgroup label="位 (bitset 展开)">'), '含 位 optgroup');
+  // 位项在字段之后 (分组分离)
+  assert.ok(html.indexOf('位 (bitset 展开)') > html.indexOf('字段'), '位分组在字段分组之后');
+});
+
+test('P6 新建命令方向 both 选项 + _saveNewCommand 保留双向布局', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const c01 = proto.commands.find((c) => c.id === 0x01);
+  // direction select 含 both 选项
+  const dirSel = dom.window.document.getElementById('dh-new-cmd-direction');
+  const bothOpt = dirSel && Array.from(dirSel.options).find((o) => o.value === 'both');
+  assert.ok(bothOpt, '方向下拉含 both 选项');
+  // 编辑 0x01 (direction=both) → 打开 modal 回填 both
+  NS.openNewCommandModal('proto_bms_v113', c01, 'edit');
+  assert.equal(dirSel.value, 'both', '编辑双向命令回填方向 both');
+  NS.closeModal('dh-new-command');
 });
 
 test('P4 0x01 字段视图: CB 48 字段 (含位展开) — 协议字段不再为 0', () => {

@@ -978,6 +978,21 @@
       font-size: 0.75rem;
     }
 
+    /* v1.3.10: optgroup 分组标题 (字段 / 位) */
+    .custom-select-group-label {
+      width: 100%;
+      padding: 5px 10px 3px;
+      font-size: 0.625rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--text-soft);
+      border-top: 1px solid var(--border);
+      cursor: default;
+      user-select: none;
+    }
+    .custom-select-group-label:first-child { border-top: none; }
+    .custom-select-option.has-group { padding-left: 18px; }
+
     .custom-select-option.active {
       background: rgba(86, 114, 205, 0.12);
       color: var(--accent);
@@ -4163,7 +4178,8 @@
       align-items: start;
       padding: 2px 0;
       white-space: pre-wrap;
-      word-break: break-word;
+      word-break: break-all;
+      overflow-wrap: anywhere;
     }
 
     .log-line.no-stamp {
@@ -4199,6 +4215,8 @@
 
     .log-line .payload {
       min-width: 0;
+      word-break: break-all;
+      overflow-wrap: anywhere;
     }
 
     .log-line .preset-inline-tag {
@@ -5958,6 +5976,7 @@
     }
 .dashboard-host     .card-group-head .badge.rx { background: var(--signal-soft); color: var(--signal); }
 .dashboard-host     .card-group-head .badge.tx { background: var(--accent-soft); color: var(--accent); }
+.dashboard-host     .card-group-head .badge.both { background: var(--warning-soft, rgba(217, 119, 6, 0.14)); color: #d97706; }
 .dashboard-host     .card-group-head .name {
       font-size: 0.8125rem; font-weight: 700; color: var(--text);
     }
@@ -7066,8 +7085,11 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
       font-weight: 700;
       color: var(--text);
       letter-spacing: 0.1em;
-      line-height: 1.7;
-      white-space: nowrap;
+      line-height: 1.9;
+      /* v1.3.10: 自动换行 (长帧不再单行溢出) */
+      white-space: normal;
+      word-break: break-all;
+      overflow-wrap: anywhere;
     }
 .dashboard-host     .frame-bytes .byte { display: inline-block; padding: 1px 3px; border-radius: 3px; }
 .dashboard-host     .frame-bytes .byte.header { background: rgba(129, 140, 248, 0.18); color: var(--c-header); }
@@ -8355,7 +8377,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               <div class="new-cmd-row">
                 <label>ID (hex)<input id="dh-new-cmd-id" type="text" placeholder="0x20" /></label>
                 <label>名称<input id="dh-new-cmd-name" type="text" placeholder="Read Pack Info" /></label>
-                <label>方向<select id="dh-new-cmd-direction"><option value="rx">RX (接收)</option><option value="tx">TX (发送)</option></select></label>
+                <label>方向<select id="dh-new-cmd-direction"><option value="rx">RX (接收)</option><option value="tx">TX (发送)</option><option value="both">TX+RX (双向)</option></select></label>
               </div>
               <div class="new-cmd-row">
                 <label>帧类型<select id="dh-new-cmd-frameType"><option value="query">query</option><option value="control">control</option><option value="response">response</option></select></label>
@@ -8655,6 +8677,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.3.10 版本 · 26/8/16</strong>
+            <ul>
+              <li>修复: 串口监视器日志自动换行 (长 hex/无空格文本不再挤成一块)</li>
+              <li>优化: 卡片按 cmd+类型分段分组 — 0x01 控制卡与响应卡分开成组 (组头标注 控制TX/响应RX), 不再挤在一起</li>
+              <li>修复: 主机/从机角色区分 — 主机显示 trend 响应显示卡 + 控制卡, 从机显示 set 可配置卡 (同字段不再两角色混显 trend)</li>
+              <li>修复: 控制卡不再显示 RSOC 响应数值 (响应由独立 trend 卡观察)</li>
+              <li>修复: 新建命令方向下拉增加 TX+RX (双向) 选项; 编辑命令帧预览自动换行 + 使用非零预览实际值 (schema 默认值优先, 无默认用 0x01 占位)</li>
+              <li>优化: 卡片字段下拉按 optgroup 分组 (字段 / 位), 位项与普通字段不再混排</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.3.9 版本 · 26/8/16</strong>
             <ul>
               <li>重构: 单一 bms_v113.json 协议 + 双向命令模型 — 0x01 主机发 2 字节 ctrl 控制字段、从机回 159 字节遥测; 0x02 主机发 95 字节保护参数、从机回 1 字节 ack; 主机/从机由工具栏模式切换区分, 不再拆 host/slave 协议 (删除 host/slave 副本文件)</li>
@@ -8860,7 +8893,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.3.9';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.9: 单一协议+双向命令+协议编辑器修复+位编辑器+单弹窗建卡+控制位拆卡; v1.3.8: 主机/从机模式切换)
+      const VERSION = '1.3.10';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.10: 日志换行/卡片分组与角色区分/控制卡去RSOC/方向both/帧预览换行与预览值/字段下拉分组; v1.3.9: 单一协议+双向命令)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
@@ -10411,14 +10444,33 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         label.textContent = labelText;
         trigger.title = labelText;
         menu.innerHTML = '';
-        Array.from(select.options).forEach((option, index) => {
+        // v1.3.10: 支持 optgroup 分组 (字段 vs 位), 分组标题渲染为不可点击的 label
+        Array.from(select.children).forEach((child) => {
+          if (child.tagName === 'OPTGROUP') {
+            const label = document.createElement('div');
+            label.className = 'custom-select-group-label';
+            label.textContent = child.label || '';
+            menu.appendChild(label);
+            Array.from(child.children).forEach((option) => {
+              const item = document.createElement('button');
+              item.type = 'button';
+              item.className = 'custom-select-option has-group';
+              if (option.selected) item.classList.add('active');
+              item.disabled = !!option.disabled;
+              item.dataset.selectIndex = String(option.index);
+              item.textContent = option.textContent;
+              menu.appendChild(item);
+            });
+            return;
+          }
+          if (child.tagName !== 'OPTION') return;
           const item = document.createElement('button');
           item.type = 'button';
           item.className = 'custom-select-option';
-          if (option.selected) item.classList.add('active');
-          item.disabled = !!option.disabled;
-          item.dataset.selectIndex = String(index);
-          item.textContent = option.textContent;
+          if (child.selected) item.classList.add('active');
+          item.disabled = !!child.disabled;
+          item.dataset.selectIndex = String(child.index);
+          item.textContent = child.textContent;
           menu.appendChild(item);
         });
       }
@@ -17297,7 +17349,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         NS.renderGroupHeader = function (cmdHex, cmdName, dir, count, layout) {
           const head = document.createElement('div');
           head.className = 'card-group-head ' + (layout === 'list' ? 'list' : 'grid');
-          head.innerHTML = '<span class="badge ' + dir + '">' + cmdHex + '</span>'
+          const dirCls = dir === 'both' ? 'both' : dir;
+          head.innerHTML = '<span class="badge ' + dirCls + '">' + cmdHex + '</span>'
             + '<span class="name">' + NS.escapeHtml(cmdName) + '</span>'
             + '<span class="count">' + count + ' 字段</span>';
           return head;
@@ -17385,9 +17438,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             // widget: control 卡 (主机模式 — singleBit: 单个位开关; 否则多位 ctrl 位表)
             card.classList.add('control');
             const raw = NS._controlBitValue(c);
-            const resp = NS.currentVals[c.respField] != null ? NS.currentVals[c.respField] : 0;
             if (c.singleBit) {
-              // 单bit 卡: 位名 + 开关 + 发送 + 响应
+              // 单bit 卡: 位名 + 开关 + 发送 (v1.3.10: 不再显示 RSOC 响应值, 响应由独立 trend 卡观察)
               const on = ((raw >> c.bit) & 1) ? 1 : 0;
               card.classList.toggle('bit-on', !!on);
               card.innerHTML =
@@ -17404,7 +17456,6 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 + '<span class="ctrl-raw">bit' + c.bit + ' = ' + on + '</span>'
                 + '<button type="button" class="ctrl-send" data-action="send">发送</button>'
                 + '</div>'
-                + '<div class="ctrl-resp" data-action="detail">' + NS.escapeHtml(c.respField || '响应') + ': <strong>' + resp.toFixed(c.precision || 1) + '</strong>' + NS.escapeHtml(c.respUnit || '') + '</div>'
                 + '</div>'
                 + (NS.editMode ? '<div class="card-actions">'
                   + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
@@ -17424,7 +17475,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               });
               return card;
             }
-            // 多位 ctrl 卡 (兼容旧)
+            // 多位 ctrl 卡 (兼容旧; v1.3.10: 不再显示 respField 响应值)
             const bits = NS._controlCardBits(c);
             const bitsHtml = bits.length
               ? bits.filter((b) => !/^Reserved/i.test(b.name)).map((b) => {
@@ -17443,7 +17494,6 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               + '<span class="ctrl-raw">ctrl=0x' + (raw >>> 0).toString(16).toUpperCase().padStart(4, '0') + '</span>'
               + '<button type="button" class="ctrl-send" data-action="send">发送</button>'
               + '</div>'
-              + '<div class="ctrl-resp" data-action="detail">' + NS.escapeHtml(c.respField || '响应') + ': <strong>' + resp.toFixed(c.precision || 1) + '</strong>' + NS.escapeHtml(c.respUnit || '') + '</div>'
               + '</div>'
               + (NS.editMode ? '<div class="card-actions">'
                 + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
@@ -17706,15 +17756,27 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           const filtered = protocolFiltered
             .filter((c) => NS._cardVisibleInRole(c))
             .filter((c) => NS.selectedCmd === 'all' || NS.matchCard(c, NS.selectedCmd));
-          // 全部命令时按 cmd 分组
+          // 全部命令时按 cmd + 类型段分组 (v1.3.10: control 与响应 trend/set 分开成组, 不再挤在一起)
           if (NS.selectedCmd === 'all') {
+            const groupKey = (c) => (c.cmd || 0) + '|' + (c.type === 'control' ? 'ctrl' : (c.type === 'set' ? 'set' : 'resp'));
+            const groupLabel = (k) => {
+              const [cmdNum, seg] = k.split('|');
+              const hex = (parseInt(cmdNum, 10) || 0).toString(16).padStart(2, '0').toUpperCase();
+              const cmd = NS.allCommands().find((c) => c.id === parseInt(cmdNum, 10));
+              const base = (cmd ? cmd.name : ('0x' + hex));
+              return seg === 'ctrl' ? (base + ' · 控制 (TX)') : seg === 'set' ? (base + ' · 参数 (RX 配置)') : (base + ' · 响应 (RX)');
+            };
             const groups = new Map();
             filtered.forEach((c) => {
-              const k = c.cmd || 0;
+              const k = groupKey(c);
               if (!groups.has(k)) groups.set(k, []);
               groups.get(k).push(c);
             });
-            const sortedKeys = Array.from(groups.keys()).sort((a, b) => a - b);
+            const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
+              const [an, as] = a.split('|'); const [bn, bs] = b.split('|');
+              const segRank = (s) => (s === 'ctrl' ? 0 : s === 'resp' ? 1 : 2);
+              return (parseInt(an, 10) - parseInt(bn, 10)) || (segRank(as) - segRank(bs));
+            });
             if (NS.cardLayout === 'list') {
               el.classList.add('layout-list');
               // 列表布局用 .layout-list class 不用 inline style, 让 6/8 列 media query 能覆盖列宽
@@ -17723,13 +17785,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               el.style.gap = '';
               el.style.alignItems = '';
               sortedKeys.forEach((k) => {
-                const cmd = NS.allCommands().find((c) => c.id === k);
-                const cmdHex = k.toString(16).padStart(2, '0').toUpperCase();
-                const dir = cmd ? cmd.direction : 'rx';
                 const group = groups.get(k);
-                // 修复: 列表布局全部命令模式, group header 跨满列 (跟趋势布局一致)
-                // 之前 .card-group-head.list { width: 100% } 在 grid 容器中只占 1 列 (180px), 跟 cards 挤在一起
-                const grpHead = NS.renderGroupHeader(cmdHex, cmd ? cmd.name : ('0x' + cmdHex), dir, group.length, 'list');
+                const grpHead = NS.renderGroupHeader('0x' + k.split('|')[0], groupLabel(k), 'both', group.length, 'list');
                 grpHead.style.gridColumn = '1 / -1';
                 el.appendChild(grpHead);
                 group.forEach((c) => el.appendChild(NS.renderListCard(c)));
@@ -17747,11 +17804,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               el.style.gap = '';
               el.style.alignItems = '';
               sortedKeys.forEach((k, idx) => {
-                const cmd = NS.allCommands().find((c) => c.id === k);
-                const cmdHex = k.toString(16).padStart(2, '0').toUpperCase();
-                const dir = cmd ? cmd.direction : 'rx';
                 const group = groups.get(k);
-                const grpHead = NS.renderGroupHeader(cmdHex, cmd ? cmd.name : ('0x' + cmdHex), dir, group.length, 'card');
+                const grpHead = NS.renderGroupHeader('0x' + k.split('|')[0], groupLabel(k), 'both', group.length, 'card');
                 grpHead.style.gridColumn = '1 / -1';
                 el.appendChild(grpHead);
                 // 卡片固定 220px (CSS 统一), 不再 inline 拉满整行
@@ -20292,6 +20346,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           });
         };
         // v1.3.6 B: 卡片字段选项 — 兼容 dataFields 与 schema 布局; bitset 字段展开为 字段名.位名
+        // v1.3.10: 选项带 isBit 标记 (位项), 供下拉框 optgroup 分组 (字段 vs 位)
         NS._cardFieldOptions = function (cmd) {
           if (!cmd) return [];
           // 旧协议: dataFields (v1.3.6 修: bitset 字段展开位)
@@ -20299,9 +20354,9 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const opts = [];
             cmd.dataFields.forEach((df) => {
               if (!df || !df.name) return;
-              opts.push({ name: df.name, label: df.name });
+              opts.push({ name: df.name, label: df.name, isBit: false });
               if (df.type === 'bitset' && Array.isArray(df.bits)) {
-                df.bits.forEach((b) => opts.push({ name: `${df.name}.${b.name}`, label: `${df.name}.${b.name}` }));
+                df.bits.forEach((b) => opts.push({ name: `${df.name}.${b.name}`, label: `${b.name} (${df.name} 位)`, isBit: true }));
               }
             });
             return opts;
@@ -20321,14 +20376,14 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               if (f.todo || f.type === 'bytes') continue;
               if (!seen.has(f.name)) {
                 seen.add(f.name);
-                opts.push({ name: f.name, label: dirTag ? `${f.name} [${dirTag}]` : f.name, dir: dirTag || null });
+                opts.push({ name: f.name, label: dirTag ? `${f.name} [${dirTag}]` : f.name, dir: dirTag || null, isBit: false });
               }
               if (f.type === 'bitset' && Array.isArray(f.bits)) {
                 for (const b of f.bits) {
                   const bitName = `${f.name}.${b.name}`;
                   if (!seen.has(bitName)) {
                     seen.add(bitName);
-                    opts.push({ name: bitName, label: dirTag ? `${bitName} [${dirTag}]` : bitName, dir: dirTag || null });
+                    opts.push({ name: bitName, label: dirTag ? `${b.name} [${dirTag} · ${f.name}位]` : `${b.name} (${f.name}位)`, dir: dirTag || null, isBit: true });
                   }
                 }
               }
@@ -20338,6 +20393,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           addLayout(cmdDef.REQ || cmdDef.MB, cmdDef.MB ? 'MB' : (cmdDef.REQ ? 'REQ' : ''));
           addLayout(cmdDef.default, '');
           return opts;
+        };
+        // v1.3.10: 字段下拉分组渲染 (optgroup: 字段 / 位), 位项与普通字段分开
+        NS._fieldOptionGroupsHtml = function (opts, selectedName) {
+          const esc = NS.escapeHtml;
+          const fields = (opts || []).filter((o) => !o.isBit);
+          const bits = (opts || []).filter((o) => o.isBit);
+          const opt = (o) => `<option value="${esc(o.name)}" ${o.name === selectedName ? 'selected' : ''}>${esc(o.label)}</option>`;
+          let html = '';
+          if (fields.length) html += `<optgroup label="字段">${fields.map(opt).join('')}</optgroup>`;
+          if (bits.length) html += `<optgroup label="位 (bitset 展开)">${bits.map(opt).join('')}</optgroup>`;
+          return html || '<option value="">(无字段)</option>';
         };
 
         // v1.3.8: 模式切换 (主机/从机) — 角色唯一入口; v1.3.9 单一协议, 不再切 activeProtoId
@@ -20456,8 +20522,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           const fieldSel = document.getElementById('dh-ce-field');
           const cmdObj = protoCmds.find((cmd) => cmd.id === c.cmd);
           const esc = NS.escapeHtml;
-          const fieldOpts = (cmd) => NS._cardFieldOptions(cmd).map((f) => `<option value="${esc(f.name)}">${esc(f.label)}</option>`).join('');
-          fieldSel.innerHTML = NS._cardFieldOptions(cmdObj).map((f) => `<option value="${esc(f.name)}" ${c.field === f.name ? 'selected' : ''}>${esc(f.label)}</option>`).join('');
+          const fieldOpts = (cmd, selected) => NS._fieldOptionGroupsHtml(NS._cardFieldOptions(cmd), selected);
+          fieldSel.innerHTML = fieldOpts(cmdObj, c.field);
           // v1.3.6 P2 修: 重建 custom-select 浮动菜单 (仅同步 trigger label 不够 — 菜单 options 仍是初始化时的空列表,
           //   用户点开下拉框看到空白, 误以为"不支持命令/字段选择")
           const resyncCardEditSelects = () => {
@@ -20492,7 +20558,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           document.getElementById('dh-ce-type').onchange = refreshTypeVisibility;
           cmdSel.onchange = () => {
             const newCmd = protoCmds.find((cmd) => cmd.id === parseInt(cmdSel.value));
-            fieldSel.innerHTML = fieldOpts(newCmd);
+            fieldSel.innerHTML = fieldOpts(newCmd, '');
             refreshRespOptions();
             resyncCardEditSelects();
           };
@@ -20631,13 +20697,13 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           }
           return target;
         };
-        // v1.3.8: 卡片按角色可见性 — host: control(下发)+trend(遥测监控); device: set(参数设置)+trend(遥测值)
-        //   control 仅 host; set 仅 device; trend 两种角色都显示 (主机监控遥测 / 从机查看自身下发值)
+        // v1.3.10: 卡片按角色可见性 — host: control(下发) + trend(响应显示); device: set(可配置)
+        //   同字段 (如 RSOC) 主机显示 trend 显示卡、从机显示 set 可配置卡, 不再两角色混显 trend
         NS._cardVisibleInRole = function (c) {
           const role = NS._simRole;
           if (c.type === 'control') return role === 'host';
           if (c.type === 'set') return role === 'device';
-          if (c.type === 'trend') return true;
+          if (c.type === 'trend') return role === 'host';
           if (c.type === 'pair') return role === 'host';
           return true;
         };
@@ -20657,7 +20723,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 ctrl.bits.filter((b) => !/^Reserved/i.test(b.name)).forEach((b, i) => {
                   cards.push({ id: protoId + '_ctrl_bit' + b.bit, type: 'control', cmd: 0x01, dir: 'tx', schemaDir: 'MB',
                     field: 'ctrl', bit: b.bit, bitName: b.name, singleBit: true,
-                    respField: 'RSOC', respUnit: '%', title: b.name, unit: '', precision: 1,
+                    title: b.name, unit: '', precision: 1,
                     protocol: protoId });
                 });
               }
@@ -21119,11 +21185,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               const dfs = [];
               (editCmd.txFields || []).forEach((f) => {
                 if (f.todo || f.type === 'bytes') return;
-                dfs.push({ name: f.name, type: f.type || 'u16', default: '', dir: 'tx', bits: (f.type === 'bitset' && f.bits) ? f.bits : undefined, bitLen: f.bitLen, startBit: f.startBit, unit: f.unit });
+                dfs.push({ name: f.name, type: f.type || 'u16', default: (f.default != null ? String(f.default) : ''), dir: 'tx', bits: (f.type === 'bitset' && f.bits) ? f.bits : undefined, bitLen: f.bitLen, startBit: f.startBit, unit: f.unit, scale: f.scale });
               });
               (editCmd.rxFields || []).forEach((f) => {
                 if (f.todo || f.type === 'bytes') return;
-                dfs.push({ name: f.name, type: f.type || 'u16', default: '', dir: 'rx', bits: (f.type === 'bitset' && f.bits) ? f.bits : undefined, bitLen: f.bitLen, startBit: f.startBit, unit: f.unit });
+                dfs.push({ name: f.name, type: f.type || 'u16', default: (f.default != null ? String(f.default) : ''), dir: 'rx', bits: (f.type === 'bitset' && f.bits) ? f.bits : undefined, bitLen: f.bitLen, startBit: f.startBit, unit: f.unit, scale: f.scale });
               });
               initial.dataFields = dfs;
               initial._schemaCmd = true;
@@ -21796,7 +21862,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const cmd = proto && proto.commands.find((c) => c.id === parseInt(cmdSel.value, 10));
             const opts = NS._cardFieldOptions(cmd);
             // v1.3.9: 字段含位展开 (ProtectCode.xxx), 主机模式可建单bit 卡
-            fieldSel.innerHTML = opts.map((f) => '<option value="' + NS.escapeHtml(f.name) + '" data-dir="' + NS.escapeHtml(f.dir || '') + '">' + NS.escapeHtml(f.label) + '</option>').join('') || '<option value="">(无字段)</option>';
+            fieldSel.innerHTML = NS._fieldOptionGroupsHtml(opts, '');
           };
           protoSel.onchange = refreshCmds;
           cmdSel.onchange = refreshFields;
@@ -21835,7 +21901,6 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                   newCard.singleBit = true;
                 }
               }
-              newCard.respField = 'RSOC'; newCard.respUnit = '%';
             }
             if (type === 'set') newCard.sim = { type: 'fixed', value: 0 };
             NS.CARDS.push(newCard);
@@ -22858,12 +22923,20 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           // length (按 data 长度算, 1B)
           const dataBytes = [];
           const dataFields = stateDataFields || cmd.dataFields || [];
-          dataFields.forEach((df) => {
+          dataFields.forEach((df, dfIdx) => {
             const t = NS.DATA_TYPES.find((tt) => tt.name === df.type);
             const size = t ? t.size : 1;
-            const def = (df.default || '0x00').toString().replace(/^0x/i, '');
-            const n = parseInt(def, 16);
-            const v = isNaN(n) ? 0 : n;
+            // v1.3.10: 预览实际值 — schema 字段自带 default 优先 (0x02 有真实默认值), 无 default 用 0x01 非零占位 (不再全 0)
+            let v;
+            const defStr = (df.default != null && String(df.default).trim() !== '') ? String(df.default).trim() : '';
+            if (defStr) {
+              const n = parseInt(defStr.replace(/^0x/i, ''), 16);
+              v = isNaN(n) ? 0 : n;
+            } else {
+              // 无 default: 字段自带 schema default 可能以十六进制/十进制存在于 _newCmdState 派生
+              v = (df.bitLen != null) ? (0x01 << Math.min(8, Math.max(0, (df.bitLen - 1) % 8))) : 0x01;
+              if (!Number.isFinite(v) || v === 0) v = 0x01;
+            }
             for (let i = size - 1; i >= 0; i--) {
               dataBytes.push((v >> (i * 8)) & 0xFF);
             }
