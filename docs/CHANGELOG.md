@@ -14,6 +14,7 @@
 ### 2026-08-16
 
 - [`changelog/2026-08-16-v1.3.5-p0-hotfixes.md`](changelog/2026-08-16-v1.3.5-p0-hotfixes.md) — **v1.3.5**: P0 止血 — mock tick 加串口连接守卫 (真实数据不再被抖动覆盖) / 告警对象比较 bug / checkAlert 无参调用 / float·double IEEE754 编码对称 / 类型表单一数据源 / **CRC16-Modbus 修正为标准算法 (真机互操作)** / Mutator·预设 XSS 转义 / link-check 脚本 2 处 bug; 补 v1.3.3·v1.3.4 tag; 确认 v1.3.2·v1.3.2.1 为文档级发布无独立代码版本
+- [`changelog/2026-08-16-protocol-schema-and-sim-tools.md`](changelog/2026-08-16-protocol-schema-and-sim-tools.md) — **P1-P3 (main 未发布)**: 协议位级解析 (BMS V1.13 + EMS V1.4.3 schema/解码/编码/轮询/黄金向量 L1 6/6) + 模拟主机/从机 (L2 8/8 + socket 集成) + CI 7 项门禁 + 坏链 47→0 + 9 个未定义 CSS token 修复; 待推送
 
 ### 2026-08-14
 

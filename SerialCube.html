@@ -11800,6 +11800,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           ,{ id: 'v4', type: 'trend', cmd: 0x01, dir: 'rx', field: 'SOH',         title: '健康度',     unit: '%',  range: [0, 100],    precision: 1, fromOtherCmd: true, protocol: 'proto_bms_v113' }
           ,{ id: 'v5', type: 'trend', cmd: 0x01, dir: 'rx', field: 'Vcell_max',   title: '单体最高电压', unit: 'mV', range: [2500, 4200], precision: 0, fromOtherCmd: true, protocol: 'proto_bms_v113' }
           ,{ id: 'v6', type: 'trend', cmd: 0x01, dir: 'rx', field: 'CellTempMax', title: '最高温度',   unit: '℃',  range: [-20, 80],   precision: 1, fromOtherCmd: true, protocol: 'proto_bms_v113' }
+          // v1.3.6 P1: EMS V1.4.3 (schema) 卡 — 字段来自 0xE1 系统信息 CB 位表
+          ,{ id: 'e1', type: 'trend', cmd: 0xE1, dir: 'rx', field: 'ALLDsgPower',      title: '放电总功率',   unit: 'W', range: [0, 20000],     precision: 0, fromOtherCmd: true, protocol: 'proto_ems_v143' }
+          ,{ id: 'e2', type: 'trend', cmd: 0xE1, dir: 'rx', field: 'ALLChgPower',      title: '充电总功率',   unit: 'W', range: [0, 20000],     precision: 0, fromOtherCmd: true, protocol: 'proto_ems_v143' }
+          ,{ id: 'e3', type: 'trend', cmd: 0xE1, dir: 'rx', field: 'DsgTimeRemaining', title: '放电剩余时间', unit: 'min', range: [0, 100000], precision: 0, fromOtherCmd: true, protocol: 'proto_ems_v143' }
+          ,{ id: 'e4', type: 'trend', cmd: 0xE1, dir: 'rx', field: 'ChgTimeRemaining', title: '充电剩余时间', unit: 'min', range: [0, 100000], precision: 0, fromOtherCmd: true, protocol: 'proto_ems_v143' }
         ];
 
         // === UI 状态 ===
