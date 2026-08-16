@@ -104,6 +104,48 @@ def test_fault_injection():
     assert bad is not None and parse_frame(schema, bad).get("crcOk") is not True, "crc-bad 注入未生效"
 
 
+def test_host_device_socket_loop():
+    """L2.5 传输层集成: host 查询 → socket → device 应答 → host 解析 (无串口硬件的 CI 路径)."""
+    import socket as sock
+    import threading
+
+    schema = _schema()
+    dev = SimDevice(schema)
+    a, b = sock.socketpair()
+    stop = threading.Event()
+
+    def device_loop():
+        while not stop.is_set():
+            try:
+                req = a.recv(4096)
+            except OSError:
+                break
+            if not req:
+                continue
+            resp = dev.respond(req)
+            if resp:
+                a.sendall(resp)
+
+    t = threading.Thread(target=device_loop, daemon=True)
+    t.start()
+    try:
+        for k in schema["commands"]:
+            cmd = int(k, 16)
+            if not any(d in schema["commands"][k] for d in ("MB", "REQ")):
+                continue
+            req = build_query(schema, cmd)
+            b.sendall(req)
+            resp = b.recv(4096)
+            assert resp, f"0x{cmd:02X} 无应答"
+            parsed = parse_frame(schema, resp)
+            assert parsed.get("ok") and parsed.get("crcOk") is True, f"0x{cmd:02X} 应答无效"
+    finally:
+        stop.set()
+        a.close()
+        b.close()
+        t.join(timeout=2)
+
+
 def _run_all() -> int:
     import traceback
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
