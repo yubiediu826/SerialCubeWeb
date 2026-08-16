@@ -316,3 +316,145 @@ test('D 从机按位数据源 (ProtectCode 位)', () => {
   assert.equal(resp.values['ProtectCode.软件层放电低温保护'], 0, '位1=0');
   NS._simRole = 'host'; NS._writeSerial = null; NS._simSources = {};
 });
+
+test('P1 0x01 双向: 主机 MB(ctrl) 帧头 0x5A / 从机 CB(遥测) 帧头 0x55', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const cmd01 = proto.commands.find((c) => c.id === 0x01);
+  // 快照 currentVals: 前面 tryDispatchSchemaFrames 会把 ctrl.Load 等位名写进 currentVals, 会覆盖 bitset 编码
+  const savedVals = { ...NS.currentVals };
+  try {
+    // 清掉遗留的 ctrl 位名 (ctrl.Load/ctrl.fan_enable/...), 否则 bitset 编码会按位覆盖 raw 值
+    for (const k of Object.keys(NS.currentVals)) {
+      if (k === 'ctrl' || k.startsWith('ctrl.')) delete NS.currentVals[k];
+    }
+    // 主机下发: schemaDir=MB → 帧头 0x5A, len 字段 2, 数据=ctrl bitset
+    NS.currentVals['ctrl'] = 0x0221;
+    const mb = NS.buildFrame(proto, cmd01);
+    assert.equal(mb.bytes[0], 0x5A, 'MB 帧头 0x5A');
+    assert.equal(mb.bytes[3], 2, 'MB len 字段 = 2');
+    const mbParsed = NS.parseFrame(proto, mb.bytes);
+    assert.equal(mbParsed.dir, 'MB', '主机帧解析方向 MB');
+    assert.equal(mbParsed.values['ctrl.Load'], 1, 'MB ctrl.Load=1');
+    // 从机响应: 159B 遥测, 帧头 0x55, len 字段 0x9F(159), 尾部 RFCC/AFCC 位完整
+    NS.currentVals.RFCC = 12250; NS.currentVals.AFCC = 12345;
+    const cb = NS.buildFrame(proto, { id: 0x01, schemaDir: 'CB' });
+    assert.equal(cb.bytes[0], 0x55, 'CB 帧头 0x55');
+    assert.equal(cb.bytes[3], 159, 'CB len 字段 = 159 (0x9F, 位表权威)');
+    assert.equal(cb.bytes.length, 4 + 159 + 2, 'CB 帧总长 165 (4 头 + 159 数据 + 2 CRC)');
+    const cbParsed = NS.parseFrame(proto, cb.bytes);
+    assert.equal(cbParsed.dir, 'CB', '从机帧解析方向 CB');
+    assert.equal(cbParsed.crcOk, true, 'CB 帧 CRC 通过');
+    assert.equal(cbParsed.values.RFCC, 12250, 'CB 尾部 RFCC (bit1208) 完整');
+    assert.equal(cbParsed.values.AFCC, 12345, 'CB 尾部 AFCC (bit1240) 完整');
+  } finally {
+    NS.currentVals = savedVals;
+  }
+});
+
+test('P1 0x01 主机发MB→从机回CB→主机按CB解析遥测 (闭环)', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  NS.activeProtoId = 'proto_bms_v113';
+  NS._simRole = 'device';
+  NS._simSources = { RSOC: { type: 'fixed', value: 26 }, BatVolt: { type: 'fixed', value: 212500 }, 'ProtectCode.软件层放电过温保护': { type: 'fixed', value: 1 } };
+  const rx = [];
+  NS._writeSerial = (bytes) => rx.push(Uint8Array.from(bytes));
+  // 主机发 MB 查询 (ctrl=0)
+  const q = NS.buildFrame(proto, proto.commands.find((c) => c.id === 0x01));
+  assert.equal(q.bytes[0], 0x5A, '主机查询帧头 0x5A');
+  // 从机收查询 → 回 CB 遥测
+  const handled = NS.tryDispatchSchemaFrames(q.bytes);
+  assert.equal(handled, true, 'RX 分发处理主机查询');
+  assert.equal(rx.length, 1, '从机回 1 帧');
+  // 主机侧按 CB 解析从机响应
+  const hostView = NS.parseFrame(proto, rx[0]);
+  assert.equal(hostView.dir, 'CB', '主机解析方向 CB');
+  assert.equal(hostView.values.RSOC, 26, '遥测 RSOC=26');
+  assert.equal(hostView.values.BatVolt, 212500, '遥测 BatVolt=212500 (scale 10)');
+  assert.equal(hostView.values['ProtectCode.软件层放电过温保护'], 1, '遥测 ProtectCode.位0=1');
+  NS._simRole = 'host'; NS._writeSerial = null; NS._simSources = {};
+});
+
+test('P3 0x16 MB 4 字节预留帧 == golden (原 len=0 补全)', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const f16 = NS.buildFrame(proto, proto.commands.find((c) => c.id === 0x16));
+  const g = golden.frames.find((x) => x.id === 'bms_0x16_mb_req');
+  assert.equal(bytesToHex(f16.bytes).toUpperCase(), g.bytesHex.toUpperCase(), '0x16 MB 4B 帧 == golden 26 BE');
+  const back = NS.parseFrame(proto, f16.bytes);
+  assert.equal(back.dir, 'MB', '0x16 MB 方向');
+  assert.equal(back.values.reserved, 0, '0x16 reserved=0');
+});
+
+test('P3 0x14 变长升级数据包: PAC_NUM + PAC[128] 编解码往返', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const saved = { ...NS.currentVals };
+  try {
+    NS.currentVals.PAC_NUM = 1;
+    NS.currentVals.PAC = Array.from({ length: 128 }, (_, i) => i);
+    const f = NS.buildFrame(proto, proto.commands.find((c) => c.id === 0x14));
+    assert.equal(f.bytes[0], 0x5A, '0x14 MB 帧头 0x5A');
+    assert.equal(f.bytes[3], 130, '0x14 len 字段 = 130 (2 + 128)');
+    assert.equal(f.bytes.length, 4 + 130 + 2, '0x14 帧总长 136');
+    const back = NS.parseFrame(proto, f.bytes);
+    assert.equal(back.crcOk, true, '0x14 往返 CRC 通过');
+    assert.equal(back.values.PAC_NUM, 1, '0x14 PAC_NUM=1');
+    assert.equal(back.values.PAC.length, 128, '0x14 PAC[128] 数组完整');
+    assert.deepEqual(Array.from(back.values.PAC.slice(0, 4)), [0, 1, 2, 3], '0x14 PAC[0..3]=[0,1,2,3]');
+    assert.equal(back.values.PAC[127], 127, '0x14 PAC[127]=127');
+  } finally {
+    NS.currentVals = saved;
+  }
+});
+
+test('P3 host/slave 拆分源文件结构有效 (MB-only + CB-only, 合并后 19 命令双向 18)', () => {
+  const fs = { readFileSync };
+  const host = JSON.parse(fs.readFileSync(new URL('../tools/schemas/bms_v113_host.json', import.meta.url), 'utf8'));
+  const slave = JSON.parse(fs.readFileSync(new URL('../tools/schemas/bms_v113_slave.json', import.meta.url), 'utf8'));
+  assert.equal(host.role, 'host', 'host 角色标记');
+  assert.equal(slave.role, 'slave', 'slave 角色标记');
+  // host 只含 MB, slave 只含 CB
+  for (const cmdDef of Object.values(host.commands)) {
+    assert.ok(cmdDef.MB && !cmdDef.CB, `host 命令只含 MB 布局`);
+  }
+  for (const cmdDef of Object.values(slave.commands)) {
+    assert.ok(cmdDef.CB && !cmdDef.MB, `slave 命令只含 CB 布局`);
+  }
+  // 0x15 为 CB-only 主动上行: host 无, slave 有
+  assert.ok(!host.commands['0x15'], '0x15 host 侧无 (主动上行)');
+  assert.ok(slave.commands['0x15'].CB, '0x15 slave 侧有 CB');
+  // 0x01 双向: host 有 ctrl bitset, slave 有遥测
+  assert.ok(host.commands['0x01'].MB.fields[0].name === 'ctrl', 'host 0x01 MB=ctrl');
+  assert.ok(slave.commands['0x01'].CB.fields.length >= 35, 'slave 0x01 CB=遥测');
+  // 合并后 19 命令, 双向 18 (0x15 例外), MB-only 0
+  const merged = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113').schema;
+  assert.equal(Object.keys(merged.commands).length, 19, '合并 19 命令');
+  const both = Object.values(merged.commands).filter((c) => c.MB && c.CB).length;
+  assert.equal(both, 18, `双向 ${both} == 18 (0x15 无 MB)`);
+  assert.ok(merged.commands['0x16'].MB.len === 4, '0x16 MB len=4');
+});
+
+test('P2 卡片编辑: 命令/字段下拉浮动菜单重建 (openCardEdit 后 options 非空)', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  NS.activeProtoId = 'proto_bms_v113';
+  // 造一张 0x01 卡片 (field 空, 走 openCardEdit 填充路径)
+  const cardId = 'p2test_' + Date.now();
+  NS.CARDS.push({ id: cardId, type: 'trend', cmd: 0x01, dir: 'rx', field: '', title: 'P2', unit: '', precision: 2, protocol: 'proto_bms_v113' });
+  NS.openCardEdit(cardId);
+  const doc = dom.window.document;
+  const cmdSel = doc.getElementById('dh-ce-cmd');
+  const fieldSel = doc.getElementById('dh-ce-field');
+  assert.ok(cmdSel && cmdSel.options.length >= 19, `命令下拉 options ${cmdSel && cmdSel.options.length} >= 19`);
+  assert.ok(fieldSel && fieldSel.options.length >= 50, `字段下拉 options ${fieldSel && fieldSel.options.length} >= 50`);
+  // 关键: 浮动菜单 (.custom-select-option) 必须重建为与 select options 一致 (旧 bug: 菜单停留在初始化空列表)
+  const cmdShell = cmdSel && cmdSel.parentElement;
+  const cmdMenu = cmdShell && (cmdShell._customSelectMenu || cmdShell.querySelector('.custom-select-menu'));
+  const menuOpts = cmdMenu ? cmdMenu.querySelectorAll('.custom-select-option') : [];
+  assert.ok(menuOpts.length >= 19, `命令浮动菜单选项 ${menuOpts.length} >= 19 (重建成功)`);
+  // 字段浮动菜单含位展开项
+  const fieldShell = fieldSel && fieldSel.parentElement;
+  const fieldMenu = fieldShell && (fieldShell._customSelectMenu || fieldShell.querySelector('.custom-select-menu'));
+  const fieldMenuTexts = fieldMenu ? Array.from(fieldMenu.querySelectorAll('.custom-select-option')).map((o) => o.textContent) : [];
+  assert.ok(fieldMenuTexts.some((t) => t.includes('ProtectCode.软件层放电过温保护')), '字段浮动菜单含位展开项');
+  // 清理
+  NS.CARDS = NS.CARDS.filter((c) => c.id !== cardId);
+  NS.closeModal('dh-card-edit');
+});

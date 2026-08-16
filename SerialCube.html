@@ -8550,6 +8550,15 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.3.6 版本 · 26/8/16</strong>
+            <ul>
+              <li>修复: 新建卡片编辑界面命令/字段下拉框空白 — 之前只同步 custom-select 的 trigger label, 浮动菜单 options 仍是初始化时的空列表; 现改为填充后完整重建菜单</li>
+              <li>修复: 0x01 双向解析 — 主机侧 MB(ctrl 位表, 2 字节) / 从机侧 CB(159 字节遥测) 帧头判向 + len 语义归一 (位表权威 159B), 主机发 MB → 从机回 CB → 主机按 CB 解析遥测全链路验证</li>
+              <li>新增: BMS V1.13 协议拆分为主机/从机单独配置 (bms_v113_host.json = MB, bms_v113_slave.json = CB), 运行时自动合并; 补全 0x16 MB 4 字节预留帧 + 0x14 变长升级数据包 (PAC_NUM + PAC[128])</li>
+              <li>优化: 卡片字段下拉按方向标注 (MB=主机发送 / CB=从机响应), ctrl 控制字段与遥测字段不再混排</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.3.5 版本 · 26/8/16</strong>
             <ul>
               <li>修复: P0 止血 — mock tick 加串口连接守卫 (真实数据不再被抖动覆盖) / 告警对象比较 bug (alert.severity) / checkAlert 无参调用 / float·double IEEE754 编码对称 / 类型表单一数据源 / CRC16-Modbus 修正为标准算法 (真机互操作) / Mutator·预设 XSS 转义 / link-check 脚本 2 处 bug</li>
@@ -8718,7 +8727,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.3.5';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.5: P0 止血 — tick 连接守卫/告警比较/checkAlert 传参/float·double 编码对称/类型表合并/CRC16 标准修正/XSS 转义; v1.3.4: 3 个删除 modal 统一)
+      const VERSION = '1.3.6';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.6: P1/P2/P3 — 0x01 双向解析/新建卡片下拉修复/主机从机配置拆分; v1.3.5: P0 止血; v1.3.4: 3 个删除 modal 统一)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
@@ -10773,7 +10782,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         };
         NS.PROTOCOLS = NS._defaultProtocols();
         // v1.3.6 P1: 注册 schema 驱动协议 (BMS V1.13) — schema 由 tools/scripts/embed-schema.mjs 生成嵌入
-                                                        NS._SCHEMA_BMS_V113 = {
+                                                                NS._SCHEMA_BMS_V113 = {
  "id": "proto_bms_v113",
  "version": "1.13",
  "meta": {
@@ -12172,6 +12181,16 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
   },
   "0x0A": {
    "desc": "BMS 0x0A (md 解析, 待固件确认)",
+   "MB": {
+    "len": 1,
+    "fields": [
+     {
+      "name": "reserved",
+      "type": "u8",
+      "bitLen": 8
+     }
+    ]
+   },
    "CB": {
     "len": 64,
     "fields": [
@@ -12400,16 +12419,6 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "unit": "uint16"
      }
     ]
-   },
-   "MB": {
-    "len": 1,
-    "fields": [
-     {
-      "name": "reserved",
-      "type": "u8",
-      "bitLen": 8
-     }
-    ]
    }
   },
   "0x0B": {
@@ -12471,6 +12480,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
   },
   "0x16": {
    "desc": "BMS 0x16 (md 解析, 待固件确认)",
+   "MB": {
+    "len": 4,
+    "fields": [
+     {
+      "name": "reserved",
+      "type": "u32",
+      "startBit": 0,
+      "bitLen": 32
+     }
+    ]
+   },
    "CB": {
     "len": 52,
     "fields": [
@@ -12669,16 +12689,6 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "bitLen": 16,
       "startBit": 400,
       "unit": "int16"
-     }
-    ]
-   },
-   "MB": {
-    "len": 0,
-    "fields": [
-     {
-      "name": "reserved",
-      "type": "bytes",
-      "bitLen": 0
      }
     ]
    }
@@ -13339,18 +13349,25 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
   "0x14": {
    "desc": "BMS 0x14 (md 解析+补丁)",
    "MB": {
-    "len": 0,
+    "len": 130,
+    "note": "变长: len = 2 + i 字节 (PAC_NUM u16 + PAC i 字节, 文档 §16.5 常用 i=128 → len=130; 8*i 指位, 即 8*128bit=128B); 解析以实际 len 字段为准",
     "fields": [
      {
       "name": "PAC_NUM",
       "type": "u16",
-      "bitLen": 16
+      "startBit": 0,
+      "bitLen": 16,
+      "unit": "uint16"
      },
      {
       "name": "PAC",
-      "type": "bytes",
-      "bitLen": 0,
-      "todo": "变长 8*i 字节"
+      "type": "array",
+      "startBit": 16,
+      "item": {
+       "type": "u8",
+       "bitLen": 8,
+       "count": 128
+      }
      }
     ]
    },
@@ -13390,7 +13407,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 };
 
 
-                                                        NS._SCHEMA_EMS_V143 = {
+                                                                NS._SCHEMA_EMS_V143 = {
  "id": "proto_ems_v143",
  "version": "1.4.3",
  "meta": {
@@ -13707,7 +13724,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 128,
       "bitLen": 128,
       "unit": "℃",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "CellTempMax",
@@ -13715,7 +13732,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 256,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "CellTempMin",
@@ -13723,7 +13740,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 272,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "ChgMosTemp",
@@ -13731,7 +13748,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 288,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0,
+      "scale": 1,
       "note": "位定义见转储备注, 待固件确认"
      },
      {
@@ -13740,7 +13757,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 304,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0,
+      "scale": 1,
       "note": "位定义见转储备注, 待固件确认"
      },
      {
@@ -13749,7 +13766,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 320,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0,
+      "scale": 1,
       "note": "位定义见转储备注, 待固件确认"
      },
      {
@@ -13758,7 +13775,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 336,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "PcbTemp",
@@ -13766,7 +13783,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 352,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "MosTempMax",
@@ -13774,7 +13791,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 368,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0,
+      "scale": 1,
       "note": "位定义见转储备注, 待固件确认"
      },
      {
@@ -13783,7 +13800,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 384,
       "bitLen": 32,
       "unit": "mA",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "AverageCurr",
@@ -13791,7 +13808,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 416,
       "bitLen": 32,
       "unit": "mA",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "CurrGain",
@@ -13807,7 +13824,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 464,
       "bitLen": 16,
       "unit": "mA",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "RSOC",
@@ -13815,7 +13832,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 480,
       "bitLen": 8,
       "unit": "%",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "ASOC",
@@ -13823,7 +13840,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 488,
       "bitLen": 8,
       "unit": "%",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "CSOC",
@@ -13831,7 +13848,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 496,
       "bitLen": 8,
       "unit": "%",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "RRemainCap",
@@ -13839,7 +13856,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 504,
       "bitLen": 32,
       "unit": "mAh",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "ARemainCap",
@@ -13847,7 +13864,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 536,
       "bitLen": 32,
       "unit": "mAh",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "CRemainCap",
@@ -13855,7 +13872,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 568,
       "bitLen": 32,
       "unit": "mAh",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "RFCC",
@@ -13863,7 +13880,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 600,
       "bitLen": 32,
       "unit": "mAh",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "AFCC",
@@ -13871,7 +13888,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 632,
       "bitLen": 32,
       "unit": "mAh",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "SOH",
@@ -13879,7 +13896,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 664,
       "bitLen": 8,
       "unit": "%",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Cycles",
@@ -13887,7 +13904,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 672,
       "bitLen": 16,
       "unit": "cycles",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "AccumValue",
@@ -13895,7 +13912,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 688,
       "bitLen": 32,
       "unit": "mAh",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "TorageLossCap",
@@ -13903,7 +13920,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 720,
       "bitLen": 32,
       "unit": "mAh",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "TotalChargeCap",
@@ -13911,7 +13928,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 752,
       "bitLen": 16,
       "unit": "mAh",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "TotalDischargeCap",
@@ -13919,7 +13936,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 768,
       "bitLen": 16,
       "unit": "mAh",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Vcell",
@@ -13927,7 +13944,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 784,
       "bitLen": 320,
       "unit": "mV",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Vcell_max",
@@ -13935,7 +13952,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 1104,
       "bitLen": 16,
       "unit": "mV",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Vcell_min",
@@ -13943,7 +13960,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 1120,
       "bitLen": 16,
       "unit": "mV",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Vcell_dif",
@@ -13951,7 +13968,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 1136,
       "bitLen": 16,
       "unit": "mV",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Vcell_max_num",
@@ -13971,7 +13988,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 1168,
       "bitLen": 16,
       "unit": "mV",
-      "scale": 10.0
+      "scale": 10
      },
      {
       "name": "PackVolt",
@@ -13979,7 +13996,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 1184,
       "bitLen": 16,
       "unit": "mV",
-      "scale": 10.0
+      "scale": 10
      },
      {
       "name": "AdapterVolt",
@@ -13987,7 +14004,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 1200,
       "bitLen": 16,
       "unit": "mV",
-      "scale": 10.0
+      "scale": 10
      },
      {
       "name": "Chgdiscncause",
@@ -14049,7 +14066,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 48,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "WordCmdF",
@@ -14106,7 +14123,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 80,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "WordVin",
@@ -14343,7 +14360,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 0,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "VBat_Level",
@@ -14420,7 +14437,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 176,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "AC_Iin",
@@ -14436,7 +14453,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 208,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Chg_State",
@@ -14467,7 +14484,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 272,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Cascade_Code",
@@ -14488,7 +14505,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 320,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Llc_Temp",
@@ -14496,7 +14513,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 336,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Llc2_Temp",
@@ -14504,7 +14521,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 352,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Transformer_Temp",
@@ -14512,7 +14529,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 368,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Fan_State",
@@ -14567,7 +14584,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 496,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Cascade_En",
@@ -14645,7 +14662,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 672,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Grid_Power",
@@ -14653,7 +14670,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 688,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Sys_State",
@@ -14691,7 +14708,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 768,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "PV_OVP",
@@ -14871,7 +14888,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 304,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "BatErr",
@@ -14893,7 +14910,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 352,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "PV2Power",
@@ -14901,7 +14918,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 368,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "IsoVolt",
@@ -14917,7 +14934,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 400,
       "bitLen": 16,
       "unit": "KΩ",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "PV2Iso",
@@ -14925,7 +14942,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 416,
       "bitLen": 16,
       "unit": "KΩ",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "PVIso",
@@ -14933,7 +14950,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 432,
       "bitLen": 16,
       "unit": "KΩ",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Res1",
@@ -14981,7 +14998,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 544,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "ErrClear",
@@ -15062,7 +15079,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 160,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "RES_2",
@@ -15090,7 +15107,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 368,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "RES_4",
@@ -15178,7 +15195,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 0,
       "bitLen": 32,
       "unit": "mV",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "PV_Ibus",
@@ -15186,7 +15203,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 32,
       "bitLen": 32,
       "unit": "mA",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "PV_Pbus",
@@ -15194,7 +15211,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 64,
       "bitLen": 32,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "PV_Vbat",
@@ -15202,7 +15219,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 96,
       "bitLen": 32,
       "unit": "mV",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "PV_Ibat",
@@ -15210,7 +15227,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 128,
       "bitLen": 32,
       "unit": "mA",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "PV_Pbat",
@@ -15218,7 +15235,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 160,
       "bitLen": 32,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "PV_MosTemp",
@@ -15226,7 +15243,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 192,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0,
+      "scale": 1,
       "note": "位定义见转储备注, 待固件确认"
      },
      {
@@ -15295,7 +15312,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 0,
       "bitLen": 32,
       "unit": "mV",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "DC_Iout",
@@ -15303,7 +15320,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 32,
       "bitLen": 32,
       "unit": "mA",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "DC_Pout",
@@ -15311,7 +15328,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 64,
       "bitLen": 32,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "DC_MosTemp",
@@ -15319,7 +15336,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 96,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0,
+      "scale": 1,
       "note": "位定义见转储备注, 待固件确认"
      },
      {
@@ -15364,7 +15381,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 128,
       "bitLen": 32,
       "unit": "mV",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "USB_Iout",
@@ -15372,7 +15389,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 160,
       "bitLen": 32,
       "unit": "mA",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "USB_Pout",
@@ -15380,7 +15397,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 192,
       "bitLen": 32,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "USB_MosTemp",
@@ -15388,7 +15405,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 224,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0,
+      "scale": 1,
       "note": "位定义见转储备注, 待固件确认"
      },
      {
@@ -15451,7 +15468,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 0,
       "bitLen": 16,
       "unit": "mV",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "TypeC_Iout",
@@ -15459,7 +15476,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 16,
       "bitLen": 16,
       "unit": "mA",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "TypeC_Pout",
@@ -15467,7 +15484,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 32,
       "bitLen": 32,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "TypeC_Vbus",
@@ -15475,7 +15492,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 64,
       "bitLen": 16,
       "unit": "mV",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "TypeC_Ibus",
@@ -15483,7 +15500,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 80,
       "bitLen": 16,
       "unit": "mA",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "TypeC_Pbus",
@@ -15491,7 +15508,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 96,
       "bitLen": 32,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "TypeC_MosTemp",
@@ -15499,7 +15516,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 128,
       "bitLen": 16,
       "unit": "℃",
-      "scale": 1.0,
+      "scale": 1,
       "note": "位定义见转储备注, 待固件确认"
      },
      {
@@ -15508,7 +15525,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 144,
       "bitLen": 8,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "TypeC_MaxPbus",
@@ -15516,7 +15533,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 152,
       "bitLen": 8,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "TypeC_DsgCtrlCmd",
@@ -16513,7 +16530,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 96,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "ACInApparentPower",
@@ -16521,7 +16538,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 112,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "ACInPF",
@@ -16572,7 +16589,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 224,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "ACOutApparentPower",
@@ -16580,7 +16597,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 240,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "ACOutPF",
@@ -16611,7 +16628,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 304,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "Custom",
@@ -16653,7 +16670,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 400,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "BusVolt",
@@ -16775,7 +16792,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "startBit": 672,
       "bitLen": 16,
       "unit": "W",
-      "scale": 1.0
+      "scale": 1
      },
      {
       "name": "ACSetOutVolt",
@@ -20050,22 +20067,29 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           if (!cmdDef) return [];
           const opts = [];
           const seen = new Set();
-          const addLayout = (layout) => {
+          // v1.3.6 P3 修: 字段按方向标注 (MB=主机发送 / CB=从机响应), 避免 ctrl 与遥测字段混在一起无法分辨
+          const addLayout = (layout, dirTag) => {
             if (!layout || !layout.fields) return;
             for (const f of layout.fields) {
               if (f.todo || f.type === 'bytes') continue;
-              if (!seen.has(f.name)) { seen.add(f.name); opts.push({ name: f.name, label: f.name }); }
+              if (!seen.has(f.name)) {
+                seen.add(f.name);
+                opts.push({ name: f.name, label: dirTag ? `${f.name} [${dirTag}]` : f.name, dir: dirTag || null });
+              }
               if (f.type === 'bitset' && Array.isArray(f.bits)) {
                 for (const b of f.bits) {
                   const bitName = `${f.name}.${b.name}`;
-                  if (!seen.has(bitName)) { seen.add(bitName); opts.push({ name: bitName, label: bitName }); }
+                  if (!seen.has(bitName)) {
+                    seen.add(bitName);
+                    opts.push({ name: bitName, label: dirTag ? `${bitName} [${dirTag}]` : bitName, dir: dirTag || null });
+                  }
                 }
               }
             }
           };
-          addLayout(cmdDef.RESP || cmdDef.CB);
-          addLayout(cmdDef.REQ || cmdDef.MB);
-          addLayout(cmdDef.default);
+          addLayout(cmdDef.RESP || cmdDef.CB, cmdDef.CB ? 'CB' : (cmdDef.RESP ? 'RESP' : ''));
+          addLayout(cmdDef.REQ || cmdDef.MB, cmdDef.MB ? 'MB' : (cmdDef.REQ ? 'REQ' : ''));
+          addLayout(cmdDef.default, '');
           return opts;
         };
 
@@ -20154,27 +20178,23 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           const cmdObj = protoCmds.find((cmd) => cmd.id === c.cmd);
           const esc = NS.escapeHtml;
           fieldSel.innerHTML = NS._cardFieldOptions(cmdObj).map((f) => `<option value="${esc(f.name)}" ${c.field === f.name ? 'selected' : ''}>${esc(f.label)}</option>`).join('');
+          // v1.3.6 P2 修: 重建 custom-select 浮动菜单 (仅同步 trigger label 不够 — 菜单 options 仍是初始化时的空列表,
+          //   用户点开下拉框看到空白, 误以为"不支持命令/字段选择")
+          const resyncCardEditSelects = () => {
+            const modal = document.getElementById('dh-card-edit-modal');
+            if (modal) syncCustomSelects(modal);
+          };
           cmdSel.onchange = () => {
             const newCmd = protoCmds.find((cmd) => cmd.id === parseInt(cmdSel.value));
             fieldSel.innerHTML = NS._cardFieldOptions(newCmd).map((f) => `<option value="${esc(f.name)}">${esc(f.label)}</option>`).join('');
+            resyncCardEditSelects();
           };
           document.getElementById('dh-ce-rx').checked = !!c.fromOtherCmd;
           document.getElementById('dh-ce-lower').value = c.range ? c.range[0] : '';
           document.getElementById('dh-ce-upper').value = c.range ? c.range[1] : '';
           document.getElementById('dh-ce-precision').value = c.precision != null ? c.precision : 2;
-          // v1.2.2 (bug fix): 手动同步 custom-select 包装的 trigger label (syncCustomSelects 在 IIFE 私有, 不直接调)
-          //   之前 select 有 options 但 trigger label 文字空, 看着像下拉框没数据
-          const syncCustomSelectLabel = (selectEl) => {
-            const shell = selectEl && selectEl.parentElement;
-            if (!shell || !shell.classList.contains('custom-select')) return;
-            const label = shell.querySelector('.custom-select-label');
-            if (!label) return;
-            const opt = selectEl.options[selectEl.selectedIndex] || selectEl.options[0];
-            label.textContent = opt ? opt.textContent.trim() : '';
-            const trigger = shell.querySelector('.custom-select-trigger');
-            if (trigger) trigger.title = label.textContent;
-          };
-          ['dh-ce-cmd', 'dh-ce-field', 'dh-ce-type'].forEach((id) => syncCustomSelectLabel(document.getElementById(id)));
+          // v1.3.6 P2 修: 用完整重建 (浮动菜单 options 一并重建) 替代旧 label-only 同步
+          resyncCardEditSelects();
           NS.openModal('dh-card-edit');
         };
 

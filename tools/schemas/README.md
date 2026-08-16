@@ -7,15 +7,20 @@
 
 | 文件 | 协议 | 状态 |
 |------|------|------|
-| `bms_v113.json` | BMS V1.13（head+addr+cmd+len+set+crc16） | ✅ 0x01/0x02/0x03 完整位表；0x04-0x16 骨架 |
+| `bms_v113_host.json` | BMS V1.13 主机侧（MB 布局，18 命令） | ✅ 拆分源文件（控制/查询帧） |
+| `bms_v113_slave.json` | BMS V1.13 从机侧（CB 布局，19 命令） | ✅ 拆分源文件（遥测/应答帧） |
+| `bms_v113.json` | BMS V1.13（head+addr+cmd+len+set+crc16） | ✅ 合并产物（由 host/slave 生成，勿手改） |
 | `ems_v143.json` | EMS V1.4.3（0xAA 0xAA + addr2 + cmd + len + data + checksum） | 见文件内 TODO |
+
+> **BMS 拆分约定**：主机(MB) 与从机(CB) 分开维护；运行时由 `merge-bms-schema.mjs` 合并为单一 `bms_v113.json`，因为 `parseFrame` 判向（帧头 0x5A/0x55）需要同一 schema 内同时有 MB+CB。改 BMS 协议请改 host/slave 源文件，再跑 merge。
 
 ## 嵌入与同步
 
 schema 在单文件 `SerialCube.html` 中以 `NS._SCHEMA_<ID>` 内嵌（`// @SCHEMA_EMBED_<ID>@` marker）：
 
 ```bash
-node tools/scripts/embed-schema.mjs   # 修改 tools/schemas/*.json 后必跑, 否则页面不生效
+node tools/scripts/merge-bms-schema.mjs   # 合并 host/slave → bms_v113.json
+node tools/scripts/embed-schema.mjs       # 修改 tools/schemas/*.json 后必跑, 否则页面不生效 (自动先 merge BMS)
 ```
 
 ## 结构

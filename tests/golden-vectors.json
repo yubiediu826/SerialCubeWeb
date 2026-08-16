@@ -17,13 +17,13 @@
     {
       "id": "bms_0x01_mb_default",
       "proto": "proto_bms_v113", "cmd": "0x01", "dir": "MB",
-      "bytesHex": "5A 01 01 01 00 2D A1",
+      "bytesHex": "5A 01 01 02 00 00 91 1D",
       "expect": { "ctrl": 0, "ctrl.Load": 0, "ctrl.AC_Adapter": 0, "ctrl.fan_enable": 0 }
     },
     {
       "id": "bms_0x01_mb_load",
       "proto": "proto_bms_v113", "cmd": "0x01", "dir": "MB",
-      "bytesHex": "5A 01 01 01 01 EC 61",
+      "bytesHex": "5A 01 01 02 01 00 90 8D",
       "expect": { "ctrl": 1, "ctrl.Load": 1, "ctrl.AC_Adapter": 0, "ctrl.DC_Adapter": 0 }
     },
     {
@@ -48,6 +48,12 @@
       "id": "bms_0x03_mb_req",
       "proto": "proto_bms_v113", "cmd": "0x03", "dir": "MB",
       "bytesHex": "5A 01 03 01 00 8C 61",
+      "expect": { "reserved": 0 }
+    },
+    {
+      "id": "bms_0x16_mb_req",
+      "proto": "proto_bms_v113", "cmd": "0x16", "dir": "MB",
+      "bytesHex": "5A 01 16 04 00 00 00 00 26 BE",
       "expect": { "reserved": 0 }
     },
     {

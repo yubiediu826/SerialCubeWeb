@@ -6,9 +6,9 @@
 
 ## 🚀 当前状态
 
-**最新版本**: v1.3.5 (2026-08-16) — P0 止血: mock tick 串口连接守卫 + CRC16-Modbus 标准修正 (真机互操作) + float·double 编码对称 + 告警比较/checkAlert 修复 + XSS 转义
+**最新版本**: v1.3.6 (2026-08-16) — 0x01 双向 MB/CB 解析 + 新建卡片下拉修复 + BMS 主机/从机配置拆分 (host/slave) + 0x16/0x14 补全
 **当前分支**: `main`
-**最近 release**: v1.3.5 ([changelog](changelog/2026-08-16-v1.3.5-p0-hotfixes.md)) | v1.3.4 ([changelog](changelog/2026-08-14-v1.3.4-cascade-modal-unify.md)) | v1.3.3 ([changelog](changelog/2026-08-14-v1.3.3-config-center-proto-filter.md)) | v1.3.2.1 ([changelog](changelog/2026-08-14-v1.3.2.1-dashboard-state-3way.md)) | v1.3.2 ([changelog](changelog/2026-08-14-v1.3.2-dashboard-bug-fixes.md)) | v1.3.1 ([changelog](changelog/2026-08-13-v1.3.1-cascade-delete-modal.md)) | v1.3.0 ([changelog](changelog/2026-08-13-v1.3.0-debug-panel.md)) | v1.2.2 ([changelog](changelog/2026-08-13-v1.2.2-ui-cleanup.md)) | v1.2.1 ([changelog](changelog/2026-08-13-v1.2.1-ui-consistency.md)) | v1.2.0 ([changelog](changelog/2026-08-12-v1.2.0-config-center-refactor.md)) | v1.1.1 ([changelog](changelog/2026-08-12-v1.1.1-fixes.md)) | v1.1.0 ([release notes](handover/release-v1.1.0-2026-08-12.md))
+**最近 release**: v1.3.6 ([changelog](changelog/2026-08-16-v1.3.6-bms-dual-direction-and-config-split.md)) | v1.3.5 ([changelog](changelog/2026-08-16-v1.3.5-p0-hotfixes.md)) | v1.3.4 ([changelog](changelog/2026-08-14-v1.3.4-cascade-modal-unify.md)) | v1.3.3 ([changelog](changelog/2026-08-14-v1.3.3-config-center-proto-filter.md)) | v1.3.2.1 ([changelog](changelog/2026-08-14-v1.3.2.1-dashboard-state-3way.md)) | v1.3.2 ([changelog](changelog/2026-08-14-v1.3.2-dashboard-bug-fixes.md)) | v1.3.1 ([changelog](changelog/2026-08-13-v1.3.1-cascade-delete-modal.md)) | v1.3.0 ([changelog](changelog/2026-08-13-v1.3.0-debug-panel.md)) | v1.2.2 ([changelog](changelog/2026-08-13-v1.2.2-ui-cleanup.md)) | v1.2.1 ([changelog](changelog/2026-08-13-v1.2.1-ui-consistency.md)) | v1.2.0 ([changelog](changelog/2026-08-12-v1.2.0-config-center-refactor.md)) | v1.1.1 ([changelog](changelog/2026-08-12-v1.1.1-fixes.md)) | v1.1.0 ([release notes](handover/release-v1.1.0-2026-08-12.md))
 
 ---
 
@@ -18,7 +18,7 @@
 
 1. 读完 [`handover/HANDOFF-QUICKSTART-2026-08-11.md`](handover/HANDOFF-QUICKSTART-2026-08-11.md) — 30 秒快速接手卡
 2. 跑一次 **preflight**：`pwsh -File .minimax/skills/serialcube-workflow/preflight.ps1`（9 项健康检查）
-3. 知道项目是单 HTML 串口调试工具，主文件 `SerialCube.html`，当前版本 `v1.3.5`
+3. 知道项目是单 HTML 串口调试工具，主文件 `SerialCube.html`，当前版本 `v1.3.6`
 
 ### ⏱ 2 分钟（开始干活前）
 

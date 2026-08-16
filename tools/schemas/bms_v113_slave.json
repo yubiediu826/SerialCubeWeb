@@ -1,5 +1,6 @@
 {
- "id": "proto_bms_v113",
+ "id": "proto_bms_v113_slave",
+ "role": "slave",
  "version": "1.13",
  "meta": {
   "name": "BMS V1.13",
@@ -57,82 +58,6 @@
  "commands": {
   "0x01": {
    "desc": "控制与常规数据 (200ms 周期查询)",
-   "MB": {
-    "len": 2,
-    "fields": [
-     {
-      "name": "ctrl",
-      "type": "bitset",
-      "bitLen": 16,
-      "bits": [
-       {
-        "bit": 0,
-        "name": "Load"
-       },
-       {
-        "bit": 1,
-        "name": "AC_Adapter"
-       },
-       {
-        "bit": 2,
-        "name": "DC_Adapter"
-       },
-       {
-        "bit": 3,
-        "name": "ShutDown"
-       },
-       {
-        "bit": 4,
-        "name": "Adapter_Enable"
-       },
-       {
-        "bit": 5,
-        "name": "normal_power"
-       },
-       {
-        "bit": 6,
-        "name": "Sleep"
-       },
-       {
-        "bit": 7,
-        "name": "Test_mode"
-       },
-       {
-        "bit": 8,
-        "name": "calibrate_mode"
-       },
-       {
-        "bit": 9,
-        "name": "fan_enable"
-       },
-       {
-        "bit": 10,
-        "name": "Reserved10"
-       },
-       {
-        "bit": 11,
-        "name": "Reserved11"
-       },
-       {
-        "bit": 12,
-        "name": "Reserved12"
-       },
-       {
-        "bit": 13,
-        "name": "Reserved13"
-       },
-       {
-        "bit": 14,
-        "name": "Reserved14"
-       },
-       {
-        "bit": 15,
-        "name": "Reserved15"
-       }
-      ]
-     }
-    ]
-   },
    "CB": {
     "len": 159,
     "note": "位表到 1272bit=159B; 文档帧内 len=0x8F(143) 与位表不符 (文档异常), 以位表为权威, 解析时 len 仅作提示",
@@ -770,447 +695,6 @@
   },
   "0x02": {
    "desc": "保护参数配置 (95 字节, 位偏移小端序)",
-   "MB": {
-    "len": 95,
-    "fields": [
-     {
-      "name": "Cell_OV_Val",
-      "type": "u16",
-      "startBit": 0,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "mV",
-      "default": 3650
-     },
-     {
-      "name": "Cell_OV_Recover_Val",
-      "type": "u16",
-      "startBit": 16,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "mV",
-      "default": 3600
-     },
-     {
-      "name": "Cell_OV_Timer",
-      "type": "u16",
-      "startBit": 32,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 5000
-     },
-     {
-      "name": "Cell_OV_Recover_Timer",
-      "type": "u16",
-      "startBit": 48,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 3000
-     },
-     {
-      "name": "Cell_UV_Val",
-      "type": "u16",
-      "startBit": 64,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "mV",
-      "default": 2500
-     },
-     {
-      "name": "Cell_UV_Recover_Val",
-      "type": "u16",
-      "startBit": 80,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "mV",
-      "default": 2600
-     },
-     {
-      "name": "Cell_UV_Timer",
-      "type": "u16",
-      "startBit": 96,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 5000
-     },
-     {
-      "name": "Cell_UV_Recover_Timer",
-      "type": "u16",
-      "startBit": 112,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 3000
-     },
-     {
-      "name": "CellSampleLostFault_Val",
-      "type": "u16",
-      "startBit": 128,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "mV",
-      "default": 500
-     },
-     {
-      "name": "CellSampleLostFault_Timer",
-      "type": "u16",
-      "startBit": 144,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 10000
-     },
-     {
-      "name": "CellUVFault_Val",
-      "type": "u16",
-      "startBit": 160,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "mV",
-      "default": 2000
-     },
-     {
-      "name": "CellUVFault_Timer",
-      "type": "u16",
-      "startBit": 176,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 5000
-     },
-     {
-      "name": "DchOverTemp_Val",
-      "type": "u8",
-      "startBit": 192,
-      "bitLen": 8,
-      "scale": 1,
-      "unit": "℃",
-      "default": 60
-     },
-     {
-      "name": "DchOverTemp_Recover_Val",
-      "type": "u8",
-      "startBit": 200,
-      "bitLen": 8,
-      "scale": 1,
-      "unit": "℃",
-      "default": 50
-     },
-     {
-      "name": "DchOverTemp_Timer",
-      "type": "u16",
-      "startBit": 208,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 5000
-     },
-     {
-      "name": "DchOverTemp_Recover_Timer",
-      "type": "u16",
-      "startBit": 224,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 3000
-     },
-     {
-      "name": "DchUnderTemp_Val",
-      "type": "i8",
-      "startBit": 240,
-      "bitLen": 8,
-      "scale": 1,
-      "unit": "℃",
-      "default": -20
-     },
-     {
-      "name": "DchUnderTemp_Recover_Val",
-      "type": "i8",
-      "startBit": 248,
-      "bitLen": 8,
-      "scale": 1,
-      "unit": "℃",
-      "default": -10
-     },
-     {
-      "name": "DchUnderTemp_Timer",
-      "type": "u16",
-      "startBit": 256,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 5000
-     },
-     {
-      "name": "DchUnderTemp_Recover_Timer",
-      "type": "u16",
-      "startBit": 272,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 3000
-     },
-     {
-      "name": "ChgOverTemp_Val",
-      "type": "u8",
-      "startBit": 288,
-      "bitLen": 8,
-      "scale": 1,
-      "unit": "℃",
-      "default": 55
-     },
-     {
-      "name": "ChgOverTemp_Recover_Val",
-      "type": "u8",
-      "startBit": 296,
-      "bitLen": 8,
-      "scale": 1,
-      "unit": "℃",
-      "default": 45
-     },
-     {
-      "name": "ChgOverTemp_Timer",
-      "type": "u16",
-      "startBit": 304,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 5000
-     },
-     {
-      "name": "ChgOverTemp_Recover_Timer",
-      "type": "u16",
-      "startBit": 320,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 3000
-     },
-     {
-      "name": "ChgUnderTemp_Val",
-      "type": "u8",
-      "startBit": 336,
-      "bitLen": 8,
-      "scale": 1,
-      "unit": "℃",
-      "default": 0
-     },
-     {
-      "name": "ChgUnderTemp_Recover_Val",
-      "type": "u8",
-      "startBit": 344,
-      "bitLen": 8,
-      "scale": 1,
-      "unit": "℃",
-      "default": 5
-     },
-     {
-      "name": "ChgUnderTemp_Timer",
-      "type": "u16",
-      "startBit": 352,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 5000
-     },
-     {
-      "name": "ChgUnderTemp_Recover_Timer",
-      "type": "u16",
-      "startBit": 368,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 3000
-     },
-     {
-      "name": "ChgOC_Val",
-      "type": "u32",
-      "startBit": 384,
-      "bitLen": 32,
-      "scale": 1,
-      "unit": "mA",
-      "default": 10000
-     },
-     {
-      "name": "ChgOC_Timer",
-      "type": "u16",
-      "startBit": 416,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 5000
-     },
-     {
-      "name": "ChgOC_Recover_Timer",
-      "type": "u16",
-      "startBit": 432,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 10000
-     },
-     {
-      "name": "DsgOCLv1_Val",
-      "type": "i32",
-      "startBit": 448,
-      "bitLen": 32,
-      "scale": 1,
-      "unit": "mA",
-      "default": -20000
-     },
-     {
-      "name": "DsgOCLv1_Timer",
-      "type": "u16",
-      "startBit": 480,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 5000
-     },
-     {
-      "name": "DsgOCLv1_Recover_Timer",
-      "type": "u16",
-      "startBit": 496,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 10000
-     },
-     {
-      "name": "DsgOCLv2_Val",
-      "type": "i32",
-      "startBit": 512,
-      "bitLen": 32,
-      "scale": 1,
-      "unit": "mA",
-      "default": -40000
-     },
-     {
-      "name": "DsgOCLv2_Timer",
-      "type": "u16",
-      "startBit": 544,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 2000
-     },
-     {
-      "name": "DsgOCLv2_Recover_Timer",
-      "type": "u16",
-      "startBit": 560,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 5000
-     },
-     {
-      "name": "Enable_Protect_Switch",
-      "type": "u16",
-      "startBit": 576,
-      "bitLen": 16,
-      "default": "0x3FFF"
-     },
-     {
-      "name": "RSVD5",
-      "type": "u8",
-      "startBit": 592,
-      "bitLen": 8
-     },
-     {
-      "name": "Design_Cap_Val",
-      "type": "u32",
-      "startBit": 600,
-      "bitLen": 32,
-      "scale": 1,
-      "unit": "mAh",
-      "default": 20000
-     },
-     {
-      "name": "Cell_FULL_Val",
-      "type": "u16",
-      "startBit": 632,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "mV",
-      "default": 3650
-     },
-     {
-      "name": "Cell_FULL_Recover_Val",
-      "type": "u16",
-      "startBit": 648,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "mV",
-      "default": 3600
-     },
-     {
-      "name": "Cell_FULL_Timer",
-      "type": "u16",
-      "startBit": 664,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 30000
-     },
-     {
-      "name": "Cell_FULL_Recover_Timer",
-      "type": "u16",
-      "startBit": 680,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 10000
-     },
-     {
-      "name": "Cell_FULLCurr_val",
-      "type": "u16",
-      "startBit": 696,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "mA",
-      "default": 500
-     },
-     {
-      "name": "MosOverTemp_Val",
-      "type": "u8",
-      "startBit": 712,
-      "bitLen": 8,
-      "scale": 1,
-      "unit": "℃",
-      "default": 80
-     },
-     {
-      "name": "MosOverTemp_Recover_Val",
-      "type": "u8",
-      "startBit": 720,
-      "bitLen": 8,
-      "scale": 1,
-      "unit": "℃",
-      "default": 70
-     },
-     {
-      "name": "MosOverTemp_Timer",
-      "type": "u16",
-      "startBit": 728,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 5000
-     },
-     {
-      "name": "MosOverTemp_Recover_Timer",
-      "type": "u16",
-      "startBit": 744,
-      "bitLen": 16,
-      "scale": 1,
-      "unit": "ms",
-      "default": 3000
-     }
-    ]
-   },
    "CB": {
     "len": 1,
     "fields": [
@@ -1228,17 +712,6 @@
   },
   "0x03": {
    "desc": "BMS 信息查询",
-   "MB": {
-    "len": 1,
-    "fields": [
-     {
-      "name": "reserved",
-      "type": "u8",
-      "bitLen": 8,
-      "default": 0
-     }
-    ]
-   },
    "CB": {
     "len": 21,
     "fields": [
@@ -1330,28 +803,6 @@
   },
   "0x04": {
    "desc": "BMS 0x04 (md 解析, 待固件确认)",
-   "MB": {
-    "len": 204,
-    "fields": [
-     {
-      "name": "OCV",
-      "type": "array",
-      "item": {
-       "type": "u16",
-       "bitLen": 16,
-       "count": 101
-      },
-      "startBit": 0,
-      "unit": "mV"
-     },
-     {
-      "name": "OCV_Enable",
-      "type": "u16",
-      "bitLen": 16,
-      "startBit": 1616
-     }
-    ]
-   },
    "CB": {
     "len": 1,
     "fields": [
@@ -1369,17 +820,6 @@
   },
   "0x07": {
    "desc": "BMS 0x07 (md 解析, 待固件确认)",
-   "MB": {
-    "len": 16,
-    "fields": [
-     {
-      "name": "SN",
-      "type": "ascii",
-      "bitLen": 128,
-      "startBit": 0
-     }
-    ]
-   },
    "CB": {
     "len": 1,
     "fields": [
@@ -1397,16 +837,6 @@
   },
   "0x0A": {
    "desc": "BMS 0x0A (md 解析, 待固件确认)",
-   "MB": {
-    "len": 1,
-    "fields": [
-     {
-      "name": "reserved",
-      "type": "u8",
-      "bitLen": 8
-     }
-    ]
-   },
    "CB": {
     "len": 64,
     "fields": [
@@ -1639,18 +1069,6 @@
   },
   "0x0B": {
    "desc": "BMS 0x0B (md 解析, 待固件确认)",
-   "MB": {
-    "len": 2,
-    "fields": [
-     {
-      "name": "RRemainCap",
-      "type": "u16",
-      "bitLen": 16,
-      "startBit": 0,
-      "unit": "mAh"
-     }
-    ]
-   },
    "CB": {
     "len": 1,
     "fields": [
@@ -1668,17 +1086,6 @@
   },
   "0x0C": {
    "desc": "BMS 0x0C (md 解析, 待固件确认)",
-   "MB": {
-    "len": 2,
-    "fields": [
-     {
-      "name": "Fan",
-      "type": "u16",
-      "bitLen": 16,
-      "startBit": 0
-     }
-    ]
-   },
    "CB": {
     "len": 1,
     "fields": [
@@ -1696,17 +1103,6 @@
   },
   "0x16": {
    "desc": "BMS 0x16 (md 解析, 待固件确认)",
-   "MB": {
-    "len": 4,
-    "fields": [
-     {
-      "name": "reserved",
-      "type": "u32",
-      "startBit": 0,
-      "bitLen": 32
-     }
-    ]
-   },
    "CB": {
     "len": 52,
     "fields": [
@@ -1911,16 +1307,6 @@
   },
   "0x05": {
    "desc": "BMS 0x05 (md 解析+补丁)",
-   "MB": {
-    "len": 1,
-    "fields": [
-     {
-      "name": "reserved",
-      "type": "u8",
-      "bitLen": 8
-     }
-    ]
-   },
    "CB": {
     "len": 95,
     "fields": [
@@ -2365,16 +1751,6 @@
   },
   "0x06": {
    "desc": "BMS 0x06 (md 解析+补丁)",
-   "MB": {
-    "len": 1,
-    "fields": [
-     {
-      "name": "reserved",
-      "type": "u8",
-      "bitLen": 8
-     }
-    ]
-   },
    "CB": {
     "len": 204,
     "fields": [
@@ -2400,16 +1776,6 @@
   },
   "0x08": {
    "desc": "BMS 0x08 (md 解析+补丁)",
-   "MB": {
-    "len": 1,
-    "fields": [
-     {
-      "name": "reserved",
-      "type": "u8",
-      "bitLen": 8
-     }
-    ]
-   },
    "CB": {
     "len": 16,
     "fields": [
@@ -2424,20 +1790,6 @@
   },
   "0x09": {
    "desc": "BMS 0x09 (md 解析+补丁)",
-   "MB": {
-    "len": 1,
-    "fields": [
-     {
-      "name": "enable",
-      "type": "u8",
-      "bitLen": 8,
-      "enum": {
-       "0": "关均衡",
-       "1": "开均衡"
-      }
-     }
-    ]
-   },
    "CB": {
     "len": 1,
     "fields": [
@@ -2455,17 +1807,6 @@
   },
   "0x10": {
    "desc": "BMS 0x10 (md 解析+补丁)",
-   "MB": {
-    "len": 4,
-    "fields": [
-     {
-      "name": "DEV_T",
-      "type": "ascii",
-      "startBit": 0,
-      "bitLen": 32
-     }
-    ]
-   },
    "CB": {
     "len": 1,
     "fields": [
@@ -2483,16 +1824,6 @@
   },
   "0x11": {
    "desc": "BMS 0x11 (md 解析+补丁)",
-   "MB": {
-    "len": 2,
-    "fields": [
-     {
-      "name": "ALL_PAC",
-      "type": "u16",
-      "bitLen": 16
-     }
-    ]
-   },
    "CB": {
     "len": 1,
     "fields": [
@@ -2510,16 +1841,6 @@
   },
   "0x12": {
    "desc": "BMS 0x12 (md 解析+补丁)",
-   "MB": {
-    "len": 4,
-    "fields": [
-     {
-      "name": "ALL_SIZE",
-      "type": "u32",
-      "bitLen": 32
-     }
-    ]
-   },
    "CB": {
     "len": 1,
     "fields": [
@@ -2537,16 +1858,6 @@
   },
   "0x13": {
    "desc": "BMS 0x13 (md 解析+补丁)",
-   "MB": {
-    "len": 2,
-    "fields": [
-     {
-      "name": "ALL_CHECK",
-      "type": "u16",
-      "bitLen": 16
-     }
-    ]
-   },
    "CB": {
     "len": 1,
     "fields": [
@@ -2564,29 +1875,6 @@
   },
   "0x14": {
    "desc": "BMS 0x14 (md 解析+补丁)",
-   "MB": {
-    "len": 130,
-    "note": "变长: len = 2 + i 字节 (PAC_NUM u16 + PAC i 字节, 文档 §16.5 常用 i=128 → len=130; 8*i 指位, 即 8*128bit=128B); 解析以实际 len 字段为准",
-    "fields": [
-     {
-      "name": "PAC_NUM",
-      "type": "u16",
-      "startBit": 0,
-      "bitLen": 16,
-      "unit": "uint16"
-     },
-     {
-      "name": "PAC",
-      "type": "array",
-      "startBit": 16,
-      "item": {
-       "type": "u8",
-       "bitLen": 8,
-       "count": 128
-      }
-     }
-    ]
-   },
    "CB": {
     "len": 1,
     "fields": [
