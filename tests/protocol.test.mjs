@@ -167,6 +167,19 @@ test('BMS 位字段展开 (ProtectCode uint16 逐位解析)', () => {
   assert.equal(parsed.values['ProtectCode.软件层充电过温保护'], 0, 'bit2 充电过温=0');
 });
 
+test('BMS 19 命令注册 (C: 完整配置)', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  assert.equal(proto.commands.length, 19, `命令数 ${proto.commands.length} == 19`);
+  assert.equal(proto.commands.find((c) => c.id === 0x01).cadence, 200, '0x01 周期 200ms');
+  assert.equal(proto.commands.find((c) => c.id === 0x02).frameType, 'control', '0x02 control');
+  assert.equal(proto.commands.find((c) => c.id === 0x15).direction, 'rx', '0x15 主动上行 rx');
+  assert.equal(proto.commands.find((c) => c.id === 0x16).name, '级联电池信息', '0x16 级联');
+  // schema 命令覆盖 (0x04 OCV 数组 / 0x07 SN ascii / 0x14 变长)
+  assert.ok(proto.schema.commands['0x04'].MB.fields.some((f) => f.type === 'array' && f.item.count === 101), '0x04 OCV[101] 数组');
+  assert.ok(proto.schema.commands['0x07'].MB.fields.some((f) => f.type === 'ascii' && f.bitLen === 128), '0x07 SN ascii 16B');
+  assert.ok(proto.schema.commands['0x14'].MB.fields.some((f) => f.name === 'PAC'), '0x14 变长数据包');
+});
+
 test('卡片字段选项含位展开 (schema 协议)', () => {
   const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
   const cmd = proto.commands.find((c) => c.id === 0x01);
