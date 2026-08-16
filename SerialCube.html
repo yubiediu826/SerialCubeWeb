@@ -20211,6 +20211,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         NS.importConfig = function (json) {
           try {
             const obj = JSON.parse(json);
+            // v1.3.6: 支持 schema 协议文件导入 (host/slave 拆分源或完整 schema; 有 frame.fields + commands 且非用户配置)
+            if (obj && obj.frame && Array.isArray(obj.frame.fields) && obj.commands && obj.type !== 'SerialWebUserConfig') {
+              return NS.importSchema(obj);
+            }
             if (obj.type !== 'SerialWebUserConfig') throw new Error('type 不是 SerialWebUserConfig');
             const uc = obj.userConfig && obj.userConfig.dashboard;
             if (!uc) throw new Error('userConfig.dashboard 缺失');
@@ -20297,6 +20301,101 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               delete uc._migratedCount;
             } else {
               NS.toast('已应用导入配置', 'success');
+            }
+            return true;
+          } catch (e) { NS.toast('导入失败: ' + e.message, 'danger'); return false; }
+        };
+
+        // v1.3.6 P3 修: schema 协议文件导入 (host/slave 拆分源或完整 schema)
+        //   从 schema.commands 自动生成 NS.PROTOCOLS 命令列表 (与 _registerSchemaProtocols 同规则),
+        //   支持 host(MB)/slave(CB) 拆分文件合并到同一协议 (判向需要双向布局)。
+        NS._schemaCommands = function (schema) {
+          const out = [];
+          Object.keys(schema.commands || {}).forEach((k) => {
+            const n = parseInt(k, 16);
+            const hex = k.toLowerCase().replace(/^0x/, '').padStart(2, '0');
+            const cmdDef = schema.commands[k] || {};
+            const hasMB = !!(cmdDef.MB && cmdDef.MB.fields);
+            const hasREQ = !!(cmdDef.REQ && cmdDef.REQ.fields);
+            const hasCB = !!(cmdDef.CB && cmdDef.CB.fields);
+            const isControl = ['02', '04', '07', '09', '0b', '0c', '10', '11', '12', '13', '14'].includes(hex);
+            out.push({
+              id: n,
+              name: (cmdDef.desc && !cmdDef.desc.startsWith('BMS ')) ? cmdDef.desc.replace(/\s*\(.*\)\s*$/, '') : ('0x' + hex.toUpperCase()),
+              direction: (hasMB || hasREQ) ? 'tx' : 'rx',
+              frameType: isControl ? 'control' : 'query',
+              cadence: n === 0x01 ? 200 : 0,
+              expectResponse: (hasMB || hasREQ) ? n : undefined,
+              schemaDir: hasMB ? 'MB' : (hasREQ ? 'REQ' : undefined),
+              dataFields: []
+            });
+          });
+          return out;
+        };
+        // 判断 schema 是否已含双向布局 (MB+CB 或 REQ+RESP)
+        NS._schemaIsComplete = function (schema) {
+          let hasTx = false, hasRx = false;
+          for (const cmdDef of Object.values(schema.commands || {})) {
+            if (cmdDef.MB || cmdDef.REQ) hasTx = true;
+            if (cmdDef.CB || cmdDef.RESP) hasRx = true;
+          }
+          return hasTx && hasRx;
+        };
+        // 合并 host/slave schema 到同一个协议 (按命令键合并 MB/CB 布局)
+        NS._mergeSchemaCommands = function (target, source) {
+          for (const [cmdKey, cmdDef] of Object.entries(source.commands || {})) {
+            if (!target[cmdKey]) target[cmdKey] = { desc: cmdDef.desc };
+            else if (cmdDef.desc && !target[cmdKey].desc) target[cmdKey].desc = cmdDef.desc;
+            if (cmdDef.MB) target[cmdKey].MB = cmdDef.MB;
+            if (cmdDef.CB) target[cmdKey].CB = cmdDef.CB;
+            if (cmdDef.REQ) target[cmdKey].REQ = cmdDef.REQ;
+            if (cmdDef.RESP) target[cmdKey].RESP = cmdDef.RESP;
+            if (cmdDef.default) target[cmdKey].default = cmdDef.default;
+          }
+          return target;
+        };
+        NS.importSchema = function (obj) {
+          try {
+            if (!obj || !obj.frame || !Array.isArray(obj.frame.fields) || !obj.commands) {
+              throw new Error('不是 schema 文件 (缺 frame.fields / commands)');
+            }
+            // 归一 id: host/slave 拆分文件 id 形如 proto_bms_v113_host / _slave → 基础 id proto_bms_v113
+            let baseId = obj.id || 'proto_imported';
+            baseId = baseId.replace(/_(host|slave)$/, '');
+            const role = obj.role === 'host' ? 'host' : obj.role === 'slave' ? 'slave' : 'full';
+            // 找已有 schema 协议 (同 id + kind=schema), 有则合并布局
+            let proto = (NS.PROTOCOLS || []).find((p) => p.id === baseId && p.kind === 'schema');
+            if (!proto) {
+              proto = {
+                id: baseId, kind: 'schema',
+                name: (obj.meta && obj.meta.name) || baseId,
+                byteOrder: (obj.meta && obj.meta.byteOrder) || 'LE',
+                schema: { id: baseId, version: obj.version, meta: obj.meta, frame: obj.frame, commands: {} },
+                commands: []
+              };
+              NS.PROTOCOLS.push(proto);
+            }
+            // 合并 frame/meta (host/slave 的 frame 应一致, 以首次导入为准)
+            if (obj.frame && (!proto.schema.frame || !Array.isArray(proto.schema.frame.fields) || !proto.schema.frame.fields.length)) {
+              proto.schema.frame = obj.frame;
+            }
+            if (obj.meta && !proto.schema.meta) proto.schema.meta = obj.meta;
+            if (obj.version && !proto.schema.version) proto.schema.version = obj.version;
+            // 合并命令布局
+            proto.schema.commands = NS._mergeSchemaCommands(proto.schema.commands, obj);
+            // 重建命令列表
+            proto.commands = NS._schemaCommands(proto.schema);
+            // 应用 + 持久化 + 重渲染
+            NS.activeProtoId = baseId;
+            if (NS._saveUserConfig) NS._saveUserConfig();
+            if (NS.initMockData) NS.initMockData();
+            if (NS.renderKpiCards) NS.renderKpiCards();
+            const complete = NS._schemaIsComplete(proto.schema);
+            const roleLabel = role === 'host' ? '主机(MB)' : role === 'slave' ? '从机(CB)' : '完整';
+            if (!complete) {
+              NS.toast(`已导入 schema 协议 ${baseId} (${roleLabel}, 单向) — 建议再导入另一侧 host/slave 文件以获得双向解析`, 'warn');
+            } else {
+              NS.toast(`已导入 schema 协议 ${baseId} (${roleLabel}, 双向 ${proto.commands.length} 命令)`, 'success');
             }
             return true;
           } catch (e) { NS.toast('导入失败: ' + e.message, 'danger'); return false; }
@@ -21932,7 +22031,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             '<div>' +
               '<h4 style="margin: 0 0 10px; font-size: 13px; display: flex; align-items: center; gap: 6px;">' +
                 '<span data-svg="upload" data-svg-size="14"></span>导入配置' +
-                '<span style="font-size: 11px; color: var(--text-soft); font-weight: 400; margin-left: 8px;">支持 v1 (自动迁移) / v2</span>' +
+                '<span style="font-size: 11px; color: var(--text-soft); font-weight: 400; margin-left: 8px;">支持 v1 (自动迁移) / v2 / 协议 schema (host·slave 自动合并)</span>' +
               '</h4>' +
               '<div id="dh-cc-import-drop" style="background: var(--bg-subtle); border: 2px dashed var(--border); border-radius: 6px; padding: 32px 16px; text-align: center; cursor: pointer; transition: all 0.12s;">' +
                 '<span data-svg="file-up" data-svg-size="32" style="color: var(--text-soft); display: block; margin: 0 auto 8px;"></span>' +

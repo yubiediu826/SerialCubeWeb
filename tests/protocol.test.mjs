@@ -458,3 +458,40 @@ test('P2 卡片编辑: 命令/字段下拉浮动菜单重建 (openCardEdit 后 o
   NS.CARDS = NS.CARDS.filter((c) => c.id !== cardId);
   NS.closeModal('dh-card-edit');
 });
+
+test('P3 schema 文件导入: host/slave 拆分文件合并为单一双向协议', () => {
+  const fs = { readFileSync };
+  const hostJson = fs.readFileSync(new URL('../tools/schemas/bms_v113_host.json', import.meta.url), 'utf8');
+  const slaveJson = fs.readFileSync(new URL('../tools/schemas/bms_v113_slave.json', import.meta.url), 'utf8');
+  // 导入一个全新协议 (改名避免与内置 proto_bms_v113 冲突)
+  const hostObj = JSON.parse(hostJson);
+  const slaveObj = JSON.parse(slaveJson);
+  hostObj.id = 'proto_test_import_host';
+  slaveObj.id = 'proto_test_import_slave';
+  // 1) 先导 host (单向 MB) → 协议创建, 提示单向
+  let proto = NS.PROTOCOLS.find((p) => p.id === 'proto_test_import');
+  if (proto) NS.PROTOCOLS = NS.PROTOCOLS.filter((p) => p.id !== 'proto_test_import');
+  assert.equal(NS.importSchema(hostObj), true, 'host 导入成功');
+  proto = NS.PROTOCOLS.find((p) => p.id === 'proto_test_import');
+  assert.ok(proto && proto.kind === 'schema', 'host 导入创建 schema 协议');
+  assert.equal(NS._schemaIsComplete(proto.schema), false, '仅 host 时单向 (无 CB)');
+  // 2) 再导 slave (CB) → 合并为双向
+  assert.equal(NS.importSchema(slaveObj), true, 'slave 导入成功');
+  proto = NS.PROTOCOLS.find((p) => p.id === 'proto_test_import');
+  assert.equal(NS._schemaIsComplete(proto.schema), true, 'host+slave 合并后双向');
+  assert.equal(Object.keys(proto.schema.commands).length, 19, '合并 19 命令');
+  assert.equal(proto.commands.find((c) => c.id === 0x01).cadence, 200, '0x01 cadence 200');
+  assert.ok(proto.schema.commands['0x01'].MB && proto.schema.commands['0x01'].CB, '0x01 双向布局');
+  // 3) 完整 schema (合并产物 bms_v113.json) 也能直接导入
+  const fullJson = fs.readFileSync(new URL('../tools/schemas/bms_v113.json', import.meta.url), 'utf8');
+  const fullObj = JSON.parse(fullJson);
+  fullObj.id = 'proto_test_import_full';
+  if (NS.PROTOCOLS.find((p) => p.id === 'proto_test_import_full')) NS.PROTOCOLS = NS.PROTOCOLS.filter((p) => p.id !== 'proto_test_import_full');
+  assert.equal(NS.importSchema(fullObj), true, '完整 schema 导入成功');
+  const fullProto = NS.PROTOCOLS.find((p) => p.id === 'proto_test_import_full');
+  assert.equal(NS._schemaIsComplete(fullProto.schema), true, '完整 schema 直接双向');
+  // 4) 用户配置格式仍走原路径 (非 schema 检测不误判)
+  assert.equal(NS.importSchema({ frame: { fields: [] }, commands: {} }), true, '空 schema 结构也接受 (commands 空)');
+  // 清理
+  NS.PROTOCOLS = NS.PROTOCOLS.filter((p) => !['proto_test_import', 'proto_test_import_full'].includes(p.id));
+});
