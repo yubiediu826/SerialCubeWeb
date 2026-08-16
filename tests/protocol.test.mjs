@@ -108,3 +108,35 @@ test('parseFrame 黄金向量 (bms_0x01/0x02/0x03, 含位域/缩放/枚举/ascii
     }
   }
 });
+
+test('schema 编码器: buildFrame(proto_bms_v113, MB) == golden 帧 + 编解码往返', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const byCmd = (id) => proto.commands.find((c) => c.id === id);
+  const g = (id) => golden.frames.find((x) => x.id === id);
+
+  // 0x01 MB: ctrl = 0x0221 (Load + normal_power + fan_enable) → golden 全位开帧
+  NS.currentVals['ctrl'] = 0x0221;
+  const f01 = NS.buildFrame(proto, byCmd(0x01));
+  assert.equal(bytesToHex(f01.bytes).toUpperCase(), g('bms_0x01_mb_all').bytesHex.toUpperCase(), '0x01 MB ctrl=0x0221 帧 == golden');
+  delete NS.currentVals['ctrl'];
+  const back01 = NS.parseFrame(proto, f01.bytes);
+  assert.equal(back01.values['ctrl.Load'], 1, '0x01 往返 ctrl.Load=1');
+  assert.equal(back01.values['ctrl.fan_enable'], 1, '0x01 往返 ctrl.fan_enable=1');
+  assert.equal(back01.values['ctrl.AC_Adapter'], 0, '0x01 往返 ctrl.AC_Adapter=0');
+
+  // 0x03 MB: reserved=0 → golden 请求帧
+  const f03 = NS.buildFrame(proto, byCmd(0x03));
+  assert.equal(bytesToHex(f03.bytes).toUpperCase(), g('bms_0x03_mb_req').bytesHex.toUpperCase(), '0x03 MB 请求帧 == golden');
+
+  // 0x02 MB: schema 默认值 == 文档示例值 → golden 101 字节完整配置帧
+  const f02 = NS.buildFrame(proto, byCmd(0x02));
+  assert.equal(bytesToHex(f02.bytes).toUpperCase(), g('bms_0x02_mb_full').bytesHex.toUpperCase(), '0x02 MB 完整配置帧 == golden (101B)');
+
+  // 往返: 解码(编码) 还原默认值 (含缩放/有符号)
+  const back = NS.parseFrame(proto, f02.bytes);
+  assert.equal(back.crcOk, true, '0x02 往返 CRC');
+  assert.equal(back.values.Cell_OV_Val, 3650, '0x02 往返 Cell_OV_Val');
+  assert.equal(back.values.DsgOCLv1_Val, -20000, '0x02 往返 DsgOCLv1_Val (有符号)');
+  assert.equal(back.values.Enable_Protect_Switch, 16383, '0x02 往返 Enable_Protect_Switch');
+  assert.equal(back.values.Cell_FULL_Timer, 30000, '0x02 往返 Cell_FULL_Timer');
+});

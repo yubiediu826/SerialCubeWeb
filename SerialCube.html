@@ -11476,6 +11476,13 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           // c11/c12 放电卡片 — 跟 c9/c10 风格一致 (pair / trend), field/pairId/range/precision 全填
           { id: 'c11', type: 'pair',  cmd: 0x11, dir: 'tx', pairId: 'discharge_v',    title: '放电电压',    unit: 'V', fromOtherCmd: false, protocol: 'proto_bms' },
           { id: 'c12', type: 'trend', cmd: 0x11, dir: 'tx', field: 'discharge_v_set', title: '放电设定',    unit: 'V', range: [0, 60],   precision: 1, fromOtherCmd: false, protocol: 'proto_bms' }
+          // v1.3.6 P1: BMS V1.13 (schema) 真实遥测卡 — 仅在 proto_bms_v113 激活时显示, 字段来自 CB 位表
+          ,{ id: 'v1', type: 'trend', cmd: 0x01, dir: 'rx', field: 'RSOC',        title: '剩余电量',   unit: '%',  range: [0, 100],    precision: 1, fromOtherCmd: true, protocol: 'proto_bms_v113' }
+          ,{ id: 'v2', type: 'trend', cmd: 0x01, dir: 'rx', field: 'BatVolt',     title: '电池总压',   unit: 'mV', range: [0, 300000], precision: 0, fromOtherCmd: true, protocol: 'proto_bms_v113' }
+          ,{ id: 'v3', type: 'trend', cmd: 0x01, dir: 'rx', field: 'SysCurr',     title: '电流',       unit: 'mA', range: [-50000, 50000], precision: 0, fromOtherCmd: true, protocol: 'proto_bms_v113' }
+          ,{ id: 'v4', type: 'trend', cmd: 0x01, dir: 'rx', field: 'SOH',         title: '健康度',     unit: '%',  range: [0, 100],    precision: 1, fromOtherCmd: true, protocol: 'proto_bms_v113' }
+          ,{ id: 'v5', type: 'trend', cmd: 0x01, dir: 'rx', field: 'Vcell_max',   title: '单体最高电压', unit: 'mV', range: [2500, 4200], precision: 0, fromOtherCmd: true, protocol: 'proto_bms_v113' }
+          ,{ id: 'v6', type: 'trend', cmd: 0x01, dir: 'rx', field: 'CellTempMax', title: '最高温度',   unit: '℃',  range: [-20, 80],   precision: 1, fromOtherCmd: true, protocol: 'proto_bms_v113' }
         ];
 
         // === UI 状态 ===
@@ -12901,9 +12908,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             NS.updateAll();
           });
           NS._tickHandle = setInterval(NS.tickData, 800);
+          // v1.3.6 P1: schema 协议 cadence 轮询 (interval 体内自检连接态)
+          NS._startSchemaPoller && NS._startSchemaPoller();
         };
         NS.stop = function () {
           if (NS._tickHandle) { clearInterval(NS._tickHandle); NS._tickHandle = null; }
+          NS._stopSchemaPoller && NS._stopSchemaPoller();
         };
         // TODO: 配套 click handler 未接 (v1.0.0) — 需在 attachModalHandlers 里绑定到 #dh-menu-reset
         NS.reset = function () {
@@ -13144,9 +13154,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         NS.buildFrame = function (protocol, cmd) {
           if (!protocol) return { error: 'NO_PROTOCOL', bytes: [], sections: [] };
           const kind = protocol.kind || 'fixed-header';
-          if (!NS._KIND_TEMPLATES[kind]) return { error: 'UNKNOWN_KIND', kind, bytes: [], sections: [] };
+          if (kind !== 'schema' && !NS._KIND_TEMPLATES[kind]) return { error: 'UNKNOWN_KIND', kind, bytes: [], sections: [] };
           switch (kind) {
             case 'fixed-header':  return NS._buildFrameFixedHeader(protocol, cmd);
+            case 'schema':        return NS._buildFrameSchema(protocol, cmd);
             case 'raw':           return NS._buildFrameRaw(protocol, cmd);
             case 'cmd-split':     return NS._buildFrameCmdSplit(protocol, cmd);
             case 'addr-split':    return NS._buildFrameAddrSplit(protocol, cmd);
@@ -13641,7 +13652,124 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           }
           return handled;
         };
-        //   实际设备 (或 com51 模拟脚本) 回的是 ASCII 字符串, 跟 binary proto_bms kind=0 帧布局一一对应
+
+        // ============================================================
+        // v1.3.6 P1: schema 驱动编码器 (buildFrame 反向) + cadence 轮询器
+        // ============================================================
+        NS._bitWriter = function (bytes, startBit, bitLen, value) {
+          let u = Math.trunc(value || 0);
+          if (u < 0) u += Math.pow(2, bitLen); // 负数按补码写入
+          for (let i = 0; i < bitLen; i++) {
+            const bit = Math.floor(u / Math.pow(2, i)) % 2;
+            if (!bit) continue;
+            const pos = startBit + i;
+            const byteIdx = pos >> 3;
+            if (byteIdx >= bytes.length) break;
+            bytes[byteIdx] |= (1 << (pos & 7));
+          }
+        };
+
+        // 按 schema 的 dir 布局编码数据区 + 组装帧 + CRC
+        NS._buildFrameSchema = function (protocol, cmd) {
+          const schema = protocol.schema;
+          const dir = (cmd && cmd.schemaDir) || 'MB';
+          const cmdKey = cmd.id.toString(16).padStart(2, '0').toUpperCase();
+          let layout = null;
+          for (const k of Object.keys(schema.commands)) {
+            if (k.toLowerCase().replace(/^0x/, '').padStart(2, '0').toUpperCase() === cmdKey) layout = schema.commands[k][dir];
+          }
+          if (!layout) return { error: 'NO_LAYOUT', bytes: [] };
+          const dataLen = layout.len || 0;
+          const dataBytes = new Uint8Array(dataLen);
+          for (const f of layout.fields || []) {
+            if (f.todo || f.type === 'bytes') continue;
+            const sb = f.startBit != null ? f.startBit : 0;
+            const bl = f.bitLen || 0;
+            if (f.type === 'array') {
+              const item = f.item || {}; const count = item.count || 0; const ib = item.bitLen || 8;
+              const src = Array.isArray(NS.currentVals[f.name]) ? NS.currentVals[f.name] : (Array.isArray(f.default) ? f.default : []);
+              for (let k = 0; k < count; k++) {
+                const phys = src[k] != null ? src[k] : 0;
+                NS._bitWriter(dataBytes, sb + k * ib, ib, Math.round(phys / (f.scale || 1)));
+              }
+              continue;
+            }
+            if (f.type === 'ascii') {
+              const src = typeof NS.currentVals[f.name] === 'string' ? NS.currentVals[f.name] : (f.default || '');
+              const nBytes = Math.floor(bl / 8);
+              const baseByte = Math.floor(sb / 8);
+              const chars = (f.endian === 'LE' ? src.split('').reverse() : src.split(''));
+              for (let k = 0; k < nBytes; k++) dataBytes[baseByte + k] = (chars[k] || '\0').charCodeAt(0) & 0xFF;
+              continue;
+            }
+            if (f.type === 'bitset') {
+              let raw = 0;
+              if (typeof NS.currentVals[f.name] === 'number') raw = NS.currentVals[f.name];
+              else if (f.default != null) raw = NS.parseHexOr0(f.default);
+              (f.bits || []).forEach((b) => {
+                const bitVal = NS.currentVals[`${f.name}.${b.name}`];
+                if (bitVal != null) raw = bitVal ? (raw | (1 << b.bit)) : (raw & ~(1 << b.bit));
+              });
+              NS._bitWriter(dataBytes, sb, bl, raw);
+              continue;
+            }
+            const phys = NS.currentVals[f.name] != null ? NS.currentVals[f.name] : f.default;
+            NS._bitWriter(dataBytes, sb, bl, Math.round(phys / (f.scale || 1)));
+          }
+          // 组装帧
+          const sections = [];
+          for (const f of schema.frame.fields || []) {
+            let bytes = [];
+            if (f.name === 'head') bytes = [NS.parseHexOr0((f.match && f.match[dir]) || '0x00')];
+            else if (f.name === 'addr') bytes = [0x01]; // 默认设备地址 0x01
+            else if (f.name === 'cmd') bytes = [cmd.id & 0xFF];
+            else if (f.name === 'len') bytes = [dataLen & 0xFF];
+            else if (f.name === 'data') bytes = Array.from(dataBytes);
+            else if (f.type === 'crc16' || f.type === 'crc') bytes = [0, 0];
+            sections.push({ name: f.name, bytes });
+          }
+          const crcConf = schema.frame.crc || {};
+          const crcSize = NS.crcByteSize(crcConf.type || 'crc16-modbus');
+          const merged = [];
+          sections.forEach((s) => merged.push(...s.bytes));
+          const crcIn = merged.slice(0, merged.length - crcSize);
+          const crcVal = NS.computeCrc(crcConf.type || 'crc16-modbus', crcIn, NS.parseHexOr0(crcConf.init));
+          const crcBytes = NS._encodeCrcBytes(crcVal, crcConf.endian || 'LE');
+          const crcSec = sections.find((s) => s.name === 'crc');
+          if (crcSec) crcSec.bytes = crcBytes;
+          const out = [];
+          sections.forEach((s) => out.push(...s.bytes));
+          return { bytes: out, sections };
+        };
+
+        // cadence 轮询器: 连接态下按命令 cadence 周期发 schema 查询帧 (MB)
+        NS._schemaPollerHandle = null;
+        NS._schemaPollerLast = {};
+        NS._startSchemaPoller = function () {
+          NS._stopSchemaPoller();
+          const cmds = (NS.PROTOCOLS || []).filter((p) => p && p.schema && p.id === NS.activeProtoId)
+            .flatMap((p) => (p.commands || []).filter((c) => c.frameType === 'query' && c.cadence > 0));
+          if (!cmds.length) return;
+          const minCadence = Math.min(...cmds.map((c) => c.cadence));
+          NS._schemaPollerLast = {};
+          NS._schemaPollerHandle = setInterval(() => {
+            if (!NS._serialConnected || typeof NS._writeSerial !== 'function') return;
+            const proto = (NS.PROTOCOLS || []).find((p) => p.id === NS.activeProtoId && p.schema);
+            if (!proto) return;
+            const now = Date.now();
+            for (const c of cmds) {
+              if ((NS._schemaPollerLast[c.id] || 0) > now - c.cadence) continue;
+              const frame = NS.buildFrame(proto, c);
+              if (frame && frame.bytes && frame.bytes.length) {
+                NS._writeSerial(Uint8Array.from(frame.bytes));
+                NS._schemaPollerLast[c.id] = now;
+              }
+            }
+          }, Math.max(50, minCadence));
+        };
+        NS._stopSchemaPoller = function () {
+          if (NS._schemaPollerHandle) { clearInterval(NS._schemaPollerHandle); NS._schemaPollerHandle = null; }
+        };
         //   ASCII 帧: "170,1,16,4,0,56,0,0,157,11,85\r\n" (11 数字 = 7+N=11, N=4 跟 0x10/0x11 dataSize 一致)
         //     数字  #1 = 0xAA=170 (header 验证)
         //     数字  #2 = 0x01 (addr)
@@ -17579,6 +17707,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           if (dashNS) {
             const prev = dashNS._serialConnected;
             dashNS._serialConnected = state.serial.connected;
+            // v1.3.6 P1: 暴露串口写入回调给仪表盘 (schema 轮询器发送用); 断开时置空
+            dashNS._writeSerial = (state.serial.connected && state.serial.writer) ? function (bytes) {
+              try { return state.serial.writer.write(bytes); } catch (e) { return Promise.resolve(); }
+            } : null;
             if (prev !== state.serial.connected && typeof dashNS.updateDashboardProtoBar === 'function') {
               dashNS.updateDashboardProtoBar();
             }
