@@ -167,6 +167,20 @@ test('BMS 位字段展开 (ProtectCode uint16 逐位解析)', () => {
   assert.equal(parsed.values['ProtectCode.软件层充电过温保护'], 0, 'bit2 充电过温=0');
 });
 
+test('卡片字段选项含位展开 (schema 协议)', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const cmd = proto.commands.find((c) => c.id === 0x01);
+  const opts = NS._cardFieldOptions(cmd);
+  assert.ok(Array.isArray(opts) && opts.length >= 50, `字段选项数 ${opts.length} ≥ 50`);
+  assert.ok(opts.some((o) => o.name === 'ProtectCode'), '含 ProtectCode 整字段');
+  assert.ok(opts.some((o) => o.name === 'ProtectCode.软件层放电过温保护'), '含 ProtectCode.位展开');
+  assert.ok(opts.some((o) => o.name === 'BatVolt'), '含 BatVolt 普通字段');
+  // 旧协议 (dataFields) 兼容
+  const legacy = NS.PROTOCOLS.find((p) => p.id === 'proto_bms');
+  const legacyOpts = NS._cardFieldOptions(legacy.commands[0]);
+  assert.ok(legacyOpts.length > 0 && legacyOpts[0].name, '旧协议 dataFields 兼容');
+});
+
 test('schema 编码器: buildFrame(proto_bms_v113, MB) == golden 帧 + 编解码往返', () => {
   const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
   const byCmd = (id) => proto.commands.find((c) => c.id === id);

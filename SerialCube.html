@@ -19016,6 +19016,40 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             el.appendChild(row);
           });
         };
+        // v1.3.6 B: 卡片字段选项 — 兼容 dataFields 与 schema 布局; bitset 字段展开为 字段名.位名
+        NS._cardFieldOptions = function (cmd) {
+          if (!cmd) return [];
+          // 旧协议: dataFields
+          if (cmd.dataFields && cmd.dataFields.length) {
+            return cmd.dataFields.map((df) => ({ name: df.name, label: df.name }));
+          }
+          // schema 协议: 从协议 schema 的命令布局枚举字段, bitset 展开位
+          const proto = (NS.PROTOCOLS || []).find((p) => p.schema && p.commands && p.commands.some((c) => c.id === cmd.id));
+          if (!proto || !proto.schema) return [];
+          const hex = cmd.id.toString(16).padStart(2, '0').toUpperCase();
+          const cmdDef = proto.schema.commands && (proto.schema.commands[hex] || proto.schema.commands['0x' + hex]);
+          if (!cmdDef) return [];
+          const opts = [];
+          const seen = new Set();
+          const addLayout = (layout) => {
+            if (!layout || !layout.fields) return;
+            for (const f of layout.fields) {
+              if (f.todo || f.type === 'bytes') continue;
+              if (!seen.has(f.name)) { seen.add(f.name); opts.push({ name: f.name, label: f.name }); }
+              if (f.type === 'bitset' && Array.isArray(f.bits)) {
+                for (const b of f.bits) {
+                  const bitName = `${f.name}.${b.name}`;
+                  if (!seen.has(bitName)) { seen.add(bitName); opts.push({ name: bitName, label: bitName }); }
+                }
+              }
+            }
+          };
+          addLayout(cmdDef.RESP || cmdDef.CB);
+          addLayout(cmdDef.REQ || cmdDef.MB);
+          addLayout(cmdDef.default);
+          return opts;
+        };
+
         NS.openCardEdit = function (id) {
           NS.editingCardId = id;
           const c = NS.CARDS.find((x) => x.id === id);
@@ -19028,10 +19062,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           cmdSel.innerHTML = NS.allCommands().map((cmd) => `<option value="${cmd.id}" ${c.cmd === cmd.id ? 'selected' : ''}>0x${cmd.id.toString(16).padStart(2, '0').toUpperCase()} ${NS.escapeHtml(cmd.name)}</option>`).join('');
           const fieldSel = document.getElementById('dh-ce-field');
           const cmdObj = NS.allCommands().find((cmd) => cmd.id === c.cmd);
-          fieldSel.innerHTML = cmdObj ? (cmdObj.dataFields || []).map((df) => `<option value="${df.name}" ${c.field === df.name ? 'selected' : ''}>${df.name}</option>`).join('') : '';
+          const esc = NS.escapeHtml;
+          fieldSel.innerHTML = NS._cardFieldOptions(cmdObj).map((f) => `<option value="${esc(f.name)}" ${c.field === f.name ? 'selected' : ''}>${esc(f.label)}</option>`).join('');
           cmdSel.onchange = () => {
             const newCmd = NS.allCommands().find((cmd) => cmd.id === parseInt(cmdSel.value));
-            fieldSel.innerHTML = newCmd ? (newCmd.dataFields || []).map((df) => `<option value="${df.name}">${df.name}</option>`).join('') : '';
+            fieldSel.innerHTML = NS._cardFieldOptions(newCmd).map((f) => `<option value="${esc(f.name)}">${esc(f.label)}</option>`).join('');
           };
           document.getElementById('dh-ce-rx').checked = !!c.fromOtherCmd;
           document.getElementById('dh-ce-lower').value = c.range ? c.range[0] : '';
