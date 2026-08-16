@@ -7,20 +7,17 @@
 
 | 文件 | 协议 | 状态 |
 |------|------|------|
-| `bms_v113.json` | BMS V1.13（head+addr+cmd+len+set+crc16） | ✅ 权威完整双向 schema（MB+CB 全 19 命令） |
-| `bms_v113_host.json` | BMS V1.13 主机视角（完整双向 + `role:"host"`） | ✅ 双页面仿真主机页导入 |
-| `bms_v113_slave.json` | BMS V1.13 从机视角（完整双向 + `role:"slave"`） | ✅ 双页面仿真从机页导入 |
+| `bms_v113.json` | BMS V1.13（head+addr+cmd+len+set+crc16） | ✅ 唯一权威完整双向 schema（MB+CB 全 19 命令） |
 | `ems_v143.json` | EMS V1.4.3（0xAA 0xAA + addr2 + cmd + len + data + checksum） | 见文件内 TODO |
 
-> **host/slave 拆分约定**：双页面仿真中，主机页发 MB（控制/查询）+ 收 CB（遥测），从机页收 MB + 发 CB（响应），**两边都需要完整双向布局**。因此 host/slave 文件都是 `bms_v113.json` 的完整副本，区别只在 `role` 标记（导入后自动设置仿真角色）和独立协议 id（`proto_bms_v113_host` / `proto_bms_v113_slave`，两页面各导各的互不覆盖）。改协议只改 `bms_v113.json`，再跑 `split-bms-schema.mjs` 重新生成两个视角副本。
+> **单一协议 + 模式区分**：一个 `bms_v113.json` 就够了；仪表盘通过「主机模式/从机模式」切换角色，不拆多个协议。命令同时承载双向布局：`MB`(主机发送, tx) + `CB`(主机接收, rx)。例如 0x01 主机发 2 字节 ctrl 控制字段、从机回 159 字节遥测。
 
 ## 嵌入与同步
 
 schema 在单文件 `SerialCube.html` 中以 `NS._SCHEMA_<ID>` 内嵌（`// @SCHEMA_EMBED_<ID>@` marker）：
 
 ```bash
-node tools/scripts/split-bms-schema.mjs   # 从 bms_v113.json 重新生成 host/slave 视角副本
-node tools/scripts/embed-schema.mjs       # 修改 tools/schemas/*.json 后必跑 (bms_v113.json 直接嵌入, host/slave 跳过)
+node tools/scripts/embed-schema.mjs   # 修改 tools/schemas/*.json 后必跑
 ```
 
 ## 结构

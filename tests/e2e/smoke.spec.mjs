@@ -54,9 +54,9 @@ async function main() {
       const NS = window.NS;
       const out = {};
       out.crc = NS.crc16Modbus([0x5A, 0x01, 0x03, 0x01, 0x00]) === 0x618C;
-      const proto = (NS.PROTOCOLS || []).find((p) => p.id === 'proto_bms_v113_host');
+      const proto = (NS.PROTOCOLS || []).find((p) => p.id === 'proto_bms_v113');
       out.proto = !!proto;
-      out.slaveProto = !!(NS.PROTOCOLS || []).find((p) => p.id === 'proto_bms_v113_slave');
+      out.cmdBoth = !!(proto && proto.commands.find((c) => c.id === 0x01 && c.direction === 'both'));
       if (proto) {
         const cmd = proto.commands.find((c) => c.id === 0x03);
         const f = NS.buildFrame(proto, cmd);
@@ -68,8 +68,8 @@ async function main() {
       return out;
     });
     ok(result.crc, 'in-page CRC16 黄金向量');
-    ok(result.proto, 'proto_bms_v113_host 注册');
-    ok(result.slaveProto, 'proto_bms_v113_slave 注册');
+    ok(result.proto, 'proto_bms_v113 注册');
+    ok(result.cmdBoth, '0x01 命令双向 (tx+rx)');
     ok(result.frame, 'buildFrame 0x03 帧字节正确');
     ok(result.dashBtn, '仪表盘入口按钮存在');
 

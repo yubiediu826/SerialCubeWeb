@@ -16,25 +16,25 @@
   "frames": [
     {
       "id": "bms_0x01_mb_default",
-      "proto": "proto_bms_v113_host", "cmd": "0x01", "dir": "MB",
+      "proto": "proto_bms_v113", "cmd": "0x01", "dir": "MB",
       "bytesHex": "5A 01 01 02 00 00 91 1D",
       "expect": { "ctrl": 0, "ctrl.Load": 0, "ctrl.AC_Adapter": 0, "ctrl.fan_enable": 0 }
     },
     {
       "id": "bms_0x01_mb_load",
-      "proto": "proto_bms_v113_host", "cmd": "0x01", "dir": "MB",
+      "proto": "proto_bms_v113", "cmd": "0x01", "dir": "MB",
       "bytesHex": "5A 01 01 02 01 00 90 8D",
       "expect": { "ctrl": 1, "ctrl.Load": 1, "ctrl.AC_Adapter": 0, "ctrl.DC_Adapter": 0 }
     },
     {
       "id": "bms_0x01_mb_all",
-      "proto": "proto_bms_v113_host", "cmd": "0x01", "dir": "MB",
+      "proto": "proto_bms_v113", "cmd": "0x01", "dir": "MB",
       "bytesHex": "5A 01 01 02 21 02 08 8C",
       "expect": { "ctrl": 545, "ctrl.Load": 1, "ctrl.normal_power": 1, "ctrl.fan_enable": 1, "ctrl.AC_Adapter": 0 }
     },
     {
       "id": "bms_0x02_mb_full",
-      "proto": "proto_bms_v113_host", "cmd": "0x02", "dir": "MB",
+      "proto": "proto_bms_v113", "cmd": "0x02", "dir": "MB",
       "bytesHex": "5A 01 02 5F 42 0E 10 0E 88 13 B8 0B C4 09 28 0A 88 13 B8 0B F4 01 10 27 D0 07 88 13 3C 32 88 13 B8 0B EC F6 88 13 B8 0B 37 2D 88 13 B8 0B 00 05 88 13 B8 0B 10 27 00 00 88 13 10 27 E0 B1 FF FF 88 13 10 27 C0 63 FF FF D0 07 88 13 FF 3F 00 20 4E 00 00 42 0E 10 0E 30 75 10 27 F4 01 50 46 88 13 B8 0B 70 CF",
       "expect": {
         "Cell_OV_Val": 3650, "Cell_OV_Timer": 5000, "Cell_UV_Val": 2500,
@@ -46,19 +46,19 @@
     },
     {
       "id": "bms_0x03_mb_req",
-      "proto": "proto_bms_v113_host", "cmd": "0x03", "dir": "MB",
+      "proto": "proto_bms_v113", "cmd": "0x03", "dir": "MB",
       "bytesHex": "5A 01 03 01 00 8C 61",
       "expect": { "reserved": 0 }
     },
     {
       "id": "bms_0x16_mb_req",
-      "proto": "proto_bms_v113_host", "cmd": "0x16", "dir": "MB",
+      "proto": "proto_bms_v113", "cmd": "0x16", "dir": "MB",
       "bytesHex": "5A 01 16 04 00 00 00 00 26 BE",
       "expect": { "reserved": 0 }
     },
     {
       "id": "bms_0x03_cb_resp",
-      "proto": "proto_bms_v113_host", "cmd": "0x03", "dir": "CB",
+      "proto": "proto_bms_v113", "cmd": "0x03", "dir": "CB",
       "bytesHex": "55 01 03 15 64 81 0A 00 01 00 00 00 00 54 36 32 42 20 4E 00 00 38 4A 00 00 E5 E2",
       "expect": {
         "NTC_CNT": 4, "CELL_CNT": 1, "BAT_TYPE": 4, "BAT_TYPE_label": "铅酸",
@@ -68,7 +68,7 @@
     },
     {
       "id": "bms_0x01_cb_telemetry",
-      "proto": "proto_bms_v113_host", "cmd": "0x01", "dir": "CB",
+      "proto": "proto_bms_v113", "cmd": "0x01", "dir": "CB",
       "bytesHex": "55 01 01 8F 00 00 00 00 00 00 00 00 C3 38 02 00 00 00 00 00 18 00 18 00 18 00 FF FF FF FF FF FF FF FF FF FF 18 00 18 00 FF FF 1B 00 1C 00 00 00 00 00 1B 00 0A 00 00 00 0A 00 00 00 00 00 00 00 1A 00 00 00 00 00 00 00 00 00 64 00 00 00 00 00 00 00 00 00 00 00 00 00 00 E1 0D DB 0D E1 0D E2 0D E3 0D DD 0D 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 E3 0D DB 0D 08 00 05 02 02 53 57 51 F8 52 00 00 00 00 E8 0C 00 00 DA 2F 00 00 F4 05",
       "expect": {
         "ChgDsgState": 14531, "SysState": 2,

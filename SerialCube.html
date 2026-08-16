@@ -6136,6 +6136,21 @@
       padding-top: 3px; border-top: 1px solid var(--border);
     }
     .dashboard-host     .card-default.control .ctrl-resp strong { color: var(--text); font-size: 0.8125rem; }
+    /* v1.3.9: 单bit 控制卡 */
+    .dashboard-host     .card-default.control.bit-on .card-statusbar { background: #52c41a; }
+    .dashboard-host     .card-default.control .ctrl-single-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0;
+    }
+    .dashboard-host     .card-default.control .ctrl-single-state {
+      font-size: 1.125rem; font-weight: 800; font-family: "Cascadia Code", Consolas, monospace;
+    }
+    .dashboard-host     .card-default.control.bit-on .ctrl-single-state { color: #52c41a; }
+    .dashboard-host     .card-default.control .ctrl-single-toggle {
+      font-size: 0.6875rem; font-weight: 700; padding: 5px 14px;
+      border: 1px solid var(--border); border-radius: 4px; cursor: pointer;
+      background: var(--bg-subtle); color: var(--text); font-family: inherit;
+    }
+    .dashboard-host     .card-default.control.bit-on .ctrl-single-toggle { background: rgba(82, 196, 26, 0.16); border-color: #52c41a; color: #52c41a; }
     /* v1.3.8: set 卡 (从机模式 — 参数值设置, 无图表) */
     .dashboard-host     .card-default.set .card-statusbar { background: #3a5ccc; }
     .dashboard-host     .card-default.set .set-src-badge {
@@ -7303,6 +7318,17 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .dashboard-host     .wiz-field-table input, .wiz-field-table select { padding: 3px 6px; border: 1px solid var(--border); border-radius: 3px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 12px; width: 80px; }
 .dashboard-host     .wiz-field-table .wiz-field-name { width: 120px; }
 .dashboard-host     .wiz-field-del { background: none; border: none; cursor: pointer; padding: 4px; color: var(--danger); }
+/* v1.3.9: 位定义编辑器 (逐位表格) + 字段方向 tag */
+.dashboard-host     .wiz-field-table .df-dir { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; background: var(--bg-subtle); color: var(--text-soft); }
+.dashboard-host     .wiz-field-table .df-dir.tx { background: rgba(217, 119, 6, 0.16); color: #d97706; }
+.dashboard-host     .wiz-field-table .df-dir.rx { background: rgba(58, 92, 204, 0.16); color: #3a5ccc; }
+.dashboard-host     .wiz-field-table .bits-editor { display: flex; flex-direction: column; gap: 3px; margin-bottom: 4px; }
+.dashboard-host     .wiz-field-table .bit-row { display: flex; align-items: center; gap: 4px; }
+.dashboard-host     .wiz-field-table .bit-idx { font-size: 11px; color: var(--text-soft); font-family: "Cascadia Code", Consolas, monospace; width: 22px; flex-shrink: 0; }
+.dashboard-host     .wiz-field-table .bit-name { width: 110px !important; }
+.dashboard-host     .wiz-field-table .bit-del { background: none; border: none; cursor: pointer; color: var(--danger); font-size: 14px; line-height: 1; padding: 0 2px; }
+.dashboard-host     .wiz-field-table .bit-add { background: none; border: 1px dashed var(--border); cursor: pointer; color: var(--accent); font-size: 11px; padding: 2px 8px; border-radius: 3px; }
+.dashboard-host     .wiz-field-table .bits-empty { font-size: 11px; color: var(--text-soft); }
 
     /* 配置中心 modal (Task 9) — 5 tab 切换 + 1180px 宽 modal */
 .dashboard-host     .modal.xtra-wide { width: min(1180px, 95vw); max-width: 95vw; }   /* 配置中心要 1180px,覆盖原 L6233 同选择器 1400px 规则 */
@@ -8629,6 +8655,16 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.3.9 版本 · 26/8/16</strong>
+            <ul>
+              <li>重构: 单一 bms_v113.json 协议 + 双向命令模型 — 0x01 主机发 2 字节 ctrl 控制字段、从机回 159 字节遥测; 0x02 主机发 95 字节保护参数、从机回 1 字节 ack; 主机/从机由工具栏模式切换区分, 不再拆 host/slave 协议 (删除 host/slave 副本文件)</li>
+              <li>修复: 协议编辑器编辑命令字段为空/大小为 0 — 编辑弹窗从 schema MB/CB 布局派生字段 (含方向 TX/RX 标注), computeDataSize 按 txLen+rxLen 算字节</li>
+              <li>优化: 位定义编辑器改为逐位表格 (位号+位名+增删按钮), 不再用逗号分隔文本</li>
+              <li>优化: 新建卡片改为单弹窗一次定义 (协议+命令+类型+字段+标题), 主机模式字段下拉支持单个位 (如 ProtectCode.软件层放电过温保护)</li>
+              <li>优化: 主机 0x01 控制位拆成每位一张卡 (Load/AC_Adapter/.../fan_enable 共 10 张), 每张独立开关+发送</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.3.8 版本 · 26/8/16</strong>
             <ul>
               <li>新增: 工具栏主机/从机模式切换按钮 (替换"仿真"按钮) — 一键切角色并同步激活协议 (host↔slave) + 轮询启停</li>
@@ -8824,7 +8860,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.3.8';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.8: 工具栏主机/从机模式切换 + 默认协议 host/slave + 控制卡/参数卡 + 字段视图修复; v1.3.7: 双页面仿真; v1.3.6: P1/P2/P3)
+      const VERSION = '1.3.9';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.9: 单一协议+双向命令+协议编辑器修复+位编辑器+单弹窗建卡+控制位拆卡; v1.3.8: 主机/从机模式切换)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
@@ -10817,7 +10853,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         };
         NS.PROTOCOLS = NS._defaultProtocols();
         // v1.3.6 P1: 注册 schema 驱动协议 (BMS V1.13) — schema 由 tools/scripts/embed-schema.mjs 生成嵌入
-                                                                        NS._SCHEMA_BMS_V113 = {
+                                                                                NS._SCHEMA_BMS_V113 = {
  "id": "proto_bms_v113",
  "version": "1.13",
  "meta": {
@@ -13442,7 +13478,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 };
 
 
-                                                                        NS._SCHEMA_EMS_V143 = {
+                                                                                NS._SCHEMA_EMS_V143 = {
  "id": "proto_ems_v143",
  "version": "1.4.3",
  "meta": {
@@ -16892,7 +16928,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
         // v1.3.8: BMS V1.13 命令名表 (schema 命令自动生成用)
         NS._BMS_CMD_NAMES = { '0x01': '控制与常规数据', '0x02': '保护参数配置', '0x03': 'BMS 信息查询', '0x04': 'OCV 表配置', '0x05': '保护参数查询', '0x06': 'OCV 表查询', '0x07': 'SN 码写入', '0x08': 'SN 码查询', '0x09': '通信均衡', '0x0A': '电池日志查询', '0x0B': '设置剩余容量', '0x0C': '设置风扇转速', '0x10': '升级设备号', '0x11': '升级总包数', '0x12': '升级总字节数', '0x13': '升级总校验', '0x14': '升级数据包', '0x15': '升级完成状态', '0x16': '级联电池信息' };
-        // 从 schema 生成命令列表 (BMS V1.13 19 命令; 0x01 周期 200ms)
+        // v1.3.9: 从 schema 生成命令列表 — 命令同时承载双向布局:
+        //   txFields = MB (主机发送, 如 0x01 ctrl 2B / 0x02 保护参数 95B)
+        //   rxFields = CB (主机接收, 如 0x01 遥测 159B / 0x02 ack 1B)
+        //   direction 显示双方向; 主机/从机模式决定哪侧是发送哪侧是接收
         NS._schemaCommandList = function (schema) {
           const out = [];
           Object.keys(schema.commands || {}).forEach((k) => {
@@ -16900,15 +16939,23 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const hex = k.toLowerCase().replace(/^0x/, '').padStart(2, '0');
             const cmdDef = schema.commands[k] || {};
             const isControl = ['02', '04', '07', '09', '0b', '0c', '10', '11', '12', '13', '14'].includes(hex);
-            const hasMB = !!(cmdDef.MB && cmdDef.MB.fields);
+            const mb = cmdDef.MB;
+            const cb = cmdDef.CB;
+            const hasMB = !!(mb && mb.fields && mb.fields.length);
+            const hasCB = !!(cb && cb.fields && cb.fields.length);
             out.push({
               id: n,
               name: NS._BMS_CMD_NAMES[k] || ('BMS 0x' + hex.toUpperCase()),
-              direction: hasMB ? 'tx' : 'rx',
+              direction: (hasMB && hasCB) ? 'both' : (hasMB ? 'tx' : 'rx'),
               frameType: isControl ? 'control' : 'query',
               cadence: n === 0x01 ? 200 : 0,
               expectResponse: hasMB ? n : undefined,
               schemaDir: hasMB ? 'MB' : undefined,
+              // 双向布局引用 (字段表 + 字节长度)
+              txFields: hasMB ? mb.fields : [],
+              rxFields: hasCB ? cb.fields : [],
+              txLen: hasMB ? (mb.len || 0) : 0,
+              rxLen: hasCB ? (cb.len || 0) : 0,
               dataFields: []
             });
           });
@@ -16917,21 +16964,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         NS._registerSchemaProtocols = function () {
           const regs = [];
           if (NS._SCHEMA_BMS_V113) {
-            // v1.3.8: 默认注册主机/从机两条 (共享同一完整双向 schema 的深拷贝, 避免对象串改)
-            const mkProto = (role) => ({
-              id: role === 'host' ? 'proto_bms_v113_host' : 'proto_bms_v113_slave',
+            // v1.3.9: 单一协议 (完整双向 schema), 主机/从机由仪表盘模式切换区分, 不再拆两个协议
+            const proto = {
+              id: 'proto_bms_v113',
               kind: 'schema',
-              name: role === 'host' ? 'BMS V1.13 主机' : 'BMS V1.13 从机',
+              name: 'BMS V1.13',
               byteOrder: 'LE',
-              role: role,
               schema: JSON.parse(JSON.stringify(NS._SCHEMA_BMS_V113)),
               commands: []
-            });
-            const hostProto = mkProto('host');
-            hostProto.commands = NS._schemaCommandList(hostProto.schema);
-            const slaveProto = mkProto('device');
-            slaveProto.commands = NS._schemaCommandList(slaveProto.schema);
-            regs.push(hostProto, slaveProto);
+            };
+            proto.commands = NS._schemaCommandList(proto.schema);
+            regs.push(proto);
           }
           if (!regs.length) return; // 未嵌入 (开发期), 静默跳过
           const have = new Set((NS.PROTOCOLS || []).map((p) => p.id));
@@ -17339,11 +17382,50 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
                 + '</div>' : '');
           } else if (c.type === 'control') {
-            // widget: control 卡 (主机模式 — 编辑 ctrl 位 + 发送 + 显示响应遥测)
+            // widget: control 卡 (主机模式 — singleBit: 单个位开关; 否则多位 ctrl 位表)
             card.classList.add('control');
-            const bits = NS._controlCardBits(c);
             const raw = NS._controlBitValue(c);
             const resp = NS.currentVals[c.respField] != null ? NS.currentVals[c.respField] : 0;
+            if (c.singleBit) {
+              // 单bit 卡: 位名 + 开关 + 发送 + 响应
+              const on = ((raw >> c.bit) & 1) ? 1 : 0;
+              card.classList.toggle('bit-on', !!on);
+              card.innerHTML =
+                '<div class="card-statusbar"></div>'
+                + '<div class="card-body">'
+                + '<div class="card-header">'
+                + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+                + '</div>'
+                + '<div class="ctrl-single-row">'
+                + '<span class="ctrl-single-state">' + (on ? 'ON' : 'OFF') + '</span>'
+                + '<button type="button" class="ctrl-single-toggle" data-action="toggle">' + (on ? '关闭' : '开启') + '</button>'
+                + '</div>'
+                + '<div class="ctrl-row">'
+                + '<span class="ctrl-raw">bit' + c.bit + ' = ' + on + '</span>'
+                + '<button type="button" class="ctrl-send" data-action="send">发送</button>'
+                + '</div>'
+                + '<div class="ctrl-resp" data-action="detail">' + NS.escapeHtml(c.respField || '响应') + ': <strong>' + resp.toFixed(c.precision || 1) + '</strong>' + NS.escapeHtml(c.respUnit || '') + '</div>'
+                + '</div>'
+                + (NS.editMode ? '<div class="card-actions">'
+                  + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                  + '</div>' : '');
+              card.querySelectorAll('[data-action]').forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  const act = btn.getAttribute('data-action');
+                  if (act === 'edit') NS.openCardEdit(c.id);
+                  else if (act === 'toggle') {
+                    NS._toggleControlBit(c, { bit: c.bit, name: c.bitName });
+                    NS.renderCardGrid();
+                  }
+                  else if (act === 'send') NS._sendControlFrame(c);
+                  else if (act === 'detail') NS.__openDetail(c.id);
+                });
+              });
+              return card;
+            }
+            // 多位 ctrl 卡 (兼容旧)
+            const bits = NS._controlCardBits(c);
             const bitsHtml = bits.length
               ? bits.filter((b) => !/^Reserved/i.test(b.name)).map((b) => {
                   const on = (raw >> b.bit) & 1;
@@ -18589,10 +18671,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           NS.ALERTS = [];
           NS.activeProtoId = null;
           NS._clearUserConfig && NS._clearUserConfig();
-          // v1.3.8: 重置后重新注册 schema 协议 (host/slave) + 生成默认卡片
+          // v1.3.9: 重置后重新注册 schema 协议 (单一 BMS) + 生成默认卡片
           NS._registerSchemaProtocols && NS._registerSchemaProtocols();
           NS._ensureDefaultCards && NS._ensureDefaultCards();
-          NS.activeProtoId = 'proto_bms_v113_host';
+          NS.activeProtoId = 'proto_bms_v113';
           NS._simRole = 'host';
           NS.start();
         };
@@ -18711,6 +18793,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         // 返 0 = 缺字段 / string 变长 / 未知 type (UI 该报警)
         //   Phase 2.1 适配: 直接读 df.type (对象内联), 不再依赖 NS.DATA_FIELDS
         NS.computeDataSize = function (cmd) {
+          // v1.3.9: 双向命令 — 按 tx/rx 布局字节长度算 (schema 命令 dataFields 为空但 txLen/rxLen 有效)
+          if (cmd && (cmd.txLen != null || cmd.rxLen != null)) {
+            return (cmd.txLen || 0) + (cmd.rxLen || 0);
+          }
           if (!cmd || !cmd.dataFields) return 0;
           let total = 0;
           for (const df of cmd.dataFields) {
@@ -20254,13 +20340,14 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           return opts;
         };
 
-        // v1.3.8: 模式切换 (主机/从机) — 角色唯一入口, 同步 activeProtoId + poller + 重渲染
+        // v1.3.8: 模式切换 (主机/从机) — 角色唯一入口; v1.3.9 单一协议, 不再切 activeProtoId
         NS.setSimMode = function (mode) {
           if (mode !== 'host' && mode !== 'device') mode = 'host';
           NS._simRole = mode;
-          // 同步激活协议 (host → proto_bms_v113_host, device → proto_bms_v113_slave; 没有则保持当前)
-          const targetId = mode === 'host' ? 'proto_bms_v113_host' : 'proto_bms_v113_slave';
-          if ((NS.PROTOCOLS || []).some((p) => p.id === targetId)) NS.activeProtoId = targetId;
+          // 单一协议下 activeProtoId 保持不变 (若为空则设默认 BMS 协议)
+          if (!NS.activeProtoId || !(NS.PROTOCOLS || []).some((p) => p.id === NS.activeProtoId)) {
+            NS.activeProtoId = 'proto_bms_v113';
+          }
           if (mode === 'host') { NS._startSchemaPoller && NS._startSchemaPoller(); }
           else { NS._stopSchemaPoller && NS._stopSchemaPoller(); }
           NS._saveUserConfig && NS._saveUserConfig();
@@ -20531,42 +20618,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           } catch (e) { NS.toast('导入失败: ' + e.message, 'danger'); return false; }
         };
 
-        // v1.3.6 P3 修: schema 协议文件导入 (host/slave 拆分源或完整 schema)
-        //   从 schema.commands 自动生成 NS.PROTOCOLS 命令列表 (与 _registerSchemaProtocols 同规则),
-        //   支持 host(MB)/slave(CB) 拆分文件合并到同一协议 (判向需要双向布局)。
-        NS._schemaCommands = function (schema) {
-          const out = [];
-          Object.keys(schema.commands || {}).forEach((k) => {
-            const n = parseInt(k, 16);
-            const hex = k.toLowerCase().replace(/^0x/, '').padStart(2, '0');
-            const cmdDef = schema.commands[k] || {};
-            const hasMB = !!(cmdDef.MB && cmdDef.MB.fields);
-            const hasREQ = !!(cmdDef.REQ && cmdDef.REQ.fields);
-            const hasCB = !!(cmdDef.CB && cmdDef.CB.fields);
-            const isControl = ['02', '04', '07', '09', '0b', '0c', '10', '11', '12', '13', '14'].includes(hex);
-            out.push({
-              id: n,
-              name: (cmdDef.desc && !cmdDef.desc.startsWith('BMS ')) ? cmdDef.desc.replace(/\s*\(.*\)\s*$/, '') : ('0x' + hex.toUpperCase()),
-              direction: (hasMB || hasREQ) ? 'tx' : 'rx',
-              frameType: isControl ? 'control' : 'query',
-              cadence: n === 0x01 ? 200 : 0,
-              expectResponse: (hasMB || hasREQ) ? n : undefined,
-              schemaDir: hasMB ? 'MB' : (hasREQ ? 'REQ' : undefined),
-              dataFields: []
-            });
-          });
-          return out;
-        };
-        // 判断 schema 是否已含双向布局 (MB+CB 或 REQ+RESP)
-        NS._schemaIsComplete = function (schema) {
-          let hasTx = false, hasRx = false;
-          for (const cmdDef of Object.values(schema.commands || {})) {
-            if (cmdDef.MB || cmdDef.REQ) hasTx = true;
-            if (cmdDef.CB || cmdDef.RESP) hasRx = true;
-          }
-          return hasTx && hasRx;
-        };
-        // 合并 host/slave schema 到同一个协议 (按命令键合并 MB/CB 布局)
+        // v1.3.9: 合并 schema 命令布局 (按命令键合并 MB/CB/REQ/RESP), 供 importSchema 增量导入用
         NS._mergeSchemaCommands = function (target, source) {
           for (const [cmdKey, cmdDef] of Object.entries(source.commands || {})) {
             if (!target[cmdKey]) target[cmdKey] = { desc: cmdDef.desc };
@@ -20598,13 +20650,16 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           if (!c01) return cards;
           const roleKey = role === 'device' || role === 'slave' ? 'device' : 'host';
           if (roleKey === 'host') {
-            // 主机: 0x01 控制卡 + 遥测 trend 卡
+            // 主机: 0x01 ctrl 位表拆成每位一张控制卡 (Reserved 位不生成) + 遥测 trend 卡
             if (c01.MB && Array.isArray(c01.MB.fields)) {
               const ctrl = c01.MB.fields.find((x) => x.name === 'ctrl');
-              if (ctrl) {
-                cards.push({ id: protoId + '_ctrl_01', type: 'control', cmd: 0x01, dir: 'tx', schemaDir: 'MB',
-                  field: 'ctrl', respField: 'RSOC', respUnit: '%', title: '控制 · 0x01', unit: '', precision: 1,
-                  protocol: protoId });
+              if (ctrl && Array.isArray(ctrl.bits)) {
+                ctrl.bits.filter((b) => !/^Reserved/i.test(b.name)).forEach((b, i) => {
+                  cards.push({ id: protoId + '_ctrl_bit' + b.bit, type: 'control', cmd: 0x01, dir: 'tx', schemaDir: 'MB',
+                    field: 'ctrl', bit: b.bit, bitName: b.name, singleBit: true,
+                    respField: 'RSOC', respUnit: '%', title: b.name, unit: '', precision: 1,
+                    protocol: protoId });
+                });
               }
             }
             const wanted = ['RSOC', 'BatVolt', 'SysCurr', 'SOH', 'Vcell_max', 'CellTempMax'];
@@ -20647,13 +20702,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         };
         // v1.3.8: 启动引导 — 为 host/slave 默认协议生成默认卡片 (仅当该协议无卡片时)
         NS._ensureDefaultCards = function () {
-          const hostProto = (NS.PROTOCOLS || []).find((p) => p.id === 'proto_bms_v113_host');
-          const slaveProto = (NS.PROTOCOLS || []).find((p) => p.id === 'proto_bms_v113_slave');
-          if (hostProto && hostProto.schema && !(NS.CARDS || []).some((c) => c.protocol === 'proto_bms_v113_host')) {
-            NS.CARDS = (NS.CARDS || []).concat(NS._generateSchemaCards('proto_bms_v113_host', hostProto.schema, 'host'));
-          }
-          if (slaveProto && slaveProto.schema && !(NS.CARDS || []).some((c) => c.protocol === 'proto_bms_v113_slave')) {
-            NS.CARDS = (NS.CARDS || []).concat(NS._generateSchemaCards('proto_bms_v113_slave', slaveProto.schema, 'device'));
+          // v1.3.9: 单一协议, 默认卡片同时含 host(control/trend) 与 device(set), 渲染时按角色过滤
+          const proto = (NS.PROTOCOLS || []).find((p) => p.id === 'proto_bms_v113');
+          if (proto && proto.schema && !(NS.CARDS || []).some((c) => c.protocol === 'proto_bms_v113')) {
+            const hostCards = NS._generateSchemaCards('proto_bms_v113', proto.schema, 'host');
+            const deviceCards = NS._generateSchemaCards('proto_bms_v113', proto.schema, 'device');
+            NS.CARDS = (NS.CARDS || []).concat(hostCards, deviceCards);
           }
         };
         NS.importSchema = function (obj) {
@@ -20672,16 +20726,14 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 });
               }
             } catch (e) {}
-            // v1.3.6 P3 修: 保留独立 id (host/slave 各成独立协议, 两个页面各导各的), 不再归一合并
+            // v1.3.9: 单一协议, 直接以 obj.id 作为协议 id (不再拆 host/slave)
             const baseId = obj.id || 'proto_imported';
-            const role = obj.role === 'host' ? 'host' : obj.role === 'slave' ? 'device' : 'full';
             let proto = (NS.PROTOCOLS || []).find((p) => p.id === baseId && p.kind === 'schema');
             if (!proto) {
               proto = {
                 id: baseId, kind: 'schema',
                 name: (obj.meta && obj.meta.name) || baseId,
                 byteOrder: (obj.meta && obj.meta.byteOrder) || 'LE',
-                role: role,
                 schema: { id: baseId, version: obj.version, meta: obj.meta, frame: obj.frame, commands: {} },
                 commands: []
               };
@@ -20692,22 +20744,18 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             if (obj.meta) proto.schema.meta = obj.meta;
             if (obj.version) proto.schema.version = obj.version;
             proto.schema.commands = NS._mergeSchemaCommands(proto.schema.commands, obj);
-            proto.commands = NS._schemaCommands(proto.schema);
-            if (obj.role) proto.role = role;
-            // 角色 → 仿真角色
-            if (role === 'host' || role === 'device') NS._simRole = role;
+            proto.commands = NS._schemaCommandList(proto.schema);
             // 自动生成卡片 (若该协议还没有卡片)
             if (!(NS.CARDS || []).some((c) => c.protocol === baseId)) {
-              const gen = NS._generateSchemaCards(baseId, proto.schema, role);
-              NS.CARDS = (NS.CARDS || []).concat(gen);
+              const hostCards = NS._generateSchemaCards(baseId, proto.schema, 'host');
+              const deviceCards = NS._generateSchemaCards(baseId, proto.schema, 'device');
+              NS.CARDS = (NS.CARDS || []).concat(hostCards, deviceCards);
             }
             NS.activeProtoId = baseId;
             if (NS._saveUserConfig) NS._saveUserConfig();
             if (NS.initMockData) NS.initMockData();
             if (NS.renderKpiCards) NS.renderKpiCards();
-            const complete = NS._schemaIsComplete(proto.schema);
-            const roleLabel = role === 'host' ? '主机' : role === 'device' ? '从机' : '完整';
-            NS.toast(`已导入 ${baseId} (${roleLabel}, ${proto.commands.length} 命令, ${NS.CARDS.filter((c) => c.protocol === baseId).length} 卡)`, 'success');
+            NS.toast(`已导入 ${baseId} (${proto.commands.length} 命令, ${NS.CARDS.filter((c) => c.protocol === baseId).length} 卡)`, 'success');
             return true;
           } catch (e) { NS.toast('导入失败: ' + e.message, 'danger'); return false; }
         };
@@ -21066,6 +21114,20 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           if (isEdit) {
             initial = JSON.parse(JSON.stringify(editCmd));
             originalCmd = editCmd;
+            // v1.3.9: schema 命令 — 从 txFields/rxFields 派生可显示字段 (含方向 tag), 修复编辑时字段为空
+            if (proto.kind === 'schema' && (!initial.dataFields || !initial.dataFields.length) && (editCmd.txFields || editCmd.rxFields)) {
+              const dfs = [];
+              (editCmd.txFields || []).forEach((f) => {
+                if (f.todo || f.type === 'bytes') return;
+                dfs.push({ name: f.name, type: f.type || 'u16', default: '', dir: 'tx', bits: (f.type === 'bitset' && f.bits) ? f.bits : undefined, bitLen: f.bitLen, startBit: f.startBit, unit: f.unit });
+              });
+              (editCmd.rxFields || []).forEach((f) => {
+                if (f.todo || f.type === 'bytes') return;
+                dfs.push({ name: f.name, type: f.type || 'u16', default: '', dir: 'rx', bits: (f.type === 'bitset' && f.bits) ? f.bits : undefined, bitLen: f.bitLen, startBit: f.startBit, unit: f.unit });
+              });
+              initial.dataFields = dfs;
+              initial._schemaCmd = true;
+            }
           } else if (isDup) {
             initial = JSON.parse(JSON.stringify(editCmd));
             initial.name = (editCmd.name || '') + ' (副本)';
@@ -21454,7 +21516,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           //   没选协议 (activeProtoId=null) → 显示"未选"占位 + 跳到协议 tab 按钮, 引导用户激活
           const proto = NS.PROTOCOLS.find((p) => p.id === NS.activeProtoId);
           const cmds = (proto && proto.commands) || [];
-          const dirPill = (d) => d === 'tx' ? '<span class="pill bms">TX 发送</span>' : d === 'rx' ? '<span class="pill ems">RX 接收</span>' : '<span class="pill unused">—</span>';
+          const dirPill = (d) => d === 'tx' ? '<span class="pill bms">TX 发送</span>' : d === 'rx' ? '<span class="pill ems">RX 接收</span>' : d === 'both' ? '<span class="pill warn">TX+RX 双向</span>' : '<span class="pill unused">—</span>';
           const typePill = (t) => ({ query: '<span class="pill info">查询</span>', control: '<span class="pill warn">控制</span>', response: '<span class="pill unused">响应</span>' }[t] || '<span class="pill unused">' + NS.escapeHtml(t || '—') + '</span>');
           const rows = cmds.map((cmd, i) => {
             const totalSize = NS.computeDataSize ? NS.computeDataSize(cmd) : 0;
@@ -21670,10 +21732,9 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             return;
           }
           const protoOptions = NS.PROTOCOLS.map((p) => '<option value="' + NS.escapeHtml(p.id) + '"' + (p.id === NS.activeProtoId ? ' selected' : '') + '>' + NS.escapeHtml(p.name || p.id) + ' (' + (p.commands || []).length + ' cmd)</option>').join('');
-          // v1.2.2 (bug fix): label-above-input 标准 form 排版
-          //   之前 grid 80px 1fr 左右并排 + align-items: center, select 高度 32px > label 16px, label 视觉错位到 select 中部偏下
+          // v1.3.9: 单弹窗定义 (协议+命令+类型+字段+标题+数据源), 不再分两步
           const html = '<div style="padding: 16px 20px;">' +
-            '<div style="display: flex; flex-direction: column; gap: 14px;">' +
+            '<div style="display: flex; flex-direction: column; gap: 12px;">' +
               '<div>' +
                 '<label style="display: block; margin-bottom: 6px; font-size: 12px; color: var(--text-soft); font-weight: 600;">协议</label>' +
                 '<select id="dh-new-card-proto" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;">' + protoOptions + '</select>' +
@@ -21682,22 +21743,37 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 '<label style="display: block; margin-bottom: 6px; font-size: 12px; color: var(--text-soft); font-weight: 600;">命令</label>' +
                 '<select id="dh-new-card-cmd" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;"></select>' +
               '</div>' +
+              '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">' +
+                '<div>' +
+                  '<label style="display: block; margin-bottom: 6px; font-size: 12px; color: var(--text-soft); font-weight: 600;">类型</label>' +
+                  '<select id="dh-new-card-type" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;">' +
+                    '<option value="trend">趋势卡 (遥测)</option>' +
+                    '<option value="control">控制卡 (发送位)</option>' +
+                    '<option value="set">参数卡 (从机)</option>' +
+                  '</select>' +
+                '</div>' +
+                '<div>' +
+                  '<label style="display: block; margin-bottom: 6px; font-size: 12px; color: var(--text-soft); font-weight: 600;">字段</label>' +
+                  '<select id="dh-new-card-field" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;"></select>' +
+                '</div>' +
+              '</div>' +
+              '<div>' +
+                '<label style="display: block; margin-bottom: 6px; font-size: 12px; color: var(--text-soft); font-weight: 600;">标题</label>' +
+                '<input id="dh-new-card-title" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;" placeholder="卡片标题">' +
+              '</div>' +
             '</div>' +
             '<div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);">' +
               '<button class="tbtn" id="dh-new-card-cancel">取消</button>' +
-              '<button class="tbtn primary" id="dh-new-card-confirm">下一步</button>' +
+              '<button class="tbtn primary" id="dh-new-card-confirm">保存</button>' +
             '</div>' +
           '</div>';
           const m = document.createElement('div');
-          // v1.2.2 (bug fix): 自定义 wrapper class (不再用 .modal-backdrop, 避免被 .modal-backdrop display:none + z-index:100 基础样式覆盖)
-          //   append 到 .dashboard-host 内 (不在 body 上), 让内层 .modal / .modal-title / .close-btn 拿到限定在 .dashboard-host 下的样式
           m.className = 'dh-modal-wrapper';
           m.id = 'dh-new-card-modal';
           m.style.cssText = 'position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); pointer-events: auto;';
           m.innerHTML = '<div class="modal open" style="max-width: 480px;">' +
-            // v1.2.2 (bug fix): 用 .modal-header-standard 标准组件 (X 右上 + title 左上 + meta 副标题) — 之前 .modal-head 是没定义类名, X 飘出 header 跟 title 不对齐
             '<div class="modal-header-standard">' +
-              '<div class="title-block"><span class="title">新建卡片</span><span class="meta">选协议 + 命令</span></div>' +
+              '<div class="title-block"><span class="title">新建卡片</span><span class="meta">一次定义: 协议 + 命令 + 字段</span></div>' +
               '<div class="actions"></div>' +
               '<button aria-label="关闭" class="close-btn" id="dh-new-card-close" title="关闭"><svg viewBox="0 0 16 16"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>' +
             '</div>' +
@@ -21706,11 +21782,24 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           host.appendChild(m);
           const protoSel = m.querySelector('#dh-new-card-proto');
           const cmdSel = m.querySelector('#dh-new-card-cmd');
+          const typeSel = m.querySelector('#dh-new-card-type');
+          const fieldSel = m.querySelector('#dh-new-card-field');
+          const titleEl = m.querySelector('#dh-new-card-title');
+          const getProto = () => NS.PROTOCOLS.find((p) => p.id === protoSel.value);
           const refreshCmds = () => {
-            const proto = NS.PROTOCOLS.find((p) => p.id === protoSel.value);
+            const proto = getProto();
             cmdSel.innerHTML = proto ? proto.commands.map((c) => '<option value="' + c.id + '">0x' + c.id.toString(16).padStart(2, '0').toUpperCase() + ' ' + NS.escapeHtml(c.name) + '</option>').join('') : '';
+            refreshFields();
+          };
+          const refreshFields = () => {
+            const proto = getProto();
+            const cmd = proto && proto.commands.find((c) => c.id === parseInt(cmdSel.value, 10));
+            const opts = NS._cardFieldOptions(cmd);
+            // v1.3.9: 字段含位展开 (ProtectCode.xxx), 主机模式可建单bit 卡
+            fieldSel.innerHTML = opts.map((f) => '<option value="' + NS.escapeHtml(f.name) + '" data-dir="' + NS.escapeHtml(f.dir || '') + '">' + NS.escapeHtml(f.label) + '</option>').join('') || '<option value="">(无字段)</option>';
           };
           protoSel.onchange = refreshCmds;
+          cmdSel.onchange = refreshFields;
           refreshCmds();
           const close = () => m.remove();
           m.querySelector('#dh-new-card-cancel').onclick = close;
@@ -21718,16 +21807,44 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           m.querySelector('#dh-new-card-confirm').onclick = () => {
             const protoId = protoSel.value;
             const cmdId = parseInt(cmdSel.value, 10);
+            const type = typeSel.value;
+            const field = fieldSel.value;
             if (!protoId || isNaN(cmdId)) { NS.toast && NS.toast('请选协议和命令', 'warn'); return; }
+            if (!field) { NS.toast && NS.toast('请选字段', 'warn'); return; }
             const baseId = 'c' + (Date.now() % 100000);
-            const newCard = { id: baseId, type: 'trend', cmd: cmdId, dir: 'rx', field: '', title: '新建卡片', unit: '', precision: 2, protocol: protoId };
+            const title = titleEl.value.trim() || field;
+            const proto = getProto();
+            const cmd = proto && proto.commands.find((c) => c.id === cmdId);
+            const newCard = { id: baseId, type: type, cmd: cmdId, dir: type === 'trend' ? 'rx' : 'tx', field: field, title: title, unit: '', precision: 2, protocol: protoId };
+            // control 卡补充 schemaDir + 单bit 检测
+            if (type === 'control') {
+              const hex = cmdId.toString(16).padStart(2, '0').toUpperCase();
+              const cmdDef = proto && proto.schema && proto.schema.commands && (proto.schema.commands[hex] || proto.schema.commands['0x' + hex]);
+              newCard.schemaDir = cmdDef && cmdDef.MB ? 'MB' : (cmdDef && cmdDef.REQ ? 'REQ' : 'MB');
+              // 字段是 "ctrl.位名" 形式 → 单bit 控制卡
+              const dot = field.indexOf('.');
+              if (dot > 0) {
+                const baseField = field.slice(0, dot);
+                const bitName = field.slice(dot + 1);
+                const mbField = cmdDef && cmdDef.MB && (cmdDef.MB.fields || []).find((f) => f.name === baseField);
+                const bit = mbField && mbField.bits && mbField.bits.find((b) => b.name === bitName);
+                if (bit) {
+                  newCard.field = baseField;
+                  newCard.bit = bit.bit;
+                  newCard.bitName = bitName;
+                  newCard.singleBit = true;
+                }
+              }
+              newCard.respField = 'RSOC'; newCard.respUnit = '%';
+            }
+            if (type === 'set') newCard.sim = { type: 'fixed', value: 0 };
             NS.CARDS.push(newCard);
             close();
-            NS.editingCardId = baseId;
-            NS.openCardEdit && NS.openCardEdit(baseId);
-            // 刷新 tab 3 表格 + 顶部 badge (v1.3.3: badge 按 activeProtoId 过滤)
+            NS._saveUserConfig && NS._saveUserConfig();
             if (typeof NS._configCenterTabRenderers.cards === 'function') NS._configCenterTabRenderers.cards();
             NS._refreshConfigCenterBadges();
+            NS.renderCardGrid && NS.renderCardGrid();
+            NS.toast(`已新建卡片 ${title}`, 'success');
           };
         };
 
@@ -22588,24 +22705,38 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             list.innerHTML = '<p style="color: var(--text-soft); font-size: 12px;">无数据字段 (纯控制命令可不加)</p>';
           } else {
             const typeOptions = NS.DATA_TYPES.map((t) => '<option value="' + t.name + '">' + t.name + ' (' + t.size + 'B)</option>').join('');
-            list.innerHTML = '<table class="wiz-field-table"><thead><tr><th>名字</th><th>类型</th><th>默认值</th><th>位定义 (bitset)</th><th></th></tr></thead><tbody>'
+            // v1.3.9: 位定义改为逐位可编辑表格 (位号 + 位名 + 删除), 不再用逗号分隔文本
+            const bitsEditorHtml = (df) => {
+              const bits = df.bits || [];
+              const rows = bits.map((b, bi) =>
+                '<div class="bit-row" data-bit-idx="' + bi + '">'
+                + '<span class="bit-idx">' + b.bit + '</span>'
+                + '<input class="bit-name" value="' + NS.escapeHtml(b.name) + '" placeholder="位名" />'
+                + '<button class="bit-del" type="button" title="删除位">×</button>'
+                + '</div>').join('');
+              return '<div class="bits-editor">' + (rows || '<span class="bits-empty">暂无位定义</span>') + '</div>'
+                + '<button class="bit-add" type="button" data-add-bit="1">+ 添加位</button>';
+            };
+            list.innerHTML = '<table class="wiz-field-table"><thead><tr><th>方向</th><th>名字</th><th>类型</th><th>默认值</th><th>位定义 (bitset)</th><th></th></tr></thead><tbody>'
               + s.dataFields.map((df, i) => '<tr data-df-index="' + i + '">'
+                + '<td><span class="df-dir ' + (df.dir || '') + '">' + (df.dir === 'tx' ? 'TX' : df.dir === 'rx' ? 'RX' : '—') + '</span></td>'
                 + '<td><input class="new-cmd-df-name" value="' + NS.escapeHtml(df.name) + '" /></td>'
                 + '<td><select class="new-cmd-df-type">' + typeOptions.replace('value="' + df.type + '"', 'value="' + df.type + '" selected') + '</select></td>'
                 + '<td><input class="new-cmd-df-default" value="' + NS.escapeHtml(df.default || '') + '" /></td>'
-                + '<td><input class="new-cmd-df-bits" placeholder="位名逗号分隔, 如 放电过温,放电低温" value="' + NS.escapeHtml((df.bits || []).map((b) => b.name).join(',')) + '" /></td>'
-                + '<td><button class="wiz-field-del" data-df-del="' + i + '" title="删除"><span data-svg="trash" data-svg-size="12"></span></button></td>'
+                + '<td>' + bitsEditorHtml(df) + '</td>'
+                + '<td><button class="wiz-field-del" data-df-del="' + i + '" title="删除字段"><span data-svg="trash" data-svg-size="12"></span></button></td>'
                 + '</tr>').join('')
               + '</tbody></table>';
           }
-          // 算总字节
+          // 算总字节 (schema 字段按 bitLen/8 累加; 普通字段按类型 size)
           const totalSize = s.dataFields.reduce((sum, df) => {
+            if (df.bitLen) return sum + Math.ceil(df.bitLen / 8);
             const t = NS.DATA_TYPES.find((tt) => tt.name === df.type);
             return sum + (t ? t.size : 0);
           }, 0);
           document.getElementById('dh-new-cmd-total-size').textContent = totalSize + ' 字节 (' + s.dataFields.length + ' 字段)';
           if (typeof NS_renderIcons === 'function') NS_renderIcons();
-          // 绑定删除
+          // 绑定删除字段
           document.querySelectorAll('.wiz-field-del').forEach((btn) => {
             btn.addEventListener('click', () => {
               const idx = parseInt(btn.getAttribute('data-df-del'), 10);
@@ -22613,25 +22744,64 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               NS._renderNewCmdDataFields();
             });
           });
+          // 位编辑: 添加位 / 删除位
+          document.querySelectorAll('[data-add-bit]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const tr = btn.closest('tr');
+              const idx = parseInt(tr.getAttribute('data-df-index'), 10);
+              const df = s.dataFields[idx];
+              if (!Array.isArray(df.bits)) df.bits = [];
+              // 找下一个未占用位号
+              const used = new Set(df.bits.map((b) => b.bit));
+              let nextBit = 0; while (used.has(nextBit)) nextBit++;
+              df.bits.push({ bit: nextBit, name: '' });
+              NS._renderNewCmdDataFields();
+            });
+          });
+          document.querySelectorAll('.bit-del').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const tr = btn.closest('tr');
+              const row = btn.closest('.bit-row');
+              const dfIdx = parseInt(tr.getAttribute('data-df-index'), 10);
+              const bitIdx = parseInt(row.getAttribute('data-bit-idx'), 10);
+              const df = s.dataFields[dfIdx];
+              df.bits.splice(bitIdx, 1);
+              NS._renderNewCmdDataFields();
+            });
+          });
           // 字段值变化 → 同步到 state → 重算字节 + 帧预览
           const updateState = () => {
-            document.querySelectorAll('#dh-new-cmd-dataFields-list tr').forEach((tr, i) => {
-              s.dataFields[i].name = tr.querySelector('.new-cmd-df-name').value;
-              s.dataFields[i].type = tr.querySelector('.new-cmd-df-type').value;
-              s.dataFields[i].default = tr.querySelector('.new-cmd-df-default').value;
-              // v1.3.6 修: 位定义 (逗号分隔位名 → bits[])
-              const bitsStr = (tr.querySelector('.new-cmd-df-bits') || {}).value || '';
-              s.dataFields[i].bits = bitsStr ? bitsStr.split(',').map((n, bi) => ({ bit: bi, name: n.trim() })).filter((b) => b.name) : undefined;
+            document.querySelectorAll('#dh-new-cmd-dataFields-list tr').forEach((tr) => {
+              const i = parseInt(tr.getAttribute('data-df-index'), 10);
+              const df = s.dataFields[i];
+              if (!df) return;
+              df.name = tr.querySelector('.new-cmd-df-name').value;
+              df.type = tr.querySelector('.new-cmd-df-type').value;
+              df.default = tr.querySelector('.new-cmd-df-default').value;
+              // v1.3.9: 位定义从逐位表格读取 (位号固定, 位名可改)
+              const bits = [];
+              tr.querySelectorAll('.bit-row').forEach((row) => {
+                const bi = parseInt(row.getAttribute('data-bit-idx'), 10);
+                const name = row.querySelector('.bit-name').value.trim();
+                const bit = (df.bits && df.bits[bi]) ? df.bits[bi].bit : bi;
+                if (name) bits.push({ bit: bit, name: name });
+              });
+              df.bits = bits.length ? bits : undefined;
             });
             const tot = s.dataFields.reduce((sum, df) => {
+              if (df.bitLen) return sum + Math.ceil(df.bitLen / 8);
               const t = NS.DATA_TYPES.find((tt) => tt.name === df.type);
               return sum + (t ? t.size : 0);
             }, 0);
             document.getElementById('dh-new-cmd-total-size').textContent = tot + ' 字节 (' + s.dataFields.length + ' 字段)';
             if (typeof NS._renderNewCmdFramePreview === 'function') NS._renderNewCmdFramePreview();
           };
-          document.querySelectorAll('#dh-new-cmd-dataFields-list input, #dh-new-cmd-dataFields-list select').forEach((el) => {
+          document.querySelectorAll('#dh-new-cmd-dataFields-list input:not(.bit-name), #dh-new-cmd-dataFields-list select').forEach((el) => {
             el.addEventListener('input', updateState);
+            el.addEventListener('change', updateState);
+          });
+          // 位名变化不重渲染 (避免丢失焦点), 直接同步 state
+          document.querySelectorAll('.bit-name').forEach((el) => {
             el.addEventListener('change', updateState);
           });
           // v1.2 (Task 7): 批量默认值按钮
@@ -22790,6 +22960,14 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             id: s.id, name: s.name, direction: s.direction, frameType: s.frameType, cadence: s.cadence,
             expectResponse: s.expectResponse, remark: s.remark, dataFields: s.dataFields
           };
+          // v1.3.9: schema 命令保留双向布局 (txFields/rxFields/txLen/rxLen/schemaDir 是权威, 不随 dataFields 编辑丢失)
+          if (s._originalCmd && (s._originalCmd.txFields || s._originalCmd.rxFields)) {
+            newCmd.txFields = s._originalCmd.txFields;
+            newCmd.rxFields = s._originalCmd.rxFields;
+            newCmd.txLen = s._originalCmd.txLen;
+            newCmd.rxLen = s._originalCmd.rxLen;
+            newCmd.schemaDir = s._originalCmd.schemaDir;
+          }
           if (s._isEdit && s._originalCmd) {
             // 编辑模式: 找原 cmd 替换
             const idx = proto.commands.findIndex((c) => c === s._originalCmd);

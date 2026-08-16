@@ -1,5 +1,5 @@
 // 将 tools/schemas/*.json 嵌入 SerialCube.html (单文件约束下 schema 内嵌)
-// BMS V1.13: bms_v113.json 为权威完整双向 schema (host/slave 是由它生成的视角副本, 不嵌入)。
+// BMS V1.13: bms_v113.json 为唯一权威完整双向 schema。
 // 两种模式:
 //   1) 首次: 替换注释 marker `// @SCHEMA_EMBED_<ID>@` (marker 来自 SerialCube.html 注册块)
 //   2) 更新: 替换已存在的 `NS._SCHEMA_<ID> = {...};` 赋值块 (marker 已消耗后再次嵌入)
@@ -12,10 +12,7 @@ const htmlFile = 'SerialCube.html';
 let html = readFileSync(htmlFile, 'utf8');
 let embedded = 0;
 
-// host/slave 是 bms_v113.json 的视角副本, 跳过 (不嵌入为独立 schema)
-const skipFiles = new Set(['bms_v113_host.json', 'bms_v113_slave.json']);
-
-for (const file of readdirSync(schemaDir).filter((f) => f.endsWith('.json') && !skipFiles.has(f))) {
+for (const file of readdirSync(schemaDir).filter((f) => f.endsWith('.json'))) {
   const id = file.replace(/\.json$/, '').toUpperCase();
   embedSchema(id, JSON.parse(readFileSync(`${schemaDir}/${file}`, 'utf8')));
 }
