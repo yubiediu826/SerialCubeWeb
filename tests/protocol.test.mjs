@@ -87,6 +87,40 @@ test('schema: bms_v113.json 结构有效', () => {
   }
 });
 
+test('schema: ems_v143.json 结构有效 (P4 转储补全, 461 字段)', () => {
+  const ems = JSON.parse(readFileSync(new URL('tools/schemas/ems_v143.json', root), 'utf8'));
+  assert.equal(ems.id, 'proto_ems_v143');
+  assert.equal(ems.frame.crc.type, 'checksum');
+  assert.equal(ems.frame.crc.range, 'no_header');
+  assert.ok(ems.frame.fields.some((f) => f.type === 'checksum'), 'checksum 字段存在');
+  assert.ok(Object.keys(ems.commands).length >= 14, `命令数 ${Object.keys(ems.commands).length} ≥ 14`);
+  // 位区间不重叠 + 不越界
+  for (const cmdKey of Object.keys(ems.commands)) {
+    for (const dir of ['REQ', 'RESP']) {
+      const layout = ems.commands[cmdKey][dir];
+      if (!layout || !Array.isArray(layout.fields)) continue;
+      const seen = new Map();
+      for (const f of layout.fields) {
+        const bl = f.bitLen || 0;
+        if (bl === 0) continue;
+        const sb = f.startBit ?? 0;
+        assert.ok(Number.isInteger(sb), `${cmdKey} ${dir} ${f.name} startBit 合法`);
+        for (let i = sb; i < sb + bl; i++) {
+          assert.ok(!seen.has(i), `${cmdKey} ${dir} ${f.name} 与 ${seen.get(i)} 位区间重叠 @bit ${i}`);
+          seen.set(i, f.name);
+        }
+        if (layout.len > 0) {
+          assert.ok(sb + bl <= layout.len * 8, `${cmdKey} ${dir} ${f.name} 超出数据区 (${sb}+${bl} > ${layout.len}*8)`);
+        }
+      }
+    }
+  }
+  // 0xED 电池级联: n1-n5 五组完整
+  const ed = ems.commands['0xED'].RESP.fields;
+  assert.ok(ed.some((f) => f.name === 'n1_addr') && ed.some((f) => f.name === 'n5_soft'), '0xED n1-n5 完整');
+  assert.equal(ems.commands['0xED'].RESP.len, 190, '0xED len=190 (5 组 × 每组 16 字段)');
+});
+
 test('parseFrame 黄金向量 (bms_0x01/0x02/0x03 + ems_0xE1/0xEC, 含位域/缩放/枚举/ascii/数组/checksum)', () => {
   for (const f of golden.frames) {
     const proto = NS.PROTOCOLS.find((p) => p.id === f.proto);

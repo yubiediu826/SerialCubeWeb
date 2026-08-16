@@ -10871,7 +10871,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         };
         NS.PROTOCOLS = NS._defaultProtocols();
         // v1.3.6 P1: 注册 schema 驱动协议 (BMS V1.13) — schema 由 tools/scripts/embed-schema.mjs 生成嵌入
-                NS._SCHEMA_BMS_V113 = {
+                        NS._SCHEMA_BMS_V113 = {
   "id": "proto_bms_v113",
   "version": "1.13",
   "meta": { "name": "BMS V1.13", "byteOrder": "LE", "bit0": "LSB" },
@@ -11234,105 +11234,3452 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
   }
 };
 
-                NS._SCHEMA_EMS_V143 = {
-  "id": "proto_ems_v143",
-  "version": "1.4.3",
-  "meta": { "name": "EMS V1.4.3", "byteOrder": "LE", "bit0": "LSB" },
-  "frame": {
-    "fields": [
-      { "name": "head", "type": "u16", "default": "0xAAAA", "head": true, "note": "帧头 2 字节 0xAA 0xAA" },
-      { "name": "addr", "type": "u16", "default": "0x0000", "note": "地址码 2 字节, 默认 0x00 0x00" },
-      { "name": "cmd",  "type": "u8" },
-      { "name": "len",  "type": "u8", "semantic": "dataLength" },
-      { "name": "data", "type": "data", "lenBy": "len" },
-      { "name": "checksum", "type": "checksum", "note": "校验和 = sum(addr+cmd+len+data) & 0xFF, 不含帧头" }
-    ],
-    "crc": { "type": "checksum", "range": "no_header" },
-    "notes": [
-      "帧 = 0xAA 0xAA + addr(2B) + cmd(1B) + len(1B) + data + checksum(1B)",
-      "方向: MB=PC上位机→EMS板, CB=EMS板→PC上位机 (帧头无方向区分, layout 用 REQ/RESP 键)",
-      "字段布局以 docs/reference/EMS-测试上位机-通讯协议V1.4.3.xlsx 为准 (.tmp/ems-xlsx-dump.txt 为转储)",
-      "0xED 电池级联: n2-n5 与 n1 同布局 (startBit + 200×k, 每组 200bit), 本 schema 先转写 n1, 其余待固件确认后补全",
-      "0xE2/0xE3/0xE4-0xEB/0xEE 字段表见转储 L106-756/893+ (体量大, 标 todo 待转写)"
-    ]
+                        NS._SCHEMA_EMS_V143 = {
+ "id": "proto_ems_v143",
+ "version": "1.4.3",
+ "meta": {
+  "name": "EMS V1.4.3",
+  "byteOrder": "LE",
+  "bit0": "LSB"
+ },
+ "frame": {
+  "fields": [
+   {
+    "name": "head",
+    "type": "u16",
+    "default": "0xAAAA",
+    "head": true,
+    "note": "帧头 2 字节 0xAA 0xAA"
+   },
+   {
+    "name": "addr",
+    "type": "u16",
+    "default": "0x0000",
+    "note": "地址码 2 字节, 默认 0x00 0x00"
+   },
+   {
+    "name": "cmd",
+    "type": "u8"
+   },
+   {
+    "name": "len",
+    "type": "u8",
+    "semantic": "dataLength"
+   },
+   {
+    "name": "data",
+    "type": "data",
+    "lenBy": "len"
+   },
+   {
+    "name": "checksum",
+    "type": "checksum",
+    "note": "校验和 = sum(addr+cmd+len+data) & 0xFF, 不含帧头"
+   }
+  ],
+  "crc": {
+   "type": "checksum",
+   "range": "no_header"
   },
-  "commands": {
-    "0xE1": {
-      "desc": "系统信息 (200ms 周期)",
-      "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] },
-      "RESP": { "len": 64, "fields": [
-        { "name": "Protocol_Version", "type": "u16", "startBit": 0,   "bitLen": 16, "note": "协议版本" },
-        { "name": "EMS_SN", "type": "ascii", "startBit": 16,  "bitLen": 120, "note": "产品SN 15 字节, 如 010020AA12345AA" },
-        { "name": "EMS_Type", "type": "u8", "startBit": 136, "bitLen": 8, "enum": { "0": "A系列", "1": "IN系列", "2": "R系列", "3": "T系列", "4": "H系列", "5": "M系列", "6": "Q系列" } },
-        { "name": "EMS_LCD_Type", "type": "u8", "startBit": 144, "bitLen": 8, "enum": { "0": "A1", "1": "A2", "2": "A3", "3": "A4", "255": "无显示屏" } },
-        { "name": "EMS_Version", "type": "u16", "startBit": 152, "bitLen": 16, "note": "如 101 = V1.01" },
-        { "name": "EMS_Dev_Num", "type": "u32", "startBit": 168, "bitLen": 32 },
-        { "name": "BMS_Type", "type": "u8", "startBit": 200, "bitLen": 8, "enum": { "0": "硬控版本", "1": "软控版本" } },
-        { "name": "BMS_Version", "type": "u16", "startBit": 208, "bitLen": 16 },
-        { "name": "BMS_Dev_Num", "type": "u32", "startBit": 224, "bitLen": 32 },
-        { "name": "PCS_Type", "type": "u8", "startBit": 256, "bitLen": 8, "enum": { "0": "硬控版本", "1": "天成自研", "2": "蔚思博", "3": "海索" } },
-        { "name": "PCS_Version", "type": "u16", "startBit": 264, "bitLen": 16 },
-        { "name": "PCS_Dev_Num", "type": "u32", "startBit": 280, "bitLen": 32 },
-        { "name": "MPPT_Type", "type": "u8", "startBit": 312, "bitLen": 8, "enum": { "0": "硬件控制", "1": "天成自研", "2": "蔚思博", "3": "海索" } },
-        { "name": "MPPT_Version", "type": "u16", "startBit": 320, "bitLen": 16 },
-        { "name": "MPPT_Dev_Num", "type": "u32", "startBit": 336, "bitLen": 32 },
-        { "name": "ALLDsgPower", "type": "u32", "startBit": 368, "bitLen": 32, "note": "放电总功率" },
-        { "name": "ALLChgPower", "type": "u32", "startBit": 400, "bitLen": 32, "note": "充电总功率" },
-        { "name": "DsgTimeRemaining", "type": "u32", "startBit": 432, "bitLen": 32, "note": "放电剩余时间" },
-        { "name": "ChgTimeRemaining", "type": "u32", "startBit": 464, "bitLen": 32, "note": "充电剩余时间" },
-        { "name": "ErrCode", "type": "u8", "startBit": 496, "bitLen": 8, "note": "EMS故障码" },
-        { "name": "PErrCode", "type": "u8", "startBit": 504, "bitLen": 8, "note": "部品故障码" }
-      ]}
-    },
-    "0xE2": { "desc": "BMS 信息 (200ms)", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储 L106-264 (ProtectCode/ErrCode/电压/电流/SOC 等)" } ] } },
-    "0xE3": { "desc": "PCS 信息(天成自研) (200ms)", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储 L265-756 (含 WordCmdV_DC 0.1V/ByteCmdOn bit72/InnerErrCode bit346 等位域)" } ] } },
-    "0xE4": { "desc": "PCS 信息(海索)", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储 (含并网使能/功率/MPPT)" } ] } },
-    "0xE5": { "desc": "太阳能充电信息(蔚思博)", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储" } ] } },
-    "0xE6": { "desc": "太阳能充电信息(海索)", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储" } ] } },
-    "0xE7": { "desc": "PV 充电信息", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储" } ] } },
-    "0xE8": { "desc": "DC-USB 信息", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储" } ] } },
-    "0xE9": { "desc": "TypeC 信息", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储" } ] } },
-    "0xEA": { "desc": "风扇/照明灯信息", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储" } ] } },
-    "0xEB": { "desc": "通信保护信息", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储 (含风扇堵转标志位/故障码上报)" } ] } },
-    "0xEC": {
-      "desc": "控制指令 (200ms)",
-      "REQ": { "len": 12, "fields": [
-        { "name": "Test_Mode", "type": "u8", "startBit": 0,  "bitLen": 1, "note": "测试模式, 控制指令生效前提" },
-        { "name": "Fan_Up_En", "type": "u8", "startBit": 1,  "bitLen": 1, "enum": { "0": "关闭", "1": "使能" } },
-        { "name": "Fan_Down_En", "type": "u8", "startBit": 2,  "bitLen": 1, "enum": { "0": "关闭", "1": "使能" } },
-        { "name": "Correct_Mode", "type": "u8", "startBit": 3,  "bitLen": 1, "note": "校准模式" },
-        { "name": "Balance_Mode", "type": "u8", "startBit": 4,  "bitLen": 1, "note": "通信开均衡" },
-        { "name": "Shutdown_Mode", "type": "u8", "startBit": 5,  "bitLen": 1, "note": "通信关机" },
-        { "name": "Off_Grid_En", "type": "u8", "startBit": 6,  "bitLen": 1, "enum": { "0": "关闭", "1": "使能" }, "note": "离网开关" },
-        { "name": "ON_Grid_En", "type": "u8", "startBit": 7,  "bitLen": 1, "enum": { "0": "关闭", "1": "使能" }, "note": "并网开关" },
-        { "name": "Fan_Duty", "type": "u8", "startBit": 8,  "bitLen": 8, "unit": "%", "note": "风扇转速 0-100" },
-        { "name": "Correct_Cap", "type": "u32", "startBit": 16, "bitLen": 32, "note": "SOC 校准容量" },
-        { "name": "PV_Charging_Power", "type": "u16", "startBit": 48, "bitLen": 16, "note": "PV 充电功率" },
-        { "name": "AC_Charging_Power", "type": "u16", "startBit": 64, "bitLen": 16, "note": "AC 充电功率" },
-        { "name": "ON_Grid_Power", "type": "u16", "startBit": 80, "bitLen": 16, "note": "并网放电功率" }
-      ]},
-      "RESP": { "len": 1, "fields": [
-        { "name": "Ack", "type": "u8", "bitLen": 8, "enum": { "0": "操作成功", "1": "操作失败" } }
-      ]}
-    },
-    "0xED": {
-      "desc": "电池级联信息 (200ms, 5 组电池)",
-      "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] },
-      "RESP": { "len": 125, "note": "n2-n5 与 n1 同布局 (startBit + 200×k), 待补全", "fields": [
-        { "name": "n1_addr", "type": "u8", "startBit": 0, "bitLen": 8, "note": "一号电池地址" },
-        { "name": "n1_sn", "type": "ascii", "startBit": 8, "bitLen": 120, "note": "一号电池 SN 15 字节" },
-        { "name": "n1_RSOC", "type": "u8", "startBit": 128, "bitLen": 8, "unit": "%" },
-        { "name": "n1_BatVolt", "type": "u16", "startBit": 136, "bitLen": 16 },
-        { "name": "n1_SysCurr", "type": "u32", "startBit": 152, "bitLen": 32 },
-        { "name": "n1_MosState", "type": "u8", "startBit": 184, "bitLen": 8, "bits": [
-          { "bit": 0, "name": "ChgMos" }, { "bit": 1, "name": "DsgMos" }, { "bit": 2, "name": "PreChgMos" },
-          { "bit": 3, "name": "PreChging" }, { "bit": 4, "name": "Chging" }, { "bit": 5, "name": "Dsging" },
-          { "bit": 6, "name": "PreDsgMos" }, { "bit": 7, "name": "PreDsgOk" } ] },
-        { "name": "n1_ProtectCode", "type": "u8", "startBit": 192, "bitLen": 8, "note": "级联保护状态位图" }
-      ]}
-    },
-    "0xEE": { "desc": "PCS 信息(蔚思博)", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储 L893+ (SoftVersion 等)" } ] } }
+  "notes": [
+   "帧 = 0xAA 0xAA + addr(2B) + cmd(1B) + len(1B) + data + checksum(1B)",
+   "方向: MB=PC上位机→EMS板, CB=EMS板→PC上位机 (帧头无方向区分, layout 用 REQ/RESP 键)",
+   "字段布局以 docs/reference/EMS-测试上位机-通讯协议V1.4.3.xlsx 为准 (.tmp/ems-xlsx-dump.txt 为转储)",
+   "0xED 电池级联: n2-n5 与 n1 同布局 (startBit + 200×k, 每组 200bit), 本 schema 先转写 n1, 其余待固件确认后补全",
+   "0xE2/0xE3/0xE4-0xEB/0xEE 字段表见转储 L106-756/893+ (体量大, 标 todo 待转写)",
+   "P4 补全: 0xE2-0xEB/0xED/0xEE 字段表由 .tmp/ems-xlsx-dump.txt 解析生成 (461 字段), 类型推断/枚举/位定义待固件确认",
+   "P4 补全: 0xE2-0xEB/0xED/0xEE 字段表由 .tmp/ems-xlsx-dump.txt 解析生成 (461 字段), 类型推断/枚举/位定义待固件确认"
+  ]
+ },
+ "commands": {
+  "0xE1": {
+   "desc": "系统信息 (200ms 周期)",
+   "REQ": {
+    "len": 0,
+    "fields": [
+     {
+      "name": "RES",
+      "type": "bytes",
+      "bitLen": 0
+     }
+    ]
+   },
+   "RESP": {
+    "len": 64,
+    "fields": [
+     {
+      "name": "Protocol_Version",
+      "type": "u16",
+      "startBit": 0,
+      "bitLen": 16,
+      "note": "协议版本"
+     },
+     {
+      "name": "EMS_SN",
+      "type": "ascii",
+      "startBit": 16,
+      "bitLen": 120,
+      "note": "产品SN 15 字节, 如 010020AA12345AA"
+     },
+     {
+      "name": "EMS_Type",
+      "type": "u8",
+      "startBit": 136,
+      "bitLen": 8,
+      "enum": {
+       "0": "A系列",
+       "1": "IN系列",
+       "2": "R系列",
+       "3": "T系列",
+       "4": "H系列",
+       "5": "M系列",
+       "6": "Q系列"
+      }
+     },
+     {
+      "name": "EMS_LCD_Type",
+      "type": "u8",
+      "startBit": 144,
+      "bitLen": 8,
+      "enum": {
+       "0": "A1",
+       "1": "A2",
+       "2": "A3",
+       "3": "A4",
+       "255": "无显示屏"
+      }
+     },
+     {
+      "name": "EMS_Version",
+      "type": "u16",
+      "startBit": 152,
+      "bitLen": 16,
+      "note": "如 101 = V1.01"
+     },
+     {
+      "name": "EMS_Dev_Num",
+      "type": "u32",
+      "startBit": 168,
+      "bitLen": 32
+     },
+     {
+      "name": "BMS_Type",
+      "type": "u8",
+      "startBit": 200,
+      "bitLen": 8,
+      "enum": {
+       "0": "硬控版本",
+       "1": "软控版本"
+      }
+     },
+     {
+      "name": "BMS_Version",
+      "type": "u16",
+      "startBit": 208,
+      "bitLen": 16
+     },
+     {
+      "name": "BMS_Dev_Num",
+      "type": "u32",
+      "startBit": 224,
+      "bitLen": 32
+     },
+     {
+      "name": "PCS_Type",
+      "type": "u8",
+      "startBit": 256,
+      "bitLen": 8,
+      "enum": {
+       "0": "硬控版本",
+       "1": "天成自研",
+       "2": "蔚思博",
+       "3": "海索"
+      }
+     },
+     {
+      "name": "PCS_Version",
+      "type": "u16",
+      "startBit": 264,
+      "bitLen": 16
+     },
+     {
+      "name": "PCS_Dev_Num",
+      "type": "u32",
+      "startBit": 280,
+      "bitLen": 32
+     },
+     {
+      "name": "MPPT_Type",
+      "type": "u8",
+      "startBit": 312,
+      "bitLen": 8,
+      "enum": {
+       "0": "硬件控制",
+       "1": "天成自研",
+       "2": "蔚思博",
+       "3": "海索"
+      }
+     },
+     {
+      "name": "MPPT_Version",
+      "type": "u16",
+      "startBit": 320,
+      "bitLen": 16
+     },
+     {
+      "name": "MPPT_Dev_Num",
+      "type": "u32",
+      "startBit": 336,
+      "bitLen": 32
+     },
+     {
+      "name": "ALLDsgPower",
+      "type": "u32",
+      "startBit": 368,
+      "bitLen": 32,
+      "note": "放电总功率"
+     },
+     {
+      "name": "ALLChgPower",
+      "type": "u32",
+      "startBit": 400,
+      "bitLen": 32,
+      "note": "充电总功率"
+     },
+     {
+      "name": "DsgTimeRemaining",
+      "type": "u32",
+      "startBit": 432,
+      "bitLen": 32,
+      "note": "放电剩余时间"
+     },
+     {
+      "name": "ChgTimeRemaining",
+      "type": "u32",
+      "startBit": 464,
+      "bitLen": 32,
+      "note": "充电剩余时间"
+     },
+     {
+      "name": "ErrCode",
+      "type": "u8",
+      "startBit": 496,
+      "bitLen": 8,
+      "note": "EMS故障码"
+     },
+     {
+      "name": "PErrCode",
+      "type": "u8",
+      "startBit": 504,
+      "bitLen": 8,
+      "note": "部品故障码"
+     }
+    ]
+   }
+  },
+  "0xE2": {
+   "desc": "EMS 0xE2 (转储解析, 类型/枚举待固件确认)",
+   "REQ": {
+    "len": 0,
+    "fields": [
+     {
+      "name": "RES",
+      "type": "bytes",
+      "bitLen": 0
+     }
+    ]
+   },
+   "RESP": {
+    "len": 156,
+    "fields": [
+     {
+      "name": "ProtectCode",
+      "type": "bitset",
+      "startBit": 0,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "ErrCode",
+      "type": "bitset",
+      "startBit": 16,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "AFE_ProtectCode",
+      "type": "bitset",
+      "startBit": 32,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "RSVD",
+      "type": "u16",
+      "startBit": 48,
+      "bitLen": 16
+     },
+     {
+      "name": "ChgDsgState",
+      "type": "bitset",
+      "startBit": 64,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "SysState",
+      "type": "bitset",
+      "startBit": 80,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "CellBalance",
+      "type": "u32",
+      "startBit": 88,
+      "bitLen": 32
+     },
+     {
+      "name": "SignalSource",
+      "type": "u8",
+      "startBit": 120,
+      "bitLen": 8
+     },
+     {
+      "name": "Cell_Temp",
+      "type": "u8",
+      "startBit": 128,
+      "bitLen": 128,
+      "unit": "℃",
+      "scale": 1.0
+     },
+     {
+      "name": "CellTempMax",
+      "type": "i16",
+      "startBit": 256,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0
+     },
+     {
+      "name": "CellTempMin",
+      "type": "i16",
+      "startBit": 272,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0
+     },
+     {
+      "name": "ChgMosTemp",
+      "type": "bitset",
+      "startBit": 288,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "DsgMosTemp",
+      "type": "bitset",
+      "startBit": 304,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "PreDsgMosTemp",
+      "type": "bitset",
+      "startBit": 320,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "AfeTemp",
+      "type": "i16",
+      "startBit": 336,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0
+     },
+     {
+      "name": "PcbTemp",
+      "type": "i16",
+      "startBit": 352,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0
+     },
+     {
+      "name": "MosTempMax",
+      "type": "bitset",
+      "startBit": 368,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "SysCurr",
+      "type": "i32",
+      "startBit": 384,
+      "bitLen": 32,
+      "unit": "mA",
+      "scale": 1.0
+     },
+     {
+      "name": "AverageCurr",
+      "type": "i32",
+      "startBit": 416,
+      "bitLen": 32,
+      "unit": "mA",
+      "scale": 1.0
+     },
+     {
+      "name": "CurrGain",
+      "type": "i16",
+      "startBit": 448,
+      "bitLen": 16,
+      "unit": "%",
+      "scale": 0.001
+     },
+     {
+      "name": "CurrOffset",
+      "type": "i16",
+      "startBit": 464,
+      "bitLen": 16,
+      "unit": "mA",
+      "scale": 1.0
+     },
+     {
+      "name": "RSOC",
+      "type": "u8",
+      "startBit": 480,
+      "bitLen": 8,
+      "unit": "%",
+      "scale": 1.0
+     },
+     {
+      "name": "ASOC",
+      "type": "u8",
+      "startBit": 488,
+      "bitLen": 8,
+      "unit": "%",
+      "scale": 1.0
+     },
+     {
+      "name": "CSOC",
+      "type": "u8",
+      "startBit": 496,
+      "bitLen": 8,
+      "unit": "%",
+      "scale": 1.0
+     },
+     {
+      "name": "RRemainCap",
+      "type": "u32",
+      "startBit": 504,
+      "bitLen": 32,
+      "unit": "mAh",
+      "scale": 1.0
+     },
+     {
+      "name": "ARemainCap",
+      "type": "u32",
+      "startBit": 536,
+      "bitLen": 32,
+      "unit": "mAh",
+      "scale": 1.0
+     },
+     {
+      "name": "CRemainCap",
+      "type": "u32",
+      "startBit": 568,
+      "bitLen": 32,
+      "unit": "mAh",
+      "scale": 1.0
+     },
+     {
+      "name": "RFCC",
+      "type": "u32",
+      "startBit": 600,
+      "bitLen": 32,
+      "unit": "mAh",
+      "scale": 1.0
+     },
+     {
+      "name": "AFCC",
+      "type": "u32",
+      "startBit": 632,
+      "bitLen": 32,
+      "unit": "mAh",
+      "scale": 1.0
+     },
+     {
+      "name": "SOH",
+      "type": "u8",
+      "startBit": 664,
+      "bitLen": 8,
+      "unit": "%",
+      "scale": 1.0
+     },
+     {
+      "name": "Cycles",
+      "type": "u16",
+      "startBit": 672,
+      "bitLen": 16,
+      "unit": "cycles",
+      "scale": 1.0
+     },
+     {
+      "name": "AccumValue",
+      "type": "u32",
+      "startBit": 688,
+      "bitLen": 32,
+      "unit": "mAh",
+      "scale": 1.0
+     },
+     {
+      "name": "TorageLossCap",
+      "type": "u32",
+      "startBit": 720,
+      "bitLen": 32,
+      "unit": "mAh",
+      "scale": 1.0
+     },
+     {
+      "name": "TotalChargeCap",
+      "type": "u16",
+      "startBit": 752,
+      "bitLen": 16,
+      "unit": "mAh",
+      "scale": 1.0
+     },
+     {
+      "name": "TotalDischargeCap",
+      "type": "u16",
+      "startBit": 768,
+      "bitLen": 16,
+      "unit": "mAh",
+      "scale": 1.0
+     },
+     {
+      "name": "Vcell",
+      "type": "u8",
+      "startBit": 784,
+      "bitLen": 320,
+      "unit": "mV",
+      "scale": 1.0
+     },
+     {
+      "name": "Vcell_max",
+      "type": "u16",
+      "startBit": 1104,
+      "bitLen": 16,
+      "unit": "mV",
+      "scale": 1.0
+     },
+     {
+      "name": "Vcell_min",
+      "type": "u16",
+      "startBit": 1120,
+      "bitLen": 16,
+      "unit": "mV",
+      "scale": 1.0
+     },
+     {
+      "name": "Vcell_dif",
+      "type": "u16",
+      "startBit": 1136,
+      "bitLen": 16,
+      "unit": "mV",
+      "scale": 1.0
+     },
+     {
+      "name": "Vcell_max_num",
+      "type": "u8",
+      "startBit": 1152,
+      "bitLen": 8
+     },
+     {
+      "name": "Vcell_min_num",
+      "type": "u8",
+      "startBit": 1160,
+      "bitLen": 8
+     },
+     {
+      "name": "BatVolt",
+      "type": "u16",
+      "startBit": 1168,
+      "bitLen": 16,
+      "unit": "mV",
+      "scale": 10.0
+     },
+     {
+      "name": "PackVolt",
+      "type": "u16",
+      "startBit": 1184,
+      "bitLen": 16,
+      "unit": "mV",
+      "scale": 10.0
+     },
+     {
+      "name": "AdapterVolt",
+      "type": "u16",
+      "startBit": 1200,
+      "bitLen": 16,
+      "unit": "mV",
+      "scale": 10.0
+     },
+     {
+      "name": "Chgdiscncause",
+      "type": "i16",
+      "startBit": 1216,
+      "bitLen": 16
+     },
+     {
+      "name": "Dsgdiscncause",
+      "type": "i16",
+      "startBit": 1232,
+      "bitLen": 16
+     }
+    ]
+   }
+  },
+  "0xE3": {
+   "desc": "EMS 0xE3 (转储解析, 类型/枚举待固件确认)",
+   "REQ": {
+    "len": 0,
+    "fields": [
+     {
+      "name": "RES",
+      "type": "bytes",
+      "bitLen": 0
+     }
+    ]
+   },
+   "RESP": {
+    "len": 44,
+    "fields": [
+     {
+      "name": "WordCmdV_DC",
+      "type": "u16",
+      "startBit": 0,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "WordCmdI_DC",
+      "type": "u16",
+      "startBit": 16,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.01
+     },
+     {
+      "name": "WordCmdV_AC",
+      "type": "u16",
+      "startBit": 32,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "WordCmdP_AC",
+      "type": "u16",
+      "startBit": 48,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "WordCmdF",
+      "type": "u8",
+      "startBit": 64,
+      "bitLen": 1
+     },
+     {
+      "name": "FaultClear",
+      "type": "u8",
+      "startBit": 65,
+      "bitLen": 1
+     },
+     {
+      "name": "FanControl",
+      "type": "u8",
+      "startBit": 66,
+      "bitLen": 1
+     },
+     {
+      "name": "Reserve",
+      "type": "u8",
+      "startBit": 67,
+      "bitLen": 1
+     },
+     {
+      "name": "Reserve",
+      "type": "u8",
+      "startBit": 68,
+      "bitLen": 1
+     },
+     {
+      "name": "Reserve",
+      "type": "u8",
+      "startBit": 69,
+      "bitLen": 3
+     },
+     {
+      "name": "ByteCmdOn",
+      "type": "u8",
+      "startBit": 72,
+      "bitLen": 4
+     },
+     {
+      "name": "ByteWorkModeFlag",
+      "type": "bitset",
+      "startBit": 76,
+      "bitLen": 4,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "WordPmax",
+      "type": "u16",
+      "startBit": 80,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "WordVin",
+      "type": "u16",
+      "startBit": 96,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "WordIAc",
+      "type": "u16",
+      "startBit": 112,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.01
+     },
+     {
+      "name": "WordPin",
+      "type": "u16",
+      "startBit": 128,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 0.1
+     },
+     {
+      "name": "WordVout",
+      "type": "u16",
+      "startBit": 144,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "WordIout",
+      "type": "u16",
+      "startBit": 160,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.01
+     },
+     {
+      "name": "WordFout",
+      "type": "u16",
+      "startBit": 176,
+      "bitLen": 16,
+      "unit": "Hz",
+      "scale": 0.1
+     },
+     {
+      "name": "WordPout",
+      "type": "u16",
+      "startBit": 192,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 0.1
+     },
+     {
+      "name": "TempAMB",
+      "type": "i16",
+      "startBit": 208,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 0.1,
+      "offset": 40
+     },
+     {
+      "name": "TempPFC",
+      "type": "i16",
+      "startBit": 224,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 0.1,
+      "offset": 40
+     },
+     {
+      "name": "TempLLC",
+      "type": "i16",
+      "startBit": 240,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 0.1,
+      "offset": 40
+     },
+     {
+      "name": "Reserve",
+      "type": "u16",
+      "startBit": 256,
+      "bitLen": 16
+     },
+     {
+      "name": "Reserve",
+      "type": "u16",
+      "startBit": 272,
+      "bitLen": 16
+     },
+     {
+      "name": "AppCRC",
+      "type": "u16",
+      "startBit": 288,
+      "bitLen": 16
+     },
+     {
+      "name": "BootCRC",
+      "type": "u16",
+      "startBit": 304,
+      "bitLen": 16
+     },
+     {
+      "name": "VoltVersion",
+      "type": "u8",
+      "startBit": 320,
+      "bitLen": 2
+     },
+     {
+      "name": "Reserve",
+      "type": "u8",
+      "startBit": 322,
+      "bitLen": 6
+     },
+     {
+      "name": "SysState",
+      "type": "bitset",
+      "startBit": 328,
+      "bitLen": 4,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "ChargeReq",
+      "type": "u8",
+      "startBit": 332,
+      "bitLen": 1
+     },
+     {
+      "name": "Reserve",
+      "type": "u8",
+      "startBit": 333,
+      "bitLen": 1
+     },
+     {
+      "name": "FanReq",
+      "type": "u8",
+      "startBit": 334,
+      "bitLen": 2
+     },
+     {
+      "name": "VinAcUvp",
+      "type": "u8",
+      "startBit": 336,
+      "bitLen": 1
+     },
+     {
+      "name": "VinAcOvp",
+      "type": "u8",
+      "startBit": 337,
+      "bitLen": 1
+     },
+     {
+      "name": "VbatUvp",
+      "type": "u8",
+      "startBit": 338,
+      "bitLen": 1
+     },
+     {
+      "name": "VbatOvp",
+      "type": "u8",
+      "startBit": 339,
+      "bitLen": 1
+     },
+     {
+      "name": "VoutAcInvUvp",
+      "type": "u8",
+      "startBit": 340,
+      "bitLen": 1
+     },
+     {
+      "name": "VoutAcInvOvp",
+      "type": "u8",
+      "startBit": 341,
+      "bitLen": 1
+     },
+     {
+      "name": "VoutAcInvOlp",
+      "type": "u8",
+      "startBit": 342,
+      "bitLen": 1
+     },
+     {
+      "name": "InvertShort",
+      "type": "u8",
+      "startBit": 343,
+      "bitLen": 1
+     },
+     {
+      "name": "InvertOTP",
+      "type": "u8",
+      "startBit": 344,
+      "bitLen": 1
+     },
+     {
+      "name": "InvertInnerFail",
+      "type": "u8",
+      "startBit": 345,
+      "bitLen": 1
+     },
+     {
+      "name": "InnerErrCode",
+      "type": "bitset",
+      "startBit": 346,
+      "bitLen": 6,
+      "note": "位定义见转储备注, 待固件确认"
+     }
+    ]
+   }
+  },
+  "0xE4": {
+   "desc": "EMS 0xE4 (转储解析, 类型/枚举待固件确认)",
+   "REQ": {
+    "len": 0,
+    "fields": [
+     {
+      "name": "RES",
+      "type": "bytes",
+      "bitLen": 0
+     }
+    ]
+   },
+   "RESP": {
+    "len": 102,
+    "fields": [
+     {
+      "name": "Power_level",
+      "type": "u16",
+      "startBit": 0,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "VBat_Level",
+      "type": "u16",
+      "startBit": 16,
+      "bitLen": 16
+     },
+     {
+      "name": "Vout_Level",
+      "type": "u16",
+      "startBit": 32,
+      "bitLen": 16
+     },
+     {
+      "name": "Fout_Level",
+      "type": "u16",
+      "startBit": 48,
+      "bitLen": 16
+     },
+     {
+      "name": "Bat_Code",
+      "type": "bitset",
+      "startBit": 64,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "Pcs_Code",
+      "type": "bitset",
+      "startBit": 80,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "Ele_Code",
+      "type": "bitset",
+      "startBit": 96,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "Sys_Code",
+      "type": "bitset",
+      "startBit": 112,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "AC_Vin",
+      "type": "u16",
+      "startBit": 128,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "Display_Code",
+      "type": "bitset",
+      "startBit": 144,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "Pcs_VBat",
+      "type": "u16",
+      "startBit": 160,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "AC_Fin",
+      "type": "u16",
+      "startBit": 176,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "AC_Iin",
+      "type": "u16",
+      "startBit": 192,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.1
+     },
+     {
+      "name": "Bat_Pin",
+      "type": "u16",
+      "startBit": 208,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "Chg_State",
+      "type": "bitset",
+      "startBit": 224,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "AC_Vout",
+      "type": "u16",
+      "startBit": 240,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "AC_Iout",
+      "type": "u16",
+      "startBit": 256,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.1
+     },
+     {
+      "name": "AC_Pout",
+      "type": "u16",
+      "startBit": 272,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "Cascade_Code",
+      "type": "bitset",
+      "startBit": 288,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "Cascade_Signal",
+      "type": "u16",
+      "startBit": 304,
+      "bitLen": 16
+     },
+     {
+      "name": "Pcs_Temp",
+      "type": "i16",
+      "startBit": 320,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0
+     },
+     {
+      "name": "Llc_Temp",
+      "type": "i16",
+      "startBit": 336,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0
+     },
+     {
+      "name": "Llc2_Temp",
+      "type": "i16",
+      "startBit": 352,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0
+     },
+     {
+      "name": "Transformer_Temp",
+      "type": "i16",
+      "startBit": 368,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0
+     },
+     {
+      "name": "Fan_State",
+      "type": "bitset",
+      "startBit": 384,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "Device_Addr",
+      "type": "u16",
+      "startBit": 400,
+      "bitLen": 16
+     },
+     {
+      "name": "Output_En",
+      "type": "u16",
+      "startBit": 416,
+      "bitLen": 16
+     },
+     {
+      "name": "Bat_OVP_Val",
+      "type": "u16",
+      "startBit": 432,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "Bat_UVP_Val",
+      "type": "u16",
+      "startBit": 448,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "Pout_SetVal",
+      "type": "u16",
+      "startBit": 464,
+      "bitLen": 16
+     },
+     {
+      "name": "Vout_SetVal",
+      "type": "u16",
+      "startBit": 480,
+      "bitLen": 16
+     },
+     {
+      "name": "Pin_SetVal",
+      "type": "u16",
+      "startBit": 496,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "Cascade_En",
+      "type": "u16",
+      "startBit": 512,
+      "bitLen": 16
+     },
+     {
+      "name": "Vin_SetVal",
+      "type": "u16",
+      "startBit": 528,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "Constant_Power_En",
+      "type": "u16",
+      "startBit": 544,
+      "bitLen": 16
+     },
+     {
+      "name": "Sys_SetPower",
+      "type": "u16",
+      "startBit": 560,
+      "bitLen": 16
+     },
+     {
+      "name": "VPch",
+      "type": "u16",
+      "startBit": 576,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "IPch",
+      "type": "u16",
+      "startBit": 592,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.1
+     },
+     {
+      "name": "Ifull",
+      "type": "u16",
+      "startBit": 608,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.1
+     },
+     {
+      "name": "Vrecover_Chg",
+      "type": "i16",
+      "startBit": 624,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "EV_Mode",
+      "type": "u16",
+      "startBit": 640,
+      "bitLen": 16
+     },
+     {
+      "name": "Grid_Ctrl",
+      "type": "u16",
+      "startBit": 656,
+      "bitLen": 16
+     },
+     {
+      "name": "Grid_Power_Set",
+      "type": "u16",
+      "startBit": 672,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "Grid_Power",
+      "type": "u16",
+      "startBit": 688,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "Sys_State",
+      "type": "bitset",
+      "startBit": 704,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "PV_Vbus",
+      "type": "u16",
+      "startBit": 720,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "PV_Ibus",
+      "type": "u16",
+      "startBit": 736,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.1
+     },
+     {
+      "name": "PV_Code",
+      "type": "bitset",
+      "startBit": 752,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "PV_Pbus",
+      "type": "u16",
+      "startBit": 768,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "PV_OVP",
+      "type": "u16",
+      "startBit": 784,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "PV_OCC",
+      "type": "u16",
+      "startBit": 800,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.1
+     }
+    ]
+   }
+  },
+  "0xE5": {
+   "desc": "EMS 0xE5 (转储解析, 类型/枚举待固件确认)",
+   "REQ": {
+    "len": 0,
+    "fields": [
+     {
+      "name": "RES",
+      "type": "bytes",
+      "bitLen": 0
+     }
+    ]
+   },
+   "RESP": {
+    "len": 72,
+    "fields": [
+     {
+      "name": "SoftVersion",
+      "type": "u16",
+      "startBit": 0,
+      "bitLen": 16
+     },
+     {
+      "name": "BootCRC",
+      "type": "u16",
+      "startBit": 16,
+      "bitLen": 16
+     },
+     {
+      "name": "AppCRC",
+      "type": "u16",
+      "startBit": 32,
+      "bitLen": 16
+     },
+     {
+      "name": "PV1Volt",
+      "type": "i16",
+      "startBit": 48,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "PV1IBus",
+      "type": "u16",
+      "startBit": 64,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.01
+     },
+     {
+      "name": "PV1IBat",
+      "type": "u16",
+      "startBit": 80,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.01
+     },
+     {
+      "name": "PV1Temp",
+      "type": "i16",
+      "startBit": 96,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 0.1
+     },
+     {
+      "name": "PV1State",
+      "type": "bitset",
+      "startBit": 112,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "PV1Err",
+      "type": "bitset",
+      "startBit": 128,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "PV1Res",
+      "type": "u16",
+      "startBit": 144,
+      "bitLen": 16
+     },
+     {
+      "name": "PV2Volt",
+      "type": "i16",
+      "startBit": 160,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "PV2IBus",
+      "type": "u16",
+      "startBit": 176,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.01
+     },
+     {
+      "name": "PV2IBat",
+      "type": "u16",
+      "startBit": 192,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.01
+     },
+     {
+      "name": "PV2Temp",
+      "type": "i16",
+      "startBit": 208,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 0.1
+     },
+     {
+      "name": "PV2State",
+      "type": "bitset",
+      "startBit": 224,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "PV2Err",
+      "type": "bitset",
+      "startBit": 240,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "PV2Res",
+      "type": "u16",
+      "startBit": 256,
+      "bitLen": 16
+     },
+     {
+      "name": "BatVolt",
+      "type": "i16",
+      "startBit": 272,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "BatCurr",
+      "type": "i16",
+      "startBit": 288,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.01
+     },
+     {
+      "name": "BatPower",
+      "type": "u16",
+      "startBit": 304,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "BatErr",
+      "type": "bitset",
+      "startBit": 320,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "SysErr",
+      "type": "bitset",
+      "startBit": 336,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "PV1Power",
+      "type": "u16",
+      "startBit": 352,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "PV2Power",
+      "type": "u16",
+      "startBit": 368,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "IsoVolt",
+      "type": "i16",
+      "startBit": 384,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "PV1Iso",
+      "type": "u16",
+      "startBit": 400,
+      "bitLen": 16,
+      "unit": "KΩ",
+      "scale": 1.0
+     },
+     {
+      "name": "PV2Iso",
+      "type": "u16",
+      "startBit": 416,
+      "bitLen": 16,
+      "unit": "KΩ",
+      "scale": 1.0
+     },
+     {
+      "name": "PVIso",
+      "type": "u16",
+      "startBit": 432,
+      "bitLen": 16,
+      "unit": "KΩ",
+      "scale": 1.0
+     },
+     {
+      "name": "Res1",
+      "type": "u16",
+      "startBit": 448,
+      "bitLen": 16
+     },
+     {
+      "name": "Res2",
+      "type": "u16",
+      "startBit": 464,
+      "bitLen": 16
+     },
+     {
+      "name": "PV1RunCmd",
+      "type": "u16",
+      "startBit": 480,
+      "bitLen": 16
+     },
+     {
+      "name": "PV2RunCmd",
+      "type": "u16",
+      "startBit": 496,
+      "bitLen": 16
+     },
+     {
+      "name": "ChgVolt",
+      "type": "i16",
+      "startBit": 512,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "ChgCurr",
+      "type": "i16",
+      "startBit": 528,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.01
+     },
+     {
+      "name": "ChgPower",
+      "type": "i16",
+      "startBit": 544,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "ErrClear",
+      "type": "bitset",
+      "startBit": 560,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     }
+    ]
+   }
+  },
+  "0xE6": {
+   "desc": "EMS 0xE6 (转储解析, 类型/枚举待固件确认)",
+   "REQ": {
+    "len": 0,
+    "fields": [
+     {
+      "name": "RES",
+      "type": "bytes",
+      "bitLen": 0
+     }
+    ]
+   },
+   "RESP": {
+    "len": 76,
+    "fields": [
+     {
+      "name": "HS_MPPT_VBatLevel",
+      "type": "u16",
+      "startBit": 0,
+      "bitLen": 16
+     },
+     {
+      "name": "HS_MPPT_ErrCode",
+      "type": "bitset",
+      "startBit": 16,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "HS_MPPT_VBusLevel",
+      "type": "u16",
+      "startBit": 32,
+      "bitLen": 16
+     },
+     {
+      "name": "HS_MPPT_ChgState",
+      "type": "bitset",
+      "startBit": 48,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "RES_1",
+      "type": "u8",
+      "startBit": 64,
+      "bitLen": 64
+     },
+     {
+      "name": "HS_MPPT_Vbus",
+      "type": "u16",
+      "startBit": 128,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "HS_MPPT_Ibus",
+      "type": "u16",
+      "startBit": 144,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.1
+     },
+     {
+      "name": "HS_MPPT_Pbus",
+      "type": "u16",
+      "startBit": 160,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "RES_2",
+      "type": "u32",
+      "startBit": 176,
+      "bitLen": 32
+     },
+     {
+      "name": "HS_MPPT_Vbat",
+      "type": "u16",
+      "startBit": 208,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "RES_3",
+      "type": "u8",
+      "startBit": 224,
+      "bitLen": 144
+     },
+     {
+      "name": "HS_MPPT_DCTemp",
+      "type": "i16",
+      "startBit": 368,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0
+     },
+     {
+      "name": "RES_4",
+      "type": "u8",
+      "startBit": 384,
+      "bitLen": 64
+     },
+     {
+      "name": "HS_MPPT_Addr",
+      "type": "u16",
+      "startBit": 448,
+      "bitLen": 16
+     },
+     {
+      "name": "HS_MPPT_ChgCtrl",
+      "type": "i16",
+      "startBit": 464,
+      "bitLen": 16
+     },
+     {
+      "name": "RES_5",
+      "type": "u16",
+      "startBit": 480,
+      "bitLen": 16
+     },
+     {
+      "name": "HS_MPPT_OVP",
+      "type": "u16",
+      "startBit": 496,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "HS_MPPT_UVP",
+      "type": "u16",
+      "startBit": 512,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "HS_MPPT_ChgVolt",
+      "type": "i16",
+      "startBit": 528,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "HS_MPPT_ChgCurr",
+      "type": "i16",
+      "startBit": 544,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.1
+     },
+     {
+      "name": "RES_6",
+      "type": "u8",
+      "startBit": 560,
+      "bitLen": 48
+     }
+    ]
+   }
+  },
+  "0xE7": {
+   "desc": "EMS 0xE7 (转储解析, 类型/枚举待固件确认)",
+   "REQ": {
+    "len": 0,
+    "fields": [
+     {
+      "name": "RES",
+      "type": "bytes",
+      "bitLen": 0
+     }
+    ]
+   },
+   "RESP": {
+    "len": 33,
+    "fields": [
+     {
+      "name": "PV_Vbus",
+      "type": "u32",
+      "startBit": 0,
+      "bitLen": 32,
+      "unit": "mV",
+      "scale": 1.0
+     },
+     {
+      "name": "PV_Ibus",
+      "type": "u32",
+      "startBit": 32,
+      "bitLen": 32,
+      "unit": "mA",
+      "scale": 1.0
+     },
+     {
+      "name": "PV_Pbus",
+      "type": "u32",
+      "startBit": 64,
+      "bitLen": 32,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "PV_Vbat",
+      "type": "u32",
+      "startBit": 96,
+      "bitLen": 32,
+      "unit": "mV",
+      "scale": 1.0
+     },
+     {
+      "name": "PV_Ibat",
+      "type": "u32",
+      "startBit": 128,
+      "bitLen": 32,
+      "unit": "mA",
+      "scale": 1.0
+     },
+     {
+      "name": "PV_Pbat",
+      "type": "u32",
+      "startBit": 160,
+      "bitLen": 32,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "PV_MosTemp",
+      "type": "bitset",
+      "startBit": 192,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "PV_CtrlCmd",
+      "type": "u8",
+      "startBit": 208,
+      "bitLen": 1
+     },
+     {
+      "name": "PV_Adapter",
+      "type": "u8",
+      "startBit": 209,
+      "bitLen": 1
+     },
+     {
+      "name": "RES",
+      "type": "u8",
+      "startBit": 210,
+      "bitLen": 6
+     },
+     {
+      "name": "PV_COW",
+      "type": "u8",
+      "startBit": 216,
+      "bitLen": 1
+     },
+     {
+      "name": "RES",
+      "type": "u8",
+      "startBit": 217,
+      "bitLen": 7
+     },
+     {
+      "name": "PV_Adapter_Type",
+      "type": "u8",
+      "startBit": 224,
+      "bitLen": 8
+     },
+     {
+      "name": "PV_Adapter_Volt",
+      "type": "u32",
+      "startBit": 232,
+      "bitLen": 32
+     }
+    ]
+   }
+  },
+  "0xE8": {
+   "desc": "EMS 0xE8 (转储解析, 类型/枚举待固件确认)",
+   "REQ": {
+    "len": 0,
+    "fields": [
+     {
+      "name": "RES",
+      "type": "bytes",
+      "bitLen": 0
+     }
+    ]
+   },
+   "RESP": {
+    "len": 32,
+    "fields": [
+     {
+      "name": "DC_Vout",
+      "type": "u32",
+      "startBit": 0,
+      "bitLen": 32,
+      "unit": "mV",
+      "scale": 1.0
+     },
+     {
+      "name": "DC_Iout",
+      "type": "u32",
+      "startBit": 32,
+      "bitLen": 32,
+      "unit": "mA",
+      "scale": 1.0
+     },
+     {
+      "name": "DC_Pout",
+      "type": "u32",
+      "startBit": 64,
+      "bitLen": 32,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "DC_MosTemp",
+      "type": "bitset",
+      "startBit": 96,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "DC_CtrlCmd",
+      "type": "u8",
+      "startBit": 112,
+      "bitLen": 1
+     },
+     {
+      "name": "RES",
+      "type": "u8",
+      "startBit": 113,
+      "bitLen": 7
+     },
+     {
+      "name": "DC_OCW",
+      "type": "u8",
+      "startBit": 120,
+      "bitLen": 1
+     },
+     {
+      "name": "DC_OCD",
+      "type": "u8",
+      "startBit": 121,
+      "bitLen": 1
+     },
+     {
+      "name": "DC_SCD",
+      "type": "u8",
+      "startBit": 122,
+      "bitLen": 1
+     },
+     {
+      "name": "RES",
+      "type": "u8",
+      "startBit": 123,
+      "bitLen": 5
+     },
+     {
+      "name": "USB_Vout",
+      "type": "u32",
+      "startBit": 128,
+      "bitLen": 32,
+      "unit": "mV",
+      "scale": 1.0
+     },
+     {
+      "name": "USB_Iout",
+      "type": "u32",
+      "startBit": 160,
+      "bitLen": 32,
+      "unit": "mA",
+      "scale": 1.0
+     },
+     {
+      "name": "USB_Pout",
+      "type": "u32",
+      "startBit": 192,
+      "bitLen": 32,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "USB_MosTemp",
+      "type": "bitset",
+      "startBit": 224,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "USB_CtrlCmd",
+      "type": "u8",
+      "startBit": 240,
+      "bitLen": 1
+     },
+     {
+      "name": "RES",
+      "type": "u8",
+      "startBit": 241,
+      "bitLen": 7
+     },
+     {
+      "name": "USB_OCW",
+      "type": "u8",
+      "startBit": 248,
+      "bitLen": 1
+     },
+     {
+      "name": "USB_OCD",
+      "type": "u8",
+      "startBit": 249,
+      "bitLen": 1
+     },
+     {
+      "name": "USB_SCD",
+      "type": "u8",
+      "startBit": 250,
+      "bitLen": 1
+     },
+     {
+      "name": "RES",
+      "type": "u8",
+      "startBit": 251,
+      "bitLen": 5
+     }
+    ]
+   }
+  },
+  "0xE9": {
+   "desc": "EMS 0xE9 (转储解析, 类型/枚举待固件确认)",
+   "REQ": {
+    "len": 0,
+    "fields": [
+     {
+      "name": "RES",
+      "type": "bytes",
+      "bitLen": 0
+     }
+    ]
+   },
+   "RESP": {
+    "len": 22,
+    "fields": [
+     {
+      "name": "TypeC_Vout",
+      "type": "u16",
+      "startBit": 0,
+      "bitLen": 16,
+      "unit": "mV",
+      "scale": 1.0
+     },
+     {
+      "name": "TypeC_Iout",
+      "type": "u16",
+      "startBit": 16,
+      "bitLen": 16,
+      "unit": "mA",
+      "scale": 1.0
+     },
+     {
+      "name": "TypeC_Pout",
+      "type": "u32",
+      "startBit": 32,
+      "bitLen": 32,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "TypeC_Vbus",
+      "type": "u16",
+      "startBit": 64,
+      "bitLen": 16,
+      "unit": "mV",
+      "scale": 1.0
+     },
+     {
+      "name": "TypeC_Ibus",
+      "type": "u16",
+      "startBit": 80,
+      "bitLen": 16,
+      "unit": "mA",
+      "scale": 1.0
+     },
+     {
+      "name": "TypeC_Pbus",
+      "type": "u32",
+      "startBit": 96,
+      "bitLen": 32,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "TypeC_MosTemp",
+      "type": "bitset",
+      "startBit": 128,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 1.0,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "TypeC_MaxPout",
+      "type": "u8",
+      "startBit": 144,
+      "bitLen": 8,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "TypeC_MaxPbus",
+      "type": "u8",
+      "startBit": 152,
+      "bitLen": 8,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "TypeC_DsgCtrlCmd",
+      "type": "u8",
+      "startBit": 160,
+      "bitLen": 1
+     },
+     {
+      "name": "TypeC_ChgCtrlCmd",
+      "type": "u8",
+      "startBit": 161,
+      "bitLen": 1
+     },
+     {
+      "name": "TypeC_DsgState",
+      "type": "u8",
+      "startBit": 162,
+      "bitLen": 1
+     },
+     {
+      "name": "TypeC_ChgState",
+      "type": "u8",
+      "startBit": 163,
+      "bitLen": 1
+     },
+     {
+      "name": "TypeC_Adapter",
+      "type": "u8",
+      "startBit": 164,
+      "bitLen": 1
+     },
+     {
+      "name": "TypeC_Output",
+      "type": "u8",
+      "startBit": 165,
+      "bitLen": 1
+     },
+     {
+      "name": "TypeC_Timeout",
+      "type": "u8",
+      "startBit": 166,
+      "bitLen": 1
+     },
+     {
+      "name": "RES",
+      "type": "u8",
+      "startBit": 167,
+      "bitLen": 1
+     },
+     {
+      "name": "TypeC_MOSOT",
+      "type": "u8",
+      "startBit": 168,
+      "bitLen": 1
+     },
+     {
+      "name": "TypeC_SCD",
+      "type": "u8",
+      "startBit": 169,
+      "bitLen": 1
+     },
+     {
+      "name": "RES",
+      "type": "u8",
+      "startBit": 170,
+      "bitLen": 6
+     }
+    ]
+   }
+  },
+  "0xEA": {
+   "desc": "EMS 0xEA (转储解析, 类型/枚举待固件确认)",
+   "REQ": {
+    "len": 0,
+    "fields": [
+     {
+      "name": "RES",
+      "type": "bytes",
+      "bitLen": 0
+     }
+    ]
+   },
+   "RESP": {
+    "len": 3,
+    "fields": [
+     {
+      "name": "Ligth_State",
+      "type": "bitset",
+      "startBit": 0,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "Fan_Duty",
+      "type": "u8",
+      "startBit": 8,
+      "bitLen": 8
+     },
+     {
+      "name": "Fan_UpCtrlCmd",
+      "type": "u8",
+      "startBit": 16,
+      "bitLen": 1
+     },
+     {
+      "name": "Fan_DownCtrlCmd",
+      "type": "u8",
+      "startBit": 17,
+      "bitLen": 1
+     },
+     {
+      "name": "RES",
+      "type": "u8",
+      "startBit": 18,
+      "bitLen": 6
+     }
+    ]
+   }
+  },
+  "0xEB": {
+   "desc": "EMS 0xEB (转储解析, 类型/枚举待固件确认)",
+   "REQ": {
+    "len": 0,
+    "fields": [
+     {
+      "name": "RES",
+      "type": "bytes",
+      "bitLen": 0
+     }
+    ]
+   },
+   "RESP": {
+    "len": 35,
+    "fields": [
+     {
+      "name": "EMS_OV",
+      "type": "u8",
+      "startBit": 0,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_Full",
+      "type": "u8",
+      "startBit": 1,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_ChgSoc",
+      "type": "u8",
+      "startBit": 2,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_UV",
+      "type": "u8",
+      "startBit": 3,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_OTD",
+      "type": "u8",
+      "startBit": 4,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_UTD",
+      "type": "u8",
+      "startBit": 5,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_OTC",
+      "type": "u8",
+      "startBit": 6,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_UTC",
+      "type": "u8",
+      "startBit": 7,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_OCC",
+      "type": "u8",
+      "startBit": 8,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_OCD1",
+      "type": "u8",
+      "startBit": 9,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_OCD2",
+      "type": "u8",
+      "startBit": 10,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_OCW1",
+      "type": "u8",
+      "startBit": 11,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_OCW2",
+      "type": "u8",
+      "startBit": 12,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_OCW3",
+      "type": "u8",
+      "startBit": 13,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_OCW4",
+      "type": "u8",
+      "startBit": 14,
+      "bitLen": 1
+     },
+     {
+      "name": "EMS_FANERR",
+      "type": "u8",
+      "startBit": 15,
+      "bitLen": 1
+     },
+     {
+      "name": "RES",
+      "type": "u8",
+      "startBit": 16,
+      "bitLen": 8
+     },
+     {
+      "name": "BMS_SendCount",
+      "type": "u32",
+      "startBit": 24,
+      "bitLen": 32
+     },
+     {
+      "name": "BMS_ReceiveCount",
+      "type": "u32",
+      "startBit": 56,
+      "bitLen": 32
+     },
+     {
+      "name": "PCS_SendCount",
+      "type": "u32",
+      "startBit": 88,
+      "bitLen": 32
+     },
+     {
+      "name": "PCS_ReceiveCount",
+      "type": "u32",
+      "startBit": 120,
+      "bitLen": 32
+     },
+     {
+      "name": "MPPT_SendCount",
+      "type": "u32",
+      "startBit": 152,
+      "bitLen": 32
+     },
+     {
+      "name": "MPPT_ReceiveCount",
+      "type": "u32",
+      "startBit": 184,
+      "bitLen": 32
+     },
+     {
+      "name": "TypeC_SendCount",
+      "type": "u32",
+      "startBit": 216,
+      "bitLen": 32
+     },
+     {
+      "name": "TypeC_ReceiveCount",
+      "type": "u32",
+      "startBit": 248,
+      "bitLen": 32
+     }
+    ]
+   }
+  },
+  "0xEC": {
+   "desc": "控制指令 (200ms)",
+   "REQ": {
+    "len": 12,
+    "fields": [
+     {
+      "name": "Test_Mode",
+      "type": "u8",
+      "startBit": 0,
+      "bitLen": 1,
+      "note": "测试模式, 控制指令生效前提"
+     },
+     {
+      "name": "Fan_Up_En",
+      "type": "u8",
+      "startBit": 1,
+      "bitLen": 1,
+      "enum": {
+       "0": "关闭",
+       "1": "使能"
+      }
+     },
+     {
+      "name": "Fan_Down_En",
+      "type": "u8",
+      "startBit": 2,
+      "bitLen": 1,
+      "enum": {
+       "0": "关闭",
+       "1": "使能"
+      }
+     },
+     {
+      "name": "Correct_Mode",
+      "type": "u8",
+      "startBit": 3,
+      "bitLen": 1,
+      "note": "校准模式"
+     },
+     {
+      "name": "Balance_Mode",
+      "type": "u8",
+      "startBit": 4,
+      "bitLen": 1,
+      "note": "通信开均衡"
+     },
+     {
+      "name": "Shutdown_Mode",
+      "type": "u8",
+      "startBit": 5,
+      "bitLen": 1,
+      "note": "通信关机"
+     },
+     {
+      "name": "Off_Grid_En",
+      "type": "u8",
+      "startBit": 6,
+      "bitLen": 1,
+      "enum": {
+       "0": "关闭",
+       "1": "使能"
+      },
+      "note": "离网开关"
+     },
+     {
+      "name": "ON_Grid_En",
+      "type": "u8",
+      "startBit": 7,
+      "bitLen": 1,
+      "enum": {
+       "0": "关闭",
+       "1": "使能"
+      },
+      "note": "并网开关"
+     },
+     {
+      "name": "Fan_Duty",
+      "type": "u8",
+      "startBit": 8,
+      "bitLen": 8,
+      "unit": "%",
+      "note": "风扇转速 0-100"
+     },
+     {
+      "name": "Correct_Cap",
+      "type": "u32",
+      "startBit": 16,
+      "bitLen": 32,
+      "note": "SOC 校准容量"
+     },
+     {
+      "name": "PV_Charging_Power",
+      "type": "u16",
+      "startBit": 48,
+      "bitLen": 16,
+      "note": "PV 充电功率"
+     },
+     {
+      "name": "AC_Charging_Power",
+      "type": "u16",
+      "startBit": 64,
+      "bitLen": 16,
+      "note": "AC 充电功率"
+     },
+     {
+      "name": "ON_Grid_Power",
+      "type": "u16",
+      "startBit": 80,
+      "bitLen": 16,
+      "note": "并网放电功率"
+     }
+    ]
+   },
+   "RESP": {
+    "len": 1,
+    "fields": [
+     {
+      "name": "Ack",
+      "type": "u8",
+      "bitLen": 8,
+      "enum": {
+       "0": "操作成功",
+       "1": "操作失败"
+      }
+     }
+    ]
+   }
+  },
+  "0xED": {
+   "desc": "EMS 0xED (转储解析, 类型/枚举待固件确认)",
+   "REQ": {
+    "len": 0,
+    "fields": [
+     {
+      "name": "RES",
+      "type": "bytes",
+      "bitLen": 0
+     }
+    ]
+   },
+   "RESP": {
+    "len": 190,
+    "fields": [
+     {
+      "name": "n1_addr",
+      "type": "u8",
+      "startBit": 0,
+      "bitLen": 8
+     },
+     {
+      "name": "n1_sn",
+      "type": "u8",
+      "startBit": 8,
+      "bitLen": 120
+     },
+     {
+      "name": "n1_RSOC",
+      "type": "u8",
+      "startBit": 128,
+      "bitLen": 8
+     },
+     {
+      "name": "n1_BatVolt",
+      "type": "u16",
+      "startBit": 136,
+      "bitLen": 16
+     },
+     {
+      "name": "n1_SysCurr",
+      "type": "i32",
+      "startBit": 152,
+      "bitLen": 32
+     },
+     {
+      "name": "n1_MosState",
+      "type": "bitset",
+      "startBit": 184,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n1_ProtectCode",
+      "type": "bitset",
+      "startBit": 192,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n1_CellTempMax",
+      "type": "i8",
+      "startBit": 200,
+      "bitLen": 8
+     },
+     {
+      "name": "n1_CellTempMin",
+      "type": "i8",
+      "startBit": 208,
+      "bitLen": 8
+     },
+     {
+      "name": "n1_SysState",
+      "type": "bitset",
+      "startBit": 216,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n1_ParallelState",
+      "type": "bitset",
+      "startBit": 224,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n1_ParallelPrptect",
+      "type": "u8",
+      "startBit": 232,
+      "bitLen": 8
+     },
+     {
+      "name": "n1_RSVD",
+      "type": "u16",
+      "startBit": 240,
+      "bitLen": 16
+     },
+     {
+      "name": "n2_addr",
+      "type": "u8",
+      "startBit": 256,
+      "bitLen": 8
+     },
+     {
+      "name": "n2_sn",
+      "type": "u8",
+      "startBit": 264,
+      "bitLen": 120
+     },
+     {
+      "name": "n2_RSOC",
+      "type": "u8",
+      "startBit": 384,
+      "bitLen": 8
+     },
+     {
+      "name": "n2_BatVolt",
+      "type": "u16",
+      "startBit": 392,
+      "bitLen": 16
+     },
+     {
+      "name": "n2_SysCurr",
+      "type": "i32",
+      "startBit": 408,
+      "bitLen": 32
+     },
+     {
+      "name": "n2_MosState",
+      "type": "bitset",
+      "startBit": 440,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n2_ProtectCode",
+      "type": "bitset",
+      "startBit": 448,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n2_CellTempMax",
+      "type": "i8",
+      "startBit": 456,
+      "bitLen": 8
+     },
+     {
+      "name": "n2_CellTempMin",
+      "type": "i8",
+      "startBit": 464,
+      "bitLen": 8
+     },
+     {
+      "name": "n2_SysState",
+      "type": "bitset",
+      "startBit": 472,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n2_ParallelState",
+      "type": "bitset",
+      "startBit": 480,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n2_ParallelPrptect",
+      "type": "u8",
+      "startBit": 488,
+      "bitLen": 8
+     },
+     {
+      "name": "n2_RSVD",
+      "type": "u16",
+      "startBit": 496,
+      "bitLen": 16
+     },
+     {
+      "name": "n3_addr",
+      "type": "u8",
+      "startBit": 512,
+      "bitLen": 8
+     },
+     {
+      "name": "n3_sn",
+      "type": "u8",
+      "startBit": 520,
+      "bitLen": 120
+     },
+     {
+      "name": "n3_RSOC",
+      "type": "u8",
+      "startBit": 640,
+      "bitLen": 8
+     },
+     {
+      "name": "n3_BatVolt",
+      "type": "u16",
+      "startBit": 648,
+      "bitLen": 16
+     },
+     {
+      "name": "n3_SysCurr",
+      "type": "i32",
+      "startBit": 664,
+      "bitLen": 32
+     },
+     {
+      "name": "n3_MosState",
+      "type": "bitset",
+      "startBit": 696,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n3_ProtectCode",
+      "type": "bitset",
+      "startBit": 704,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n3_CellTempMax",
+      "type": "i8",
+      "startBit": 712,
+      "bitLen": 8
+     },
+     {
+      "name": "n3_CellTempMin",
+      "type": "i8",
+      "startBit": 720,
+      "bitLen": 8
+     },
+     {
+      "name": "n3_SysState",
+      "type": "bitset",
+      "startBit": 728,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n3_ParallelState",
+      "type": "bitset",
+      "startBit": 736,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n3_ParallelPrptect",
+      "type": "u8",
+      "startBit": 744,
+      "bitLen": 8
+     },
+     {
+      "name": "n3_RSVD",
+      "type": "u16",
+      "startBit": 752,
+      "bitLen": 16
+     },
+     {
+      "name": "n4_addr",
+      "type": "u8",
+      "startBit": 768,
+      "bitLen": 8
+     },
+     {
+      "name": "n4_sn",
+      "type": "u8",
+      "startBit": 776,
+      "bitLen": 120
+     },
+     {
+      "name": "n4_RSOC",
+      "type": "u8",
+      "startBit": 896,
+      "bitLen": 8
+     },
+     {
+      "name": "n4_BatVolt",
+      "type": "u16",
+      "startBit": 904,
+      "bitLen": 16
+     },
+     {
+      "name": "n4_SysCurr",
+      "type": "i32",
+      "startBit": 920,
+      "bitLen": 32
+     },
+     {
+      "name": "n4_MosState",
+      "type": "bitset",
+      "startBit": 952,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n4_ProtectCode",
+      "type": "bitset",
+      "startBit": 960,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n4_CellTempMax",
+      "type": "i8",
+      "startBit": 968,
+      "bitLen": 8
+     },
+     {
+      "name": "n4_CellTempMin",
+      "type": "i8",
+      "startBit": 976,
+      "bitLen": 8
+     },
+     {
+      "name": "n4_SysState",
+      "type": "bitset",
+      "startBit": 984,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n4_ParallelState",
+      "type": "bitset",
+      "startBit": 992,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n4_ParallelPrptect",
+      "type": "u8",
+      "startBit": 1000,
+      "bitLen": 8
+     },
+     {
+      "name": "n4_RSVD",
+      "type": "u16",
+      "startBit": 1008,
+      "bitLen": 16
+     },
+     {
+      "name": "n5_addr",
+      "type": "u8",
+      "startBit": 1024,
+      "bitLen": 8
+     },
+     {
+      "name": "n5_sn",
+      "type": "u8",
+      "startBit": 1032,
+      "bitLen": 120
+     },
+     {
+      "name": "n5_RSOC",
+      "type": "u8",
+      "startBit": 1152,
+      "bitLen": 8
+     },
+     {
+      "name": "n5_BatVolt",
+      "type": "u16",
+      "startBit": 1160,
+      "bitLen": 16
+     },
+     {
+      "name": "n5_SysCurr",
+      "type": "i32",
+      "startBit": 1176,
+      "bitLen": 32
+     },
+     {
+      "name": "n5_MosState",
+      "type": "bitset",
+      "startBit": 1208,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n5_ProtectCode",
+      "type": "bitset",
+      "startBit": 1216,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n5_CellTempMax",
+      "type": "i8",
+      "startBit": 1224,
+      "bitLen": 8
+     },
+     {
+      "name": "n5_CellTempMin",
+      "type": "i8",
+      "startBit": 1232,
+      "bitLen": 8
+     },
+     {
+      "name": "n5_SysState",
+      "type": "bitset",
+      "startBit": 1240,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n5_ParallelState",
+      "type": "bitset",
+      "startBit": 1248,
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "n5_ParallelPrptect",
+      "type": "u8",
+      "startBit": 1256,
+      "bitLen": 8
+     },
+     {
+      "name": "n5_RSVD",
+      "type": "u16",
+      "startBit": 1264,
+      "bitLen": 16
+     },
+     {
+      "name": "n1_cellMax",
+      "type": "u16",
+      "startBit": 1280,
+      "bitLen": 16
+     },
+     {
+      "name": "n1_cellMin",
+      "type": "u16",
+      "startBit": 1296,
+      "bitLen": 16
+     },
+     {
+      "name": "n1_soft",
+      "type": "u16",
+      "startBit": 1312,
+      "bitLen": 16
+     },
+     {
+      "name": "n2_cellMax",
+      "type": "u16",
+      "startBit": 1328,
+      "bitLen": 16
+     },
+     {
+      "name": "n2_cellMin",
+      "type": "u16",
+      "startBit": 1344,
+      "bitLen": 16
+     },
+     {
+      "name": "n2_soft",
+      "type": "u16",
+      "startBit": 1360,
+      "bitLen": 16
+     },
+     {
+      "name": "n3_cellMax",
+      "type": "u16",
+      "startBit": 1376,
+      "bitLen": 16
+     },
+     {
+      "name": "n3_cellMin",
+      "type": "u16",
+      "startBit": 1392,
+      "bitLen": 16
+     },
+     {
+      "name": "n3_soft",
+      "type": "u16",
+      "startBit": 1408,
+      "bitLen": 16
+     },
+     {
+      "name": "n4_cellMax",
+      "type": "u16",
+      "startBit": 1424,
+      "bitLen": 16
+     },
+     {
+      "name": "n4_cellMin",
+      "type": "u16",
+      "startBit": 1440,
+      "bitLen": 16
+     },
+     {
+      "name": "n4_soft",
+      "type": "u16",
+      "startBit": 1456,
+      "bitLen": 16
+     },
+     {
+      "name": "n5_cellMax",
+      "type": "u16",
+      "startBit": 1472,
+      "bitLen": 16
+     },
+     {
+      "name": "n5_cellMin",
+      "type": "u16",
+      "startBit": 1488,
+      "bitLen": 16
+     },
+     {
+      "name": "n5_soft",
+      "type": "u16",
+      "startBit": 1504,
+      "bitLen": 16
+     }
+    ]
+   }
+  },
+  "0xEE": {
+   "desc": "EMS 0xEE (转储解析, 类型/枚举待固件确认)",
+   "REQ": {
+    "len": 0,
+    "fields": [
+     {
+      "name": "RES",
+      "type": "bytes",
+      "bitLen": 0
+     }
+    ]
+   },
+   "RESP": {
+    "len": 102,
+    "fields": [
+     {
+      "name": "SoftVersion",
+      "type": "u16",
+      "startBit": 0,
+      "bitLen": 16
+     },
+     {
+      "name": "BootCRC",
+      "type": "u16",
+      "startBit": 16,
+      "bitLen": 16
+     },
+     {
+      "name": "AppCRC",
+      "type": "u16",
+      "startBit": 32,
+      "bitLen": 16
+     },
+     {
+      "name": "ACInVolt",
+      "type": "i16",
+      "startBit": 48,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "ACInCurr",
+      "type": "i16",
+      "startBit": 64,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.01
+     },
+     {
+      "name": "ACInFreq",
+      "type": "u16",
+      "startBit": 80,
+      "bitLen": 16,
+      "unit": "Hz",
+      "scale": 0.01
+     },
+     {
+      "name": "ACInActivePower",
+      "type": "u16",
+      "startBit": 96,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "ACInApparentPower",
+      "type": "u16",
+      "startBit": 112,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "ACInPF",
+      "type": "u16",
+      "startBit": 128,
+      "bitLen": 16,
+      "scale": 0.01
+     },
+     {
+      "name": "RES_1009",
+      "type": "u16",
+      "startBit": 144,
+      "bitLen": 16
+     },
+     {
+      "name": "RES_1010",
+      "type": "u16",
+      "startBit": 160,
+      "bitLen": 16
+     },
+     {
+      "name": "ACOutVolt",
+      "type": "i16",
+      "startBit": 176,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "ACOutCurr",
+      "type": "i16",
+      "startBit": 192,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.01
+     },
+     {
+      "name": "ACOutFreq",
+      "type": "u16",
+      "startBit": 208,
+      "bitLen": 16,
+      "unit": "Hz",
+      "scale": 0.01
+     },
+     {
+      "name": "ACOutActivePower",
+      "type": "u16",
+      "startBit": 224,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "ACOutApparentPower",
+      "type": "u16",
+      "startBit": 240,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "ACOutPF",
+      "type": "u16",
+      "startBit": 256,
+      "bitLen": 16,
+      "scale": 0.01
+     },
+     {
+      "name": "ACBypassVolt",
+      "type": "i16",
+      "startBit": 272,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "ACBypassCurr",
+      "type": "i16",
+      "startBit": 288,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.01
+     },
+     {
+      "name": "ACBypassPower",
+      "type": "u16",
+      "startBit": 304,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "Custom",
+      "type": "u16",
+      "startBit": 320,
+      "bitLen": 16
+     },
+     {
+      "name": "RES_1021",
+      "type": "u16",
+      "startBit": 336,
+      "bitLen": 16
+     },
+     {
+      "name": "RES_1022",
+      "type": "u16",
+      "startBit": 352,
+      "bitLen": 16
+     },
+     {
+      "name": "BatVolt",
+      "type": "i16",
+      "startBit": 368,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "BatCurr",
+      "type": "i16",
+      "startBit": 384,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.01
+     },
+     {
+      "name": "BatPower",
+      "type": "u16",
+      "startBit": 400,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "BusVolt",
+      "type": "i16",
+      "startBit": 416,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "PFCTemp",
+      "type": "i16",
+      "startBit": 432,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 0.1
+     },
+     {
+      "name": "LCTemp",
+      "type": "i16",
+      "startBit": 448,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 0.1
+     },
+     {
+      "name": "PCBTemp",
+      "type": "i16",
+      "startBit": 464,
+      "bitLen": 16,
+      "unit": "℃",
+      "scale": 0.1
+     },
+     {
+      "name": "SysState",
+      "type": "bitset",
+      "startBit": 480,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "BusErr",
+      "type": "bitset",
+      "startBit": 496,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "ElectErr",
+      "type": "bitset",
+      "startBit": 512,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "RectErr",
+      "type": "bitset",
+      "startBit": 528,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "OngridErr",
+      "type": "bitset",
+      "startBit": 544,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "AcErr",
+      "type": "bitset",
+      "startBit": 560,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "BypassErr",
+      "type": "bitset",
+      "startBit": 576,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "BatErr",
+      "type": "bitset",
+      "startBit": 592,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "TempErr",
+      "type": "bitset",
+      "startBit": 608,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "SysErr",
+      "type": "bitset",
+      "startBit": 624,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "ChgAsk",
+      "type": "i16",
+      "startBit": 640,
+      "bitLen": 16
+     },
+     {
+      "name": "FanAsk",
+      "type": "u16",
+      "startBit": 656,
+      "bitLen": 16
+     },
+     {
+      "name": "ACSetActivePower",
+      "type": "u16",
+      "startBit": 672,
+      "bitLen": 16,
+      "unit": "W",
+      "scale": 1.0
+     },
+     {
+      "name": "ACSetOutVolt",
+      "type": "i16",
+      "startBit": 688,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "ACSetOutFreq",
+      "type": "u16",
+      "startBit": 704,
+      "bitLen": 16
+     },
+     {
+      "name": "RES_1103",
+      "type": "u16",
+      "startBit": 720,
+      "bitLen": 16
+     },
+     {
+      "name": "ChgVolt",
+      "type": "i16",
+      "startBit": 736,
+      "bitLen": 16,
+      "unit": "V",
+      "scale": 0.1
+     },
+     {
+      "name": "ChgCurr",
+      "type": "i16",
+      "startBit": 752,
+      "bitLen": 16,
+      "unit": "A",
+      "scale": 0.01
+     },
+     {
+      "name": "ErrClear",
+      "type": "bitset",
+      "startBit": 768,
+      "bitLen": 16,
+      "note": "位定义见转储备注, 待固件确认"
+     },
+     {
+      "name": "WorkMode",
+      "type": "u16",
+      "startBit": 784,
+      "bitLen": 16
+     },
+     {
+      "name": "SecondMode",
+      "type": "u16",
+      "startBit": 800,
+      "bitLen": 16
+     }
+    ]
+   }
   }
+ }
 };
 
         NS._registerSchemaProtocols = function () {
