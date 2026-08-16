@@ -83,3 +83,24 @@ jobs:
 
       - name: device_sim selftest
         run: python tools/device_sim.py --schema tools/schemas/bms_v113.json --selftest
+
+  l3-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 依赖安装
+        run: npm install --no-audit --no-fund
+      - name: 安装 Chromium (Playwright)
+        run: npx playwright install --with-deps chromium
+      - name: L3 真浏览器 e2e (黄金向量 in-page + 视觉截图)
+        run: node tests/e2e/smoke.spec.mjs
+      - name: 上传 e2e 截图
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-screenshots
+          path: .tmp/e2e-shots/
