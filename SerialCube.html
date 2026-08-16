@@ -16935,7 +16935,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           { name: 'u32', size: 4, byteOrder: 'BE' },
           { name: 'i32', size: 4, byteOrder: 'BE' },
           { name: 'float', size: 4, byteOrder: 'BE' },
-          { name: 'double', size: 8, byteOrder: 'BE' }
+          { name: 'double', size: 8, byteOrder: 'BE' },
+          { name: 'bitset', size: 2, byteOrder: 'BE' }
         ];
 
         // dataSize 自动算 - type → 字节数映射 (NS.computeDataSize 用)
@@ -18521,6 +18522,14 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               else fdv.setFloat64(0, v, bo === 'LE');
               const fu8 = new Uint8Array(fbuf);
               for (let fi = 0; fi < fsize; fi++) out.push(fu8[fi]);
+            } else if (t === 'bitset') {
+              // v1.3.6 修: 位图字段按字节数编码 (df.size 可覆盖, 默认 2 字节)
+              const bsize = df.size || 2;
+              const raw = Math.trunc(v) || 0;
+              for (let bi = 0; bi < bsize; bi++) {
+                if (bo === 'LE') out.push((raw >> (8 * bi)) & 0xFF);
+                else out.push((raw >> (8 * (bsize - 1 - bi))) & 0xFF);
+              }
             }
           }
           return out;
@@ -18534,7 +18543,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           let total = 0;
           for (const df of cmd.dataFields) {
             if (!df || !df.type) return 0;
-            const size = NS._FIELD_BYTE_SIZE[df.type] || 0;
+            const size = df.size || NS._FIELD_BYTE_SIZE[df.type] || 0;
             if (!size) return 0;
             total += size;
           }
@@ -18896,10 +18905,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           let off = 0;
           for (const df of (ackCmd.dataFields || [])) {
             if (!df || !df.name) continue;
-            const size = NS._FIELD_BYTE_SIZE[df.type] || 2;
+            const size = df.size || NS._FIELD_BYTE_SIZE[df.type] || 2;
             if (off + size > data.length) break;
             const slice = data.slice(off, off + size);
-            out[df.name] = NS._bytesToNumber(slice, df.byteOrder || protoEndian, df.type);
+            if (df.type === 'bitset') {
+              // v1.3.6 修: 位图字段 — 读整数 + 展开位名
+              const raw = NS._bytesToNumber(slice, df.byteOrder || protoEndian, size === 1 ? 'u8' : (size === 2 ? 'u16' : 'u32'));
+              out[df.name] = raw;
+              (df.bits || []).forEach((b) => { out[`${df.name}.${b.name}`] = (raw >> b.bit) & 1; });
+            } else {
+              out[df.name] = NS._bytesToNumber(slice, df.byteOrder || protoEndian, df.type);
+            }
             off += size;
           }
           return out;
@@ -19224,6 +19240,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 NS.currentVals[f.name] = arr;
               } else if (f.type === 'ascii') {
                 NS.currentVals[f.name] = (NS._simSources[f.name] && NS._simSources[f.name].value) || f.default || '';
+              } else if (f.type === 'bitset') {
+                // v1.3.6 修: bitset 字段聚合 — 整字段数据源 + 逐位数据源 (ProtectCode.Bit0_xxx)
+                let raw = NS._sourceValue(NS._simSources[f.name], f.default != null ? f.default : 0);
+                (f.bits || []).forEach((b) => {
+                  const src = NS._simSources[`${f.name}.${b.name}`];
+                  if (src) {
+                    const v = NS._sourceValue(src, 0);
+                    raw = v ? (raw | (1 << b.bit)) : (raw & ~(1 << b.bit));
+                  }
+                });
+                NS.currentVals[f.name] = raw;
               } else {
                 NS.currentVals[f.name] = NS._sourceValue(NS._simSources[f.name], f.default != null ? f.default : 0);
               }
@@ -20003,9 +20030,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         // v1.3.6 B: 卡片字段选项 — 兼容 dataFields 与 schema 布局; bitset 字段展开为 字段名.位名
         NS._cardFieldOptions = function (cmd) {
           if (!cmd) return [];
-          // 旧协议: dataFields
+          // 旧协议: dataFields (v1.3.6 修: bitset 字段展开位)
           if (cmd.dataFields && cmd.dataFields.length) {
-            return cmd.dataFields.map((df) => ({ name: df.name, label: df.name }));
+            const opts = [];
+            cmd.dataFields.forEach((df) => {
+              if (!df || !df.name) return;
+              opts.push({ name: df.name, label: df.name });
+              if (df.type === 'bitset' && Array.isArray(df.bits)) {
+                df.bits.forEach((b) => opts.push({ name: `${df.name}.${b.name}`, label: `${df.name}.${b.name}` }));
+              }
+            });
+            return opts;
           }
           // schema 协议: 从协议 schema 的命令布局枚举字段, bitset 展开位
           const proto = (NS.PROTOCOLS || []).find((p) => p.schema && p.commands && p.commands.some((c) => c.id === cmd.id));
@@ -20056,7 +20091,16 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 if (f.todo || f.type === 'bytes' || f.type === 'ascii') continue;
                 if (f.type === 'array') {
                   if (!seen.has(f.name)) { seen.add(f.name); names.push(f.name); }
-                } else if (!seen.has(f.name)) { seen.add(f.name); names.push(f.name); }
+                } else {
+                  if (!seen.has(f.name)) { seen.add(f.name); names.push(f.name); }
+                  // v1.3.6 修: bitset 字段展开位 (从机数据源可配到 字段.位名)
+                  if (f.type === 'bitset' && Array.isArray(f.bits)) {
+                    for (const b of f.bits) {
+                      const bitName = `${f.name}.${b.name}`;
+                      if (!seen.has(bitName)) { seen.add(bitName); names.push(bitName); }
+                    }
+                  }
+                }
               }
             }
           }
@@ -20103,13 +20147,15 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           document.getElementById('dh-ce-unit').value = c.unit || '';
           document.getElementById('dh-ce-type').value = c.type || 'trend';
           const cmdSel = document.getElementById('dh-ce-cmd');
-          cmdSel.innerHTML = NS.allCommands().map((cmd) => `<option value="${cmd.id}" ${c.cmd === cmd.id ? 'selected' : ''}>0x${cmd.id.toString(16).padStart(2, '0').toUpperCase()} ${NS.escapeHtml(cmd.name)}</option>`).join('');
+          // v1.3.6 修: 按 c.protocol 过滤命令 (旧 allCommands().find 跨协议拿到 legacy proto_bms 同 id 命令, 字段下拉错乱)
+          const protoCmds = ((NS.PROTOCOLS || []).find((p) => p.id === c.protocol) || {}).commands || [];
+          cmdSel.innerHTML = protoCmds.map((cmd) => `<option value="${cmd.id}" ${c.cmd === cmd.id ? 'selected' : ''}>0x${cmd.id.toString(16).padStart(2, '0').toUpperCase()} ${NS.escapeHtml(cmd.name)}</option>`).join('');
           const fieldSel = document.getElementById('dh-ce-field');
-          const cmdObj = NS.allCommands().find((cmd) => cmd.id === c.cmd);
+          const cmdObj = protoCmds.find((cmd) => cmd.id === c.cmd);
           const esc = NS.escapeHtml;
           fieldSel.innerHTML = NS._cardFieldOptions(cmdObj).map((f) => `<option value="${esc(f.name)}" ${c.field === f.name ? 'selected' : ''}>${esc(f.label)}</option>`).join('');
           cmdSel.onchange = () => {
-            const newCmd = NS.allCommands().find((cmd) => cmd.id === parseInt(cmdSel.value));
+            const newCmd = protoCmds.find((cmd) => cmd.id === parseInt(cmdSel.value));
             fieldSel.innerHTML = NS._cardFieldOptions(newCmd).map((f) => `<option value="${esc(f.name)}">${esc(f.label)}</option>`).join('');
           };
           document.getElementById('dh-ce-rx').checked = !!c.fromOtherCmd;
@@ -22092,11 +22138,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             list.innerHTML = '<p style="color: var(--text-soft); font-size: 12px;">无数据字段 (纯控制命令可不加)</p>';
           } else {
             const typeOptions = NS.DATA_TYPES.map((t) => '<option value="' + t.name + '">' + t.name + ' (' + t.size + 'B)</option>').join('');
-            list.innerHTML = '<table class="wiz-field-table"><thead><tr><th>名字</th><th>类型</th><th>默认值</th><th></th></tr></thead><tbody>'
+            list.innerHTML = '<table class="wiz-field-table"><thead><tr><th>名字</th><th>类型</th><th>默认值</th><th>位定义 (bitset)</th><th></th></tr></thead><tbody>'
               + s.dataFields.map((df, i) => '<tr data-df-index="' + i + '">'
                 + '<td><input class="new-cmd-df-name" value="' + NS.escapeHtml(df.name) + '" /></td>'
                 + '<td><select class="new-cmd-df-type">' + typeOptions.replace('value="' + df.type + '"', 'value="' + df.type + '" selected') + '</select></td>'
                 + '<td><input class="new-cmd-df-default" value="' + NS.escapeHtml(df.default || '') + '" /></td>'
+                + '<td><input class="new-cmd-df-bits" placeholder="位名逗号分隔, 如 放电过温,放电低温" value="' + NS.escapeHtml((df.bits || []).map((b) => b.name).join(',')) + '" /></td>'
                 + '<td><button class="wiz-field-del" data-df-del="' + i + '" title="删除"><span data-svg="trash" data-svg-size="12"></span></button></td>'
                 + '</tr>').join('')
               + '</tbody></table>';
@@ -22122,6 +22169,9 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               s.dataFields[i].name = tr.querySelector('.new-cmd-df-name').value;
               s.dataFields[i].type = tr.querySelector('.new-cmd-df-type').value;
               s.dataFields[i].default = tr.querySelector('.new-cmd-df-default').value;
+              // v1.3.6 修: 位定义 (逗号分隔位名 → bits[])
+              const bitsStr = (tr.querySelector('.new-cmd-df-bits') || {}).value || '';
+              s.dataFields[i].bits = bitsStr ? bitsStr.split(',').map((n, bi) => ({ bit: bi, name: n.trim() })).filter((b) => b.name) : undefined;
             });
             const tot = s.dataFields.reduce((sum, df) => {
               const t = NS.DATA_TYPES.find((tt) => tt.name === df.type);

@@ -273,3 +273,46 @@ test('D 角色门控: device 角色不启动轮询', () => {
   NS._simRole = 'host';
   NS._stopSchemaPoller();
 });
+
+test('B legacy 位图编解码 (dataFields bitset + 位定义)', () => {
+  const cmd = { id: 0x99, dataFields: [{ name: 'flags', type: 'bitset', size: 2, bits: [{ bit: 0, name: '过温' }, { bit: 1, name: '过流' }, { bit: 5, name: '短路' }] }] };
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms');
+  // 编码 (proto_bms byteOrder=BE)
+  NS.currentVals.flags = 0x21;
+  const bytes = NS.encodeDataFields(cmd, proto);
+  assert.equal(bytes.length, 2, '2 字节');
+  assert.deepEqual(Array.from(bytes), [0x00, 0x21], 'BE 编码 = 00 21');
+  // 解码 (_parseAckFields bitset 分支, 构造 9 字节 legacy 帧, data=BE 00 21)
+  const frame = [0xAA, 0x01, 0x99, 0x02, 0x00, 0x21, 0x00, 0x00, 0x55];
+  const parsed = NS._parseAckFields(cmd, frame, 'proto_bms');
+  assert.equal(parsed.flags, 0x21, 'flags 整数 0x21');
+  assert.equal(parsed['flags.过温'], 1, 'bit0 过温=1');
+  assert.equal(parsed['flags.过流'], 0, 'bit1 过流=0');
+  assert.equal(parsed['flags.短路'], 1, 'bit5 短路=1');
+  // 卡片字段选项 legacy 展开位
+  const opts = NS._cardFieldOptions(cmd);
+  assert.ok(opts.some((o) => o.name === 'flags'), '含整字段');
+  assert.ok(opts.some((o) => o.name === 'flags.过温'), '含位展开');
+  delete NS.currentVals.flags;
+});
+
+test('D 从机按位数据源 (ProtectCode 位)', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  NS.activeProtoId = 'proto_bms_v113';
+  NS._simRole = 'device';
+  NS._simSources = {
+    'ProtectCode.软件层放电过温保护': { type: 'fixed', value: 1 },
+    'ProtectCode.软件层过压二级保护标志位': { type: 'fixed', value: 1 }
+  };
+  const written = [];
+  NS._writeSerial = (bytes) => written.push(Uint8Array.from(bytes));
+  const q = NS.buildFrame(proto, proto.commands.find((c) => c.id === 0x01));
+  const ok = NS._deviceRespond(q.bytes);
+  assert.equal(ok, true, '从机响应');
+  const resp = NS.parseFrame(proto, written[0]);
+  assert.equal(resp.values.ProtectCode, 0x21, 'ProtectCode = bit0|bit5 = 0x21');
+  assert.equal(resp.values['ProtectCode.软件层放电过温保护'], 1, '位0=1');
+  assert.equal(resp.values['ProtectCode.软件层过压二级保护标志位'], 1, '位5=1');
+  assert.equal(resp.values['ProtectCode.软件层放电低温保护'], 0, '位1=0');
+  NS._simRole = 'host'; NS._writeSerial = null; NS._simSources = {};
+});
