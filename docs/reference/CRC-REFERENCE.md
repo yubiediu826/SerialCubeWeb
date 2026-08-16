@@ -42,28 +42,39 @@
 ### 2.1 CRC-16 MODBUS
 
 ```js
-// SerialCube.html:11311-11318
+// SerialCube.html (v1.3.5 修正: 标准 LSB-first; 旧 MSB-first 变体与设备端不一致, 见下)
 NS.crc16Modbus = function (bytes) {
   let crc = 0xFFFF;
   for (let i = 0; i < bytes.length; i++) {
-    crc ^= bytes[i] << 8;
+    crc ^= bytes[i];
     for (let j = 0; j < 8; j++) {
-      crc = (crc & 0x8000)
-        ? ((crc << 1) ^ 0xA001) & 0xFFFF
-        : (crc << 1) & 0xFFFF;
+      crc = (crc & 0x0001)
+        ? ((crc >> 1) ^ 0xA001)
+        : (crc >> 1);
     }
   }
-  return crc;
+  return crc & 0xFFFF;
 };
 ```
 
 **特点:**
-- 多项式 `0xA001` = `0x8005` 的位反转
-- MSB-first 实现（`crc << 1` + `^ 0xA001`）但因多项式是反转的，等同 LSB-first
+- 多项式 `0xA001` = `0x8005` 的位反转，**LSB-first**（逐位右移 + `^ 0xA001`），与 BMS 协议文档的 Python 实现一致
 - 初值 0xFFFF
-- LE 输出在帧里
+- LE 输出在帧里（`crc_l` 低字节在前）
 
-**经典测试向量:** `01 03 00 00 00 0A` → `0xC5CD` → LE 帧字节: `C5 CD`
+> ⚠️ **v1.3.5 修正记录**: 旧实现是 MSB-first 变体（`crc ^= bytes[i] << 8` + 左移），**不等同**标准 CRC-16/MODBUS。
+> 实测差异: `5A 01 03 01 00` → 标准 0x618C / 旧实现 0xE580。应用构造的帧会被真 BMS 设备拒绝、真设备帧校验必失败。
+> 旧文档的"经典测试向量 0xC5CD"是旧实现自洽的伪向量，已废弃。
+
+**测试向量（均与 BMS 协议文档实算帧一致）:**
+
+| 输入 | CRC 值 | LE 帧字节 |
+|------|--------|-----------|
+| `01 03 00 00 00 0A`（标准 Modbus 读 10 寄存器） | `0xCDC5` | `C5 CD` |
+| `5A 01 03 01 00`（BMS §6.1 0x03 请求） | `0x618C` | `8C 61` |
+| `5A 01 01 01 00`（BMS §3.1 0x01 默认请求） | `0xA12D` | `2D A1` |
+| `5A 01 02 01 00`（BMS §3.1 0x02 请求） | `0xA1DD` | `DD A1` |
+| `5A 01 04 01 00`（BMS §3.1 0x04 请求） | `0xA03D` | `3D A0` |
 
 ### 2.2 CRC-16 CCITT
 

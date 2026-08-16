@@ -1,4 +1,4 @@
-﻿# SerialCube 开发者指南
+# SerialCube 开发者指南
 
 > **面向开发者**（改代码 / 调试 / 部署）— 改 SerialCube.html 的标准 SOP。
 > 如果你只想用工具,看 [`USER-GUIDE.md`](USER-GUIDE.md)。
@@ -476,14 +476,18 @@ Get-ChildItem -Recurse -File -Filter '*.md' | Where-Object {
   $file = $_.FullName
   $dir = Split-Path $file -Parent
   (Get-Content $file -Encoding UTF8) | Select-String -Pattern '\]\(([^)]+)\)' | ForEach-Object {
-    $target = $_.Matches[0].Groups[1].Value
-    if ($target -match '^(https?:|mailto:|#|\.)') { return }
-    $clean = $target -replace '#.*$', ''
-    if ([string]::IsNullOrWhiteSpace($clean)) { return }
-    $resolved = if ($clean.StartsWith('/')) { Join-Path (Get-Location).Path $clean.TrimStart('/') } else { Join-Path $dir $clean }
-    $resolved = $resolved -replace '/', '\'
-    if (-not (Test-Path $resolved)) {
-      $script:bad += [PSCustomObject]@{ Source = $file.Replace((Get-Location).Path + '\', ''); Target = $target }
+    # v1.3.5 P0 修: 遍历该行全部链接 (旧代码 $_.Matches[0] 只查第 1 个, 多链接行漏检)
+    $_.Matches | ForEach-Object {
+      $target = $_.Groups[1].Value
+      # 跳过外部链接 / 锚点 (注意: 不要跳过 ./ 与 ../ 相对链接 — 旧正则里的 \. 会误吞它们)
+      if ($target -match '^(https?:|mailto:|#)') { return }
+      $clean = $target -replace '#.*$', ''
+      if ([string]::IsNullOrWhiteSpace($clean)) { return }
+      $resolved = if ($clean.StartsWith('/')) { Join-Path (Get-Location).Path $clean.TrimStart('/') } else { Join-Path $dir $clean }
+      $resolved = $resolved -replace '/', '\'
+      if (-not (Test-Path $resolved)) {
+        $script:bad += [PSCustomObject]@{ Source = $file.Replace((Get-Location).Path + '\', ''); Target = $target }
+      }
     }
   }
 }

@@ -11,6 +11,10 @@
 
 ## 📑 子文件索引
 
+### 2026-08-16
+
+- [`changelog/2026-08-16-v1.3.5-p0-hotfixes.md`](changelog/2026-08-16-v1.3.5-p0-hotfixes.md) — **v1.3.5**: P0 止血 — mock tick 加串口连接守卫 (真实数据不再被抖动覆盖) / 告警对象比较 bug / checkAlert 无参调用 / float·double IEEE754 编码对称 / 类型表单一数据源 / **CRC16-Modbus 修正为标准算法 (真机互操作)** / Mutator·预设 XSS 转义 / link-check 脚本 2 处 bug; 补 v1.3.3·v1.3.4 tag; 确认 v1.3.2·v1.3.2.1 为文档级发布无独立代码版本
+
 ### 2026-08-14
 
 - [`changelog/2026-08-14-v1.3.4-cascade-modal-unify.md`](changelog/2026-08-14-v1.3.4-cascade-modal-unify.md) — **v1.3.4**: 3 个删除 modal 统一 (协议/命令/卡片 全部用同一 modal) — 修 title 重复 + 死"删除方式" section + 双重选择机制矛盾 + 协议从 window.confirm 迁到 modal; 持久化 bug 修 7 处 (命令/卡片删除 + 4 处卡片修改路径漏 `_saveUserConfig`); 编辑模式按钮 2x 触发 bug 修 (NS.attachModalHandlers 加 `_modalHandlersBound` 守卫); 编辑模式前置条件 (需已连串口 + 已激活协议); mockup [`design/v1.3.4-cascade-modal-redesign-mockup.html`](../design/v1.3.4-cascade-modal-redesign-mockup.html); handoff [`HANDOFF-V1.3.4-2026-08-14.md`](../handover/HANDOFF-V1.3.4-2026-08-14.md)
