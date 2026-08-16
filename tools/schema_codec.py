@@ -86,15 +86,18 @@ def _cmd_def(schema: dict, cmd_id: int):
     return None
 
 
-def _pick_layout(cmd_def: dict, dir_: str | None = None):
+def _pick_layout(cmd_def: dict, dir_: str | None = None, data_len: int | None = None):
     if dir_ and cmd_def.get(dir_) and cmd_def[dir_].get("fields"):
         return dir_, cmd_def[dir_]
+    cands = [v for v in cmd_def.values() if isinstance(v, dict) and v.get("fields")]
+    # 方向无 match (EMS 等): 按实际数据长度匹配 layout (REQ len 0 / RESP len N)
+    if data_len is not None:
+        for v in cands:
+            if v.get("len") == data_len:
+                return None, v
     if cmd_def.get("default") and cmd_def["default"].get("fields"):
         return "default", cmd_def["default"]
-    for k, v in cmd_def.items():
-        if isinstance(v, dict) and v.get("fields"):
-            return k, v
-    return None, None
+    return (None, cands[0]) if cands else (None, None)
 
 
 def _crc_ok(frame: bytes, crc_conf: dict, crc_size: int, head_size: int) -> bool:
@@ -164,7 +167,7 @@ def parse_frame(schema: dict, frame: bytes) -> dict:
         for d, hv in hf["match"].items():
             if parts["head"][0] == int(hv, 16):
                 dir_ = d
-    _, layout = _pick_layout(cmd_def, dir_)
+    _, layout = _pick_layout(cmd_def, dir_, len(parts.get("data", b"")))
     values = parse_layout(layout, parts.get("data", b"")) if layout else {}
     return {"ok": True, "cmd": cmd, "dir": dir_, "crcOk": crc_ok, "values": values}
 

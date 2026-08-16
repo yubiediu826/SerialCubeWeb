@@ -41,8 +41,9 @@ test('CRC-16/Modbus 黄金向量 (BMS 协议文档实算帧)', () => {
   }
 });
 
-test('golden 帧 CRC 自洽 (帧尾 2 字节 == CRC16-LE)', () => {
+test('golden 帧 CRC 自洽 (帧尾 2 字节 == CRC16-LE; EMS 帧跳过, 由 checksum 测试覆盖)', () => {
   for (const f of golden.frames) {
+    if (f.proto === 'proto_ems_v143') continue; // EMS = 1 字节校验和
     const b = hexToBytes(f.bytesHex);
     const crc = NS.crc16Modbus(b.slice(0, -2));
     const frameCrc = b[b.length - 2] | (b[b.length - 1] << 8);
@@ -86,16 +87,16 @@ test('schema: bms_v113.json 结构有效', () => {
   }
 });
 
-test('parseFrame 黄金向量 (bms_0x01/0x02/0x03, 含位域/缩放/枚举/ascii/数组)', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
-  assert.ok(proto, 'proto_bms_v113 已注册 (schema 嵌入)');
+test('parseFrame 黄金向量 (bms_0x01/0x02/0x03 + ems_0xE1/0xEC, 含位域/缩放/枚举/ascii/数组/checksum)', () => {
   for (const f of golden.frames) {
+    const proto = NS.PROTOCOLS.find((p) => p.id === f.proto);
+    assert.ok(proto, `${f.proto} 已注册`);
     const bytes = hexToBytes(f.bytesHex);
     const parsed = NS.parseFrame(proto, bytes);
     assert.equal(parsed.ok, true, `${f.id} 解析成功`);
     assert.equal(parsed.cmd, parseInt(f.cmd, 16), `${f.id} cmd`);
     assert.equal(parsed.dir, f.dir, `${f.id} 方向 (帧头识别)`);
-    assert.equal(parsed.crcOk, true, `${f.id} CRC 通过`);
+    assert.equal(parsed.crcOk, true, `${f.id} 校验通过`);
     for (const [k, exp] of Object.entries(f.expect)) {
       const got = parsed.values[k];
       if (Array.isArray(exp)) {
@@ -106,6 +107,13 @@ test('parseFrame 黄金向量 (bms_0x01/0x02/0x03, 含位域/缩放/枚举/ascii
         assert.equal(got, exp, `${f.id} ${k} = ${exp} (实得 ${got})`);
       }
     }
+  }
+});
+
+test('checksum 向量 (EMS 帧校验和 = sum & 0xFF)', () => {
+  for (const v of golden.checksum) {
+    const got = NS.crcChecksum(hexToBytes(v.inputHex));
+    assert.equal(got, v.sum, `${v.note}: 期望 ${v.sum} 实得 ${got}`);
   }
 });
 

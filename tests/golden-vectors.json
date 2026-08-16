@@ -8,6 +8,11 @@
     { "inputHex": "5A 01 02 01 00", "crc": 41437, "note": "BMS §3.1 0x02 请求 (0xA1DD)" },
     { "inputHex": "5A 01 04 01 00", "crc": 41021, "note": "BMS §3.1 0x04 请求 (0xA03D)" }
   ],
+  "checksum": [
+    { "inputHex": "00 00 EC 0C 00 00 00 00 00 00 00 00 00 00 00 00 00", "sum": 248, "note": "EMS 0xEC REQ 全 0: sum(addr+cmd+len+data)=0xF8 (不含帧头)" },
+    { "inputHex": "00 00 E1 40 03 01 30 31 30 30 32 30 41 41 31 32 33 34 35 41 41 01 02 65 00 78 56 34 12 01 00 01 00 00 00 00 02 00 02 00 00 00 00 03 00 03 00 00 00 00 E8 03 00 00 D0 07 00 00 B8 0B 00 00 A0 0F 00 00 05 06", "sum": 18, "note": "EMS 0xE1 系统信息示例 (0x12, 不含帧头)" },
+    { "inputHex": "00 00 EC 01 00", "sum": 237, "note": "EMS 0xEC ack (0xED, 不含帧头)" }
+  ],
   "frames": [
     {
       "id": "bms_0x01_mb_default",
@@ -69,6 +74,35 @@
         "Vcell_max_num": 5, "Vcell_min_num": 2,
         "RRemainCap": 3304
       }
+    },
+    {
+      "id": "ems_0xE1_resp_system",
+      "proto": "proto_ems_v143", "cmd": "0xE1", "dir": null,
+      "bytesHex": "AA AA 00 00 E1 40 03 01 30 31 30 30 32 30 41 41 31 32 33 34 35 41 41 01 02 65 00 78 56 34 12 01 00 01 00 00 00 00 02 00 02 00 00 00 00 03 00 03 00 00 00 00 E8 03 00 00 D0 07 00 00 B8 0B 00 00 A0 0F 00 00 05 06 12",
+      "expect": {
+        "Protocol_Version": 259, "EMS_SN": "010020AA12345AA",
+        "EMS_Type": 1, "EMS_LCD_Type": 2, "EMS_Version": 101, "EMS_Dev_Num": 305419896,
+        "BMS_Type": 1, "BMS_Version": 256, "PCS_Type": 2, "PCS_Version": 512,
+        "MPPT_Type": 3, "MPPT_Version": 768,
+        "ALLDsgPower": 1000, "ALLChgPower": 2000, "DsgTimeRemaining": 3000, "ChgTimeRemaining": 4000,
+        "ErrCode": 5, "PErrCode": 6
+      }
+    },
+    {
+      "id": "ems_0xEC_req_control",
+      "proto": "proto_ems_v143", "cmd": "0xEC", "dir": null,
+      "bytesHex": "AA AA 00 00 EC 0C 83 32 20 4E 00 00 E8 03 F4 01 20 03 1E",
+      "expect": {
+        "Test_Mode": 1, "Fan_Up_En": 1, "Fan_Down_En": 0, "ON_Grid_En": 1,
+        "Fan_Duty": 50, "Correct_Cap": 20000, "PV_Charging_Power": 1000,
+        "AC_Charging_Power": 500, "ON_Grid_Power": 800
+      }
+    },
+    {
+      "id": "ems_0xEC_resp_ack",
+      "proto": "proto_ems_v143", "cmd": "0xEC", "dir": null,
+      "bytesHex": "AA AA 00 00 EC 01 00 ED",
+      "expect": { "Ack": 0, "Ack_label": "操作成功" }
     }
   ]
 }

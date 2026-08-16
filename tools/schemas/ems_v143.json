@@ -1,0 +1,100 @@
+{
+  "id": "proto_ems_v143",
+  "version": "1.4.3",
+  "meta": { "name": "EMS V1.4.3", "byteOrder": "LE", "bit0": "LSB" },
+  "frame": {
+    "fields": [
+      { "name": "head", "type": "u16", "default": "0xAAAA", "head": true, "note": "帧头 2 字节 0xAA 0xAA" },
+      { "name": "addr", "type": "u16", "default": "0x0000", "note": "地址码 2 字节, 默认 0x00 0x00" },
+      { "name": "cmd",  "type": "u8" },
+      { "name": "len",  "type": "u8", "semantic": "dataLength" },
+      { "name": "data", "type": "data", "lenBy": "len" },
+      { "name": "checksum", "type": "checksum", "note": "校验和 = sum(addr+cmd+len+data) & 0xFF, 不含帧头" }
+    ],
+    "crc": { "type": "checksum", "range": "no_header" },
+    "notes": [
+      "帧 = 0xAA 0xAA + addr(2B) + cmd(1B) + len(1B) + data + checksum(1B)",
+      "方向: MB=PC上位机→EMS板, CB=EMS板→PC上位机 (帧头无方向区分, layout 用 REQ/RESP 键)",
+      "字段布局以 docs/reference/EMS-测试上位机-通讯协议V1.4.3.xlsx 为准 (.tmp/ems-xlsx-dump.txt 为转储)",
+      "0xED 电池级联: n2-n5 与 n1 同布局 (startBit + 200×k, 每组 200bit), 本 schema 先转写 n1, 其余待固件确认后补全",
+      "0xE2/0xE3/0xE4-0xEB/0xEE 字段表见转储 L106-756/893+ (体量大, 标 todo 待转写)"
+    ]
+  },
+  "commands": {
+    "0xE1": {
+      "desc": "系统信息 (200ms 周期)",
+      "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] },
+      "RESP": { "len": 64, "fields": [
+        { "name": "Protocol_Version", "type": "u16", "startBit": 0,   "bitLen": 16, "note": "协议版本" },
+        { "name": "EMS_SN", "type": "ascii", "startBit": 16,  "bitLen": 120, "note": "产品SN 15 字节, 如 010020AA12345AA" },
+        { "name": "EMS_Type", "type": "u8", "startBit": 136, "bitLen": 8, "enum": { "0": "A系列", "1": "IN系列", "2": "R系列", "3": "T系列", "4": "H系列", "5": "M系列", "6": "Q系列" } },
+        { "name": "EMS_LCD_Type", "type": "u8", "startBit": 144, "bitLen": 8, "enum": { "0": "A1", "1": "A2", "2": "A3", "3": "A4", "255": "无显示屏" } },
+        { "name": "EMS_Version", "type": "u16", "startBit": 152, "bitLen": 16, "note": "如 101 = V1.01" },
+        { "name": "EMS_Dev_Num", "type": "u32", "startBit": 168, "bitLen": 32 },
+        { "name": "BMS_Type", "type": "u8", "startBit": 200, "bitLen": 8, "enum": { "0": "硬控版本", "1": "软控版本" } },
+        { "name": "BMS_Version", "type": "u16", "startBit": 208, "bitLen": 16 },
+        { "name": "BMS_Dev_Num", "type": "u32", "startBit": 224, "bitLen": 32 },
+        { "name": "PCS_Type", "type": "u8", "startBit": 256, "bitLen": 8, "enum": { "0": "硬控版本", "1": "天成自研", "2": "蔚思博", "3": "海索" } },
+        { "name": "PCS_Version", "type": "u16", "startBit": 264, "bitLen": 16 },
+        { "name": "PCS_Dev_Num", "type": "u32", "startBit": 280, "bitLen": 32 },
+        { "name": "MPPT_Type", "type": "u8", "startBit": 312, "bitLen": 8, "enum": { "0": "硬件控制", "1": "天成自研", "2": "蔚思博", "3": "海索" } },
+        { "name": "MPPT_Version", "type": "u16", "startBit": 320, "bitLen": 16 },
+        { "name": "MPPT_Dev_Num", "type": "u32", "startBit": 336, "bitLen": 32 },
+        { "name": "ALLDsgPower", "type": "u32", "startBit": 368, "bitLen": 32, "note": "放电总功率" },
+        { "name": "ALLChgPower", "type": "u32", "startBit": 400, "bitLen": 32, "note": "充电总功率" },
+        { "name": "DsgTimeRemaining", "type": "u32", "startBit": 432, "bitLen": 32, "note": "放电剩余时间" },
+        { "name": "ChgTimeRemaining", "type": "u32", "startBit": 464, "bitLen": 32, "note": "充电剩余时间" },
+        { "name": "ErrCode", "type": "u8", "startBit": 496, "bitLen": 8, "note": "EMS故障码" },
+        { "name": "PErrCode", "type": "u8", "startBit": 504, "bitLen": 8, "note": "部品故障码" }
+      ]}
+    },
+    "0xE2": { "desc": "BMS 信息 (200ms)", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储 L106-264 (ProtectCode/ErrCode/电压/电流/SOC 等)" } ] } },
+    "0xE3": { "desc": "PCS 信息(天成自研) (200ms)", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储 L265-756 (含 WordCmdV_DC 0.1V/ByteCmdOn bit72/InnerErrCode bit346 等位域)" } ] } },
+    "0xE4": { "desc": "PCS 信息(海索)", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储 (含并网使能/功率/MPPT)" } ] } },
+    "0xE5": { "desc": "太阳能充电信息(蔚思博)", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储" } ] } },
+    "0xE6": { "desc": "太阳能充电信息(海索)", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储" } ] } },
+    "0xE7": { "desc": "PV 充电信息", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储" } ] } },
+    "0xE8": { "desc": "DC-USB 信息", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储" } ] } },
+    "0xE9": { "desc": "TypeC 信息", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储" } ] } },
+    "0xEA": { "desc": "风扇/照明灯信息", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储" } ] } },
+    "0xEB": { "desc": "通信保护信息", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储 (含风扇堵转标志位/故障码上报)" } ] } },
+    "0xEC": {
+      "desc": "控制指令 (200ms)",
+      "REQ": { "len": 12, "fields": [
+        { "name": "Test_Mode", "type": "u8", "startBit": 0,  "bitLen": 1, "note": "测试模式, 控制指令生效前提" },
+        { "name": "Fan_Up_En", "type": "u8", "startBit": 1,  "bitLen": 1, "enum": { "0": "关闭", "1": "使能" } },
+        { "name": "Fan_Down_En", "type": "u8", "startBit": 2,  "bitLen": 1, "enum": { "0": "关闭", "1": "使能" } },
+        { "name": "Correct_Mode", "type": "u8", "startBit": 3,  "bitLen": 1, "note": "校准模式" },
+        { "name": "Balance_Mode", "type": "u8", "startBit": 4,  "bitLen": 1, "note": "通信开均衡" },
+        { "name": "Shutdown_Mode", "type": "u8", "startBit": 5,  "bitLen": 1, "note": "通信关机" },
+        { "name": "Off_Grid_En", "type": "u8", "startBit": 6,  "bitLen": 1, "enum": { "0": "关闭", "1": "使能" }, "note": "离网开关" },
+        { "name": "ON_Grid_En", "type": "u8", "startBit": 7,  "bitLen": 1, "enum": { "0": "关闭", "1": "使能" }, "note": "并网开关" },
+        { "name": "Fan_Duty", "type": "u8", "startBit": 8,  "bitLen": 8, "unit": "%", "note": "风扇转速 0-100" },
+        { "name": "Correct_Cap", "type": "u32", "startBit": 16, "bitLen": 32, "note": "SOC 校准容量" },
+        { "name": "PV_Charging_Power", "type": "u16", "startBit": 48, "bitLen": 16, "note": "PV 充电功率" },
+        { "name": "AC_Charging_Power", "type": "u16", "startBit": 64, "bitLen": 16, "note": "AC 充电功率" },
+        { "name": "ON_Grid_Power", "type": "u16", "startBit": 80, "bitLen": 16, "note": "并网放电功率" }
+      ]},
+      "RESP": { "len": 1, "fields": [
+        { "name": "Ack", "type": "u8", "bitLen": 8, "enum": { "0": "操作成功", "1": "操作失败" } }
+      ]}
+    },
+    "0xED": {
+      "desc": "电池级联信息 (200ms, 5 组电池)",
+      "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] },
+      "RESP": { "len": 125, "note": "n2-n5 与 n1 同布局 (startBit + 200×k), 待补全", "fields": [
+        { "name": "n1_addr", "type": "u8", "startBit": 0, "bitLen": 8, "note": "一号电池地址" },
+        { "name": "n1_sn", "type": "ascii", "startBit": 8, "bitLen": 120, "note": "一号电池 SN 15 字节" },
+        { "name": "n1_RSOC", "type": "u8", "startBit": 128, "bitLen": 8, "unit": "%" },
+        { "name": "n1_BatVolt", "type": "u16", "startBit": 136, "bitLen": 16 },
+        { "name": "n1_SysCurr", "type": "u32", "startBit": 152, "bitLen": 32 },
+        { "name": "n1_MosState", "type": "u8", "startBit": 184, "bitLen": 8, "bits": [
+          { "bit": 0, "name": "ChgMos" }, { "bit": 1, "name": "DsgMos" }, { "bit": 2, "name": "PreChgMos" },
+          { "bit": 3, "name": "PreChging" }, { "bit": 4, "name": "Chging" }, { "bit": 5, "name": "Dsging" },
+          { "bit": 6, "name": "PreDsgMos" }, { "bit": 7, "name": "PreDsgOk" } ] },
+        { "name": "n1_ProtectCode", "type": "u8", "startBit": 192, "bitLen": 8, "note": "级联保护状态位图" }
+      ]}
+    },
+    "0xEE": { "desc": "PCS 信息(蔚思博)", "REQ": { "len": 0, "fields": [ { "name": "RES", "type": "bytes", "bitLen": 0 } ] }, "RESP": { "len": 0, "fields": [ { "name": "data", "type": "bytes", "bitLen": 0, "todo": "P1d: 转储 L893+ (SoftVersion 等)" } ] } }
+  }
+}
