@@ -7436,6 +7436,14 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       min-height: 0;
       position: relative;
     }
+    /* v1.3.6 D: 仿真配置 */
+    .dashboard-host     .sim-role-seg { display: inline-flex; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-small); padding: 2px; gap: 2px; }
+    .dashboard-host     .sim-role-seg button { padding: 6px 12px; border: none; background: transparent; cursor: pointer; font-size: 12px; color: var(--text-soft); border-radius: 4px; font-family: inherit; }
+    .dashboard-host     .sim-role-seg button.active { background: var(--accent); color: white; font-weight: 500; }
+    .dashboard-host     .sim-source-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+    .dashboard-host     .sim-source-row select { flex: 1.2; }
+    .dashboard-host     .sim-source-row input { flex: 1; }
+    .dashboard-host     .sim-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; margin: 2px; color: var(--text); }
   </style>
 </head>
 <body spellcheck="false">
@@ -7974,6 +7982,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 <button class="toolbar-btn" id="dh-open-config-center" data-svg="settings" data-svg-size="14">
                   <span>协议配置</span>
                 </button>
+                <!-- v1.3.6 D: 仿真配置 (主机/从机角色 + 轮询间隔 + 从机数据源) -->
+                <button class="toolbar-btn" id="dh-open-sim" data-svg="zap" data-svg-size="14">
+                  <span>仿真</span>
+                </button>
                 <!-- v1.2.2: 工具栏"引导"按钮移除 — 引导入口已搬到协议配置 modal header 旁 -->
                 <span class="toolbar-status"><span class="dot"></span>实时 800ms</span>
                 <span class="spacer"></span>
@@ -8153,6 +8165,47 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             <span class="spacer"></span>
             <button class="toolbar-btn" data-close="dh-card-edit">取消</button>
             <button class="toolbar-btn primary" id="dh-ce-save">保存修改</button>
+          </div>
+        </div>
+
+        <!-- v1.3.6 D: 仿真配置 (主机/从机角色 + 轮询间隔 + 从机数据源) -->
+        <div class="modal" id="dh-sim-modal">
+          <div class="modal-header">
+            <button aria-label="关闭" class="close-btn" data-close="dh-sim" title="关闭"><svg viewBox="0 0 16 16" class="icon-svg"><path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            <span class="modal-title">仿真配置</span>
+            <span class="modal-subtitle">双 tab 经虚拟串口对互调: 一 tab 主机、另一 tab 从机</span>
+          </div>
+          <div class="modal-body">
+            <div class="form-row">
+              <label>角色</label>
+              <div class="sim-role-seg" id="dh-sim-role-seg">
+                <button data-role="host" class="active">主机 (轮询下发)</button>
+                <button data-role="device">从机 (规律响应)</button>
+              </div>
+            </div>
+            <div class="form-row" id="dh-sim-host-sec">
+              <label for="dh-sim-interval">轮询间隔 (ms, 0=用命令 cadence)</label>
+              <input class="form-input mono" type="number" id="dh-sim-interval" value="0" min="0" step="50">
+            </div>
+            <div class="form-row" id="dh-sim-device-sec" style="display:none;">
+              <label>从机数据源 (字段 → 规律; 值格式: 固定"80" / 随机"0,100" / 正弦"基值,振幅,周期s" / 斜坡"基值,步进,上限")</label>
+              <div class="sim-source-row">
+                <select class="form-select" id="dh-sim-src-field"></select>
+                <select class="form-select" id="dh-sim-src-type">
+                  <option value="fixed">固定</option>
+                  <option value="random">随机</option>
+                  <option value="sine">正弦</option>
+                  <option value="ramp">斜坡</option>
+                </select>
+                <input class="form-input mono" id="dh-sim-src-value" placeholder="值/参数">
+                <button class="toolbar-btn" id="dh-sim-src-add">添加</button>
+              </div>
+              <div id="dh-sim-src-list" style="margin-top: 6px;"></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <span class="spacer"></span>
+            <button class="toolbar-btn" data-close="dh-sim">关闭</button>
           </div>
         </div>
 
@@ -19925,6 +19978,66 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           return opts;
         };
 
+        // v1.3.6 D: 仿真配置 modal (角色切换 + 主机轮询间隔 + 从机数据源)
+        NS._simSourceParam = function (type, str) {
+          const parts = (str || '').split(',').map((s) => parseFloat(s.trim()));
+          switch (type) {
+            case 'fixed':  return { type, value: parts[0] || 0 };
+            case 'random': return { type, lo: parts[0] || 0, hi: parts[1] != null ? parts[1] : 100 };
+            case 'sine':   return { type, base: parts[0] || 0, amp: parts[1] != null ? parts[1] : 10, period: parts[2] != null ? parts[2] : 10 };
+            case 'ramp':   return { type, base: parts[0] || 0, step: parts[1] != null ? parts[1] : 1, max: parts[2] != null ? parts[2] : 100 };
+            default: return { type: 'fixed', value: 0 };
+          }
+        };
+        NS._simFieldNames = function () {
+          const proto = (NS.PROTOCOLS || []).find((p) => p.id === NS.activeProtoId && p.schema);
+          if (!proto) return [];
+          const seen = new Set(), names = [];
+          for (const cmdDef of Object.values(proto.schema.commands || {})) {
+            for (const layout of [cmdDef.CB, cmdDef.RESP, cmdDef.MB, cmdDef.REQ]) {
+              if (!layout || !layout.fields) continue;
+              for (const f of layout.fields) {
+                if (f.todo || f.type === 'bytes' || f.type === 'ascii') continue;
+                if (f.type === 'array') {
+                  if (!seen.has(f.name)) { seen.add(f.name); names.push(f.name); }
+                } else if (!seen.has(f.name)) { seen.add(f.name); names.push(f.name); }
+              }
+            }
+          }
+          return names;
+        };
+        NS._renderSimSourceList = function () {
+          const el = document.getElementById('dh-sim-src-list');
+          if (!el) return;
+          const keys = Object.keys(NS._simSources || {});
+          if (!keys.length) { el.innerHTML = '<div style="font-size:11px;color:var(--text-soft);">未配置数据源 (默认 0)</div>'; return; }
+          el.innerHTML = keys.map((k) => {
+            const s = NS._simSources[k];
+            const label = k + ' = ' + (s.type === 'fixed' ? s.value : s.type);
+            return '<span class="sim-chip">' + NS.escapeHtml(label) + ' <button data-del="' + NS.escapeHtml(k) + '" style="border:none;background:none;cursor:pointer;color:var(--text-soft);">×</button></span>';
+          }).join(' ');
+          el.querySelectorAll('button[data-del]').forEach((b) => {
+            b.onclick = () => { delete NS._simSources[b.dataset.del]; NS._renderSimSourceList(); };
+          });
+        };
+        NS.openSimModal = function () {
+          const seg = document.getElementById('dh-sim-role-seg');
+          if (seg) seg.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.role === NS._simRole));
+          const iv = document.getElementById('dh-sim-interval');
+          if (iv) iv.value = NS._simPollInterval || 0;
+          const hostSec = document.getElementById('dh-sim-host-sec');
+          const devSec = document.getElementById('dh-sim-device-sec');
+          if (hostSec) hostSec.style.display = NS._simRole === 'host' ? '' : 'none';
+          if (devSec) devSec.style.display = NS._simRole === 'device' ? '' : 'none';
+          const fsel = document.getElementById('dh-sim-src-field');
+          if (fsel) {
+            const names = NS._simFieldNames();
+            fsel.innerHTML = names.map((n) => '<option value="' + NS.escapeHtml(n) + '">' + NS.escapeHtml(n) + '</option>').join('') || '<option value="">(先选协议)</option>';
+          }
+          NS._renderSimSourceList();
+          NS.openModal('dh-sim');
+        };
+
         NS.openCardEdit = function (id) {
           NS.editingCardId = id;
           const c = NS.CARDS.find((x) => x.id === id);
@@ -22337,6 +22450,36 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           bind('dh-new-cmd-save', () => NS._saveNewCommand());
           // 配置中心 (Task 9): toolbar 按钮 / tab 切换 / 引导 / 导出
           bind('dh-open-config-center', () => NS.openConfigCenter());
+          // v1.3.6 D: 仿真配置 modal + 角色切换 + 数据源
+          bind('dh-open-sim', () => NS.openSimModal());
+          bind('dh-sim-src-add', () => {
+            const field = document.getElementById('dh-sim-src-field').value;
+            const type = document.getElementById('dh-sim-src-type').value;
+            const val = document.getElementById('dh-sim-src-value').value;
+            if (!field) { NS.toast('请先选协议字段', 'warn'); return; }
+            NS._simSources[field] = NS._simSourceParam(type, val);
+            NS._renderSimSourceList();
+            NS.toast(`数据源 ${field} = ${type}`, 'info', 1000);
+          });
+          const simRoleSeg = document.getElementById('dh-sim-role-seg');
+          if (simRoleSeg) simRoleSeg.querySelectorAll('button').forEach((btn) => {
+            btn.onclick = () => {
+              NS._simRole = btn.dataset.role;
+              simRoleSeg.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === btn));
+              const hostSec = document.getElementById('dh-sim-host-sec');
+              const devSec = document.getElementById('dh-sim-device-sec');
+              if (hostSec) hostSec.style.display = NS._simRole === 'host' ? '' : 'none';
+              if (devSec) devSec.style.display = NS._simRole === 'device' ? '' : 'none';
+              if (NS._simRole === 'host') { NS._startSchemaPoller && NS._startSchemaPoller(); }
+              else { NS._stopSchemaPoller && NS._stopSchemaPoller(); }
+              NS.toast(`角色切换为 ${NS._simRole === 'host' ? '主机' : '从机'}`, 'info', 1000);
+            };
+          });
+          const simInterval = document.getElementById('dh-sim-interval');
+          if (simInterval) simInterval.onchange = () => {
+            NS._simPollInterval = Math.max(0, parseInt(simInterval.value) || 0);
+            if (NS._simRole === 'host') NS._startSchemaPoller && NS._startSchemaPoller();
+          };
           // v1.2.2: 工具栏"引导"按钮 (onboarding 引导 4 步: 协议/命令/卡片/告警) — 之前没绑 onclick
           bind('dh-open-tour', () => NS.startGuidedTour && NS.startGuidedTour());
           // v1.2.2: modal header "引导" 按钮 — 自包含体验, 打开 modal 即可引导
