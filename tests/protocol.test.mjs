@@ -151,6 +151,22 @@ test('checksum 向量 (EMS 帧校验和 = sum & 0xFF)', () => {
   }
 });
 
+test('BMS 位字段展开 (ProtectCode uint16 逐位解析)', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const data = new Uint8Array(159);
+  data[0] = 0x21; // ProtectCode bit0 + bit5 置位 (LE: low byte first)
+  const body = [0x55, 0x01, 0x01, 159, ...data];
+  const crc = NS.crc16Modbus(body);
+  const frame = [...body, crc & 0xFF, (crc >> 8) & 0xFF];
+  const parsed = NS.parseFrame(proto, frame);
+  assert.equal(parsed.crcOk, true, 'CRC 通过');
+  assert.equal(parsed.values.ProtectCode, 0x21, 'ProtectCode 原始值 0x21');
+  assert.equal(parsed.values['ProtectCode.软件层放电过温保护'], 1, 'bit0 放电过温=1');
+  assert.equal(parsed.values['ProtectCode.软件层放电低温保护'], 0, 'bit1 放电低温=0');
+  assert.equal(parsed.values['ProtectCode.软件层过压二级保护标志位'], 1, 'bit5 过压二级=1');
+  assert.equal(parsed.values['ProtectCode.软件层充电过温保护'], 0, 'bit2 充电过温=0');
+});
+
 test('schema 编码器: buildFrame(proto_bms_v113, MB) == golden 帧 + 编解码往返', () => {
   const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
   const byCmd = (id) => proto.commands.find((c) => c.id === id);
