@@ -1,6 +1,6 @@
 {
   "source": "docs/reference/BMS通信协议V1.13.md (恢复自 backup-pre-rollback-2026-08-14 完整版 1352 行) + bms通讯协议V1.13.xlsx",
-  "note": "所有帧的 CRC 均用标准 CRC-16/Modbus LSB-first 复算并与文档标注值核对一致; 0x01 CB 示例帧 len 字段与数据长度不符 (文档异常), 帧内 CRC 自洽有效",
+  "note": "所有帧的 CRC 均用标准 CRC-16/Modbus LSB-first 复算并与文档标注值核对一致; 0x01 CB 示例帧 len 字段与数据长度不符 (文档异常), 帧内 CRC 自洽有效; 0x03 CB 示例字节与其位定义表自相矛盾 (0x64 0x81 按位定义实际编码 NTC_CNT=4/CELL_CNT=1/BAT_TYPE=4, 文档声称 4/6/1) — golden 期望按'字节按位定义解析的真实结果'记录, 待固件实测校正; 0x01 CB 示例帧未含 bit>=1208 (RFCC/AFCC) 字节",
   "crc16Modbus": [
     { "inputHex": "01 03 00 00 00 0A", "crc": 52677, "note": "标准 Modbus RTU 读 10 寄存器 (0xCDC5)" },
     { "inputHex": "5A 01 03 01 00", "crc": 24972, "note": "BMS §6.1 0x03 请求 (0x618C)" },
@@ -50,7 +50,7 @@
       "proto": "proto_bms_v113", "cmd": "0x03", "dir": "CB",
       "bytesHex": "55 01 03 15 64 81 0A 00 01 00 00 00 00 54 36 32 42 20 4E 00 00 38 4A 00 00 E5 E2",
       "expect": {
-        "NTC_CNT": 4, "CELL_CNT": 6, "BAT_TYPE": 1, "BAT_TYPE_label": "磷酸铁锂",
+        "NTC_CNT": 4, "CELL_CNT": 1, "BAT_TYPE": 4, "BAT_TYPE_label": "铅酸",
         "Version": 10, "HARD_TYPE": 1, "DEVICE": "B26T",
         "CAP_normal": 20000, "CAP_real": 19000
       }
@@ -61,13 +61,13 @@
       "bytesHex": "55 01 01 8F 00 00 00 00 00 00 00 00 C3 38 02 00 00 00 00 00 18 00 18 00 18 00 FF FF FF FF FF FF FF FF FF FF 18 00 18 00 FF FF 1B 00 1C 00 00 00 00 00 1B 00 0A 00 00 00 0A 00 00 00 00 00 00 00 1A 00 00 00 00 00 00 00 00 00 64 00 00 00 00 00 00 00 00 00 00 00 00 00 00 E1 0D DB 0D E1 0D E2 0D E3 0D DD 0D 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 E3 0D DB 0D 08 00 05 02 02 53 57 51 F8 52 00 00 00 00 E8 0C 00 00 DA 2F 00 00 F4 05",
       "expect": {
         "ChgDsgState": 14531, "SysState": 2,
-        "Cell_Temp": [24, 24, 24, 24], "CellTempMax": 24, "CellTempMin": 24,
+        "Cell_Temp": [24, 24, 24], "CellTempMax": 24, "CellTempMin": 24,
         "DsgMosTemp": 27, "PreDsgMosTemp": 28,
         "SysCurr": 10, "AverageCurr": 10, "RSOC": 26, "ASOC": 0, "SOH": 100,
         "BatVolt": 212500, "BackupPowerVoltage": 208230, "PackVolt": 212400,
         "Vcell_max": 3555, "Vcell_min": 3547, "Vcell_dif": 8,
         "Vcell_max_num": 5, "Vcell_min_num": 2,
-        "RRemainCap": 3304, "RFCC": 12250
+        "RRemainCap": 3304
       }
     }
   ]

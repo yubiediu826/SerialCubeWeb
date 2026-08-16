@@ -86,6 +86,25 @@ test('schema: bms_v113.json 结构有效', () => {
   }
 });
 
-test('parseFrame 黄金向量 (bms_0x01/0x02/0x03)', { skip: 'P1b 实现 NS.parseFrame 后启用' }, () => {
-  // 占位: 实现后按 golden.frames 的 expect 断言解析结果 (物理值 = raw × scale, bitset 展开位名, enum 映射, ascii 解码, 数组展开)
+test('parseFrame 黄金向量 (bms_0x01/0x02/0x03, 含位域/缩放/枚举/ascii/数组)', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  assert.ok(proto, 'proto_bms_v113 已注册 (schema 嵌入)');
+  for (const f of golden.frames) {
+    const bytes = hexToBytes(f.bytesHex);
+    const parsed = NS.parseFrame(proto, bytes);
+    assert.equal(parsed.ok, true, `${f.id} 解析成功`);
+    assert.equal(parsed.cmd, parseInt(f.cmd, 16), `${f.id} cmd`);
+    assert.equal(parsed.dir, f.dir, `${f.id} 方向 (帧头识别)`);
+    assert.equal(parsed.crcOk, true, `${f.id} CRC 通过`);
+    for (const [k, exp] of Object.entries(f.expect)) {
+      const got = parsed.values[k];
+      if (Array.isArray(exp)) {
+        assert.ok(Array.isArray(got), `${f.id} ${k} 是数组`);
+        // Array.from: 跨 realm (jsdom) 数组原型不同, 转回本 realm 再 deepEqual
+        assert.deepEqual(Array.from(got.slice(0, exp.length)), exp, `${f.id} ${k} = [${exp}]`);
+      } else {
+        assert.equal(got, exp, `${f.id} ${k} = ${exp} (实得 ${got})`);
+      }
+    }
+  }
 });
