@@ -6136,6 +6136,26 @@
       padding-top: 3px; border-top: 1px solid var(--border);
     }
     .dashboard-host     .card-default.control .ctrl-resp strong { color: var(--text); font-size: 0.8125rem; }
+    /* v1.3.8: set 卡 (从机模式 — 参数值设置, 无图表) */
+    .dashboard-host     .card-default.set .card-statusbar { background: #3a5ccc; }
+    .dashboard-host     .card-default.set .set-src-badge {
+      font-size: 0.5625rem; font-weight: 600; padding: 1px 6px; border-radius: 3px;
+      background: rgba(58, 92, 204, 0.14); color: #3a5ccc; white-space: nowrap;
+    }
+    .dashboard-host     .card-default.set .set-row {
+      display: flex; align-items: center; gap: 8px; padding: 3px 0;
+    }
+    .dashboard-host     .card-default.set .set-label {
+      font-size: 0.625rem; color: var(--text-soft); flex-shrink: 0; width: 44px;
+    }
+    .dashboard-host     .card-default.set .set-input {
+      flex: 1; min-width: 0; font-size: 0.6875rem; padding: 4px 8px;
+      border: 1px solid var(--border); border-radius: 4px; background: var(--bg);
+      color: var(--text); font-family: "Cascadia Code", Consolas, monospace;
+    }
+    .dashboard-host     .card-default.set .set-cur {
+      font-size: 0.8125rem; font-weight: 700; color: var(--text); font-family: "Cascadia Code", Consolas, monospace;
+    }
     /* widget: sparkline 区 (flex 1, 自动填满中部) — 右侧留 24px 给 icons, 防止数值变化时图标被 sparkline 视觉覆盖 */
     .dashboard-host     .card-default .card-trend {
       flex: 1; min-height: 0;
@@ -7475,6 +7495,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
     .dashboard-host     .sim-role-seg { display: inline-flex; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-small); padding: 2px; gap: 2px; }
     .dashboard-host     .sim-role-seg button { padding: 6px 12px; border: none; background: transparent; cursor: pointer; font-size: 12px; color: var(--text-soft); border-radius: 4px; font-family: inherit; }
     .dashboard-host     .sim-role-seg button.active { background: var(--accent); color: white; font-weight: 500; }
+    /* v1.3.8: 工具栏模式切换 (主机/从机) — 替换原仿真按钮 */
+    .dashboard-host     .mode-seg { display: inline-flex; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-small); padding: 2px; gap: 2px; margin: 0 4px; }
+    .dashboard-host     .mode-seg .mode-seg-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border: none; background: transparent; cursor: pointer; font-size: 12px; color: var(--text-soft); border-radius: 4px; font-family: inherit; font-weight: 500; }
+    .dashboard-host     .mode-seg .mode-seg-btn.active { background: var(--accent); color: white; font-weight: 600; }
+    .dashboard-host     .mode-seg .mode-seg-btn.active svg { stroke: white; }
     .dashboard-host     .sim-source-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
     .dashboard-host     .sim-source-row select { flex: 1.2; }
     .dashboard-host     .sim-source-row input { flex: 1; }
@@ -8017,10 +8042,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 <button class="toolbar-btn" id="dh-open-config-center" data-svg="settings" data-svg-size="14">
                   <span>协议配置</span>
                 </button>
-                <!-- v1.3.6 D: 仿真配置 (主机/从机角色 + 轮询间隔 + 从机数据源) -->
-                <button class="toolbar-btn" id="dh-open-sim" data-svg="zap" data-svg-size="14">
-                  <span>仿真</span>
-                </button>
+                <!-- v1.3.8: 模式切换 (主机/从机) — 替换原"仿真"按钮, 角色唯一入口 -->
+                <div class="mode-seg" id="dh-mode-seg" title="切换主机/从机模式">
+                  <button class="mode-seg-btn active" data-mode="host" title="主机模式: 下发控制命令 + 显示从机响应"><span data-svg="upload" data-svg-size="13"></span>主机</button>
+                  <button class="mode-seg-btn" data-mode="device" title="从机模式: 设置参数值 + 动态生成响应"><span data-svg="download" data-svg-size="13"></span>从机</button>
+                </div>
                 <!-- v1.2.2: 工具栏"引导"按钮移除 — 引导入口已搬到协议配置 modal header 旁 -->
                 <span class="toolbar-status"><span class="dot"></span>实时 800ms</span>
                 <span class="spacer"></span>
@@ -8178,6 +8204,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 <option value="trend">趋势卡</option>
                 <option value="pair">Pair 对比卡</option>
                 <option value="control">控制卡 (发送+响应)</option>
+                <option value="set">参数卡 (从机, 无图表)</option>
               </select>
               <label style="grid-column: auto; margin-left: 8px;" for="dh-card-form-cmd">命令</label>
               <select class="form-select" id="dh-ce-cmd"></select>
@@ -8602,6 +8629,15 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.3.8 版本 · 26/8/16</strong>
+            <ul>
+              <li>新增: 工具栏主机/从机模式切换按钮 (替换"仿真"按钮) — 一键切角色并同步激活协议 (host↔slave) + 轮询启停</li>
+              <li>重构: 默认协议改为 bms_v113_host + bms_v113_slave (移除 legacy BMS/Modbus/合并版/EMS), 首次启动自动生成 host 控制卡+遥测卡 / slave 参数卡</li>
+              <li>新增: 从机模式参数卡 (set) — 直接设置参数值 + 动态数据源 (固定/随机/正弦/斜坡), 无图表; 卡片按角色过滤 (主机显示控制卡, 从机显示参数卡)</li>
+              <li>修复: 协议字段显示为 0 — 命令 tab 改从 schema CB/MB 布局读字段 (0x01 从机 48 字段 + 位展开), 主机/从机都有对应卡片</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.3.7 版本 · 26/8/16</strong>
             <ul>
               <li>修复: 协议导入缺失卡片 — 导入 host/slave schema 后自动生成默认卡片 (遥测 trend 卡 + 0x01 控制卡), 不再空白</li>
@@ -8788,7 +8824,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.3.7';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.7: 双页面主机/从机仿真 + 控制卡 + 卡片级数据源; v1.3.6: P1/P2/P3; v1.3.5: P0 止血; v1.3.4: 3 个删除 modal 统一)
+      const VERSION = '1.3.8';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.8: 工具栏主机/从机模式切换 + 默认协议 host/slave + 控制卡/参数卡 + 字段视图修复; v1.3.7: 双页面仿真; v1.3.6: P1/P2/P3)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
@@ -10774,72 +10810,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           ],
           'custom': []
         };
+        // v1.3.8: 默认协议 = schema 驱动的主机/从机两条 (由 _registerSchemaProtocols 注册)。
+        //   移除 legacy proto_bms / proto_modbus / 合并版 proto_bms_v113 / EMS 作为默认 (仍可通过导入加载)。
         NS._defaultProtocols = function () {
-          return [
-            {
-              id: 'proto_bms', kind: 'fixed-header', name: 'BMS TLV v1 (Legacy)', byteOrder: 'BE', crcRange: 'all',
-              crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE',
-              fields: [
-                { id: 'f1', name: 'header', type: 'header', size: 1, byteOrder: null, default: '0xAA' },
-                { id: 'f2', name: 'addr',   type: 'addr',   size: 1, byteOrder: null, default: '0x01' },
-                { id: 'f3', name: 'cmd',    type: 'cmd',    size: 1, byteOrder: 'BE', default: '0x00' },
-                { id: 'f4', name: 'length', type: 'length', size: 1, byteOrder: 'BE', default: 'auto' },
-                { id: 'f4d',name: 'data',   type: 'data',   size: 0, byteOrder: 'BE', default: '0x00' },
-                { id: 'f5', name: 'crc',    type: 'crc',    size: 2, byteOrder: 'LE', default: 'auto' },
-                { id: 'f6', name: 'tail',   type: 'tail',   size: 1, byteOrder: null, default: '0x55' }
-              ],
-              // 命令内嵌到协议: 每条命令自带 dataFields (对象数组, 含 name/type/default)
-              //   type 取自 NS.DATA_TYPES, 字节序缺省用 protocol.byteOrder (BE)
-              //   0x90/0x91 ACK 与原 NS._defaultCommands 保持一致, 仍归 BMS 协议 (设备响应也走同一协议)
-              commands: [
-                { id: 0x01, name: 'Read Voltage',    direction: 'rx', frameType: 'query',    cadence: 200,  expectResponse: 0x80, dataFields: [
-                    { name: 'cell_1_v',   type: 'u16', default: '0x0000' },
-                    { name: 'cell_2_v',   type: 'u16', default: '0x0000' },
-                    { name: 'cell_3_v',   type: 'u16', default: '0x0000' },
-                    { name: 'cell_4_v',   type: 'u16', default: '0x0000' },
-                    { name: 'pack_v_avg', type: 'u16', default: '0x0000' }
-                ]},
-                { id: 0x02, name: 'Read Current',    direction: 'rx', frameType: 'query',    cadence: 500,  expectResponse: 0x80, dataFields: [
-                    { name: 'pack_i', type: 'u16', default: '0x0000' }
-                ]},
-                { id: 0x03, name: 'Read Temp',       direction: 'rx', frameType: 'query',    cadence: 1000, expectResponse: 0x80, dataFields: [
-                    { name: 'temperature', type: 'u16', default: '0x0000' }
-                ]},
-                { id: 0x04, name: 'Read SOC',        direction: 'rx', frameType: 'query',    cadence: 2000, expectResponse: 0x80, dataFields: [
-                    { name: 'soc', type: 'u16', default: '0x0000' }
-                ]},
-                { id: 0x10, name: 'Control Charge',  direction: 'tx', frameType: 'control',  cadence: 0,    expectResponse: 0x90, dataFields: [
-                    { name: 'charge_v_set', type: 'u16', default: '0x0000' },
-                    { name: 'charge_i_set', type: 'u16', default: '0x0000' }
-                ]},
-                { id: 0x11, name: 'Control Disch',   direction: 'tx', frameType: 'control',  cadence: 0,    expectResponse: 0x91, dataFields: [
-                    { name: 'discharge_v_set', type: 'u16', default: '0x0000' }
-                ]},
-                { id: 0x90, name: 'Charge Ack',      direction: 'rx', frameType: 'response', cadence: 0,                   dataFields: [
-                    { name: 'charge_v_set', type: 'u16', default: '0x0000' },
-                    { name: 'charge_i_set', type: 'u16', default: '0x0000' }
-                ]},
-                { id: 0x91, name: 'Disch Ack',       direction: 'rx', frameType: 'response', cadence: 0,                   dataFields: [
-                    { name: 'discharge_v_set', type: 'u16', default: '0x0000' }
-                ]}
-              ]
-            },
-            {
-              id: 'proto_modbus', kind: 'fixed-header', name: 'Modbus RTU (Legacy)', byteOrder: 'LE', crcRange: 'no_header',
-              crcType: 'crc16-modbus', crcInit: '0xFFFF', crcEndian: 'LE',
-              fields: [
-                { id: 'm1', name: 'addr',   type: 'addr', size: 1, byteOrder: null, default: '0x01' },
-                { id: 'm2', name: 'func',   type: 'cmd',  size: 1, byteOrder: null, default: '0x03' },
-                { id: 'm3', name: 'reg_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
-                { id: 'm4', name: 'reg_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
-                { id: 'm5', name: 'qty_hi', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
-                { id: 'm6', name: 'qty_lo', type: 'data', size: 1, byteOrder: 'BE', default: '0x00' },
-                { id: 'm7', name: 'crc',    type: 'crc',  size: 2, byteOrder: 'LE', default: 'auto' }
-              ],
-              // Modbus 暂时无 commands (原 NS._defaultCommands 8 条都是 BMS 的, 等 Modbus 命令用例出现再补)
-              commands: []
-            }
-          ];
+          return [];
         };
         NS.PROTOCOLS = NS._defaultProtocols();
         // v1.3.6 P1: 注册 schema 驱动协议 (BMS V1.13) — schema 由 tools/scripts/embed-schema.mjs 生成嵌入
@@ -16916,51 +16890,48 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
  }
 };
 
+        // v1.3.8: BMS V1.13 命令名表 (schema 命令自动生成用)
+        NS._BMS_CMD_NAMES = { '0x01': '控制与常规数据', '0x02': '保护参数配置', '0x03': 'BMS 信息查询', '0x04': 'OCV 表配置', '0x05': '保护参数查询', '0x06': 'OCV 表查询', '0x07': 'SN 码写入', '0x08': 'SN 码查询', '0x09': '通信均衡', '0x0A': '电池日志查询', '0x0B': '设置剩余容量', '0x0C': '设置风扇转速', '0x10': '升级设备号', '0x11': '升级总包数', '0x12': '升级总字节数', '0x13': '升级总校验', '0x14': '升级数据包', '0x15': '升级完成状态', '0x16': '级联电池信息' };
+        // 从 schema 生成命令列表 (BMS V1.13 19 命令; 0x01 周期 200ms)
+        NS._schemaCommandList = function (schema) {
+          const out = [];
+          Object.keys(schema.commands || {}).forEach((k) => {
+            const n = parseInt(k, 16);
+            const hex = k.toLowerCase().replace(/^0x/, '').padStart(2, '0');
+            const cmdDef = schema.commands[k] || {};
+            const isControl = ['02', '04', '07', '09', '0b', '0c', '10', '11', '12', '13', '14'].includes(hex);
+            const hasMB = !!(cmdDef.MB && cmdDef.MB.fields);
+            out.push({
+              id: n,
+              name: NS._BMS_CMD_NAMES[k] || ('BMS 0x' + hex.toUpperCase()),
+              direction: hasMB ? 'tx' : 'rx',
+              frameType: isControl ? 'control' : 'query',
+              cadence: n === 0x01 ? 200 : 0,
+              expectResponse: hasMB ? n : undefined,
+              schemaDir: hasMB ? 'MB' : undefined,
+              dataFields: []
+            });
+          });
+          return out;
+        };
         NS._registerSchemaProtocols = function () {
           const regs = [];
           if (NS._SCHEMA_BMS_V113) {
-            // v1.3.6 C: 19 命令从 schema 自动生成; 名称/cadence 从命令表, 0x01 周期 200ms, 其余默认 query cadence 0 (手动/单次)
-            const bmsNames = { '0x01': '控制与常规数据', '0x02': '保护参数配置', '0x03': 'BMS 信息查询', '0x04': 'OCV 表配置', '0x05': '保护参数查询', '0x06': 'OCV 表查询', '0x07': 'SN 码写入', '0x08': 'SN 码查询', '0x09': '通信均衡', '0x0A': '电池日志查询', '0x0B': '设置剩余容量', '0x0C': '设置风扇转速', '0x10': '升级设备号', '0x11': '升级总包数', '0x12': '升级总字节数', '0x13': '升级总校验', '0x14': '升级数据包', '0x15': '升级完成状态', '0x16': '级联电池信息' };
-            const bmsCmds = [];
-            Object.keys(NS._SCHEMA_BMS_V113.commands || {}).forEach((k) => {
-              const n = parseInt(k, 16);
-              const hex = k.toLowerCase().replace(/^0x/, '').padStart(2, '0');
-              const isControl = ['02', '04', '07', '09', '0b', '0c', '10', '11', '12', '13', '14'].includes(hex);
-              const hasMB = !!(NS._SCHEMA_BMS_V113.commands[k].MB && NS._SCHEMA_BMS_V113.commands[k].MB.fields);
-              bmsCmds.push({
-                id: n,
-                name: bmsNames[k] || ('BMS 0x' + hex.toUpperCase()),
-                direction: hasMB ? 'tx' : 'rx',
-                frameType: isControl ? 'control' : 'query',
-                cadence: n === 0x01 ? 200 : 0,
-                expectResponse: hasMB ? n : undefined,
-                schemaDir: hasMB ? 'MB' : undefined,
-                dataFields: []
-              });
-            });
-            regs.push({
-              id: 'proto_bms_v113',
+            // v1.3.8: 默认注册主机/从机两条 (共享同一完整双向 schema 的深拷贝, 避免对象串改)
+            const mkProto = (role) => ({
+              id: role === 'host' ? 'proto_bms_v113_host' : 'proto_bms_v113_slave',
               kind: 'schema',
-              name: 'BMS V1.13',
+              name: role === 'host' ? 'BMS V1.13 主机' : 'BMS V1.13 从机',
               byteOrder: 'LE',
-              schema: NS._SCHEMA_BMS_V113,
-              commands: bmsCmds
+              role: role,
+              schema: JSON.parse(JSON.stringify(NS._SCHEMA_BMS_V113)),
+              commands: []
             });
-          }
-          if (NS._SCHEMA_EMS_V143) {
-            const emsCmds = [];
-            Object.keys(NS._SCHEMA_EMS_V143.commands || {}).forEach((k) => {
-              const n = parseInt(k, 16);
-              emsCmds.push({ id: n, name: 'EMS 0x' + k.toUpperCase(), direction: 'tx', frameType: 'query', cadence: 0, schemaDir: 'REQ', dataFields: [] });
-            });
-            regs.push({
-              id: 'proto_ems_v143',
-              kind: 'schema',
-              name: 'EMS V1.4.3',
-              byteOrder: 'LE',
-              schema: NS._SCHEMA_EMS_V143,
-              commands: emsCmds
-            });
+            const hostProto = mkProto('host');
+            hostProto.commands = NS._schemaCommandList(hostProto.schema);
+            const slaveProto = mkProto('device');
+            slaveProto.commands = NS._schemaCommandList(slaveProto.schema);
+            regs.push(hostProto, slaveProto);
           }
           if (!regs.length) return; // 未嵌入 (开发期), 静默跳过
           const have = new Set((NS.PROTOCOLS || []).map((p) => p.id));
@@ -17028,37 +16999,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         // (Phase 2 Step 1.4-1.5 删除了原 NS.DATA_FIELDS 顶层数组 + NS._defaultCommands + NS.COMMANDS 赋值
         //   命令字段已内嵌到 NS.PROTOCOLS[i].commands[].dataFields, 全局查询走 NS.allCommands() 兼容垫片)
 
-        // c9/c11 pair 卡 (充电/放电设定 vs 实际) + c10/c12 trend 卡 (充电/放电设定值)
-        // 12 个完整卡片: 8 个 RX trend (c1-c8) + 2 个 TX pair (c9/c11) + 2 个 TX trend (c10/c12)
-        // pairId 'charge_v' 配对: setField=charge_v_set (0x10 TX) + actField=pack_v_avg*15 (0x01 RX 派生)
-        // 全部 12 张卡片当前都属 proto_bms (Phase 2.1 加 protocol 字段为后续多协议 lookup 优化铺路)
-        NS.CARDS = [
-          { id: 'c1', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_1_v',    title: 'Cell 1 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true,  protocol: 'proto_bms' },
-          { id: 'c2', type: 'trend', cmd: 0x02, dir: 'rx', field: 'pack_i',      title: 'Pack 电流',   unit: 'A',   range: [-50, 50],  precision: 2, fromOtherCmd: true,  protocol: 'proto_bms' },
-          { id: 'c3', type: 'trend', cmd: 0x03, dir: 'rx', field: 'temperature', title: '温度',        unit: '°C',  range: [-20, 60],  precision: 1, fromOtherCmd: true,  protocol: 'proto_bms' },
-          { id: 'c4', type: 'trend', cmd: 0x04, dir: 'rx', field: 'soc',         title: 'SOC',         unit: '%',   range: [0, 100],   precision: 1, fromOtherCmd: true,  protocol: 'proto_bms' },
-          { id: 'c5', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_2_v',    title: 'Cell 2 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true,  protocol: 'proto_bms' },
-          { id: 'c6', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_3_v',    title: 'Cell 3 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true,  protocol: 'proto_bms' },
-          { id: 'c7', type: 'trend', cmd: 0x01, dir: 'rx', field: 'cell_4_v',    title: 'Cell 4 电压', unit: 'V',   range: [2.8, 4.2],  precision: 3, fromOtherCmd: true,  protocol: 'proto_bms' },
-          { id: 'c8', type: 'trend', cmd: 0x01, dir: 'rx', field: 'pack_v_avg',  title: 'Pack 均压',  unit: 'V', range: [2.8, 4.2], precision: 3, fromOtherCmd: true,  protocol: 'proto_bms' },
-          { id: 'c9', type: 'pair',  cmd: 0x10, dir: 'tx', pairId: 'charge_v',     title: '充电电压',    unit: 'V', fromOtherCmd: false, protocol: 'proto_bms' },
-          { id: 'c10', type: 'trend', cmd: 0x10, dir: 'tx', field: 'charge_v_set', title: '充电设定',    unit: 'V', range: [0, 60],   precision: 1, fromOtherCmd: false, protocol: 'proto_bms' },
-          // c11/c12 放电卡片 — 跟 c9/c10 风格一致 (pair / trend), field/pairId/range/precision 全填
-          { id: 'c11', type: 'pair',  cmd: 0x11, dir: 'tx', pairId: 'discharge_v',    title: '放电电压',    unit: 'V', fromOtherCmd: false, protocol: 'proto_bms' },
-          { id: 'c12', type: 'trend', cmd: 0x11, dir: 'tx', field: 'discharge_v_set', title: '放电设定',    unit: 'V', range: [0, 60],   precision: 1, fromOtherCmd: false, protocol: 'proto_bms' }
-          // v1.3.6 P1: BMS V1.13 (schema) 真实遥测卡 — 仅在 proto_bms_v113 激活时显示, 字段来自 CB 位表
-          ,{ id: 'v1', type: 'trend', cmd: 0x01, dir: 'rx', field: 'RSOC',        title: '剩余电量',   unit: '%',  range: [0, 100],    precision: 1, fromOtherCmd: true, protocol: 'proto_bms_v113' }
-          ,{ id: 'v2', type: 'trend', cmd: 0x01, dir: 'rx', field: 'BatVolt',     title: '电池总压',   unit: 'mV', range: [0, 300000], precision: 0, fromOtherCmd: true, protocol: 'proto_bms_v113' }
-          ,{ id: 'v3', type: 'trend', cmd: 0x01, dir: 'rx', field: 'SysCurr',     title: '电流',       unit: 'mA', range: [-50000, 50000], precision: 0, fromOtherCmd: true, protocol: 'proto_bms_v113' }
-          ,{ id: 'v4', type: 'trend', cmd: 0x01, dir: 'rx', field: 'SOH',         title: '健康度',     unit: '%',  range: [0, 100],    precision: 1, fromOtherCmd: true, protocol: 'proto_bms_v113' }
-          ,{ id: 'v5', type: 'trend', cmd: 0x01, dir: 'rx', field: 'Vcell_max',   title: '单体最高电压', unit: 'mV', range: [2500, 4200], precision: 0, fromOtherCmd: true, protocol: 'proto_bms_v113' }
-          ,{ id: 'v6', type: 'trend', cmd: 0x01, dir: 'rx', field: 'CellTempMax', title: '最高温度',   unit: '℃',  range: [-20, 80],   precision: 1, fromOtherCmd: true, protocol: 'proto_bms_v113' }
-          // v1.3.6 P1: EMS V1.4.3 (schema) 卡 — 字段来自 0xE1 系统信息 CB 位表
-          ,{ id: 'e1', type: 'trend', cmd: 0xE1, dir: 'rx', field: 'ALLDsgPower',      title: '放电总功率',   unit: 'W', range: [0, 20000],     precision: 0, fromOtherCmd: true, protocol: 'proto_ems_v143' }
-          ,{ id: 'e2', type: 'trend', cmd: 0xE1, dir: 'rx', field: 'ALLChgPower',      title: '充电总功率',   unit: 'W', range: [0, 20000],     precision: 0, fromOtherCmd: true, protocol: 'proto_ems_v143' }
-          ,{ id: 'e3', type: 'trend', cmd: 0xE1, dir: 'rx', field: 'DsgTimeRemaining', title: '放电剩余时间', unit: 'min', range: [0, 100000], precision: 0, fromOtherCmd: true, protocol: 'proto_ems_v143' }
-          ,{ id: 'e4', type: 'trend', cmd: 0xE1, dir: 'rx', field: 'ChgTimeRemaining', title: '充电剩余时间', unit: 'min', range: [0, 100000], precision: 0, fromOtherCmd: true, protocol: 'proto_ems_v143' }
-        ];
+        // v1.3.8: 默认卡片 = 空 (由 _registerSchemaProtocols 后按 host/slave 角色自动生成), 移除 legacy/合并版/EMS 默认卡
+        NS.CARDS = [];
 
         // === UI 状态 ===
         // v1.2: activeProtoId 默认 null, 等用户连接串口 + 选协议后才设
@@ -17444,6 +17386,52 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               });
             });
             return card;
+          } else if (c.type === 'set') {
+            // widget: set 卡 (从机模式 — 参数值直接设置 + 动态数据源, 无图表)
+            card.classList.add('set');
+            const proto = (NS.PROTOCOLS || []).find((p) => p.id === c.protocol && p.schema);
+            const cmdKey = (c.cmd || 0x01).toString(16).padStart(2, '0').toUpperCase();
+            const cmdDef = proto && proto.schema && proto.schema.commands && (proto.schema.commands[cmdKey] || proto.schema.commands['0x' + cmdKey]);
+            const fld = cmdDef && cmdDef.CB && (cmdDef.CB.fields || []).find((f) => f.name === c.field);
+            const isBitset = c.bitset || (fld && fld.type === 'bitset');
+            const cur = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
+            const simType = (c.sim && c.sim.type) || 'fixed';
+            const srcLabel = simType === 'fixed' ? '固定' : simType === 'random' ? '随机' : simType === 'sine' ? '正弦' : simType === 'ramp' ? '斜坡' : '固定';
+            const valStr = (c.sim && c.sim.value != null) ? c.sim.value : NS._simParamStr(c.sim);
+            card.innerHTML =
+              '<div class="card-statusbar"></div>'
+              + '<div class="card-body">'
+              + '<div class="card-header">'
+              + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="set-src-badge">' + srcLabel + '</span>'
+              + '</div>'
+              + '<div class="set-row">'
+              + '<span class="set-label">参数值</span>'
+              + '<input type="text" class="set-input" data-field="' + NS.escapeHtml(c.field) + '" value="' + NS.escapeHtml(valStr) + '" placeholder="80 或 0,100">'
+              + '</div>'
+              + '<div class="set-row">'
+              + '<span class="set-label">当前</span>'
+              + '<span class="set-cur">' + (isBitset ? ('0x' + (cur >>> 0).toString(16).toUpperCase().padStart(4, '0')) : cur.toFixed(c.precision != null ? c.precision : 1)) + NS.escapeHtml(c.unit || '') + '</span>'
+              + '</div>'
+              + '</div>'
+              + (NS.editMode ? '<div class="card-actions">'
+                + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                + '</div>' : '');
+            // 参数值即时更新 → card.sim
+            const input = card.querySelector('.set-input');
+            if (input) {
+              input.addEventListener('change', () => {
+                const type = (c.sim && c.sim.type) || 'fixed';
+                c.sim = NS._simSourceParam(type, input.value);
+                NS._saveUserConfig && NS._saveUserConfig();
+                NS.toast(`${c.field} 参数已更新`, 'info', 800);
+              });
+              input.addEventListener('click', (e) => e.stopPropagation());
+            }
+            card.querySelectorAll('[data-action]').forEach((btn) => {
+              btn.addEventListener('click', (e) => { e.stopPropagation(); if (btn.getAttribute('data-action') === 'edit') NS.openCardEdit(c.id); });
+            });
+            return card;
           } else {
             // widget: trend 卡
             const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
@@ -17632,7 +17620,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           }
           el.style.display = '';
           const protocolFiltered = NS.CARDS.filter((c) => c.protocol === NS.activeProtoId || !c.protocol);
-          const filtered = protocolFiltered.filter((c) => NS.selectedCmd === 'all' || NS.matchCard(c, NS.selectedCmd));
+          // v1.3.8: 按角色过滤卡片 (control 仅主机, set 仅从机)
+          const filtered = protocolFiltered
+            .filter((c) => NS._cardVisibleInRole(c))
+            .filter((c) => NS.selectedCmd === 'all' || NS.matchCard(c, NS.selectedCmd));
           // 全部命令时按 cmd 分组
           if (NS.selectedCmd === 'all') {
             const groups = new Map();
@@ -18598,6 +18589,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           NS.ALERTS = [];
           NS.activeProtoId = null;
           NS._clearUserConfig && NS._clearUserConfig();
+          // v1.3.8: 重置后重新注册 schema 协议 (host/slave) + 生成默认卡片
+          NS._registerSchemaProtocols && NS._registerSchemaProtocols();
+          NS._ensureDefaultCards && NS._ensureDefaultCards();
+          NS.activeProtoId = 'proto_bms_v113_host';
+          NS._simRole = 'host';
           NS.start();
         };
 
@@ -20258,6 +20254,26 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           return opts;
         };
 
+        // v1.3.8: 模式切换 (主机/从机) — 角色唯一入口, 同步 activeProtoId + poller + 重渲染
+        NS.setSimMode = function (mode) {
+          if (mode !== 'host' && mode !== 'device') mode = 'host';
+          NS._simRole = mode;
+          // 同步激活协议 (host → proto_bms_v113_host, device → proto_bms_v113_slave; 没有则保持当前)
+          const targetId = mode === 'host' ? 'proto_bms_v113_host' : 'proto_bms_v113_slave';
+          if ((NS.PROTOCOLS || []).some((p) => p.id === targetId)) NS.activeProtoId = targetId;
+          if (mode === 'host') { NS._startSchemaPoller && NS._startSchemaPoller(); }
+          else { NS._stopSchemaPoller && NS._stopSchemaPoller(); }
+          NS._saveUserConfig && NS._saveUserConfig();
+          // 同步工具栏按钮高亮
+          const seg = document.getElementById('dh-mode-seg');
+          if (seg) seg.querySelectorAll('.mode-seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
+          // 同步旧的 sim modal 角色段 (若仍存在)
+          const oldSeg = document.getElementById('dh-sim-role-seg');
+          if (oldSeg) oldSeg.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.role === mode));
+          NS.renderCardGrid && NS.renderCardGrid();
+          NS.renderCommandPanel && NS.renderCommandPanel();
+          NS.toast(`已切换到${mode === 'host' ? '主机' : '从机'}模式`, 'info', 1000);
+        };
         // v1.3.6 D: 仿真配置 modal (角色切换 + 主机轮询间隔 + 从机数据源)
         NS._simSourceParam = function (type, str) {
           const parts = (str || '').split(',').map((s) => parseFloat(s.trim()));
@@ -20563,36 +20579,82 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           }
           return target;
         };
-        // v1.3.6 P3 修: 从 schema 自动生成默认卡片 (导入协议后有卡可看)
-        //   host 角色额外生成 0x01 控制卡 (发送 ctrl 位表 + 显示遥测响应); 从机/RX 生成遥测 trend 卡
+        // v1.3.8: 卡片按角色可见性 — host: control(下发)+trend(遥测监控); device: set(参数设置)+trend(遥测值)
+        //   control 仅 host; set 仅 device; trend 两种角色都显示 (主机监控遥测 / 从机查看自身下发值)
+        NS._cardVisibleInRole = function (c) {
+          const role = NS._simRole;
+          if (c.type === 'control') return role === 'host';
+          if (c.type === 'set') return role === 'device';
+          if (c.type === 'trend') return true;
+          if (c.type === 'pair') return role === 'host';
+          return true;
+        };
+        // v1.3.8: 从 schema 自动生成默认卡片 (按角色区分)
+        //   host → 0x01 控制卡 (ctrl 位表下发) + 0x01 CB 关键遥测 trend 卡
+        //   device → 0x01 CB 关键字段 set 卡 (参数值 + 动态数据源, 无图表) + 保护标志位 set 卡
         NS._generateSchemaCards = function (protoId, schema, role) {
           const cards = [];
           const c01 = schema.commands && schema.commands['0x01'];
-          // RX 遥测卡: 0x01 CB 关键字段
-          const wanted = ['RSOC', 'BatVolt', 'SysCurr', 'SOH', 'Vcell_max', 'CellTempMax'];
-          if (c01 && c01.CB && Array.isArray(c01.CB.fields)) {
-            wanted.forEach((name, i) => {
-              const f = c01.CB.fields.find((x) => x.name === name);
-              if (!f) return;
-              cards.push({ id: protoId + '_rx_' + i, type: 'trend', cmd: 0x01, dir: 'rx', field: name,
-                title: name, unit: f.unit || '', range: NS._fieldRange(name), precision: f.unit === 'mV' ? 0 : 1,
-                fromOtherCmd: true, protocol: protoId });
-            });
-          }
-          // 控制卡: 0x01 MB ctrl 位表 → 发送控制命令 + 显示 RSOC 响应 (主机模式核心)
-          if (c01 && c01.MB && Array.isArray(c01.MB.fields)) {
-            const ctrl = c01.MB.fields.find((x) => x.name === 'ctrl');
-            if (ctrl && role !== 'slave') {
-              cards.push({ id: protoId + '_ctrl_01', type: 'control', cmd: 0x01, dir: 'tx', schemaDir: 'MB',
-                field: 'ctrl', respField: 'RSOC', respUnit: '%', title: '控制 · 0x01', unit: '', precision: 1,
-                protocol: protoId });
+          if (!c01) return cards;
+          const roleKey = role === 'device' || role === 'slave' ? 'device' : 'host';
+          if (roleKey === 'host') {
+            // 主机: 0x01 控制卡 + 遥测 trend 卡
+            if (c01.MB && Array.isArray(c01.MB.fields)) {
+              const ctrl = c01.MB.fields.find((x) => x.name === 'ctrl');
+              if (ctrl) {
+                cards.push({ id: protoId + '_ctrl_01', type: 'control', cmd: 0x01, dir: 'tx', schemaDir: 'MB',
+                  field: 'ctrl', respField: 'RSOC', respUnit: '%', title: '控制 · 0x01', unit: '', precision: 1,
+                  protocol: protoId });
+              }
+            }
+            const wanted = ['RSOC', 'BatVolt', 'SysCurr', 'SOH', 'Vcell_max', 'CellTempMax'];
+            if (c01.CB && Array.isArray(c01.CB.fields)) {
+              wanted.forEach((name, i) => {
+                const f = c01.CB.fields.find((x) => x.name === name);
+                if (!f) return;
+                cards.push({ id: protoId + '_rx_' + i, type: 'trend', cmd: 0x01, dir: 'rx', field: name,
+                  title: name, unit: f.unit || '', range: NS._fieldRange(name), precision: f.unit === 'mV' ? 0 : 1,
+                  fromOtherCmd: true, protocol: protoId });
+              });
+            }
+          } else {
+            // 从机: 0x01 CB 关键字段 set 卡 (参数值 + 动态数据源, 无图表)
+            const keyNames = ['RSOC', 'BatVolt', 'SysCurr', 'SOH', 'PackVolt', 'Vcell_max', 'Vcell_min', 'CellTempMax', 'CellTempMin', 'MosTempMax', 'RRemainCap', 'Cycles'];
+            if (c01.CB && Array.isArray(c01.CB.fields)) {
+              keyNames.forEach((name, i) => {
+                const f = c01.CB.fields.find((x) => x.name === name);
+                if (!f) return;
+                cards.push({ id: protoId + '_set_' + i, type: 'set', cmd: 0x01, field: name,
+                  title: name, unit: f.unit || '', precision: f.unit === 'mV' ? 0 : 1, protocol: protoId,
+                  sim: { type: 'fixed', value: 0 } });
+              });
+              // 保护标志位 bitset set 卡 (按位设置)
+              const bsNames = ['ProtectCode', 'ErrCode', 'AFE_ProtectCode', 'ChgDsgState'];
+              bsNames.forEach((name, i) => {
+                const f = c01.CB.fields.find((x) => x.name === name);
+                if (!f || f.type !== 'bitset') return;
+                cards.push({ id: protoId + '_bset_' + i, type: 'set', cmd: 0x01, field: name,
+                  title: name, unit: '', precision: 0, protocol: protoId, bitset: true,
+                  sim: { type: 'fixed', value: 0 } });
+              });
             }
           }
           return cards;
         };
         NS._fieldRange = function (name) {
-          const map = { RSOC: [0, 100], BatVolt: [0, 300000], SysCurr: [-50000, 50000], SOH: [0, 100], Vcell_max: [2500, 4200], CellTempMax: [-20, 80] };
+          const map = { RSOC: [0, 100], BatVolt: [0, 300000], SysCurr: [-50000, 50000], SOH: [0, 100], Vcell_max: [2500, 4200], Vcell_min: [2500, 4200], CellTempMax: [-20, 80], CellTempMin: [-20, 80], MosTempMax: [-20, 120], PackVolt: [0, 300000], RRemainCap: [0, 200000], Cycles: [0, 100000] };
           return map[name] || [0, 100];
+        };
+        // v1.3.8: 启动引导 — 为 host/slave 默认协议生成默认卡片 (仅当该协议无卡片时)
+        NS._ensureDefaultCards = function () {
+          const hostProto = (NS.PROTOCOLS || []).find((p) => p.id === 'proto_bms_v113_host');
+          const slaveProto = (NS.PROTOCOLS || []).find((p) => p.id === 'proto_bms_v113_slave');
+          if (hostProto && hostProto.schema && !(NS.CARDS || []).some((c) => c.protocol === 'proto_bms_v113_host')) {
+            NS.CARDS = (NS.CARDS || []).concat(NS._generateSchemaCards('proto_bms_v113_host', hostProto.schema, 'host'));
+          }
+          if (slaveProto && slaveProto.schema && !(NS.CARDS || []).some((c) => c.protocol === 'proto_bms_v113_slave')) {
+            NS.CARDS = (NS.CARDS || []).concat(NS._generateSchemaCards('proto_bms_v113_slave', slaveProto.schema, 'device'));
+          }
         };
         NS.importSchema = function (obj) {
           try {
@@ -21396,14 +21458,34 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           const typePill = (t) => ({ query: '<span class="pill info">查询</span>', control: '<span class="pill warn">控制</span>', response: '<span class="pill unused">响应</span>' }[t] || '<span class="pill unused">' + NS.escapeHtml(t || '—') + '</span>');
           const rows = cmds.map((cmd, i) => {
             const totalSize = NS.computeDataSize ? NS.computeDataSize(cmd) : 0;
-            const fieldNames = (cmd.dataFields || []).map((df) => df.name).join(', ');
+            // v1.3.8 修: schema 协议字段从 schema.commands[cmd].CB/MB 读 (旧读 cmd.dataFields 恒空 → "字段为0")
+            let fieldNames = (cmd.dataFields || []).map((df) => df.name).join(', ');
+            let fieldCount = (cmd.dataFields || []).length;
+            if (proto && proto.kind === 'schema' && proto.schema) {
+              const hex = (cmd.id || 0).toString(16).padStart(2, '0').toUpperCase();
+              const cmdDef = proto.schema.commands && (proto.schema.commands[hex] || proto.schema.commands['0x' + hex]);
+              const names = [];
+              const collect = (layout) => {
+                if (!layout || !Array.isArray(layout.fields)) return;
+                for (const f of layout.fields) {
+                  if (f.todo || f.type === 'bytes') continue;
+                  names.push(f.name);
+                  if (f.type === 'bitset' && Array.isArray(f.bits)) f.bits.forEach((b) => names.push(`${f.name}.${b.name}`));
+                  else if (f.type === 'array') names.push(`${f.name}[${(f.item && f.item.count) || 0}]`);
+                }
+              };
+              // 从机(device)优先 CB, 主机(host)优先 MB; 两者都列
+              collect(cmdDef && cmdDef.CB);
+              collect(cmdDef && cmdDef.MB);
+              if (names.length) { fieldNames = names.join(', '); fieldCount = names.length; }
+            }
             return '<tr data-cmd-index="' + i + '">' +
               '<td><code>0x' + (cmd.id || 0).toString(16).padStart(2, '0').toUpperCase() + '</code></td>' +
               '<td><strong>' + NS.escapeHtml(cmd.name || '—') + '</strong></td>' +
               '<td>' + dirPill(cmd.direction) + '</td>' +
               '<td>' + typePill(cmd.frameType) + '</td>' +
               '<td style="text-align: right;">' + (cmd.cadence || 0) + 'ms</td>' +
-              '<td style="font-size: 11px; color: var(--text-soft); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="' + NS.escapeHtml(fieldNames || '—') + '">' + NS.escapeHtml(fieldNames || '—') + '</td>' +
+              '<td style="font-size: 11px; color: var(--text-soft); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="' + NS.escapeHtml(fieldNames || '—') + '">' + NS.escapeHtml(fieldCount + ' 字段: ' + fieldNames || '—') + '</td>' +
               '<td style="text-align: center;"><span class="pill info">' + totalSize + 'B</span></td>' +
               '<td style="text-align: right; white-space: nowrap;">' +
                 '<button class="row-action accent" data-cmd-edit="' + i + '" title="编辑命令"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' +
@@ -22945,8 +23027,11 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           bind('dh-new-cmd-save', () => NS._saveNewCommand());
           // 配置中心 (Task 9): toolbar 按钮 / tab 切换 / 引导 / 导出
           bind('dh-open-config-center', () => NS.openConfigCenter());
-          // v1.3.6 D: 仿真配置 modal + 角色切换 + 数据源
-          bind('dh-open-sim', () => NS.openSimModal());
+          // v1.3.8: 工具栏模式切换 (主机/从机) — 替换原仿真按钮, 角色唯一入口
+          const modeSeg = document.getElementById('dh-mode-seg');
+          if (modeSeg) modeSeg.querySelectorAll('.mode-seg-btn').forEach((btn) => {
+            btn.onclick = () => NS.setSimMode(btn.dataset.mode);
+          });
           bind('dh-sim-src-add', () => {
             const field = document.getElementById('dh-sim-src-field').value;
             const type = document.getElementById('dh-sim-src-type').value;
@@ -23134,6 +23219,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           });
           // v1.3.1: 绑定三选项级联 modal 按钮
           if (NS._bindCascadeModalHandlers) NS._bindCascadeModalHandlers();
+          // v1.3.8: 启动引导默认卡片 (host/slave 协议)
+          NS._ensureDefaultCards && NS._ensureDefaultCards();
         };
       })();
       // 早期绑定 modal handlers, 不依赖用户进入 dashboard 模式 (这样 verify 跟配置中心还没接 dashboardMode 之前都能直接调)

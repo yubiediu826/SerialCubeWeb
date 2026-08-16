@@ -44,7 +44,7 @@ def test_checksum():
 def test_parse_frame_golden():
     schema = _schema()
     for f in _golden()["frames"]:
-        if f.get("proto") != "proto_bms_v113":
+        if f.get("proto") != "proto_bms_v113_host":
             continue
         frame = bytes(int(x, 16) for x in f["bytesHex"].split())
         parsed = parse_frame(schema, frame)

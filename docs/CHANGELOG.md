@@ -13,6 +13,7 @@
 
 ### 2026-08-16
 
+- [`changelog/2026-08-16-v1.3.8-host-device-mode-and-cards.md`](changelog/2026-08-16-v1.3.8-host-device-mode-and-cards.md) — **v1.3.8**: 工具栏主机/从机模式切换按钮 (替换仿真按钮) + 默认协议改为 host/slave (移除 legacy/EMS) + 从机参数卡(set, 无图表) + 卡片按角色过滤 + 修复协议字段显示为 0 (命令 tab 读 schema CB/MB 48 字段)
 - [`changelog/2026-08-16-v1.3.7-host-device-sim-and-control-cards.md`](changelog/2026-08-16-v1.3.7-host-device-sim-and-control-cards.md) — **v1.3.7**: 协议导入自动生成卡片 + host/slave 各成独立双向协议(角色标记+独立 id, 双页面各导各的) + 主机控制卡(编辑 ctrl 位表+发送 MB 控制帧+显示遥测响应) + 卡片级从机数据源(固定/随机/正弦/斜坡) + 仿真角色持久化
 - [`changelog/2026-08-16-v1.3.6-bms-dual-direction-and-config-split.md`](changelog/2026-08-16-v1.3.6-bms-dual-direction-and-config-split.md) — **v1.3.6**: 0x01 双向 MB/CB 解析 (主机 ctrl 位表 / 从机 159B 遥测, 帧头判向 + len 归一) + 新建卡片编辑命令/字段下拉空白修复 (custom-select 浮动菜单重建) + BMS 主机/从机配置拆分 (bms_v113_host.json / bms_v113_slave.json) + 0x16 MB 4 字节 + 0x14 变长 PAC 补全 + 卡片字段按方向标注
 - [`changelog/2026-08-16-v1.3.5-p0-hotfixes.md`](changelog/2026-08-16-v1.3.5-p0-hotfixes.md) — **v1.3.5**: P0 止血 — mock tick 加串口连接守卫 (真实数据不再被抖动覆盖) / 告警对象比较 bug / checkAlert 无参调用 / float·double IEEE754 编码对称 / 类型表单一数据源 / **CRC16-Modbus 修正为标准算法 (真机互操作)** / Mutator·预设 XSS 转义 / link-check 脚本 2 处 bug; 补 v1.3.3·v1.3.4 tag; 确认 v1.3.2·v1.3.2.1 为文档级发布无独立代码版本

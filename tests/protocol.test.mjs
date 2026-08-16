@@ -29,6 +29,10 @@ test.before(async () => {
   await new Promise((r) => setTimeout(r, 150));
   NS = dom.window.NS;
   assert.ok(NS && typeof NS.crc16Modbus === 'function', 'SerialCube.html 加载失败: NS.crc16Modbus 不存在');
+  // EMS 不再是默认协议, 但 golden 向量含 EMS 帧, 测试期注册一份 (用嵌入 schema)
+  if (NS._SCHEMA_EMS_V143 && !NS.PROTOCOLS.find((p) => p.id === 'proto_ems_v143')) {
+    NS.PROTOCOLS.push({ id: 'proto_ems_v143', kind: 'schema', name: 'EMS V1.4.3', byteOrder: 'LE', schema: NS._SCHEMA_EMS_V143, commands: [] });
+  }
 });
 
 // 页面自带 setInterval (时钟等), 测试完关闭 window 清定时器, 否则进程不退出
@@ -152,7 +156,7 @@ test('checksum 向量 (EMS 帧校验和 = sum & 0xFF)', () => {
 });
 
 test('BMS 位字段展开 (ProtectCode uint16 逐位解析)', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
   const data = new Uint8Array(159);
   data[0] = 0x21; // ProtectCode bit0 + bit5 置位 (LE: low byte first)
   const body = [0x55, 0x01, 0x01, 159, ...data];
@@ -168,7 +172,7 @@ test('BMS 位字段展开 (ProtectCode uint16 逐位解析)', () => {
 });
 
 test('BMS 19 命令注册 (C: 完整配置)', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
   assert.equal(proto.commands.length, 19, `命令数 ${proto.commands.length} == 19`);
   assert.equal(proto.commands.find((c) => c.id === 0x01).cadence, 200, '0x01 周期 200ms');
   assert.equal(proto.commands.find((c) => c.id === 0x02).frameType, 'control', '0x02 control');
@@ -181,21 +185,21 @@ test('BMS 19 命令注册 (C: 完整配置)', () => {
 });
 
 test('卡片字段选项含位展开 (schema 协议)', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
   const cmd = proto.commands.find((c) => c.id === 0x01);
   const opts = NS._cardFieldOptions(cmd);
   assert.ok(Array.isArray(opts) && opts.length >= 50, `字段选项数 ${opts.length} ≥ 50`);
   assert.ok(opts.some((o) => o.name === 'ProtectCode'), '含 ProtectCode 整字段');
   assert.ok(opts.some((o) => o.name === 'ProtectCode.软件层放电过温保护'), '含 ProtectCode.位展开');
   assert.ok(opts.some((o) => o.name === 'BatVolt'), '含 BatVolt 普通字段');
-  // 旧协议 (dataFields) 兼容
-  const legacy = NS.PROTOCOLS.find((p) => p.id === 'proto_bms');
-  const legacyOpts = NS._cardFieldOptions(legacy.commands[0]);
+  // 旧协议 (dataFields) 兼容 — legacy proto_bms 不再是默认协议, 构造一个临时命令测试
+  const legacyCmd = { id: 0x99, dataFields: [{ name: 'flags', type: 'bitset', bits: [{ bit: 0, name: '过温' }] }] };
+  const legacyOpts = NS._cardFieldOptions(legacyCmd);
   assert.ok(legacyOpts.length > 0 && legacyOpts[0].name, '旧协议 dataFields 兼容');
 });
 
 test('schema 编码器: buildFrame(proto_bms_v113, MB) == golden 帧 + 编解码往返', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
   const byCmd = (id) => proto.commands.find((c) => c.id === id);
   const g = (id) => golden.frames.find((x) => x.id === id);
 
@@ -227,8 +231,8 @@ test('schema 编码器: buildFrame(proto_bms_v113, MB) == golden 帧 + 编解码
 });
 
 test('D 从机响应: 查询帧 → schema 响应回帧 (数据源生成)', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
-  NS.activeProtoId = 'proto_bms_v113';
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
+  NS.activeProtoId = 'proto_bms_v113_host';
   NS._simRole = 'device';
   NS._simSources = { RSOC: { type: 'fixed', value: 80 }, BatVolt: { type: 'fixed', value: 212500 }, SysCurr: { type: 'fixed', value: 1000 } };
   const written = [];
@@ -248,8 +252,8 @@ test('D 从机响应: 查询帧 → schema 响应回帧 (数据源生成)', () =
 });
 
 test('D host→device 回环: 查询经 RX 分发 → 从机响应 (模拟串口对)', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
-  NS.activeProtoId = 'proto_bms_v113';
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
+  NS.activeProtoId = 'proto_bms_v113_host';
   NS._simRole = 'device';
   NS._simSources = { RSOC: { type: 'fixed', value: 55 } };
   const rx = [];
@@ -276,7 +280,9 @@ test('D 角色门控: device 角色不启动轮询', () => {
 
 test('B legacy 位图编解码 (dataFields bitset + 位定义)', () => {
   const cmd = { id: 0x99, dataFields: [{ name: 'flags', type: 'bitset', size: 2, bits: [{ bit: 0, name: '过温' }, { bit: 1, name: '过流' }, { bit: 5, name: '短路' }] }] };
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms');
+  // legacy proto_bms 不再是默认协议, 构造一个临时 BE 协议测试 legacy 编解码路径
+  const proto = { id: 'proto_bms', kind: 'fixed-header', name: 'BMS TLV v1 (Legacy)', byteOrder: 'BE', commands: [] };
+  NS.PROTOCOLS.push(proto);
   // 编码 (proto_bms byteOrder=BE)
   NS.currentVals.flags = 0x21;
   const bytes = NS.encodeDataFields(cmd, proto);
@@ -293,12 +299,13 @@ test('B legacy 位图编解码 (dataFields bitset + 位定义)', () => {
   const opts = NS._cardFieldOptions(cmd);
   assert.ok(opts.some((o) => o.name === 'flags'), '含整字段');
   assert.ok(opts.some((o) => o.name === 'flags.过温'), '含位展开');
+  NS.PROTOCOLS = NS.PROTOCOLS.filter((p) => p.id !== 'proto_bms');
   delete NS.currentVals.flags;
 });
 
 test('D 从机按位数据源 (ProtectCode 位)', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
-  NS.activeProtoId = 'proto_bms_v113';
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
+  NS.activeProtoId = 'proto_bms_v113_host';
   NS._simRole = 'device';
   NS._simSources = {
     'ProtectCode.软件层放电过温保护': { type: 'fixed', value: 1 },
@@ -318,7 +325,7 @@ test('D 从机按位数据源 (ProtectCode 位)', () => {
 });
 
 test('P1 0x01 双向: 主机 MB(ctrl) 帧头 0x5A / 从机 CB(遥测) 帧头 0x55', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
   const cmd01 = proto.commands.find((c) => c.id === 0x01);
   // 快照 currentVals: 前面 tryDispatchSchemaFrames 会把 ctrl.Load 等位名写进 currentVals, 会覆盖 bitset 编码
   const savedVals = { ...NS.currentVals };
@@ -352,8 +359,8 @@ test('P1 0x01 双向: 主机 MB(ctrl) 帧头 0x5A / 从机 CB(遥测) 帧头 0x5
 });
 
 test('P1 0x01 主机发MB→从机回CB→主机按CB解析遥测 (闭环)', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
-  NS.activeProtoId = 'proto_bms_v113';
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
+  NS.activeProtoId = 'proto_bms_v113_host';
   NS._simRole = 'device';
   NS._simSources = { RSOC: { type: 'fixed', value: 26 }, BatVolt: { type: 'fixed', value: 212500 }, 'ProtectCode.软件层放电过温保护': { type: 'fixed', value: 1 } };
   const rx = [];
@@ -375,7 +382,7 @@ test('P1 0x01 主机发MB→从机回CB→主机按CB解析遥测 (闭环)', () 
 });
 
 test('P3 0x16 MB 4 字节预留帧 == golden (原 len=0 补全)', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
   const f16 = NS.buildFrame(proto, proto.commands.find((c) => c.id === 0x16));
   const g = golden.frames.find((x) => x.id === 'bms_0x16_mb_req');
   assert.equal(bytesToHex(f16.bytes).toUpperCase(), g.bytesHex.toUpperCase(), '0x16 MB 4B 帧 == golden 26 BE');
@@ -385,7 +392,7 @@ test('P3 0x16 MB 4 字节预留帧 == golden (原 len=0 补全)', () => {
 });
 
 test('P3 0x14 变长升级数据包: PAC_NUM + PAC[128] 编解码往返', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
   const saved = { ...NS.currentVals };
   try {
     NS.currentVals.PAC_NUM = 1;
@@ -423,18 +430,18 @@ test('P3 host/slave 拆分源文件: 各含完整双向 schema + role 标记', (
   assert.ok(host.commands['0x01'].MB.fields[0].name === 'ctrl', 'host 0x01 MB=ctrl');
   assert.ok(slave.commands['0x01'].CB.fields.length >= 35, 'slave 0x01 CB=遥测');
   // 内置合并 schema 仍完整
-  const merged = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113').schema;
+  const merged = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host').schema;
   assert.equal(Object.keys(merged.commands).length, 19, '合并 19 命令');
   const both = Object.values(merged.commands).filter((c) => c.MB && c.CB).length;
   assert.equal(both, 18, `双向 ${both} == 18 (0x15 无 MB)`);
 });
 
 test('P2 卡片编辑: 命令/字段下拉浮动菜单重建 (openCardEdit 后 options 非空)', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
-  NS.activeProtoId = 'proto_bms_v113';
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
+  NS.activeProtoId = 'proto_bms_v113_host';
   // 造一张 0x01 卡片 (field 空, 走 openCardEdit 填充路径)
   const cardId = 'p2test_' + Date.now();
-  NS.CARDS.push({ id: cardId, type: 'trend', cmd: 0x01, dir: 'rx', field: '', title: 'P2', unit: '', precision: 2, protocol: 'proto_bms_v113' });
+  NS.CARDS.push({ id: cardId, type: 'trend', cmd: 0x01, dir: 'rx', field: '', title: 'P2', unit: '', precision: 2, protocol: 'proto_bms_v113_host' });
   NS.openCardEdit(cardId);
   const doc = dom.window.document;
   const cmdSel = doc.getElementById('dh-ce-cmd');
@@ -493,8 +500,8 @@ test('P3 schema 文件导入: host/slave 各成独立双向协议 + 角色 + 自
 });
 
 test('P3 控制卡: 位切换 + 发送控制帧 (host 发 MB ctrl)', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
-  const card = { id: 'ctrl_test', type: 'control', cmd: 0x01, schemaDir: 'MB', field: 'ctrl', respField: 'RSOC', respUnit: '%', precision: 1, protocol: 'proto_bms_v113' };
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
+  const card = { id: 'ctrl_test', type: 'control', cmd: 0x01, schemaDir: 'MB', field: 'ctrl', respField: 'RSOC', respUnit: '%', precision: 1, protocol: 'proto_bms_v113_host' };
   const savedVals = { ...NS.currentVals };
   const savedRole = NS._simRole;
   try {
@@ -525,8 +532,8 @@ test('P3 控制卡: 位切换 + 发送控制帧 (host 发 MB ctrl)', () => {
 });
 
 test('P3 从机卡片级数据源: card.sim 驱动 device 响应', () => {
-  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113');
-  NS.activeProtoId = 'proto_bms_v113';
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
+  NS.activeProtoId = 'proto_bms_v113_host';
   const savedRole = NS._simRole;
   const savedSources = { ...NS._simSources };
   const savedCards = NS.CARDS;
@@ -535,8 +542,8 @@ test('P3 从机卡片级数据源: card.sim 驱动 device 响应', () => {
     NS._simSources = {};
     // 卡片级数据源: RSOC 固定 77, BatVolt 正弦
     NS.CARDS = [
-      { id: 'ds1', type: 'trend', cmd: 0x01, field: 'RSOC', protocol: 'proto_bms_v113', sim: { type: 'fixed', value: 77 } },
-      { id: 'ds2', type: 'trend', cmd: 0x01, field: 'BatVolt', protocol: 'proto_bms_v113', sim: { type: 'sine', base: 200000, amp: 10000, period: 10 } }
+      { id: 'ds1', type: 'trend', cmd: 0x01, field: 'RSOC', protocol: 'proto_bms_v113_host', sim: { type: 'fixed', value: 77 } },
+      { id: 'ds2', type: 'trend', cmd: 0x01, field: 'BatVolt', protocol: 'proto_bms_v113_host', sim: { type: 'sine', base: 200000, amp: 10000, period: 10 } }
     ];
     const written = [];
     NS._writeSerial = (bytes) => written.push(Uint8Array.from(bytes));
@@ -551,5 +558,102 @@ test('P3 从机卡片级数据源: card.sim 驱动 device 响应', () => {
     NS._simSources = savedSources;
     NS.CARDS = savedCards;
     NS._writeSerial = null;
+  }
+});
+
+test('P4 默认协议 = host/slave 两条 (无 legacy/EMS/合并版)', () => {
+  const ids = (NS.PROTOCOLS || []).map((p) => p.id);
+  assert.ok(ids.includes('proto_bms_v113_host'), '默认含 host 协议');
+  assert.ok(ids.includes('proto_bms_v113_slave'), '默认含 slave 协议');
+  assert.ok(!ids.includes('proto_bms'), '默认不含 legacy proto_bms');
+  assert.ok(!ids.includes('proto_modbus'), '默认不含 legacy proto_modbus');
+  assert.ok(!ids.includes('proto_bms_v113'), '默认不含合并版 proto_bms_v113');
+  const host = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
+  const slave = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_slave');
+  assert.equal(host.role, 'host', 'host role');
+  assert.equal(slave.role, 'device', 'slave role=device');
+  assert.equal(host.commands.length, 19, 'host 19 命令');
+  assert.equal(slave.commands.length, 19, 'slave 19 命令');
+});
+
+test('P4 setSimMode 切换角色 + 同步 activeProtoId', () => {
+  const savedRole = NS._simRole;
+  const savedActive = NS.activeProtoId;
+  try {
+    NS.setSimMode('host');
+    assert.equal(NS._simRole, 'host', 'setSimMode(host) 角色=host');
+    assert.equal(NS.activeProtoId, 'proto_bms_v113_host', 'host 模式切到 host 协议');
+    NS.setSimMode('device');
+    assert.equal(NS._simRole, 'device', 'setSimMode(device) 角色=device');
+    assert.equal(NS.activeProtoId, 'proto_bms_v113_slave', 'device 模式切到 slave 协议');
+  } finally {
+    NS._simRole = savedRole;
+    NS.activeProtoId = savedActive;
+  }
+});
+
+test('P4 卡片按角色过滤 (_cardVisibleInRole)', () => {
+  const savedRole = NS._simRole;
+  try {
+    NS._simRole = 'host';
+    assert.equal(NS._cardVisibleInRole({ type: 'control' }), true, 'host 模式显示控制卡');
+    assert.equal(NS._cardVisibleInRole({ type: 'set' }), false, 'host 模式隐藏 set 卡');
+    assert.equal(NS._cardVisibleInRole({ type: 'trend' }), true, 'host 模式显示 trend 卡');
+    NS._simRole = 'device';
+    assert.equal(NS._cardVisibleInRole({ type: 'control' }), false, 'device 模式隐藏控制卡');
+    assert.equal(NS._cardVisibleInRole({ type: 'set' }), true, 'device 模式显示 set 卡');
+    assert.equal(NS._cardVisibleInRole({ type: 'trend' }), true, 'device 模式显示 trend 卡');
+  } finally {
+    NS._simRole = savedRole;
+  }
+});
+
+test('P4 默认卡片: host=control+trend, device=set (无图表类型)', () => {
+  const hostCards = NS.CARDS.filter((c) => c.protocol === 'proto_bms_v113_host');
+  const slaveCards = NS.CARDS.filter((c) => c.protocol === 'proto_bms_v113_slave');
+  assert.ok(hostCards.some((c) => c.type === 'control' && c.cmd === 0x01), 'host 含 0x01 控制卡');
+  assert.ok(hostCards.some((c) => c.type === 'trend'), 'host 含 trend 遥测卡');
+  assert.ok(slaveCards.some((c) => c.type === 'set'), 'slave 含 set 参数卡');
+  assert.ok(slaveCards.every((c) => c.type === 'set'), 'slave 默认卡全是 set (无图表)');
+  assert.ok(slaveCards.length >= 12, `slave set 卡 ${slaveCards.length} ≥ 12 (关键字段 + 保护标志位)`);
+  assert.ok(slaveCards.some((c) => c.type === 'set' && c.field === 'ProtectCode' && c.bitset), 'slave 含 ProtectCode bitset set 卡');
+});
+
+test('P4 0x01 字段视图: CB 48 字段 (含位展开) — 协议字段不再为 0', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
+  const cmdDef = proto.schema.commands['0x01'];
+  const cbFields = cmdDef.CB.fields.filter((f) => !f.todo && f.type !== 'bytes');
+  assert.equal(cbFields.length, 48, `0x01 CB 字段数 ${cbFields.length} == 48`);
+  // bitset 字段逐位展开
+  const bitExpanded = cbFields.reduce((acc, f) => acc + (f.type === 'bitset' && Array.isArray(f.bits) ? f.bits.length : 0), 0);
+  assert.ok(bitExpanded >= 50, `bitset 位展开数 ${bitExpanded} ≥ 50`);
+  assert.ok(cbFields.some((f) => f.name === 'ProtectCode' && f.type === 'bitset' && f.bits.length === 16), 'ProtectCode 16 位');
+  assert.ok(cbFields.some((f) => f.name === 'AFCC' && f.type === 'u32'), 'AFCC 尾部字段');
+  // 主机 MB: ctrl bitset 16 位
+  const mbFields = cmdDef.MB.fields;
+  assert.equal(mbFields.length, 1, '0x01 MB 1 字段 (ctrl)');
+  assert.equal(mbFields[0].name, 'ctrl', 'MB ctrl 字段');
+  assert.equal(mbFields[0].bits.length, 16, 'ctrl 16 位');
+});
+
+test('P4 set 卡参数更新 → device 响应用新值', () => {
+  const proto = NS.PROTOCOLS.find((p) => p.id === 'proto_bms_v113_host');
+  const savedRole = NS._simRole, savedCards = NS.CARDS;
+  try {
+    NS._simRole = 'device';
+    NS.activeProtoId = 'proto_bms_v113_slave';
+    const card = { id: 'set_test', type: 'set', cmd: 0x01, field: 'RSOC', protocol: 'proto_bms_v113_slave', sim: { type: 'fixed', value: 33 } };
+    NS.CARDS = [card];
+    // 模拟 set 卡输入更新 (fixed 参数值改 66)
+    card.sim = NS._simSourceParam('fixed', '66');
+    const written = [];
+    NS._writeSerial = (bytes) => written.push(Uint8Array.from(bytes));
+    const q = NS.buildFrame(proto, proto.commands.find((c) => c.id === 0x01));
+    const ok = NS._deviceRespond(q.bytes);
+    assert.equal(ok, true, '从机响应');
+    const resp = NS.parseFrame(proto, written[0]);
+    assert.equal(resp.values.RSOC, 66, 'set 卡更新后 RSOC=66');
+  } finally {
+    NS._simRole = savedRole; NS.CARDS = savedCards; NS._writeSerial = null;
   }
 });
