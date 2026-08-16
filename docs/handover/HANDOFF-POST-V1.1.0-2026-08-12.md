@@ -182,9 +182,9 @@ foreach ($l in $links) { Test-Path $l | ForEach-Object { if (-not $_) { Write-Wa
 - [`docs/superpowers/plans/2026-08-12-protocol-multi-command-impl.md`](../superpowers/plans/2026-08-12-protocol-multi-command-impl.md) — 18-task 实施 plan (29KB)
 
 ### 设计预览
-- [`docs/design/protocol-multi-command-preview.html`](../design/protocol-multi-command-preview.html) — v1 预览: 4 方案对比
-- [`docs/design/protocol-multi-command-v2-preview.html`](../design/protocol-multi-command-v2-preview.html) — v2 预览: 3 步向导 + 新建命令 modal
-- [`docs/design/protocol-multi-command-v3-preview.html`](../design/protocol-multi-command-v3-preview.html) — v3 预览: 全 Lucide + 4 modal 合并
+- ~~docs/design/protocol-multi-command-preview.html~~ — v1 预览: 4 方案对比（v1.1.1 后清理, 已删除）
+- ~~docs/design/protocol-multi-command-v2-preview.html~~ — v2 预览: 3 步向导 + 新建命令 modal（已删除）
+- ~~docs/design/protocol-multi-command-v3-preview.html~~ — v3 预览: 全 Lucide + 4 modal 合并（已删除）
 - [`docs/design/protocol-multi-command-v4-preview.html`](../design/protocol-multi-command-v4-preview.html) — v4 预览 (锁定): 删主题 + 漫游引导 + Custom kind
 
 ### 代码 + Skill

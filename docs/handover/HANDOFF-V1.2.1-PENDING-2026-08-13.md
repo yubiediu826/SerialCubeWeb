@@ -188,7 +188,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .minimax/skills/version-mana
 ## 🔗 关联文档
 
 - **v1.2.1 spec (主体):** [`../superpowers/specs/2026-08-13-v1.2.1-ui-consistency-design.md`](../superpowers/specs/2026-08-13-v1.2.1-ui-consistency-design.md)
-- **v1.2.1 preview:** [`../../design/v1.2.1-ui-consistency-preview.html`](../../design/v1.2.1-ui-consistency-preview.html) (4 mockup + 主题切换)
+- **v1.2.1 preview:** [`../design/v1.2.1-ui-consistency-preview.html`](../design/v1.2.1-ui-consistency-preview.html) (4 mockup + 主题切换)
 - **v1.2 spec (前置):** [`../superpowers/specs/2026-08-12-v1.2-config-center-refactor-design.md`](../superpowers/specs/2026-08-12-v1.2-config-center-refactor-design.md)
 - **v1.2 plan (模板):** [`../superpowers/plans/2026-08-12-v1.2-config-center-refactor-plan.md`](../superpowers/plans/2026-08-12-v1.2-config-center-refactor-plan.md)
 - **v1.2 handoff (完整):** [`HANDOFF-V1.2-2026-08-12.md`](HANDOFF-V1.2-2026-08-12.md)

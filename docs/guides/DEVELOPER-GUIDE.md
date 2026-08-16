@@ -471,7 +471,9 @@ docs/CHANGELOG.md 是变更记录,发版必更新。
 Set-Location 'D:\WorkSpace\SerialCubeWeb'
 $bad = @()
 Get-ChildItem -Recurse -File -Filter '*.md' | Where-Object {
-  $_.FullName -notlike '*.minimax*' -and $_.FullName -notlike '*.git*'
+  # v1.3.5 P0 修: 排除 node_modules 包 README (旧脚本漏掉, 会产生大量假坏链)
+  # 排除 docs/superpowers/plans/ 存档计划 (其相对链接指向当时的 skill 工作区, 属历史文档, 见 2026-08-16 清理说明)
+  $_.FullName -notlike '*.minimax*' -and $_.FullName -notlike '*.git*' -and $_.FullName -notlike '*\node_modules\*' -and $_.FullName -notlike '*\superpowers\plans\*'
 } | ForEach-Object {
   $file = $_.FullName
   $dir = Split-Path $file -Parent
