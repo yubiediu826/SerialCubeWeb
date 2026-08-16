@@ -1,0 +1,85 @@
+# SerialCube CI — 门禁 + 测试 (P3)
+# 每次 push / PR 运行; 全绿后才部署 (pages.yml 依赖本 workflow 的 checks job)
+
+name: CI 门禁
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 需要 git tag 做版本一致性校验
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 依赖安装 (jsdom)
+        run: npm install --no-audit --no-fund
+
+      # ---- 门禁 1: 链接检查 (活跃文档, 排除 node_modules + 存档 plans) ----
+      - name: Link check (修正版 §13.1)
+        shell: pwsh
+        run: |
+          $bad = @()
+          Get-ChildItem -Recurse -File -Filter '*.md' | Where-Object {
+            $_.FullName -notlike '*.minimax*' -and $_.FullName -notlike '*.git*' -and $_.FullName -notlike '*\node_modules\*' -and $_.FullName -notlike '*\superpowers\plans\*'
+          } | ForEach-Object {
+            $file = $_.FullName; $dir = Split-Path $file -Parent
+            (Get-Content $file -Encoding UTF8) | Select-String -Pattern '\]\(([^)]+)\)' | ForEach-Object {
+              $_.Matches | ForEach-Object {
+                $target = $_.Groups[1].Value
+                if ($target -match '^(https?:|mailto:|#)') { return }
+                $clean = $target -replace '#.*$', ''
+                if ([string]::IsNullOrWhiteSpace($clean)) { return }
+                $resolved = if ($clean.StartsWith('/')) { Join-Path (Get-Location).Path $clean.TrimStart('/') } else { Join-Path $dir $clean }
+                $resolved = $resolved -replace '/', '\'
+                if (-not (Test-Path $resolved)) { $script:bad += "$($file.Replace((Get-Location).Path + '\','')) -> $target" }
+              }
+            }
+          }
+          if ($bad.Count -gt 0) { $bad | Sort-Object; Write-Error "❌ $($bad.Count) 个坏链接" } else { Write-Host "✅ 链接全通" }
+
+      # ---- 门禁 2: CSS token 校验 (var(--x) 必须有定义) ----
+      - name: CSS token 校验
+        run: node tools/scripts/check-css-tokens.mjs
+
+      # ---- 门禁 3: 版本一致性 (VERSION == README == CHANGELOG == tag) ----
+      - name: 版本一致性校验
+        run: node tools/scripts/check-version.mjs
+
+      # ---- 门禁 4: changelog 存在性 (改 SerialCube.html 必须带 changelog) ----
+      - name: changelog 存在性
+        shell: pwsh
+        run: |
+          $changed = git diff --name-only ${{ github.event.before }} HEAD
+          if ($LASTEXITCODE -ne 0) { $changed = git diff --name-only origin/main...HEAD }
+          if ($changed -match 'SerialCube\.html' -and $changed -notmatch 'docs/changelog/') {
+            Write-Error "❌ 改了 SerialCube.html 但没写 docs/changelog/ 子文件 (硬性规则 5)"
+          } else { Write-Host "✅ changelog 检查通过" }
+
+      # ---- 门禁 5: L1 协议层测试 (Node + jsdom, 黄金向量) ----
+      - name: L1 协议层测试
+        run: node tests/protocol.test.mjs
+
+      # ---- 门禁 6: L2 模拟器测试 (Python, 与 L1 共享 golden) ----
+      - name: L2 模拟器测试
+        run: python tests/test_sim.py
+
+      # ---- 门禁 7: 模拟工具黄金自检 ----
+      - name: host_sim 自检
+        run: python tools/host_sim.py --schema tools/schemas/bms_v113.json --once
+
+      - name: device_sim selftest
+        run: python tools/device_sim.py --schema tools/schemas/bms_v113.json --selftest

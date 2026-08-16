@@ -81,11 +81,10 @@ def main() -> int:
         if ser:
             ser.close()
     print(f"[host_sim] 完成: tx={sent} rx={rx} crc_bad={crc_bad}")
-    _self_check(schema)
-    return 0
+    return 0 if _self_check(schema) else 1
 
 
-def _self_check(schema) -> None:
+def _self_check(schema) -> bool:
     golden = {
         # 0x01 MB 控制帧 (len=2, §4.1 位表为准; §3.1 的 len=1 默认请求是文档矛盾形式)
         0x01: "5A 01 01 02 00 00 91 1D",
@@ -104,6 +103,7 @@ def _self_check(schema) -> None:
         except KeyError as e:
             print(f"  [skip] 0x{c:02X}: {e}")
     print("[host_sim] 黄金向量自检: " + ("通过" if ok else "失败"))
+    return ok
 
 
 if __name__ == "__main__":

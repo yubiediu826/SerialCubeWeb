@@ -140,6 +140,20 @@
       --version-modal-close-hover-ring-fill: rgba(42, 61, 82, 0.18);
     }
 
+    /* v1.3.6 P3: 仪表盘 token 别名 — 消除 9 个未定义的 CSS 变量引用 (原 27 处使用静默失效, 样式错乱根因之一)
+       --bg-elev 即 v1.2.2 曾修过的未定义 bug, 实际遗留至今; 全部映射到既有规范 token */
+    :root {
+      --text-main: var(--text);
+      --text-2: var(--text-soft);
+      --text-mute: var(--text-soft);
+      --bg-card: var(--bg-panel);
+      --bg-elev: var(--bg-elevated);
+      --border-soft: var(--border);
+      --shadow-modal: var(--shadow);
+      --surface-2: var(--bg-subtle);
+      --signal-soft: rgba(58, 92, 204, 0.12);
+    }
+
     /* 系统暗色主题自动跟随 (无需 JS 介入) */
     @media (prefers-color-scheme: dark) {
       :root:not(.theme-light) {
@@ -164,6 +178,7 @@
         --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.28);
         --scrollbar-thumb: rgba(129, 140, 248, 0.48);
         --scrollbar-thumb-hover: rgba(99, 102, 241, 0.7);
+        --signal-soft: rgba(99, 102, 241, 0.16);
         /* version-modal close ring (跟随系统暗色: 跟 body.theme-dark 块对齐 — 白底, 不蓝灰) */
         --version-modal-close-ring-fill: rgba(255, 255, 255, 0.08);
         --version-modal-close-hover-ring-fill: rgba(255, 255, 255, 0.16);
@@ -222,6 +237,7 @@
       --brand-green: rgba(34, 197, 94, 0.14);
       --scrollbar-thumb: rgba(129, 140, 248, 0.48);
       --scrollbar-thumb-hover: rgba(99, 102, 241, 0.7);
+      --signal-soft: rgba(99, 102, 241, 0.16);
     
       /* 自动生成的 3 线原则 token (按 REVIEW.md P2 #6) */
   --secondary-btn-------body-theme-dark--icon-btn-------body-theme-dark--mini-btn-background: rgba(18, 28, 37, 0.92);
