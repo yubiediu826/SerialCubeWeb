@@ -111,11 +111,14 @@ def parse_frame(schema: dict, frame: bytes) -> dict:
     """帧级解析 + 校验 → { ok, cmd, dir, values, crcOk, errors }.
 
     与页面 NS.parseFrame 同策略: 先按 len 字段切, CRC 不过再按实际边界切。
+    crcOk 按"切分后校验字段位置"判定 (与 JS 一致), 因此 len 与数据长度不符时能正确回退。
     """
     fields = schema["frame"]["fields"]
     crc_conf = schema["frame"].get("crc", {})
-    crc_size = crc_size_of(crc_conf.get("type", "crc16-modbus"))
+    crc_type = crc_conf.get("type", "crc16-modbus")
+    crc_size = crc_size_of(crc_type)
     head_size = _head_size(schema)
+    crc_field = next((f for f in fields if _is_crc(f)), None)
 
     def slice_mode(mode: str):
         parts, off, len_val = {}, 0, 0
@@ -127,25 +130,34 @@ def parse_frame(schema: dict, frame: bytes) -> dict:
             else:
                 size = U8_SIZE.get(f.get("type"), 1)
             if off + size > len(frame):
-                return None, f"截断@{f.get('name', '?')}"
+                return None, f"截断@{f.get('name', '?')}", False
             parts[f["name"]] = frame[off:off + size]
             if f.get("semantic") == "dataLength":
                 len_val = parts[f["name"]][0]
             off += size
-        return parts, None
+        # 校验: 输入 = 帧内除校验字段外全部字节; no_header 再剔除帧头
+        crc_in = frame[:len(frame) - crc_size]
+        if crc_conf.get("range") in ("no_header", "no_header_tail"):
+            crc_in = crc_in[head_size:]
+        crc_part = parts.get(crc_field["name"], b"") if crc_field else b""
+        if crc_type == "checksum":
+            crc_ok = len(crc_part) == 1 and checksum(crc_in) == crc_part[0]
+        else:
+            crc_ok = crc_part == crc_bytes_le(crc16_modbus(crc_in), crc_size)
+        return parts, None, crc_ok
 
-    parts, err = slice_mode("len")
+    parts, err, crc_ok = slice_mode("len")
     if parts is None:
         return {"ok": False, "errors": [err]}
-    if not _crc_ok(frame, crc_conf, crc_size, head_size):
-        alt, _ = slice_mode("actual")
-        if alt is not None and _crc_ok(frame, crc_conf, crc_size, head_size):
-            parts = alt
+    if not crc_ok:
+        alt, _, alt_ok = slice_mode("actual")
+        if alt is not None and alt_ok:
+            parts, crc_ok = alt, alt_ok
 
     cmd = parts["cmd"][0]
     cmd_def = _cmd_def(schema, cmd)
     if cmd_def is None:
-        return {"ok": True, "cmd": cmd, "values": {}, "crcOk": _crc_ok(frame, crc_conf, crc_size, head_size), "error": "UNKNOWN_CMD"}
+        return {"ok": True, "cmd": cmd, "values": {}, "crcOk": crc_ok, "error": "UNKNOWN_CMD"}
     dir_ = None
     hf = next((f for f in fields if _is_head(f)), None)
     if hf and hf.get("match"):
@@ -154,7 +166,7 @@ def parse_frame(schema: dict, frame: bytes) -> dict:
                 dir_ = d
     _, layout = _pick_layout(cmd_def, dir_)
     values = parse_layout(layout, parts.get("data", b"")) if layout else {}
-    return {"ok": True, "cmd": cmd, "dir": dir_, "crcOk": _crc_ok(frame, crc_conf, crc_size, head_size), "values": values}
+    return {"ok": True, "cmd": cmd, "dir": dir_, "crcOk": crc_ok, "values": values}
 
 
 def parse_layout(layout: dict, data: bytes) -> dict:
