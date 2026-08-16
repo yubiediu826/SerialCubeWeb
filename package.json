@@ -1,0 +1,14 @@
+{
+  "name": "serialcube-web",
+  "private": true,
+  "version": "1.3.5",
+  "description": "SerialCube — 单文件 Web 串口调试工具 (BMS/EMS/PCS); 协议 schema + 黄金向量 + L1 协议层单测",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/",
+    "smoke": "node .tmp/smoke.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^30.0.1"
+  }
+}
