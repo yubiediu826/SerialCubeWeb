@@ -52,6 +52,15 @@ screenshots/
 !.minimax/skills/
 !.minimax/skills/**/
 
+# 协议文档守门（v1.3.11+）: docs/protocol/ + docs/reference/ 是公司/客户产品协议，
+# 内含 BMS / EMS 协议 v1.13 / v1.4.3 等敏感信息，永不入 git
+# 详细守门规则见 docs/protocol/SKILL-NO-PUSH.md
+docs/protocol/
+docs/reference/
+# 例外: README.md 守门文件本身可以入 git
+!docs/protocol/README.md
+!docs/protocol/SKILL-NO-PUSH.md
+
 # 环境变量 / 凭据
 .env
 .env.local
