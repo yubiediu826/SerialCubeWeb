@@ -6078,24 +6078,7 @@
       font-family: var(--font-ui);
     }
     .dashboard-host     .card-default .card-value.flash .num { color: #5672cd; transition: color 0.4s; }
-    /* widget: 范围指示条 (range bar) — 横条 + 当前位置 marker + 阈值 tick */
-    .dashboard-host     .card-default .range-bar {
-      position: absolute; left: 0; right: 0; bottom: 0;
-      height: 4px;
-      background: rgba(0, 0, 0, 0.06);
-      border-radius: 2px;
-    }
-    .dashboard-host     .card-default .range-bar .marker {
-      position: absolute; top: -2px; width: 2px; height: 8px;
-      background: #5672cd; border-radius: 1px;
-      transform: translateX(-1px);
-    }
-    .dashboard-host     .card-default .range-bar .marker.warning { background: #d97706; }
-    .dashboard-host     .card-default .range-bar .marker.danger { background: #e0575e; }
-    .dashboard-host     .card-default .range-bar .threshold {
-      position: absolute; top: 0; width: 1px; height: 4px;
-      background: rgba(217, 119, 6, 0.5);
-    }
+    /* v1.3.13: 范围指示条 (range bar) 移除 — 用户反馈横线视觉干扰, 范围信息已在 footer 文字, marker CSS 暂保留兼容旧引用 */
     /* widget: pair 卡 3 列值 */
     .dashboard-host     .card-default.pair .card-value {
       display: grid; grid-template-columns: 1fr 1fr 1fr;
@@ -6190,6 +6173,30 @@
     .dashboard-host     .card-default.set .set-cur {
       font-size: 0.8125rem; font-weight: 700; color: var(--text); font-family: "Cascadia Code", Consolas, monospace;
     }
+    /* v1.3.13: set 卡 数据源下拉 (fixed/random/sine/ramp) */
+    .dashboard-host     .card-default.set .set-src-select {
+      flex: 1; min-width: 0; font-size: 0.625rem; padding: 3px 6px;
+      border: 1px solid var(--border); border-radius: 4px; background: var(--bg);
+      color: var(--text); font-family: "Cascadia Code", Consolas, monospace;
+      cursor: pointer;
+    }
+    .dashboard-host     .card-default.set .set-send-row { gap: 6px; justify-content: space-between; }
+    .dashboard-host     .card-default.set .set-auto-toggle {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.625rem; color: var(--text-soft); cursor: pointer;
+      padding: 3px 6px; border: 1px solid var(--border); border-radius: 4px;
+      background: var(--bg-subtle); user-select: none;
+    }
+    .dashboard-host     .card-default.set .set-auto-toggle.on {
+      background: rgba(58, 92, 204, 0.16); border-color: #3a5ccc; color: #3a5ccc; font-weight: 700;
+    }
+    .dashboard-host     .card-default.set .set-auto-check { margin: 0; cursor: pointer; }
+    .dashboard-host     .card-default.set .set-send-btn {
+      font-size: 0.625rem; font-weight: 700; padding: 3px 10px;
+      border: 1px solid var(--accent); border-radius: 4px; cursor: pointer;
+      background: var(--accent); color: #fff; font-family: inherit;
+    }
+    .dashboard-host     .card-default.set .set-send-btn:hover { filter: brightness(1.08); }
     /* widget: sparkline 区 (flex 1, 自动填满中部) — 右侧留 24px 给 icons, 防止数值变化时图标被 sparkline 视觉覆盖 */
     .dashboard-host     .card-default .card-trend {
       flex: 1; min-height: 0;
@@ -6207,6 +6214,9 @@
       font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
       letter-spacing: 0.02em;
     }
+    /* v1.3.13: control/set 卡没有 .card-trend 撑开空间, footer 用 margin-top:auto 推到底部 (跟趋势卡 .card-trend 占据 flex:1 等效) */
+    .dashboard-host     .card-default.control .card-footer,
+    .dashboard-host     .card-default.set     .card-footer { margin-top: auto; }
     .dashboard-host     .card-default .card-footer .footer-range { color: #98989f; }
     .dashboard-host     .card-default .card-footer .footer-status {
       font-weight: 700; display: inline-flex; align-items: center; gap: 3px;
@@ -8712,6 +8722,15 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         </div>
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
+
+          <div class="version-release">
+            <strong>1.3.13 版本 · 26-8-17</strong>
+            <ul>
+              <li>优化: control/set 卡 footer 文本推到底部 (margin-top:auto, 跟 trend 卡 .card-trend 撑开空间等效)</li>
+              <li>优化: trend 卡移除范围指示条 (横线视觉干扰, 范围信息已在 footer 文字)</li>
+              <li>新增: set 卡数据源下拉 (fixed/random/sine/ramp) + 自动发送 toggle + 手动发送按钮</li>
+            </ul>
+          </div>
           <div class="version-release">
             <strong>1.3.12 版本 · 26-8-17</strong>
             <ul>
@@ -8941,7 +8960,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.3.12';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.11: trackSerialWebView 跳过本地; v1.3.10: 日志换行/卡片分组与角色区分/控制卡去RSOC/方向both/帧预览换行与预览值/字段下拉分组; v1.3.9: 单一协议+双向命令)
+      const VERSION = '1.3.13';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.11: trackSerialWebView 跳过本地; v1.3.10: 日志换行/卡片分组与角色区分/控制卡去RSOC/方向both/帧预览换行与预览值/字段下拉分组; v1.3.9: 单一协议+双向命令)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
@@ -17427,6 +17446,57 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           NS.toast('未连接串口, 无法发送', 'warn');
           return false;
         };
+        // v1.3.13: set 卡手动发送 — 用当前 c.sim 数据源规则算值后组帧发送
+        NS._sendSetFrame = function (c) {
+          const proto = (NS.PROTOCOLS || []).find((p) => p.id === c.protocol && p.schema);
+          if (!proto) { NS.toast('协议无 schema', 'danger'); return false; }
+          // v1.3.13: 用 _simTick 计算本拍实际值写入 currentVals, 让 _buildFrameSchema 读最新值
+          NS._simTick(c);
+          const frame = NS._buildFrameSchema(proto, { id: c.cmd, schemaDir: c.schemaDir || 'MB' });
+          if (!frame || frame.error) { NS.toast('组帧失败: ' + (frame && frame.error), 'danger'); return false; }
+          if (typeof NS._writeSerial === 'function' && NS._writeSerial) {
+            NS._writeSerial(Uint8Array.from(frame.bytes));
+            NS.toast('已发送 0x' + c.cmd.toString(16).padStart(2, '0').toUpperCase() + ' 参数 (' + frame.bytes.length + 'B)', 'info', 1200);
+            return true;
+          }
+          NS.toast('未连接串口, 无法发送', 'warn');
+          return false;
+        };
+        // v1.3.13: 自动发送 tick 调度 — autoSend=true 的 set 卡每 _setAutoSendInterval ms 算一帧并写串口
+        NS._setAutoSendInterval = 1000;
+        NS._setAutoSendTicker = null;
+        NS._setAutoSendTick = function (c) {
+          if (NS._setAutoSendTicker) { clearInterval(NS._setAutoSendTicker); NS._setAutoSendTicker = null; }
+          const autoCards = (NS.CARDS || []).filter((x) => x.type === 'set' && x.autoSend);
+          if (!autoCards.length) return;
+          NS._setAutoSendTicker = setInterval(() => {
+            autoCards.forEach((card) => { try { NS._sendSetFrame(card); } catch (e) { console.warn('auto-send err', card.id, e); } });
+          }, NS._setAutoSendInterval);
+        };
+        // v1.3.13: 按 c.sim 规则算一帧的实际值并写 currentVals (供手动发送/自动 tick 复用)
+        NS._simTick = function (c) {
+          if (!c || c.type !== 'set' || !c.sim || !c.sim.type) return;
+          const sim = c.sim;
+          if (sim.type === 'fixed') {
+            NS.currentVals[c.field] = sim.value != null ? sim.value : 0;
+          } else if (sim.type === 'random') {
+            const lo = sim.lo != null ? sim.lo : 0;
+            const hi = sim.hi != null ? sim.hi : 100;
+            NS.currentVals[c.field] = lo + Math.random() * (hi - lo);
+          } else if (sim.type === 'sine') {
+            const base = sim.base != null ? sim.base : 0;
+            const amp = sim.amp != null ? sim.amp : 10;
+            const period = sim.period != null ? sim.period : 10;
+            const t = (Date.now() / 1000) % period;
+            NS.currentVals[c.field] = base + amp * Math.sin(2 * Math.PI * t / period);
+          } else if (sim.type === 'ramp') {
+            const base = sim.base != null ? sim.base : 0;
+            const step = sim.step != null ? sim.step : 1;
+            const max = sim.max != null ? sim.max : 100;
+            const cur = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : base;
+            NS.currentVals[c.field] = cur + step > max ? base : cur + step;
+          }
+        };
         NS._controlBitValue = function (c) {
           return NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
         };
@@ -17592,6 +17662,9 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const dir = c.dir || (cmdDef && cmdDef.direction) || 'tx';
             const dirLabel = dir === 'tx' ? 'TX' : dir === 'rx' ? 'RX' : 'TX+RX';
             const valStr = (c.sim && c.sim.value != null) ? c.sim.value : NS._simParamStr(c.sim);
+            const simType = (c.sim && c.sim.type) || 'fixed';
+            // v1.3.13: set 卡支持数据源下拉 (fixed/random/sine/ramp) + 自动发送 toggle + 手动发送按钮
+            const autoOn = !!c.autoSend;
             card.innerHTML =
               '<div class="card-statusbar"></div>'
               + '<div class="card-body">'
@@ -17607,8 +17680,24 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               + '<span class="set-label">当前</span>'
               + '<span class="set-cur">' + (isBitset ? ('0x' + (cur >>> 0).toString(16).toUpperCase().padStart(4, '0')) : cur.toFixed(c.precision != null ? c.precision : 1)) + NS.escapeHtml(c.unit || '') + '</span>'
               + '</div>'
+              + '<div class="set-row">'
+              + '<span class="set-label">数据源</span>'
+              + '<select class="set-src-select" data-card-id="' + NS.escapeHtml(c.id) + '">'
+              + '<option value="fixed"' + (simType === 'fixed' ? ' selected' : '') + '>固定</option>'
+              + '<option value="random"' + (simType === 'random' ? ' selected' : '') + '>随机</option>'
+              + '<option value="sine"' + (simType === 'sine' ? ' selected' : '') + '>正弦</option>'
+              + '<option value="ramp"' + (simType === 'ramp' ? ' selected' : '') + '>斜坡</option>'
+              + '</select>'
+              + '</div>'
+              + '<div class="set-row set-send-row">'
+              + '<label class="set-auto-toggle' + (autoOn ? ' on' : '') + '">'
+              + '<input type="checkbox" class="set-auto-check" ' + (autoOn ? 'checked' : '') + ' />'
+              + '<span>自动</span>'
+              + '</label>'
+              + '<button type="button" class="set-send-btn" data-action="send-set">发送</button>'
+              + '</div>'
               + '<div class="card-footer">'
-              + '<span class="footer-range">数据源 ' + ((c.sim && c.sim.type) || 'fixed') + '</span>'
+              + '<span class="footer-range">' + ((c.sim && c.sim.type) || 'fixed') + (autoOn ? ' · 自动' : '') + '</span>'
               + '<span class="footer-direction ' + dir + '">' + dirLabel + '</span>'
               + '</div>'
               + '</div>'
@@ -17626,8 +17715,47 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               });
               input.addEventListener('click', (e) => e.stopPropagation());
             }
+            // v1.3.13: 数据源下拉切换 → 重算 c.sim + 重渲染当前值
+            const srcSelect = card.querySelector('.set-src-select');
+            if (srcSelect) {
+              srcSelect.addEventListener('change', (e) => {
+                e.stopPropagation();
+                const newType = srcSelect.value;
+                c.sim = NS._simSourceParam(newType, input ? input.value : '');
+                NS._saveUserConfig && NS._saveUserConfig();
+                NS.renderCardGrid();
+                NS.toast(`${c.field} 数据源 → ${newType}`, 'info', 800);
+              });
+              srcSelect.addEventListener('click', (e) => e.stopPropagation());
+            }
+            // v1.3.13: 自动发送 toggle
+            const autoCheck = card.querySelector('.set-auto-check');
+            if (autoCheck) {
+              autoCheck.addEventListener('change', (e) => {
+                e.stopPropagation();
+                c.autoSend = autoCheck.checked;
+                NS._saveUserConfig && NS._saveUserConfig();
+                NS._setAutoSendTick(c);
+                NS.renderCardGrid();
+                NS.toast(`${c.field} 自动发送 → ${autoCheck.checked ? '开' : '关'}`, 'info', 800);
+              });
+              const autoLabel = card.querySelector('.set-auto-toggle');
+              if (autoLabel) autoLabel.addEventListener('click', (e) => e.stopPropagation());
+            }
+            // v1.3.13: 手动发送按钮
+            const sendBtn = card.querySelector('[data-action="send-set"]');
+            if (sendBtn) {
+              sendBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                NS._sendSetFrame(c);
+              });
+            }
             card.querySelectorAll('[data-action]').forEach((btn) => {
-              btn.addEventListener('click', (e) => { e.stopPropagation(); if (btn.getAttribute('data-action') === 'edit') NS.openCardEdit(c.id); });
+              btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const act = btn.getAttribute('data-action');
+                if (act === 'edit') NS.openCardEdit(c.id);
+              });
             });
             return card;
           } else {
@@ -17643,16 +17771,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const isPending = NS.txPendingCmds && NS.txPendingCmds.has(c.cmd);
             const lockForPending = !c.fromOtherCmd && isPending;
             const flashClass = (NS.lastValues[c.field] !== undefined && Math.abs(v - NS.lastValues[c.field]) > 0.001) ? ' flash' : '';
-            // 范围指示条 marker
-            let barPct = 50;
-            let barCls = '';
-            if (range && range[1] > range[0]) {
-              barPct = ((v - range[0]) / (range[1] - range[0])) * 100;
-              if (barPct < 0) { barPct = 0; barCls = 'danger'; }
-              else if (barPct > 100) { barPct = 100; barCls = 'danger'; }
-              else if (sev === 'warning') barCls = 'warning';
-              else if (sev === 'danger') barCls = 'danger';
-            }
+            // v1.3.13: 范围指示条 marker 移除 (用户反馈: 横线视觉干扰, 范围信息已在 footer 文字)
             const rangeText = range ? '范围 ' + range[0] + '–' + range[1] + (c.unit || '') : '—';  /* 加"范围"前缀, 让 2.8-4.2V 含义明确 */
             const numCls = sev === 'danger' ? ' danger' : (sev === 'warning' ? ' warning' : '');
             // v1.3.12: footer 改用 direction badge (TX/RX/both) — 状态色 (alert warn/danger) 跟随 trend badge 颜色
@@ -17670,7 +17789,6 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               + '<div class="card-value' + flashClass + '" data-action="detail">'
               + '<span class="num' + numCls + '">' + v.toFixed(c.precision || 2) + '</span>'
               + '<span class="unit">' + NS.escapeHtml(c.unit || '') + '</span>'
-              + '<div class="range-bar"><div class="marker ' + barCls + '" style="left: ' + barPct + '%"></div></div>'
               + '</div>'
               + '<div class="card-trend" data-action="detail"><canvas id="dh-trend-' + c.id + '"></canvas></div>'
               + '<div class="card-footer">'
@@ -18778,6 +18896,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           NS._tickHandle = setInterval(NS.tickData, 800);
           // v1.3.6 P1: schema 协议 cadence 轮询 (interval 体内自检连接态)
           NS._startSchemaPoller && NS._startSchemaPoller();
+          // v1.3.13: 恢复 set 卡 自动发送 ticker (页面重载后用户已勾 autoSend 的卡)
+          NS._setAutoSendTick && NS._setAutoSendTick();
         };
         NS.stop = function () {
           if (NS._tickHandle) { clearInterval(NS._tickHandle); NS._tickHandle = null; }
