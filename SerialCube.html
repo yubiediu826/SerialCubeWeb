@@ -6231,8 +6231,71 @@
       letter-spacing: 0.02em;
     }
     /* v1.3.13: control/set 卡没有 .card-trend 撑开空间, footer 用 margin-top:auto 推到底部 (跟趋势卡 .card-trend 占据 flex:1 等效) */
+    /* v1.3.19.1: rx 卡也没 .card-trend, 同样用 margin-top:auto 推 footer 到底部 */
     .dashboard-host     .card-default.control .card-footer,
-    .dashboard-host     .card-default.set     .card-footer { margin-top: auto; }
+    .dashboard-host     .card-default.set     .card-footer,
+    .dashboard-host     .card-default.rx      .card-footer,
+    .dashboard-host     .card-default.bit     .card-footer { margin-top: auto; }
+    /* v1.3.19.1: rx 卡独立样式 — 不用 trend 风格的巨字 2rem, 改用 1.125rem 中等字
+       让 91 张卡片更紧凑, 标题允许多行 (字段名 "ProtectCode · 软件层放电过温保护" 不被截断)
+       value 用 flex:1 填满剩余空间, footer margin-top:auto 推到底部 (跟 control/set 卡片一致) */
+    .dashboard-host     .card-default.rx .card-header {
+      height: auto; min-height: 22px; flex-shrink: 0;
+      align-items: flex-start; padding-top: 2px;
+    }
+    .dashboard-host     .card-default.rx .card-title {
+      white-space: normal; line-height: 1.25; word-break: break-word;
+      font-size: 0.625rem; font-weight: 600;
+    }
+    .dashboard-host     .card-default.rx .card-value {
+      flex: 1 1 auto !important; min-height: 40px;
+      height: auto !important; flex-shrink: 1 !important;
+      padding-top: 4px; padding-bottom: 4px;
+    }
+    .dashboard-host     .card-default.rx .card-value .num {
+      font-size: 1.125rem; font-weight: 700; line-height: 1.1;
+    }
+    .dashboard-host     .card-default.rx .card-value .unit {
+      font-size: 0.6875rem;
+    }
+    /* v1.3.19.1.2: bit 卡独立样式 — 跟 rx 数值卡视觉上完全分开
+       离散 ON/OFF, 不需单位/范围, 紧凑布局 (无 min-height 限制, 让 63 张 bit 卡更紧凑)
+       标题跟 rx 一样多行 wrap, 大字 ON/OFF 比 rx 稍大 (1.5rem, 主视觉, 因为没有图表)
+       footer 包含 bit 编号 (跟 rx 区分), badge 用 "BIT" 标识 (跟 rx 的 "RX Nbit" 区分) */
+    .dashboard-host     .card-default.bit .card-header {
+      height: auto; min-height: 22px; flex-shrink: 0;
+      align-items: flex-start; padding-top: 2px;
+    }
+    .dashboard-host     .card-default.bit .card-title {
+      white-space: normal; line-height: 1.25; word-break: break-word;
+      font-size: 0.625rem; font-weight: 600;
+    }
+    .dashboard-host     .card-default.bit .card-value {
+      flex: 1 1 auto !important; min-height: 50px;
+      height: auto !important; flex-shrink: 1 !important;
+      padding-top: 4px; padding-bottom: 4px;
+      justify-content: center;
+    }
+    .dashboard-host     .card-default.bit .card-value .num {
+      font-size: 1.5rem; font-weight: 700; line-height: 1.1;
+      letter-spacing: 0.04em;
+    }
+    .dashboard-host     .card-default.bit .card-value .num.on { color: #22c55e; }  /* ON 状态绿字 */
+    /* v1.3.19.1.2: bit 卡 type-badge — 紫色 BIT 标识 (跟 rx 蓝色 RX Nbit 区分) */
+    .dashboard-host     .card-default.bit .type-badge {
+      background: rgba(139, 92, 246, 0.14); color: #8b5cf6;
+      text-transform: none; padding: 1px 6px; font-size: 0.625rem; font-weight: 700;
+    }
+    /* v1.3.19.1.3: bit_set 控制卡 — 复用 control 卡布局 (大 ON/OFF + 开启/发送按钮)
+       跟 'bit' 显示卡 (主机独显) 区分: badge 用 'BIT_SET' (深紫底, 跟浅紫 BIT 区分)
+       跟 'control' (MB 主机下发) 区分: badge 紫色 vs 橙色 CTRL
+       footer 显示 byte/bit 信息, RX direction 标识 (从机响应) */
+    .dashboard-host     .card-default.bit-set .type-badge.bit-set {
+      background: rgba(91, 33, 182, 0.16); color: #7c3aed;  /* 深紫, 跟浅紫 BIT 区分 */
+      text-transform: none; padding: 1px 6px; font-size: 0.625rem; font-weight: 700;
+    }
+    .dashboard-host     .card-default.bit-set .card-value .num.on { color: #22c55e; }
+    .dashboard-host     .card-default.bit-set .card-value { padding-bottom: 4px; }
     .dashboard-host     .card-default .card-footer .footer-range { color: #98989f; }
     .dashboard-host     .card-default .card-footer .footer-status {
       font-weight: 700; display: inline-flex; align-items: center; gap: 3px;
@@ -6287,6 +6350,8 @@
     .dashboard-host     .card-default .type-badge.trend.warn   { background: rgba(217, 119, 6, 0.14); color: #d97706; }
     .dashboard-host     .card-default .type-badge.trend.danger { background: rgba(224, 87, 94, 0.14); color: #e0575e; }
     .dashboard-host     .card-default .type-badge.pair  { background: rgba(139, 92, 246, 0.14); color: #8b5cf6; }
+    /* v1.3.19.1.1: rx 卡 type-badge 显示 "RX 1bit" / "RX 16bit" (类型化位长), 不强制 uppercase 避免 "1BIT" */
+    .dashboard-host     .card-default.rx .type-badge { text-transform: none; padding: 1px 6px; }
     /* v1.3.12: 卡片右下角 direction (TX / RX / TX+RX) — 替代原 footer-status */
     .dashboard-host     .card-default .footer-direction {
       font-weight: 700; display: inline-flex; align-items: center; gap: 3px;
@@ -17567,6 +17632,23 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           NS.toast('未连接串口, 无法发送', 'warn');
           return false;
         };
+        // v1.3.19.1.3: bit_set 卡手动发送 — 跟 set 卡类似, 但固定 schemaDir='CB' (从机响应主机查询)
+        //   bit_set 是 CB 段的 bitset 控制位, 组帧时按 CB 布局编码
+        NS._sendBitSetFrame = function (c) {
+          const proto = (NS.PROTOCOLS || []).find((p) => p.id === c.protocol && p.schema);
+          if (!proto) { NS.toast('协议无 schema', 'danger'); return false; }
+          // _simTick 算当前位值 (已通过 _toggleControlBit 写入 currentVals, 此处再保险算一次)
+          if (NS._simTick) NS._simTick(c);
+          const frame = NS._buildFrameSchema(proto, { id: c.cmd, schemaDir: 'CB' });
+          if (!frame || frame.error) { NS.toast('组帧失败: ' + (frame && frame.error), 'danger'); return false; }
+          if (typeof NS._writeSerial === 'function' && NS._writeSerial) {
+            NS._writeSerial(Uint8Array.from(frame.bytes));
+            NS.toast('已发送 0x' + c.cmd.toString(16).padStart(2, '0').toUpperCase() + ' 位 (' + frame.bytes.length + 'B)', 'info', 1200);
+            return true;
+          }
+          NS.toast('未连接串口, 无法发送', 'warn');
+          return false;
+        };
         // v1.3.13: set 卡手动发送 — 用当前 c.sim 数据源规则算值后组帧发送
         NS._sendSetFrame = function (c) {
           const proto = (NS.PROTOCOLS || []).find((p) => p.id === c.protocol && p.schema);
@@ -17879,6 +17961,146 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               });
             });
             return card;
+          } else if (c.type === 'bit') {
+            // v1.3.19.1.2: bit 状态卡 — bitset 单 bit 专属 (不用 rx 数值卡模板)
+            //   离散 ON/OFF, 不需图表/单位/范围, 紧凑布局
+            //   标题 = 位名, 大字 ON/OFF, footer = "byte N · bit N · Nbit"
+            card.classList.add('bit');
+            const rawV = NS.currentVals[c.bitsetField] != null ? NS.currentVals[c.bitsetField] : 0;
+            const on = ((rawV >> c.bit) & 1) === 1;
+            card.classList.toggle('bit-on', on);
+            const offsetBytes = c.startBit != null ? Math.floor(c.startBit / 8) : null;
+            const bitLen = c.bitLen != null ? c.bitLen : 1;
+            const dirStatusExtra = '';  // bit 卡无 alert (离散 0/1 无 range)
+            card.innerHTML =
+              '<div class="card-statusbar"></div>'
+              + '<div class="card-body">'
+              + '<div class="card-header">'
+              + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="type-badge bit">BIT</span>'
+              + '</div>'
+              + '<div class="card-value" data-action="detail">'
+              + '<span class="num">' + (on ? 'ON' : 'OFF') + '</span>'
+              + '</div>'
+              + '<div class="card-footer">'
+              + '<span class="footer-range"></span>'
+              + '<span class="footer-direction rx">' + 'byte ' + offsetBytes + ' · bit ' + c.bit + ' · ' + bitLen + 'bit' + dirStatusExtra + '</span>'
+              + '</div>'
+              + '</div>'
+              + (NS.editMode ? '<div class="card-actions">'
+                + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                + '</div>' : '');
+          } else if (c.type === 'bit_set') {
+            // v1.3.19.1.3: bit_set 控制卡 — 从机模式 CB bitset 按位控制 (跟 'bit' 显示卡区分)
+            //   视觉跟 control 单bit 卡类似: 大字 ON/OFF + "开启"按钮 + "发送"按钮 + TX direction
+            //   但 badge 用 'BIT_SET' (紫色背景, 跟橙 CTRL 区分, 也跟紫色 BIT 区分开)
+            //   从机主动修改 currentVals 的对应位, 然后主机查询时返回新值
+            card.classList.add('bit-set');
+            const raw = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
+            const on = ((raw >> c.bit) & 1) === 1;
+            card.classList.toggle('bit-on', on);
+            const offsetBytes = c.startBit != null ? Math.floor(c.startBit / 8) : null;
+            const bitLen = c.bitLen != null ? c.bitLen : 1;
+            const dir = c.dir || 'rx';
+            const dirLabel = dir === 'tx' ? 'TX' : dir === 'rx' ? 'RX' : 'TX+RX';
+            const rawHex = '0x' + (raw >>> 0).toString(16).toUpperCase().padStart(4, '0');
+            card.innerHTML =
+              '<div class="card-statusbar"></div>'
+              + '<div class="card-body">'
+              + '<div class="card-header">'
+              + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="type-badge bit-set">BIT_SET</span>'
+              + '</div>'
+              + '<div class="card-value" data-action="detail">'
+              + '<span class="num' + (on ? ' on' : '') + '">' + (on ? 'ON' : 'OFF') + '</span>'
+              + '<span class="sub">' + rawHex + ' · bit ' + c.bit + '</span>'
+              + '</div>'
+              + '<div class="ctrl-row">'
+              + '<button type="button" class="ctrl-single-toggle" data-action="toggle">' + (on ? '关闭' : '开启') + '</button>'
+              + '<button type="button" class="ctrl-send" data-action="send">发送</button>'
+              + '</div>'
+              + '<div class="card-footer">'
+              + '<span class="footer-range">byte ' + offsetBytes + ' · ' + bitLen + 'bit</span>'
+              + '<span class="footer-direction ' + dir + '">' + dirLabel + '</span>'
+              + '</div>'
+              + '</div>'
+              + (NS.editMode ? '<div class="card-actions">'
+                + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                + '</div>' : '');
+            card.querySelectorAll('[data-action]').forEach((btn) => {
+              btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const act = btn.getAttribute('data-action');
+                if (act === 'edit') NS.openCardEdit(c.id);
+                else if (act === 'toggle') {
+                  // 复用 _toggleControlBit: 修改 currentVals 的对应位
+                  NS._toggleControlBit(c, { bit: c.bit, name: c.bitName });
+                  NS.renderCardGrid();
+                }
+                else if (act === 'send') NS._sendBitSetFrame(c);
+                else if (act === 'detail') NS.__openDetail(c.id);
+              });
+            });
+            return card;
+          } else if (c.type === 'rx') {
+            // v1.3.19.1: rx 卡 — 从机响应数据, 纯显示 (无开启/发送按钮, 不能编辑+发送)
+            //   v1.3.19.1.1: 标题单行 (只显示位名/字段名), badge 显示 "RX NNbit" (类型化),
+            //   footer 单行只显示字节偏移 (去掉位名重复)
+            card.classList.add('rx');
+            const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
+            const range = c.range || [0, 100];
+            const alert = NS.checkAlert(v, c.field, c.protocol, range);
+            const sev = alert ? alert.severity : null;
+            if (alert) card.classList.add('alert-' + (alert.severity === 'warn' ? 'warning' : alert.severity));
+            let displayVal, displayUnit, isBit;
+            if (typeof c.bit === 'number' && c.bitsetField) {
+              isBit = true;
+              const rawV = NS.currentVals[c.bitsetField] != null ? NS.currentVals[c.bitsetField] : 0;
+              const bitVal = (rawV >> c.bit) & 1;
+              displayVal = bitVal;
+              displayUnit = '';
+            } else {
+              isBit = false;
+              displayVal = v;
+              displayUnit = c.unit || '';
+            }
+            const numCls = isBit ? ((displayVal ? ' on' : '')) : (sev === 'danger' ? ' danger' : (sev === 'warning' ? ' warning' : ''));
+            const flashClass = (NS.lastValues[c.field] !== undefined && Math.abs(displayVal - NS.lastValues[c.field]) > 0.001) ? ' flash' : '';
+            // 字节偏移 + 位数 (footer 简化: 单行 `byte N · NNbit`)
+            const offsetBytes = c.startBit != null ? Math.floor(c.startBit / 8) : null;
+            const bitLen = c.bitLen != null ? c.bitLen : (c.itemBitLen || null);
+            // 范围 (bitset 没范围, 显示 bit 编号)
+            const rangeText = isBit
+              ? 'bit ' + c.bit
+              : (range ? '范围 ' + range[0] + '–' + range[1] + (c.unit || '') : '—');
+            // 字节偏移字符串 (footer 右侧)
+            const offsetStr = (offsetBytes != null)
+              ? 'byte ' + offsetBytes + (bitLen != null ? ' · ' + bitLen + 'bit' : '')
+              : '—';
+            const dirStatusExtra = sev === 'danger' ? ' · DANGER' : (sev === 'warning' ? ' · WARN' : '');
+            const badgeCls = sev === 'danger' ? 'rx danger' : (sev === 'warning' ? 'rx warn' : 'rx');
+            // 类型化 badge: RX 1bit / RX 8bit / RX 16bit / RX 32bit (按位长)
+            const typeLabel = 'RX ' + (bitLen != null ? bitLen + 'bit' : '');
+            card.innerHTML =
+              '<div class="card-statusbar"></div>'
+              + '<div class="card-body">'
+              + '<div class="card-header">'
+              + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="type-badge ' + badgeCls + '">' + NS.escapeHtml(typeLabel) + '</span>'
+              + '</div>'
+              + '<div class="card-value' + flashClass + '" data-action="detail">'
+              + '<span class="num' + numCls + '">' + (isBit ? (displayVal ? 'ON' : 'OFF') : displayVal.toFixed(c.precision != null ? c.precision : 1)) + '</span>'
+              + '<span class="unit">' + NS.escapeHtml(displayUnit) + '</span>'
+              + '</div>'
+              + '<div class="card-footer">'
+              + '<span class="footer-range">' + rangeText + '</span>'
+              + '<span class="footer-direction rx' + (sev === 'danger' ? ' danger' : '') + '">' + offsetStr + dirStatusExtra + '</span>'
+              + '</div>'
+              + '</div>'
+              + (NS.editMode ? '<div class="card-actions">'
+                + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                + '</div>' : '');
+            setTimeout(() => { const v2 = card.querySelector('.card-value'); if (v2) v2.classList.remove('flash'); }, 400);
           } else {
             // widget: trend 卡
             const v = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
@@ -18067,14 +18289,32 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             .filter((c) => NS._cardVisibleInRole(c))
             .filter((c) => NS.selectedCmd === 'all' || NS.matchCard(c, NS.selectedCmd));
           // 全部命令时按 cmd + 类型段分组 (v1.3.10: control 与响应 trend/set 分开成组, 不再挤在一起)
+          // v1.3.19.1: 增 'rx' 纯显示组 (BMS 响应位 + 数组项), 跟 ctrl/set/trend 区分
+          // v1.3.19.1.2: 增 'bit' 独立组 (BMS 响应 bitset 单 bit), 跟 rx 数值卡区分
+          // v1.3.19.1.3: 增 'bit_set' 独立组 (从机 CB bitset 按位控制), 跟 'bit' 显示组区分
+          //   bit 是离散 ON/OFF 状态, 跟 rx 数值 (有单位/范围) 视觉上完全不同
+          //   bit_set 跟 bit 都是离散 ON/OFF, 但 bit_set 多了"开启/发送"按钮 (从机控制)
+          //   rx / bit / bit_set 组内都按 startBit 升序排 (跟协议字节偏移对齐)
           if (NS.selectedCmd === 'all') {
-            const groupKey = (c) => (c.cmd || 0) + '|' + (c.type === 'control' ? 'ctrl' : (c.type === 'set' ? 'set' : 'resp'));
+            const groupKey = (c) => (c.cmd || 0) + '|' + (
+              c.type === 'control' ? 'ctrl' :
+              c.type === 'bit_set' ? 'bit_set' :
+              c.type === 'bit' ? 'bit' :
+              c.type === 'rx' ? 'rx' :
+              c.type === 'set' ? 'set' :
+              c.type === 'trend' ? 'resp' : 'resp'
+            );
             const groupLabel = (k) => {
               const [cmdNum, seg] = k.split('|');
               const hex = (parseInt(cmdNum, 10) || 0).toString(16).padStart(2, '0').toUpperCase();
               const cmd = NS.allCommands().find((c) => c.id === parseInt(cmdNum, 10));
               const base = (cmd ? cmd.name : ('0x' + hex));
-              return seg === 'ctrl' ? (base + ' · 控制 (TX)') : seg === 'set' ? (base + ' · 参数 (RX 配置)') : (base + ' · 响应 (RX)');
+              return seg === 'ctrl' ? (base + ' · 控制 (TX)') :
+                     seg === 'bit_set' ? (base + ' · 位控制 (从机响应)') :
+                     seg === 'bit' ? (base + ' · 位状态 (RX 主机显示)') :
+                     seg === 'rx' ? (base + ' · 响应数据 (RX)') :
+                     seg === 'set' ? (base + ' · 参数 (RX 配置)') :
+                     (base + ' · 响应趋势 (RX)');
             };
             const groups = new Map();
             filtered.forEach((c) => {
@@ -18082,9 +18322,15 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               if (!groups.has(k)) groups.set(k, []);
               groups.get(k).push(c);
             });
+            // rx / bit / bit_set 组内按 startBit 升序排 (跟协议字节偏移对齐), 其他组保持原顺序
+            groups.forEach((arr, k) => {
+              if (k.endsWith('|rx') || k.endsWith('|bit') || k.endsWith('|bit_set')) {
+                arr.sort((a, b) => (a.startBit || 0) - (b.startBit || 0));
+              }
+            });
             const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
               const [an, as] = a.split('|'); const [bn, bs] = b.split('|');
-              const segRank = (s) => (s === 'ctrl' ? 0 : s === 'resp' ? 1 : 2);
+              const segRank = (s) => (s === 'ctrl' ? 0 : s === 'bit_set' ? 1 : s === 'bit' ? 2 : s === 'rx' ? 3 : s === 'resp' ? 4 : 5);
               return (parseInt(an, 10) - parseInt(bn, 10)) || (segRank(as) - segRank(bs));
             });
             if (NS.cardLayout === 'list') {
@@ -21009,14 +21255,21 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           }
           return target;
         };
-        // v1.3.10: 卡片按角色可见性 — host: control(下发) + trend(响应显示); device: set(可配置)
+        // v1.3.10: 卡片按角色可见性 — host: control(下发) + trend(响应概览); device: set(可配置)
         //   同字段 (如 RSOC) 主机显示 trend 显示卡、从机显示 set 可配置卡, 不再两角色混显 trend
+        // v1.3.19.1: 增 type='rx' 纯显示卡 — BMS 响应数据, 双向可见 (主机看 + 从机显示), 无任何按钮
+        //   取代之前 v1.3.19 错误用 type='control' + dir='rx' 渲染位卡 (带"开启"按钮不合理)
+        //   host 模式: 10 ctrl (MB 下发) + 12 trend (聚合值) + 33+63+28 rx (BMS 响应细节)
+        //   device 模式: 39 set (BMS 仿真配置) + 33+63+28 rx (BMS 响应/仿真值)
         NS._cardVisibleInRole = function (c) {
           const role = NS._simRole;
-          if (c.type === 'control') return role === 'host';
-          if (c.type === 'set') return role === 'device';
           if (c.type === 'trend') return role === 'host';
           if (c.type === 'pair') return role === 'host';
+          if (c.type === 'control') return role === 'host';
+          if (c.type === 'set') return role === 'device';
+          if (c.type === 'rx') return true;  // 双向: BMS 响应数据, 主机看 + 从机显示
+          if (c.type === 'bit') return role === 'host';  // v1.3.19.1.3: 主机只看 CB 响应位 (从机响应数据, 纯显示)
+          if (c.type === 'bit_set') return role === 'device';  // v1.3.19.1.3: 从机主动控制 CB 位 (BMS 仿真, 按位 checkbox + 发送)
           return true;
         };
         // v1.3.8: 从 schema 自动生成默认卡片 (按角色区分)
@@ -21050,6 +21303,42 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                   title: name, unit: f.unit || '', range: NS._fieldRange(name), precision: f.unit === 'mV' ? 0 : 1,
                   fromOtherCmd: true, protocol: protoId });
               });
+              // v1.3.19.1.2: bitset 字段按位展开 → type='bit' 独立卡片 (跟 rx 数值卡分开)
+              //   bit 状态是离散 ON/OFF, 不需图表/单位/范围, 紧凑布局
+              //   按 startBit 升序排列 (跟协议字节偏移对齐)
+              //   标题简化为只显示位名 (去掉 "ProtectCode · " 前缀, 避免单行截断)
+              const bsNames = ['ProtectCode', 'ErrCode', 'AFE_ProtectCode', 'ChgDsgState', 'SignalSource'];
+              const bsFields = bsNames.map((n) => c01.CB.fields.find((x) => x.name === n)).filter(Boolean);
+              bsFields.sort((a, b) => (a.startBit || 0) - (b.startBit || 0));
+              bsFields.forEach((f) => {
+                if (!Array.isArray(f.bits)) return;
+                f.bits.forEach((b) => {
+                  if (typeof b.bit !== 'number') return;
+                  cards.push({ id: protoId + '_bit_' + f.name + '_' + b.bit, type: 'bit', cmd: 0x01, dir: 'rx',
+                    field: f.name, bit: b.bit, bitName: b.name, bitsetField: f.name,
+                    startBit: (f.startBit || 0) + b.bit, bitLen: 1,
+                    title: b.name || ('bit' + b.bit), unit: '', precision: 0,
+                    protocol: protoId });
+                });
+              });
+              // v1.3.19.1: 数组字段按项展开 → type='rx' 纯显示卡 (BMS 响应多值, 主机 + 从机都能看)
+              //   按 startBit 升序, 每项 startBit = 父 startBit + i * itemBitLen
+              const arrayNames = ['Cell_Temp', 'Vcell'];
+              const arrayFields = arrayNames.map((n) => c01.CB.fields.find((x) => x.name === n)).filter(Boolean);
+              arrayFields.sort((a, b) => (a.startBit || 0) - (b.startBit || 0));
+              arrayFields.forEach((f) => {
+                if (f.type !== 'array') return;
+                const count = (f.item && f.item.count) ? f.item.count : 0;
+                const itemBitLen = (f.item && f.item.bitLen) ? f.item.bitLen : 16;
+                const itemUnit = f.unit || '';
+                for (let i = 0; i < count; i++) {
+                  cards.push({ id: protoId + '_rx_arr_' + f.name + '_' + i, type: 'rx', cmd: 0x01, dir: 'rx',
+                    field: f.name, arrayIndex: i, arrayCount: count, itemBitLen: itemBitLen,
+                    startBit: (f.startBit || 0) + i * itemBitLen, bitLen: itemBitLen,
+                    title: f.name + '[' + (i + 1) + ']', unit: itemUnit, precision: itemUnit === 'mV' ? 0 : 1,
+                    protocol: protoId });
+                }
+              });
             }
           } else {
             // 从机: 0x01 CB 关键字段 set 卡 (参数值 + 动态数据源, 无图表) — v1.3.19 扩到 34 字段覆盖完整协议
@@ -21068,14 +21357,25 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                   title: name, unit: f.unit || '', precision: f.unit === 'mV' ? 0 : 1, protocol: protoId,
                   sim: { type: 'fixed', value: 0 } });
               });
-              // 保护标志位 bitset set 卡 (按位设置) — v1.3.19 加 SignalSource
+              // v1.3.19.1.3: 保护标志位 bitset 按位展开 → type='bit_set' 控制卡 (跟 'bit' 显示卡区分)
+              //   从机主动控制这些位 (BMS 仿真), 用 checkbox 勾选 + 发送
+              //   跟 type='bit' (主机显示) 是不同卡片类型, 视觉上独立
+              //   按 startBit 升序排列 (跟协议字节偏移对齐)
+              //   替代 v1.3.19 的 5 个整体 bitset set 卡 (按位更精细, 更符合 BMS 仿真场景)
               const bsNames = ['ProtectCode', 'ErrCode', 'AFE_ProtectCode', 'ChgDsgState', 'SignalSource'];
-              bsNames.forEach((name, i) => {
-                const f = c01.CB.fields.find((x) => x.name === name);
-                if (!f || f.type !== 'bitset') return;
-                cards.push({ id: protoId + '_bset_' + i, type: 'set', cmd: 0x01, field: name,
-                  title: name, unit: '', precision: 0, protocol: protoId, bitset: true,
-                  sim: { type: 'fixed', value: 0 } });
+              const bsFields = bsNames.map((n) => c01.CB.fields.find((x) => x.name === n)).filter(Boolean);
+              bsFields.sort((a, b) => (a.startBit || 0) - (b.startBit || 0));
+              bsFields.forEach((f) => {
+                if (!Array.isArray(f.bits)) return;
+                f.bits.forEach((b) => {
+                  if (typeof b.bit !== 'number') return;
+                  cards.push({ id: protoId + '_bit_set_' + f.name + '_' + b.bit, type: 'bit_set', cmd: 0x01, dir: 'rx',
+                    field: f.name, bit: b.bit, bitName: b.name, bitsetField: f.name,
+                    startBit: (f.startBit || 0) + b.bit, bitLen: 1,
+                    title: b.name || ('bit' + b.bit), unit: '', precision: 0,
+                    protocol: protoId,
+                    sim: { type: 'fixed', value: 0 } });
+                });
               });
             }
           }
