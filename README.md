@@ -3,7 +3,7 @@
 > 单文件 Web 串口调试工具 — 面向 BMS / EMS / PCS 协议调试
 
 **在线访问**: <https://yubiediu826.github.io/SerialCubeWeb/SerialCube.html>
-**当前版本**: v1.3.13 (2026-08-17) · [更新日志](docs/CHANGELOG.md) · [GitHub](https://github.com/yubiediu826/SerialCubeWeb)
+**当前版本**: v1.3.14 (2026-08-17) · [更新日志](docs/CHANGELOG.md) · [GitHub](https://github.com/yubiediu826/SerialCubeWeb)
 
 单 HTML 文件, 零安装、零后端、零依赖。Web Serial API 直连真实串口, 内置 mock 模式。**协议编辑器**支持 9 种帧 kind（含 Custom）+ 5 种 CRC 校验, 图形仪表盘 + 时间线系统 + 主题切换 + 告警面板一应俱全。
 

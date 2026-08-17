@@ -1,8 +1,8 @@
 ﻿# SerialCube — 项目交接文档
 
 > **本项目：** 单 HTML 串口调试工具
-> **当前版本：** v1.3.13（control/set 卡 footer 推底 + trend 去范围条 + set 卡下拉/自动/手动发送，2026-08-17）
-> **最近更新：** 2026-08-17(v1.3.13 同步 PROJECT-HANDOVER 当前版本)
+> **当前版本：** v1.3.14（卡片 tab 类型列漏判 control/set 修复，2026-08-17）
+> **最近更新：** 2026-08-17(v1.3.14 同步 PROJECT-HANDOVER 当前版本)
 > **原最后更新：** 2026-08-11(v1.0.0 时内容)
 > **作者：** Mavis (M3) + 用户 M.*
 
@@ -16,7 +16,7 @@
 - **在哪用：** <https://yubiediu826.github.io/SerialCubeWeb/SerialCube.html>
 - **核心文件：** `SerialCube.html`（~1.3 MB / 31657 行，所有代码 inline）
 - **怎么改：** 改 HTML → 跑 `bump-version.ps1` → 中文 commit → ask 后 push → Pages 自动部署
-- **当前版本：** v1.3.13（control/set 卡 footer 推底 + trend 去范围条 + set 卡下拉/自动/手动发送）
+- **当前版本：** v1.3.14（卡片 tab 类型列漏判 control/set 修复）
 - **AI 工作流：** `.minimax/skills/` 16 个 skill，完整 SOP 看 [`.minimax/skills/README.md`](../../.minimax/skills/README.md)
 
 ---
