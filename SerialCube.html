@@ -8785,6 +8785,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.3.17 版本 · 26-8-17</strong>
+            <ul>
+              <li>修复: 连接串口后未自动重渲染仪表盘卡片</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.3.16 版本 · 26-8-17</strong>
             <ul>
               <li>优化: 编辑命令 modal 数据字段按方向分组 (RX 折叠/TX 展开) + 仅 bitset 显示位定义</li>
@@ -9049,7 +9055,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.3.16';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.11: trackSerialWebView 跳过本地; v1.3.10: 日志换行/卡片分组与角色区分/控制卡去RSOC/方向both/帧预览换行与预览值/字段下拉分组; v1.3.9: 单一协议+双向命令)
+      const VERSION = '1.3.17';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.11: trackSerialWebView 跳过本地; v1.3.10: 日志换行/卡片分组与角色区分/控制卡去RSOC/方向both/帧预览换行与预览值/字段下拉分组; v1.3.9: 单一协议+双向命令)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
@@ -24518,6 +24524,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         updateSignalControlsUI();
         // v1.3.2 修: 同步 NS._serialConnected + 调 updateDashboardProtoBar (仪表盘占位区显隐依赖此值)
         // 之前 NS.serialConnected 从未被赋值, 仪表盘永远不刷新占位区, 协议激活后占位区消失
+        // v1.3.17 修: 串口状态变化时同步重渲染命令面板 + 卡片网格 + 告警 — 之前只调 updateDashboardProtoBar
+        //   切 dh-card-grid 的 display, 但 renderCardGrid 在 _serialConnected=false 时 return early 没填充 innerHTML,
+        //   连上串口后占位区消失但卡片区还是空的, 用户看不到卡片 (需手动重应用协议才能恢复)
+        //   现在跟 toggleActiveProtocol (line 21607-21611) 对齐: 同步渲染 + rAF 防御性二次渲染
         try {
           const dashNS = window.__serialWebDashboard;
           if (dashNS) {
@@ -24527,8 +24537,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             dashNS._writeSerial = (state.serial.connected && state.serial.writer) ? function (bytes) {
               try { return state.serial.writer.write(bytes); } catch (e) { return Promise.resolve(); }
             } : null;
-            if (prev !== state.serial.connected && typeof dashNS.updateDashboardProtoBar === 'function') {
-              dashNS.updateDashboardProtoBar();
+            if (prev !== state.serial.connected) {
+              if (typeof dashNS.updateDashboardProtoBar === 'function') dashNS.updateDashboardProtoBar();
+              if (typeof dashNS.renderCommandPanel === 'function') dashNS.renderCommandPanel();
+              if (typeof dashNS.renderCardGrid === 'function') dashNS.renderCardGrid();
+              if (typeof dashNS.renderAlerts === 'function') dashNS.renderAlerts();
+              // 防御性 rAF 二次渲染 (跟 toggleActiveProtocol 保持一致, 兜底任何动画/遮罩吞首次渲染)
+              requestAnimationFrame(() => {
+                if (typeof dashNS.updateDashboardProtoBar === 'function') dashNS.updateDashboardProtoBar();
+                if (typeof dashNS.renderCommandPanel === 'function') dashNS.renderCommandPanel();
+                if (typeof dashNS.renderCardGrid === 'function') dashNS.renderCardGrid();
+              });
             }
           }
         } catch (e) {}
