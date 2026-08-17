@@ -6247,6 +6247,42 @@
     .dashboard-host     .card-default .card-action svg { width: 11px; height: 11px; stroke-width: 1.6; }
     /* card-action SVG 图标 — 替代原来的 ⇄ ↗ ✎ 🔒 字符 (重复的旧规则已删) */
     .dashboard-host     .card-default .card-delete-btn svg { width: 14px; height: 14px; stroke-width: 1.6; }
+    /* v1.3.12: 卡片右上角 type 缩写 (CTRL / SET / TREND / PAIR) */
+    .dashboard-host     .card-default .type-badge {
+      display: inline-flex; align-items: center;
+      font-size: 0.5625rem; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 1px 5px; border-radius: 3px;
+      flex-shrink: 0; font-family: var(--font-ui);
+    }
+    .dashboard-host     .card-default .type-badge.ctrl { background: rgba(217, 119, 6, 0.14); color: #d97706; }
+    .dashboard-host     .card-default .type-badge.set  { background: rgba(58, 92, 204, 0.14); color: #3a5ccc; }
+    .dashboard-host     .card-default .type-badge.trend { background: rgba(58, 92, 204, 0.14); color: #3a5ccc; }
+    .dashboard-host     .card-default .type-badge.trend.warn   { background: rgba(217, 119, 6, 0.14); color: #d97706; }
+    .dashboard-host     .card-default .type-badge.trend.danger { background: rgba(224, 87, 94, 0.14); color: #e0575e; }
+    .dashboard-host     .card-default .type-badge.pair  { background: rgba(139, 92, 246, 0.14); color: #8b5cf6; }
+    /* v1.3.12: 卡片右下角 direction (TX / RX / TX+RX) — 替代原 footer-status */
+    .dashboard-host     .card-default .footer-direction {
+      font-weight: 700; display: inline-flex; align-items: center; gap: 3px;
+      letter-spacing: 0.05em;
+      font-family: var(--font-mono);
+    }
+    .dashboard-host     .card-default .footer-direction::before {
+      content: ''; width: 5px; height: 5px; border-radius: 50%;
+      background: currentColor; flex-shrink: 0;
+    }
+    .dashboard-host     .card-default .footer-direction.tx { color: #3a5ccc; }
+    .dashboard-host     .card-default .footer-direction.rx { color: #22c55e; }
+    .dashboard-host     .card-default .footer-direction.both { color: #6b21a8; }
+    .dashboard-host     .card-default .footer-direction.danger { color: #e0575e; }
+    /* v1.3.12: control 卡 value 区小字 (字段值 + 位编号) + ON 绿字 */
+    .dashboard-host     .card-default .card-value .sub {
+      font-size: 0.5625rem; color: #98989f;
+      font-family: var(--font-mono);
+      position: absolute; right: 0; bottom: 4px;
+      display: flex; gap: 4px; align-items: center;
+    }
+    .dashboard-host     .card-default .card-value .num.on { color: #22c55e; }
     .dashboard-host     .card-default .card-action.disabled { opacity: 0.4; cursor: not-allowed; }
     .dashboard-host     .card-default .card-action.is-loading { animation: card-action-spin 0.8s linear infinite; }
     @keyframes card-action-spin { to { transform: rotate(360deg); } }
@@ -17425,11 +17461,15 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const isPending = NS.txPendingCmds && NS.txPendingCmds.has(c.cmd);
             const cmdHex = c.cmd.toString(16).padStart(2, '0').toUpperCase();
             const footerStatusText = dCls === 'ok' ? 'OK' : 'ALARM';
+            // v1.3.12: 右上 PAIR badge; 右下 direction (TX+RX 双向); 状态文字 (OK/ALARM) 留给 pair-cell.delta val class
+            const dirPair = c.dir || 'both';
+            const dirPairLabel = dirPair === 'tx' ? 'TX' : dirPair === 'rx' ? 'RX' : 'TX+RX';
             card.innerHTML =
               '<div class="card-statusbar"></div>'
               + '<div class="card-body">'
               + '<div class="card-header">'
               + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="type-badge pair">PAIR</span>'
               + '</div>'
               + '<div class="card-value pair" data-action="detail">'
               + '<div class="pair-cell setpoint"><div class="label">SET</div><div class="val">' + set.toFixed(1) + '</div></div>'
@@ -17439,7 +17479,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               + '<div class="card-trend" data-action="detail"><canvas id="dh-trend-' + c.id + '"></canvas></div>'
               + '<div class="card-footer">'
               + '<span class="footer-range">容差 ±0.5' + NS.escapeHtml(c.unit || '') + '</span>'
-              + '<span class="footer-status ' + dCls + '">' + footerStatusText + '</span>'
+              + '<span class="footer-direction ' + dirPair + '">' + dirPairLabel + '</span>'
               + '</div>'
               + '</div>'
               // HTML 层面根据 edit mode 切换 — 普通模式不渲染 .card-actions 容器, 编辑模式渲染 edit button
@@ -17451,22 +17491,30 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             card.classList.add('control');
             const raw = NS._controlBitValue(c);
             if (c.singleBit) {
-              // 单bit 卡: 位名 + 开关 + 发送 (v1.3.10: 不再显示 RSOC 响应值, 响应由独立 trend 卡观察)
+              // 单bit 卡 (v1.3.12: ON/OFF 大字突出, 字段值+位编号小字辅助; 右上 CTRL badge, 右下 TX direction)
               const on = ((raw >> c.bit) & 1) ? 1 : 0;
               card.classList.toggle('bit-on', !!on);
+              const rawHex = '0x' + (raw >>> 0).toString(16).toUpperCase().padStart(4, '0');
+              const dir = c.dir || 'tx';
+              const dirLabel = dir === 'tx' ? 'TX' : dir === 'rx' ? 'RX' : 'TX+RX';
               card.innerHTML =
                 '<div class="card-statusbar"></div>'
                 + '<div class="card-body">'
                 + '<div class="card-header">'
                 + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+                + '<span class="type-badge ctrl">CTRL</span>'
                 + '</div>'
-                + '<div class="ctrl-single-row">'
-                + '<span class="ctrl-single-state">' + (on ? 'ON' : 'OFF') + '</span>'
-                + '<button type="button" class="ctrl-single-toggle" data-action="toggle">' + (on ? '关闭' : '开启') + '</button>'
+                + '<div class="card-value" data-action="detail">'
+                + '<span class="num' + (on ? ' on' : '') + '">' + (on ? 'ON' : 'OFF') + '</span>'
+                + '<span class="sub">' + rawHex + ' · bit ' + c.bit + '</span>'
                 + '</div>'
                 + '<div class="ctrl-row">'
-                + '<span class="ctrl-raw">bit' + c.bit + ' = ' + on + '</span>'
+                + '<button type="button" class="ctrl-single-toggle" data-action="toggle">' + (on ? '关闭' : '开启') + '</button>'
                 + '<button type="button" class="ctrl-send" data-action="send">发送</button>'
+                + '</div>'
+                + '<div class="card-footer">'
+                + '<span class="footer-range">位 ' + c.bit + (c.bitName ? ' · ' + NS.escapeHtml(c.bitName) : '') + '</span>'
+                + '<span class="footer-direction ' + dir + '">' + dirLabel + '</span>'
                 + '</div>'
                 + '</div>'
                 + (NS.editMode ? '<div class="card-actions">'
@@ -17500,6 +17548,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               + '<div class="card-body">'
               + '<div class="card-header">'
               + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="type-badge ctrl">CTRL</span>'
               + '</div>'
               + '<div class="ctrl-bits">' + bitsHtml + '</div>'
               + '<div class="ctrl-row">'
@@ -17532,6 +17581,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             return card;
           } else if (c.type === 'set') {
             // widget: set 卡 (从机模式 — 参数值直接设置 + 动态数据源, 无图表)
+            // v1.3.12: 右上 SET badge 替代 set-src-badge (数据源 type 由 send-row select 显示); 右下 footer-direction 显示命令方向
             card.classList.add('set');
             const proto = (NS.PROTOCOLS || []).find((p) => p.id === c.protocol && p.schema);
             const cmdKey = (c.cmd || 0x01).toString(16).padStart(2, '0').toUpperCase();
@@ -17539,15 +17589,15 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const fld = cmdDef && cmdDef.CB && (cmdDef.CB.fields || []).find((f) => f.name === c.field);
             const isBitset = c.bitset || (fld && fld.type === 'bitset');
             const cur = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
-            const simType = (c.sim && c.sim.type) || 'fixed';
-            const srcLabel = simType === 'fixed' ? '固定' : simType === 'random' ? '随机' : simType === 'sine' ? '正弦' : simType === 'ramp' ? '斜坡' : '固定';
+            const dir = c.dir || (cmdDef && cmdDef.direction) || 'tx';
+            const dirLabel = dir === 'tx' ? 'TX' : dir === 'rx' ? 'RX' : 'TX+RX';
             const valStr = (c.sim && c.sim.value != null) ? c.sim.value : NS._simParamStr(c.sim);
             card.innerHTML =
               '<div class="card-statusbar"></div>'
               + '<div class="card-body">'
               + '<div class="card-header">'
               + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
-              + '<span class="set-src-badge">' + srcLabel + '</span>'
+              + '<span class="type-badge set">SET</span>'
               + '</div>'
               + '<div class="set-row">'
               + '<span class="set-label">参数值</span>'
@@ -17556,6 +17606,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               + '<div class="set-row">'
               + '<span class="set-label">当前</span>'
               + '<span class="set-cur">' + (isBitset ? ('0x' + (cur >>> 0).toString(16).toUpperCase().padStart(4, '0')) : cur.toFixed(c.precision != null ? c.precision : 1)) + NS.escapeHtml(c.unit || '') + '</span>'
+              + '</div>'
+              + '<div class="card-footer">'
+              + '<span class="footer-range">数据源 ' + ((c.sim && c.sim.type) || 'fixed') + '</span>'
+              + '<span class="footer-direction ' + dir + '">' + dirLabel + '</span>'
               + '</div>'
               + '</div>'
               + (NS.editMode ? '<div class="card-actions">'
@@ -17600,13 +17654,18 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               else if (sev === 'danger') barCls = 'danger';
             }
             const rangeText = range ? '范围 ' + range[0] + '–' + range[1] + (c.unit || '') : '—';  /* 加"范围"前缀, 让 2.8-4.2V 含义明确 */
-            const footerStatusText = c.fromOtherCmd ? 'RX-ONLY' : (sev === 'danger' ? 'ALARM' : (sev === 'warning' ? 'WARN' : 'OK'));
             const numCls = sev === 'danger' ? ' danger' : (sev === 'warning' ? ' warning' : '');
+            // v1.3.12: footer 改用 direction badge (TX/RX/both) — 状态色 (alert warn/danger) 跟随 trend badge 颜色
+            const dirTrend = c.dir || 'rx';
+            const dirTrendLabel = dirTrend === 'tx' ? 'TX' : dirTrend === 'rx' ? 'RX' : 'TX+RX';
+            const dirStatusExtra = sev === 'danger' ? ' · DANGER' : (sev === 'warning' ? ' · WARN' : '');
+            const trendBadgeCls = sev === 'danger' ? 'trend danger' : (sev === 'warning' ? 'trend warn' : 'trend');
             card.innerHTML =
               '<div class="card-statusbar"></div>'
               + '<div class="card-body">'
               + '<div class="card-header">'
               + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="type-badge ' + trendBadgeCls + '">TREND</span>'
               + '</div>'
               + '<div class="card-value' + flashClass + '" data-action="detail">'
               + '<span class="num' + numCls + '">' + v.toFixed(c.precision || 2) + '</span>'
@@ -17616,7 +17675,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               + '<div class="card-trend" data-action="detail"><canvas id="dh-trend-' + c.id + '"></canvas></div>'
               + '<div class="card-footer">'
               + '<span class="footer-range">' + rangeText + '</span>'
-              + '<span class="footer-status ' + statusCls + '">' + footerStatusText + '</span>'
+              + '<span class="footer-direction ' + dirTrend + (sev === 'danger' ? ' danger' : '') + '">' + dirTrendLabel + dirStatusExtra + '</span>'
               + '</div>'
               + '</div>'
               // HTML 层面根据 edit mode 切换 — 普通模式不渲染 .card-actions, 编辑模式只渲染 edit
@@ -20339,7 +20398,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             row.className = 'card-edit-item';
             const idHex = c.cmd ? c.cmd.toString(16).padStart(2, '0').toUpperCase() : '—';
             row.innerHTML = `
-              <span class="ce-type">${c.type === 'pair' ? 'PAIR' : 'TREND'}</span>
+              <span class="ce-type">${c.type === 'pair' ? 'PAIR' : c.type === 'control' ? 'CTRL' : c.type === 'set' ? 'SET' : 'TREND'}</span>
               <span class="ce-cmd">0x${idHex}</span>
               <span class="ce-title">${NS.escapeHtml(c.title || c.field || c.id)}</span>
               <span class="ce-unit">${NS.escapeHtml(c.unit || '')}</span>
