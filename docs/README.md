@@ -6,7 +6,7 @@
 
 ## 🚀 当前状态
 
-**最新版本**: v1.3.14 (2026-08-17) — 卡片 tab 类型列漏判 control/set 修复 (hotfix)
+**最新版本**: v1.3.15 (2026-08-17) — 编辑命令 modal 数据字段方向列改为下拉 (hotfix)
 **当前分支**: `main`
 **最近 release**: v1.3.12 ([changelog](changelog/2026-08-17-v1.3.12-card-type-and-direction-badges.md)) | v1.3.11 ([changelog](changelog/2026-08-17-v1.3.11-track-serial-skip-localhost.md)) | v1.3.10 ([changelog](changelog/2026-08-16-v1.3.10-ux-and-role-fixes.md)) | v1.3.9 ([changelog](changelog/2026-08-16-v1.3.9-single-protocol-and-bidirectional-commands.md)) | v1.3.8 ([changelog](changelog/2026-08-16-v1.3.8-host-device-mode-and-cards.md)) | v1.3.7 ([changelog](changelog/2026-08-16-v1.3.7-host-device-sim-and-control-cards.md)) | v1.3.6 ([changelog](changelog/2026-08-16-v1.3.6-bms-dual-direction-and-config-split.md)) | v1.3.5 ([changelog](changelog/2026-08-16-v1.3.5-p0-hotfixes.md)) | v1.3.4 ([changelog](changelog/2026-08-14-v1.3.4-cascade-modal-unify.md)) | v1.3.3 ([changelog](changelog/2026-08-14-v1.3.3-config-center-proto-filter.md)) | v1.3.2.1 ([changelog](changelog/2026-08-14-v1.3.2.1-dashboard-state-3way.md)) | v1.3.2 ([changelog](changelog/2026-08-14-v1.3.2-dashboard-bug-fixes.md)) | v1.3.1 ([changelog](changelog/2026-08-13-v1.3.1-cascade-delete-modal.md)) | v1.3.0 ([changelog](changelog/2026-08-13-v1.3.0-debug-panel.md)) | v1.2.2 ([changelog](changelog/2026-08-13-v1.2.2-ui-cleanup.md)) | v1.2.1 ([changelog](changelog/2026-08-13-v1.2.1-ui-consistency.md)) | v1.2.0 ([changelog](changelog/2026-08-12-v1.2.0-config-center-refactor.md)) | v1.1.1 ([changelog](changelog/2026-08-12-v1.1.1-fixes.md)) | v1.1.0 ([release notes](handover/release-v1.1.0-2026-08-12.md))
 
@@ -18,7 +18,7 @@
 
 1. 读完 [`handover/HANDOFF-QUICKSTART-2026-08-11.md`](handover/HANDOFF-QUICKSTART-2026-08-11.md) — 30 秒快速接手卡
 2. 跑一次 **preflight**：`pwsh -File .minimax/skills/serialcube-workflow/preflight.ps1`（9 项健康检查）
-3. 知道项目是单 HTML 串口调试工具，主文件 `SerialCube.html`，当前版本 `v1.3.14`
+3. 知道项目是单 HTML 串口调试工具，主文件 `SerialCube.html`，当前版本 `v1.3.15`
 
 ### ⏱ 2 分钟（开始干活前）
 
