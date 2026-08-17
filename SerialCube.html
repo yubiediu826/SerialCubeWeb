@@ -8789,6 +8789,15 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.3.19 版本 · 26-8-17</strong>
+            <ul>
+              <li>新增: 0x01 控制与常规数据 卡片补全 (BMS V1.13 §4 全部字段) — Device set 12 → 34 字段 (温度 5/电流校准 3/ASOC/容量统计 4/Vcell 辅 3/AdapterVolt/断开原因 2/容量 3), bitset +SignalSource (5 张)</li>
+              <li>新增: Host trend 6 → 12 字段 (ASOC/CellTempMin/Vcell_min/PackVolt/AverageCurr/AdapterVolt)</li>
+              <li>优化: bms_v113.json 字段命名 BackupPowerVoltage → AdapterVolt (对齐协议修订)</li>
+              <li>优化: bms_v113.json SignalSource type u8 → bitset + 8 bit 占位定义 (位定义详见协议附录 A16, 当前以 bit0-7 占位)</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.3.18 版本 · 26-8-17</strong>
             <ul>
               <li>新增: 设备连接管理面板加"组帧超时"字段 (默认 50ms / 0-2000ms), 解决从机无换行帧 log 挤一块</li>
@@ -9067,7 +9076,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.3.18';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.11: trackSerialWebView 跳过本地; v1.3.10: 日志换行/卡片分组与角色区分/控制卡去RSOC/方向both/帧预览换行与预览值/字段下拉分组; v1.3.9: 单一协议+双向命令)
+      const VERSION = '1.3.19';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.11: trackSerialWebView 跳过本地; v1.3.10: 日志换行/卡片分组与角色区分/控制卡去RSOC/方向both/帧预览换行与预览值/字段下拉分组; v1.3.9: 单一协议+双向命令)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
@@ -11498,7 +11507,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
      },
      {
       "name": "SignalSource",
-      "type": "u8",
+      "type": "bitset",
       "startBit": 120,
       "bitLen": 8,
       "bits": [
@@ -11791,7 +11800,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
       "unit": "mV"
      },
      {
-      "name": "BackupPowerVoltage",
+      "name": "AdapterVolt",
       "type": "u16",
       "startBit": 1080,
       "bitLen": 16,
@@ -14015,9 +14024,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
      },
      {
       "name": "SignalSource",
-      "type": "u8",
+      "type": "bitset",
       "startBit": 120,
-      "bitLen": 8
+      "bitLen": 8,
+      "note": "位定义见转储备注, 待固件确认"
      },
      {
       "name": "Cell_Temp",
@@ -21030,7 +21040,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 });
               }
             }
-            const wanted = ['RSOC', 'BatVolt', 'SysCurr', 'SOH', 'Vcell_max', 'CellTempMax'];
+            // v1.3.19: 0x01 完整字段补全 (按 BMS V1.13 §4 + 协议表全部支持, 含主从模式)
+            const wanted = ['RSOC', 'BatVolt', 'SysCurr', 'SOH', 'Vcell_max', 'CellTempMax', 'ASOC', 'CellTempMin', 'Vcell_min', 'PackVolt', 'AverageCurr', 'AdapterVolt'];
             if (c01.CB && Array.isArray(c01.CB.fields)) {
               wanted.forEach((name, i) => {
                 const f = c01.CB.fields.find((x) => x.name === name);
@@ -21041,8 +21052,14 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               });
             }
           } else {
-            // 从机: 0x01 CB 关键字段 set 卡 (参数值 + 动态数据源, 无图表)
-            const keyNames = ['RSOC', 'BatVolt', 'SysCurr', 'SOH', 'PackVolt', 'Vcell_max', 'Vcell_min', 'CellTempMax', 'CellTempMin', 'MosTempMax', 'RRemainCap', 'Cycles'];
+            // 从机: 0x01 CB 关键字段 set 卡 (参数值 + 动态数据源, 无图表) — v1.3.19 扩到 34 字段覆盖完整协议
+            const keyNames = ['RSOC', 'BatVolt', 'SysCurr', 'SOH', 'PackVolt', 'Vcell_max', 'Vcell_min', 'CellTempMax', 'CellTempMin', 'MosTempMax', 'RRemainCap', 'Cycles',
+              'ChgMosTemp', 'DsgMosTemp', 'PreDsgMosTemp', 'AfeTemp', 'PcbTemp',
+              'AverageCurr', 'CurrGain', 'CurrOffset', 'ASOC',
+              'AccumValue', 'TorageLossCap', 'TotalChargeCap', 'TotalDischargeCap',
+              'Vcell_dif', 'Vcell_max_num', 'Vcell_min_num',
+              'AdapterVolt', 'Chgdiscncause', 'Dsgdiscncause',
+              'ARemainCap', 'RFCC', 'AFCC'];
             if (c01.CB && Array.isArray(c01.CB.fields)) {
               keyNames.forEach((name, i) => {
                 const f = c01.CB.fields.find((x) => x.name === name);
@@ -21051,8 +21068,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                   title: name, unit: f.unit || '', precision: f.unit === 'mV' ? 0 : 1, protocol: protoId,
                   sim: { type: 'fixed', value: 0 } });
               });
-              // 保护标志位 bitset set 卡 (按位设置)
-              const bsNames = ['ProtectCode', 'ErrCode', 'AFE_ProtectCode', 'ChgDsgState'];
+              // 保护标志位 bitset set 卡 (按位设置) — v1.3.19 加 SignalSource
+              const bsNames = ['ProtectCode', 'ErrCode', 'AFE_ProtectCode', 'ChgDsgState', 'SignalSource'];
               bsNames.forEach((name, i) => {
                 const f = c01.CB.fields.find((x) => x.name === name);
                 if (!f || f.type !== 'bitset') return;
@@ -21065,7 +21082,23 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           return cards;
         };
         NS._fieldRange = function (name) {
-          const map = { RSOC: [0, 100], BatVolt: [0, 300000], SysCurr: [-50000, 50000], SOH: [0, 100], Vcell_max: [2500, 4200], Vcell_min: [2500, 4200], CellTempMax: [-20, 80], CellTempMin: [-20, 80], MosTempMax: [-20, 120], PackVolt: [0, 300000], RRemainCap: [0, 200000], Cycles: [0, 100000] };
+          // v1.3.19: 0x01 完整字段补全对应的合理量程
+          const map = {
+            // 原有 12 字段
+            RSOC: [0, 100], BatVolt: [0, 300000], SysCurr: [-50000, 50000], SOH: [0, 100],
+            Vcell_max: [2500, 4200], Vcell_min: [2500, 4200], CellTempMax: [-20, 80], CellTempMin: [-20, 80],
+            MosTempMax: [-20, 120], PackVolt: [0, 300000], RRemainCap: [0, 200000], Cycles: [0, 100000],
+            // v1.3.19 新增 22 字段
+            ChgMosTemp: [-20, 120], DsgMosTemp: [-20, 120], PreDsgMosTemp: [-20, 120],
+            AfeTemp: [-20, 120], PcbTemp: [-20, 100],
+            AverageCurr: [-50000, 50000], CurrGain: [0, 200], CurrOffset: [-50000, 50000],
+            ASOC: [0, 100],
+            AccumValue: [0, 200000], TorageLossCap: [0, 200000],
+            TotalChargeCap: [0, 200000], TotalDischargeCap: [0, 200000],
+            Vcell_dif: [0, 1000], Vcell_max_num: [1, 20], Vcell_min_num: [1, 20],
+            AdapterVolt: [0, 300000], Chgdiscncause: [0, 65535], Dsgdiscncause: [0, 65535],
+            ARemainCap: [0, 200000], RFCC: [0, 200000], AFCC: [0, 200000]
+          };
           return map[name] || [0, 100];
         };
         // v1.3.8: 启动引导 — 为 host/slave 默认协议生成默认卡片 (仅当该协议无卡片时)
