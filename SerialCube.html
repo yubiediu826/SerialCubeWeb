@@ -7881,6 +7881,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 <option value="odd">奇校验</option>
               </select>
             </div>
+            <div class="field">
+              <label for="frame-timeout">组帧超时</label>
+              <input id="frame-timeout" type="number" min="0" max="2000" step="10" value="50">
+            </div>
             <div class="field span-4 signal-config-field">
               <label>自动控制与硬件流控</label>
               <div class="signal-config-grid">
@@ -9279,6 +9283,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           blurReleaseActive: false,
           connectionEpoch: 0,
           rxActiveEvent: null,
+          // v1.3.18: 组帧超时 setTimeout id, 用于 clearTimeout
+          _frameTimeoutId: null,
           deviceInfo: {
             vid: '-',
             pid: '-',
@@ -9310,7 +9316,9 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           newlineMode: 'rn',
           appendNewline: true,
           // pair trigger 等待 ack 超时 (ms), 默认 3000, 范围 1000-10000
-          pairTriggerTimeout: 3000
+          pairTriggerTimeout: 3000,
+          // v1.3.18: 串口日志组帧超时 (ms), 默认 50, 范围 0-2000. 0 = 关 (保持旧行为累积)
+          frameTimeout: 50
         },
         sendDraft: {
           text: '',
@@ -24245,6 +24253,22 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           extensionButtons: true,
           extensionPanel: true
         });
+        // v1.3.18: 安排组帧超时计时器, 无新字节超过阈值自动 finalize 当前累积 event
+        scheduleFrameTimeout();
+      }
+
+      // v1.3.18: 组帧超时调度 — 每次新字节来 reset, 超时调 finalizeRxActiveEvent
+      function scheduleFrameTimeout() {
+        if (state.settings.frameTimeout > 0 && state.serial.rxActiveEvent) {
+          clearTimeout(state.serial._frameTimeoutId);
+          state.serial._frameTimeoutId = setTimeout(flushFrameByTimeout, state.settings.frameTimeout);
+        }
+      }
+      function flushFrameByTimeout() {
+        state.serial._frameTimeoutId = null;
+        if (state.serial.rxActiveEvent) {
+          finalizeRxActiveEvent(nowPreciseMs(), { processRules: true, syntheticSplit: true });
+        }
       }
 
       function buildEvent(direction, bytes, displayText, extra = {}) {
@@ -25293,6 +25317,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           : state.serial.blurReleaseElapsedMs;
         state.serial.disconnecting = true;
         state.serial.keepReading = false;
+        // v1.3.18: 断开前清组帧超时计时器 + finalize 当前累积 event, 避免尾巴字节丢失
+        clearTimeout(state.serial._frameTimeoutId);
+        state.serial._frameTimeoutId = null;
+        if (state.serial.rxActiveEvent) {
+          finalizeRxActiveEvent(nowPreciseMs(), { processRules: true, syntheticSplit: true });
+        }
         resetRxSegmentationState();
         clearPresetExpectations(null, 'error');
         resetSerialSendQueue();
@@ -30089,6 +30119,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const v = Number(source.pairTriggerTimeout);
             if (Number.isFinite(v) && v >= 1000 && v <= 10000) return v;
             return state.settings.pairTriggerTimeout;
+          })(),
+          // v1.3.18: 串口日志组帧超时, 0-2000 整数, 0 = 关
+          frameTimeout: (() => {
+            const v = Number(source.frameTimeout);
+            if (Number.isFinite(v) && v >= 0 && v <= 2000) return v;
+            return state.settings.frameTimeout;
           })()
         };
       }
@@ -31399,6 +31435,23 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             scheduleSerialOpenOptionsApply('serial-framing-change', { immediate: true });
           });
         });
+        // v1.3.18: 组帧超时 — 失焦/回车才生效, 避免每键入重置 timer
+        if (refs.frameTimeout) {
+          refs.frameTimeout.addEventListener('change', () => {
+            const n = parseInt(refs.frameTimeout.value, 10);
+            if (Number.isNaN(n) || n < 0 || n > 2000) {
+              refs.frameTimeout.value = String(state.settings.frameTimeout);
+              if (typeof toast === 'function') toast('组帧超时必须是 0-2000 之间的整数', 'warn');
+              return;
+            }
+            state.settings.frameTimeout = n;
+            clearTimeout(state.serial._frameTimeoutId);
+            state.serial._frameTimeoutId = null;
+            scheduleFrameTimeout();
+            scheduleLocalPrefsSave();
+            if (typeof toast === 'function') toast('组帧超时已设为 ' + n + ' ms', 'success', 1200);
+          });
+        }
         refs.flowControl.addEventListener('change', () => {
           scheduleSerialOpenOptionsApply('flow-control-apply', { immediate: true });
         });
@@ -31949,6 +32002,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         syncSendInputModeUI();
         refs.newlineMode.value = state.settings.newlineMode;
         refs.appendNewline.checked = state.settings.appendNewline;
+        if (refs.frameTimeout) refs.frameTimeout.value = String(state.settings.frameTimeout);
         refs.autoSendInterval.value = String(state.autoSend.intervalMs);
         refs.textParseRule.value = state.parser.textRule;
         ensureBinarySchemaRow();
