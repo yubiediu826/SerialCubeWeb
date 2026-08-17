@@ -13,6 +13,7 @@
 
 ### 2026-08-17
 
+- [`changelog/2026-08-17-v1.3.16-new-edit-cmd-datafield-grouping.md`](changelog/2026-08-17-v1.3.16-new-edit-cmd-datafield-grouping.md) — **v1.3.16**: 新建/编辑命令 modal 数据字段 8 项优化 (按方向分组 RX折叠/TX展开 + 仅 bitset 显示位定义 + 方向按钮组 token 化 + 行高 36px + 3 模板按钮 + cmd.direction 联动 + 重置默认值为 0 + 32px del)
 - [`changelog/2026-08-17-v1.3.15-cmd-datafield-dir-select.md`](changelog/2026-08-17-v1.3.15-cmd-datafield-dir-select.md) — **v1.3.15** (hotfix): 编辑命令 modal 数据字段"方向"列从只读 span 改为下拉 (TX 发送/RX 接收/TX+RX/—), 用户可改字段方向
 - [`changelog/2026-08-17-v1.3.14-card-type-column-bug.md`](changelog/2026-08-17-v1.3.14-card-type-column-bug.md) — **v1.3.14** (hotfix): 卡片 tab 类型列漏判 control/set (v1.3.10 旧版 typeStr 只判 pair, control/set 全掉到 TREND, 32 张卡全显示"TREND 趋势") + 顶部统计同步 4 类计数
 - [`changelog/2026-08-17-v1.3.13-card-layout-fixes-and-set-send.md`](changelog/2026-08-17-v1.3.13-card-layout-fixes-and-set-send.md) — **v1.3.13**: control/set 卡 footer 文本推到底部 (margin-top:auto, 跟 trend 卡 .card-trend 撑开空间等效) + trend 卡移除范围指示条 (横线视觉干扰, 范围信息已在 footer) + set 卡数据源下拉 (fixed/random/sine/ramp) + 自动发送 toggle + 手动发送按钮 + 持久化 autoSend
@@ -101,6 +102,7 @@
 
 | 版本 | 发布日期 | 详细 notes | 会话交接 |
 |------|----------|------------|----------|
+| v1.3.16 | 2026-08-17 | [`changelog/2026-08-17-v1.3.16-new-edit-cmd-datafield-grouping.md`](changelog/2026-08-17-v1.3.16-new-edit-cmd-datafield-grouping.md) | — |
 | v1.3.15 | 2026-08-17 | [`changelog/2026-08-17-v1.3.15-cmd-datafield-dir-select.md`](changelog/2026-08-17-v1.3.15-cmd-datafield-dir-select.md) | — |
 | v1.3.14 | 2026-08-17 | [`changelog/2026-08-17-v1.3.14-card-type-column-bug.md`](changelog/2026-08-17-v1.3.14-card-type-column-bug.md) | — |
 | v1.3.13 | 2026-08-17 | [`changelog/2026-08-17-v1.3.13-card-layout-fixes-and-set-send.md`](changelog/2026-08-17-v1.3.13-card-layout-fixes-and-set-send.md) | — |
