@@ -40,6 +40,7 @@
 | Skill | 来源 | 用途 |
 |-------|------|------|
 | **test-driven-development** | obra/superpowers | **严格 TDD**：没有失败测试就没有生产代码；3 阶段循环：失败测试 → 最小实现 → 重构 |
+| **terminal-utf8** | 本项目自建 | **PowerShell 5.1 终端守门**：中文乱码防护，每次跑命令前 `chcp 65001` + `$OutputEncoding = UTF8` |
 
 ### ⑤ 视觉（设计 token + UI/UX）
 
@@ -124,6 +125,7 @@ agent-browser snapshot -i --json    # 4. 每次页面变都重 snapshot（ref �
 | 「拷问 / 追问 / 这需求清楚吗」 | `grill-me` | 单句追问 |
 | 「写计划 / 复杂任务拆解」 | `writing-plans` | 2-5 分钟粒度计划 |
 | 「写测试 / TDD / 先失败再实现」 | `test-driven-development` | Red-Green-Refactor |
+| 「终端输出中文乱码 / ??? / 跑命令前配置」 | `terminal-utf8` | chcp 65001 + $OutputEncoding = UTF8 (PowerShell 5.1 硬性守门) |
 | 「改 UI / 换风格 / 反模板」 | `taste` | → ui-ux-pro-max + design-system |
 | 「配色 / 字体 / 选 UI 库 / chart 类型」 | `ui-ux-pro-max` | search data/ |
 | 「设计 token / CSS 变量 / 间距系统」 | `design-system` | 三层 token |
@@ -193,6 +195,7 @@ agent-browser snapshot -i --json    # 4. 每次页面变都重 snapshot（ref �
 │
 # ④ 测试
 ├── test-driven-development/                   obra/superpowers
+├── terminal-utf8/                              本项目自建 (PowerShell 5.1 中文乱码防护)
 │
 # ⑤ 视觉
 ├── taste/                                     taste-skill
