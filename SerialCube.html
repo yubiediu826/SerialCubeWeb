@@ -8789,6 +8789,14 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.3.18 版本 · 26-8-17</strong>
+            <ul>
+              <li>新增: 设备连接管理面板加"组帧超时"字段 (默认 50ms / 0-2000ms), 解决从机无换行帧 log 挤一块</li>
+              <li>优化: 默认 16 进制接收 + 16 进制发送 (复用现有 十六进制接收/发送 checkbox, init 自动设 checked)</li>
+              <li>优化: 设备连接管理 .field input/select padding 7px → 9px, 跟 .baud-rate-combo 同高</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.3.17 版本 · 26-8-17</strong>
             <ul>
               <li>修复: 连接串口后未自动重渲染仪表盘卡片</li>
@@ -9059,7 +9067,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.3.17';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.11: trackSerialWebView 跳过本地; v1.3.10: 日志换行/卡片分组与角色区分/控制卡去RSOC/方向both/帧预览换行与预览值/字段下拉分组; v1.3.9: 单一协议+双向命令)
+      const VERSION = '1.3.18';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.11: trackSerialWebView 跳过本地; v1.3.10: 日志换行/卡片分组与角色区分/控制卡去RSOC/方向both/帧预览换行与预览值/字段下拉分组; v1.3.9: 单一协议+双向命令)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
