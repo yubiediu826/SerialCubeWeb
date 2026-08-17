@@ -11,6 +11,10 @@
 
 ## 📑 子文件索引
 
+### 2026-08-17
+
+- [`changelog/2026-08-17-v1.3.11-localhost-skip.md`](changelog/2026-08-17-v1.3.11-localhost-skip.md) — **v1.3.11** (hotfix): trackSerialWebView 跳过 localhost/127.0.0.1 — 本地或 e2e 测试环境不再产生 `/api/serialweb_page-view` 404 console 噪音 (生产环境无变化, 后端走 Cloudflare Worker + KV 仍在每次 page-view 计数)
+
 ### 2026-08-16
 
 - [`changelog/2026-08-16-v1.3.10-ux-and-role-fixes.md`](changelog/2026-08-16-v1.3.10-ux-and-role-fixes.md) — **v1.3.10**: 串口日志自动换行 + 卡片按 cmd+类型分段分组 + 角色区分 (host=control+trend / device=set) + 控制卡去 RSOC + 新建命令方向 both + 帧预览换行与非零预览值 + 字段下拉 optgroup 分组

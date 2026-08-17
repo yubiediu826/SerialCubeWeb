@@ -1,8 +1,8 @@
 ﻿# SerialCube — 项目交接文档
 
 > **本项目：** 单 HTML 串口调试工具
-> **当前版本：** v1.1.0（已发布,GitHub Pages 已部署,2026-08-12）
-> **最近更新：** 2026-08-12(v1.1.0 上线同步版本号 + 加 v1.1.0 章节)
+> **当前版本：** v1.3.11（hotfix: trackSerialWebView 跳过 localhost，2026-08-17）
+> **最近更新：** 2026-08-17(v1.3.11 同步 PROJECT-HANDOVER 当前版本)
 > **原最后更新：** 2026-08-11(v1.0.0 时内容)
 > **作者：** Mavis (M3) + 用户 M.*
 
@@ -14,10 +14,10 @@
 
 - **是什么：** 单 HTML 文件的 Web 串口调试工具，BMS/EMS/PCS 协议调试方向
 - **在哪用：** <https://yubiediu826.github.io/SerialCubeWeb/SerialCube.html>
-- **核心文件：** `SerialCube.html`（981KB，所有代码在内）
+- **核心文件：** `SerialCube.html`（~1.3 MB / 31657 行，所有代码 inline）
 - **怎么改：** 改 HTML → 跑 `bump-version.ps1` → 中文 commit → ask 后 push → Pages 自动部署
-- **当前版本：** v1.1.0（数据模型重构：协议自包含 N 条命令 + 字段归命令）
-- **AI 工作流：** `.minimax/skills/` 15 个 skill，完整 SOP 看 [`.minimax/skills/README.md`](../../.minimax/skills/README.md)
+- **当前版本：** v1.3.11（hotfix: trackSerialWebView 跳过 localhost）
+- **AI 工作流：** `.minimax/skills/` 16 个 skill，完整 SOP 看 [`.minimax/skills/README.md`](../../.minimax/skills/README.md)
 
 ---
 

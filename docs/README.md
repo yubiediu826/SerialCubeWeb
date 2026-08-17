@@ -6,7 +6,7 @@
 
 ## 🚀 当前状态
 
-**最新版本**: v1.3.10 (2026-08-16) — 日志换行 + 卡片分组与角色区分 + 控制卡去RSOC + 方向both + 帧预览换行与预览值 + 字段下拉分组
+**最新版本**: v1.3.11 (2026-08-17) — hotfix: trackSerialWebView 跳过 localhost (本地/测试环境不再产生 `/api/serialweb_page-view` 404 console 噪音)
 **当前分支**: `main`
 **最近 release**: v1.3.10 ([changelog](changelog/2026-08-16-v1.3.10-ux-and-role-fixes.md)) | v1.3.9 ([changelog](changelog/2026-08-16-v1.3.9-single-protocol-and-bidirectional-commands.md)) | v1.3.8 ([changelog](changelog/2026-08-16-v1.3.8-host-device-mode-and-cards.md)) | v1.3.7 ([changelog](changelog/2026-08-16-v1.3.7-host-device-sim-and-control-cards.md)) | v1.3.6 ([changelog](changelog/2026-08-16-v1.3.6-bms-dual-direction-and-config-split.md)) | v1.3.5 ([changelog](changelog/2026-08-16-v1.3.5-p0-hotfixes.md)) | v1.3.4 ([changelog](changelog/2026-08-14-v1.3.4-cascade-modal-unify.md)) | v1.3.3 ([changelog](changelog/2026-08-14-v1.3.3-config-center-proto-filter.md)) | v1.3.2.1 ([changelog](changelog/2026-08-14-v1.3.2.1-dashboard-state-3way.md)) | v1.3.2 ([changelog](changelog/2026-08-14-v1.3.2-dashboard-bug-fixes.md)) | v1.3.1 ([changelog](changelog/2026-08-13-v1.3.1-cascade-delete-modal.md)) | v1.3.0 ([changelog](changelog/2026-08-13-v1.3.0-debug-panel.md)) | v1.2.2 ([changelog](changelog/2026-08-13-v1.2.2-ui-cleanup.md)) | v1.2.1 ([changelog](changelog/2026-08-13-v1.2.1-ui-consistency.md)) | v1.2.0 ([changelog](changelog/2026-08-12-v1.2.0-config-center-refactor.md)) | v1.1.1 ([changelog](changelog/2026-08-12-v1.1.1-fixes.md)) | v1.1.0 ([release notes](handover/release-v1.1.0-2026-08-12.md))
 
