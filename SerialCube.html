@@ -8677,6 +8677,12 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.3.12 版本 · 26-8-17</strong>
+            <ul>
+              <li>新增: 卡片右上 type 缩写 + 右下 direction + control 状态突出</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.3.11 版本 · 26/8/17</strong>
             <ul>
               <li>修复: trackSerialWebView 跳过 localhost / 127.0.0.1, 本地/测试环境不再产生 404 噪音 (生产无变化)</li>
@@ -8899,7 +8905,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.3.11';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.11: trackSerialWebView 跳过本地; v1.3.10: 日志换行/卡片分组与角色区分/控制卡去RSOC/方向both/帧预览换行与预览值/字段下拉分组; v1.3.9: 单一协议+双向命令)
+      const VERSION = '1.3.12';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.11: trackSerialWebView 跳过本地; v1.3.10: 日志换行/卡片分组与角色区分/控制卡去RSOC/方向both/帧预览换行与预览值/字段下拉分组; v1.3.9: 单一协议+双向命令)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;

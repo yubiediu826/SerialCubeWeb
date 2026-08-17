@@ -13,6 +13,7 @@
 
 ### 2026-08-17
 
+- [`changelog/2026-08-17-v1.3.12-card-type-and-direction-badges.md`](changelog/2026-08-17-v1.3.12-card-type-and-direction-badges.md) — **v1.3.12**: 卡片右上 type 缩写 (CTRL/SET/TREND/PAIR) + 右下 direction (TX/RX/TX+RX) + control 卡单 bit 状态 (ON/OFF) 大字突出, 字段值 (0xXXXX) + 位编号 (bit N) 缩为小字辅助; 修复 list 编辑器 type 标签硬编码 bug (line 20336 改 4 元); 子 changelog + spec 留档
 - [`changelog/2026-08-17-v1.3.11-localhost-skip.md`](changelog/2026-08-17-v1.3.11-localhost-skip.md) — **v1.3.11** (hotfix): trackSerialWebView 跳过 localhost/127.0.0.1 — 本地或 e2e 测试环境不再产生 `/api/serialweb_page-view` 404 console 噪音 (生产环境无变化, 后端走 Cloudflare Worker + KV 仍在每次 page-view 计数)
 
 ### 2026-08-16
@@ -97,6 +98,7 @@
 
 | 版本 | 发布日期 | 详细 notes | 会话交接 |
 |------|----------|------------|----------|
+| v1.3.12 | 2026-08-17 | [`changelog/2026-08-17-v1.3.12-card-type-and-direction-badges.md`](changelog/2026-08-17-v1.3.12-card-type-and-direction-badges.md) | — |
 | v1.1.1 | 2026-08-12 | [`changelog/2026-08-12-v1.1.1-fixes.md`](changelog/2026-08-12-v1.1.1-fixes.md) | [`handover/HANDOFF-V1.1.1-FIXES-2026-08-12.md`](handover/HANDOFF-V1.1.1-FIXES-2026-08-12.md) |
 | v1.1.0 | 2026-08-12 | [`handover/release-v1.1.0-2026-08-12.md`](handover/release-v1.1.0-2026-08-12.md) | [`handover/HANDOFF-POST-V1.1.0-2026-08-12.md`](handover/HANDOFF-POST-V1.1.0-2026-08-12.md) |
 | v1.0.0 | 2026-08-11 | [`handover/release-v1.0.0-2026-08-11.md`](handover/release-v1.0.0-2026-08-11.md) | — |
