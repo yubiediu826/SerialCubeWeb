@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>v1.3.21 — 卡片系统 & 详情弹窗 评审稿 (BMS V1.13 全协议 11 卡片 + 8 弹窗模式)</title>
+<style>
+:root {
+  --bg: #f5f6f8; --bg-elev: #ffffff; --bg-panel: #eef0f3; --border: #d4d8de;
+  --text: #1a1d24; --text-soft: #67676c; --text-dim: #98989f;
+  --accent: #c2690a; --accent-soft: rgba(194, 105, 10, 0.14);
+  --signal: #3251b8; --signal-soft: rgba(50, 81, 184, 0.12);
+  --pair: #7c3aed; --pair-soft: rgba(124, 58, 237, 0.12);
+  --pair-deep: #6d28d9; --pair-deep-soft: rgba(109, 40, 217, 0.14);
+  --ok: #16a34a; --ok-soft: rgba(22, 163, 74, 0.14);
+  --warn: #d97706; --warn-soft: rgba(217, 119, 6, 0.14);
+  --bad: #dc2626; --bad-soft: rgba(220, 38, 38, 0.12);
+  --big: #16a34a; --big-soft: rgba(22, 163, 74, 0.14);
+  --array: #5b21b6; --array-soft: rgba(91, 33, 182, 0.12);
+  --string: #67676c; --string-soft: rgba(103, 103, 108, 0.14);
+  --log: #92400e; --log-soft: rgba(146, 64, 14, 0.14);
+  --wizard: #0891b2; --wizard-soft: rgba(8, 145, 178, 0.14);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  --font-mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+}
+.theme-dark {
+  --bg: #0c1318; --bg-elev: #151b22; --bg-panel: #1a1d24; --border: #2a2f38;
+  --text: #e4e4e7; --text-soft: #98989f; --text-dim: #67676c;
+  --accent: #d97706; --accent-soft: rgba(217, 119, 6, 0.18);
+  --signal: #3a5ccc; --signal-soft: rgba(58, 92, 204, 0.18);
+  --pair: #8b5cf6; --pair-soft: rgba(139, 92, 246, 0.14);
+  --pair-deep: #7c3aed; --pair-deep-soft: rgba(124, 58, 237, 0.18);
+  --ok: #22c55e; --ok-soft: rgba(34, 197, 94, 0.16);
+  --warn: #f59e0b; --warn-soft: rgba(245, 158, 11, 0.16);
+  --bad: #e0575e; --bad-soft: rgba(224, 87, 94, 0.16);
+  --big: #22c55e; --big-soft: rgba(34, 197, 94, 0.16);
+  --array: #a78bfa; --array-soft: rgba(167, 139, 250, 0.14);
+  --string: #98989f; --string-soft: rgba(152, 152, 159, 0.16);
+  --log: #f59e0b; --log-soft: rgba(245, 158, 11, 0.16);
+  --wizard: #22d3ee; --wizard-soft: rgba(34, 211, 238, 0.16);
+  --shadow-card: none; --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-ui); background: var(--bg); color: var(--text);
+  line-height: 1.55; padding: 32px 24px 80px; font-size: 14px;
+  transition: background 0.2s, color 0.2s;
+}
+.wrap { max-width: 1280px; margin: 0 auto; }
+
+.theme-toggle {
+  position: fixed; top: 16px; right: 16px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; background: var(--bg-elev);
+  border: 1px solid var(--border); border-radius: 6px;
+  font-size: 0.75rem; font-weight: 600; color: var(--text);
+  cursor: pointer; z-index: 9999; box-shadow: var(--shadow-card);
+  transition: all 0.2s; font-family: var(--font-ui);
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.theme-toggle svg { width: 14px; height: 14px; }
+
+.hero {
+  background: linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-panel) 100%);
+  border: 1px solid var(--border); border-radius: 12px;
+  padding: 28px 32px; margin-bottom: 32px;
+}
+.hero-tag {
+  display: inline-block; font-size: 0.6875rem; font-weight: 700;
+  letter-spacing: 0.08em; background: var(--pair-soft); color: var(--pair);
+  padding: 2px 8px; border-radius: 4px; margin-bottom: 12px;
+}
+.hero h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+.hero h1 .v { color: var(--accent); }
+.hero .sub { color: var(--text-soft); font-size: 0.875rem; margin-bottom: 18px; }
+.hero-grid { display: grid; grid-template-columns: repeat(11, 1fr); gap: 8px; margin-top: 18px; }
+.hero-card-mini {
+  background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 8px; text-align: center;
+}
+.hero-card-mini .badge {
+  display: inline-block; font-size: 0.5625rem; font-weight: 700;
+  letter-spacing: 0.05em; padding: 2px 6px; border-radius: 3px;
+  margin-bottom: 6px; text-transform: uppercase;
+}
+.hero-card-mini .nm { font-size: 0.75rem; font-weight: 600; margin-bottom: 2px; }
+.hero-card-mini .ty { font-size: 0.625rem; color: var(--text-soft); }
+.hero-card-mini.trend .badge { background: var(--signal-soft); color: var(--signal); }
+.hero-card-mini.pair .badge { background: var(--pair-soft); color: var(--pair); }
+.hero-card-mini.ctrl .badge { background: var(--accent-soft); color: var(--accent); }
+.hero-card-mini.set .badge { background: var(--signal-soft); color: var(--signal); }
+.hero-card-mini.bit .badge { background: var(--pair-soft); color: var(--pair); }
+.hero-card-mini.bit_set .badge { background: var(--pair-deep-soft); color: var(--pair-deep); }
+.hero-card-mini.big .badge { background: var(--big-soft); color: var(--big); }
+.hero-card-mini.array .badge { background: var(--array-soft); color: var(--array); }
+.hero-card-mini.string .badge { background: var(--string-soft); color: var(--string); }
+.hero-card-mini.log .badge { background: var(--log-soft); color: var(--log); }
+.hero-card-mini.wizard .badge { background: var(--wizard-soft); color: var(--wizard); }
+
+section { margin-bottom: 48px; }
+section h2 {
+  font-size: 1.125rem; font-weight: 700; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 10px;
+}
+section h2 .num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; background: var(--bg-panel);
+  border: 1px solid var(--border); border-radius: 6px;
+  font-size: 0.75rem; font-weight: 700; color: var(--text-soft);
+}
+section h2 .tag {
+  font-size: 0.625rem; font-weight: 700; letter-spacing: 0.05em;
+  background: var(--bg-panel); border: 1px solid var(--border);
+  color: var(--text-soft); padding: 1px 6px; border-radius: 3px;
+  text-transform: uppercase;
+}
+section .sub { color: var(--text-soft); font-size: 0.8125rem; margin-bottom: 20px; }
+
+.card {
+  width: 220px; height: 198px; background: var(--bg-elev);
+  border: 1px solid var(--border); border-radius: 6px;
+  display: flex; flex-direction: column; position: relative; overflow: hidden;
+  flex-shrink: 0;
+}
+/* 卡片尺寸体系：1x1 默认 / 2x1 横向 2 倍（适配位开关 / 数组矩阵） */
+.card.span-2x1 { width: 440px; }
+.card.span-2x1 .body { padding: 10px 14px 8px; }
+.card.span-2x1 .title { font-size: 0.8125rem; }
+.card.span-2x1 .value .num { font-size: 1.75rem; }
+.card.span-2x1 .footer { font-size: 0.625rem; }
+.card .statusbar {
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--text-dim);
+}
+.card .body { padding: 8px 10px 6px; display: flex; flex-direction: column; height: 100%; }
+.card .header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 6px; margin-bottom: 6px; min-height: 22px;
+}
+.card .title {
+  font-size: 0.75rem; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.card .badge {
+  font-size: 0.5625rem; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase; padding: 1px 5px; border-radius: 3px;
+  flex-shrink: 0; font-family: var(--font-ui);
+}
+.card .value {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; flex: 1; min-height: 50px; gap: 2px;
+}
+.card .value .num {
+  font-size: 1.5rem; font-weight: 700; line-height: 1.1;
+  letter-spacing: 0.04em;
+}
+.card .value .num.on { color: var(--ok); }
+.card .value .num.warn { color: var(--warn); }
+.card .value .num.bad { color: var(--bad); }
+.card .value .sub {
+  font-size: 0.5625rem; color: var(--text-soft); font-family: var(--font-mono);
+}
+.card .footer {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.5625rem; color: var(--text-soft);
+  padding-top: 4px; border-top: 1px solid var(--border);
+}
+.card .footer .fdir {
+  font-weight: 700; display: inline-flex; align-items: center; gap: 3px;
+}
+.card .footer .fdir::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor;
+}
+.card .footer .fdir.tx { color: var(--signal); }
+.card .footer .fdir.rx { color: var(--ok); }
+.card .footer .fdir.both { color: var(--pair-deep); }
+
+.card.trend .statusbar { background: var(--signal); }
+.card.trend .badge { background: var(--signal-soft); color: var(--signal); }
+.card.pair .statusbar { background: var(--pair); }
+.card.pair .badge { background: var(--pair-soft); color: var(--pair); }
+.card.ctrl .statusbar { background: var(--accent); }
+.card.ctrl .badge { background: var(--accent-soft); color: var(--accent); }
+.card.ctrl .ctrl-row { display: flex; gap: 6px; padding: 4px 0; }
+.card.ctrl .ctrl-row button {
+  flex: 1; font-size: 0.625rem; font-weight: 700; padding: 4px 8px;
+  background: var(--bg-panel); border: 1px solid var(--border); color: var(--text);
+  border-radius: 3px; cursor: pointer;
+}
+.card.ctrl.bit-on .statusbar { background: var(--ok); }
+.card.ctrl.bit-on .ctrl-row button:first-child {
+  background: var(--ok-soft); border-color: var(--ok); color: var(--ok);
+}
+.card.set .statusbar { background: var(--signal); }
+.card.set .badge { background: var(--signal-soft); color: var(--signal); }
+.card.set .send-row { display: flex; gap: 4px; padding: 3px 0; }
+.card.set .send-row button {
+  flex: 1; font-size: 0.625rem; font-weight: 700; padding: 4px 6px;
+  background: var(--bg-panel); border: 1px solid var(--border); color: var(--text);
+  border-radius: 3px; cursor: pointer;
+}
+.card.bit .statusbar { background: var(--pair); }
+.card.bit .badge { background: var(--pair-soft); color: var(--pair); }
+.card.bit_set .statusbar { background: var(--pair-deep); }
+.card.bit_set .badge { background: var(--pair-deep-soft); color: var(--pair-deep); }
+.card.bit_set .bits-preview {
+  font-size: 0.5rem; font-family: var(--font-mono);
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: 3px; padding: 3px 4px; margin: 4px 0;
+  line-height: 1.3; max-height: 60px; overflow-y: auto;
+}
+.card.bit_set .bits-preview .bit { display: inline-block; }
+.card.big .statusbar { background: var(--big); }
+.card.big .badge { background: var(--big-soft); color: var(--big); }
+.card.big .value .num { font-size: 2.5rem; }
+.card.big .gauge-mini {
+  width: 100%; height: 6px; background: var(--bg-panel);
+  border-radius: 3px; margin-top: 4px; overflow: hidden;
+}
+.card.big .gauge-mini .fill {
+  height: 100%; background: var(--big); border-radius: 3px;
+}
+.card.array .statusbar { background: var(--array); }
+.card.array .badge { background: var(--array-soft); color: var(--array); }
+.card.array .mini-matrix {
+  display: grid; gap: 2px; padding: 4px 0; flex: 1;
+}
+.card.array .mini-matrix span {
+  aspect-ratio: 1; border-radius: 2px; background: var(--bg-panel);
+  font-size: 0.5rem; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); color: var(--text-soft);
+}
+.card.array .mini-matrix span.warn { background: var(--warn-soft); color: var(--warn); }
+.card.array .mini-matrix span.bad { background: var(--bad-soft); color: var(--bad); }
+.card.string .statusbar { background: var(--string); }
+.card.string .badge { background: var(--string-soft); color: var(--string); }
+.card.string .string-preview {
+  font-family: var(--font-mono); font-size: 0.625rem; line-height: 1.4;
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: 3px; padding: 4px 6px; margin: 4px 0;
+  word-break: break-all; max-height: 50px; overflow: hidden;
+}
+.card.log .statusbar { background: var(--log); }
+.card.log .badge { background: var(--log-soft); color: var(--log); }
+.card.log .log-preview { font-size: 0.5rem; line-height: 1.3; max-height: 60px; overflow: hidden; }
+.card.log .log-preview .row {
+  padding: 1px 4px; border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); color: var(--text-soft);
+}
+.card.log .log-preview .row.bad { color: var(--bad); }
+.card.log .log-preview .row.warn { color: var(--warn); }
+.card.wizard .statusbar { background: var(--wizard); }
+.card.wizard .badge { background: var(--wizard-soft); color: var(--wizard); }
+.card.wizard .wizard-steps {
+  display: flex; gap: 3px; padding: 4px 0; align-items: center;
+}
+.card.wizard .wizard-steps .step {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--bg-panel); border: 1px solid var(--border);
+  font-size: 0.5rem; display: flex; align-items: center; justify-content: center;
+  color: var(--text-soft);
+}
+.card.wizard .wizard-steps .step.done { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.card.wizard .wizard-steps .step.current { background: var(--wizard-soft); border-color: var(--wizard); color: var(--wizard); }
+.card.wizard .wizard-steps .step.failed { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+.card.wizard .wizard-steps .conn { flex: 1; height: 1px; background: var(--border); }
+
+.row { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+
+.meta-table {
+  width: 100%; border-collapse: collapse; font-size: 0.8125rem;
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: 6px; overflow: hidden;
+}
+.meta-table th, .meta-table td {
+  text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border);
+}
+.meta-table th {
+  background: var(--bg-panel); font-weight: 700; font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);
+}
+.meta-table tr:last-child td { border-bottom: none; }
+.meta-table .y { color: var(--ok); font-weight: 600; }
+.meta-table .o { color: var(--warn); font-weight: 600; }
+.meta-table .n { color: var(--bad); font-weight: 600; }
+
+.modal {
+  width: 800px; background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: var(--shadow-modal);
+  display: flex; flex-direction: column; overflow: hidden;
+  font-size: 0.8125rem; flex-shrink: 0;
+}
+.modal .m-header {
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal .m-header h3 {
+  font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;
+}
+.modal .m-header h3 .badge {
+  font-size: 0.5625rem; font-weight: 700; letter-spacing: 0.05em;
+  padding: 2px 6px; border-radius: 3px; text-transform: uppercase;
+}
+.modal .m-tabs {
+  display: flex; border-bottom: 1px solid var(--border); padding: 0 18px;
+  background: var(--bg-panel);
+}
+.modal .m-tabs .tab {
+  padding: 10px 16px; font-size: 0.75rem; font-weight: 600;
+  color: var(--text-soft); border-bottom: 2px solid transparent;
+  cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.modal .m-tabs .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.modal .m-body { padding: 16px 18px; flex: 1; min-height: 380px; }
+.modal .m-footer {
+  padding: 10px 18px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.6875rem; color: var(--text-soft);
+  background: var(--bg-panel);
+}
+.modal .m-footer .fdir { font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+.modal .m-footer .fdir::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+}
+.modal .m-footer .fdir.tx { color: var(--signal); }
+.modal .m-footer .fdir.rx { color: var(--ok); }
+.modal .m-footer .fdir.both { color: var(--pair-deep); }
+
+.section-card-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 16px; }
+.section-modal-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 16px; }
+
+.chart-area {
+  width: 100%; height: 280px; background: var(--bg-panel);
+  border: 1px solid var(--border); border-radius: 6px;
+  position: relative; overflow: hidden;
+}
+.chart-area .grid-line {
+  position: absolute; left: 0; right: 0; height: 1px; background: var(--border);
+  opacity: 0.4;
+}
+.chart-area .spark {
+  position: absolute; left: 0; right: 0; bottom: 0; top: 0;
+  background: linear-gradient(180deg, transparent 0%, var(--signal-soft) 100%);
+  clip-path: polygon(0 60%, 8% 55%, 16% 65%, 24% 50%, 32% 58%, 40% 45%, 48% 52%, 56% 40%, 64% 48%, 72% 38%, 80% 42%, 88% 30%, 96% 35%, 100% 28%, 100% 100%, 0 100%);
+}
+.chart-area .sparkline {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 1.5px;
+  background: var(--signal);
+}
+
+.log-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+.log-table th, .log-table td {
+  padding: 4px 8px; border-bottom: 1px solid var(--border); text-align: left;
+}
+.log-table th { background: var(--bg-panel); font-weight: 700; color: var(--text-soft); }
+.log-table tr.bad td { color: var(--bad); }
+.log-table tr.warn td { color: var(--warn); }
+
+.bit-switch-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.bit-switch {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 0.625rem; padding: 4px 6px; border: 1px solid var(--border);
+  border-radius: 3px; background: var(--bg-panel);
+}
+.bit-switch .sw {
+  width: 18px; height: 10px; background: var(--text-dim);
+  border-radius: 5px; position: relative; flex-shrink: 0;
+}
+.bit-switch .sw::after {
+  content: ''; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--bg-elev); position: absolute; top: 1px; left: 1px;
+  transition: all 0.2s;
+}
+.bit-switch.on .sw { background: var(--ok); }
+.bit-switch.on .sw::after { left: 9px; }
+
+.gauge-big {
+  width: 200px; height: 200px; margin: 0 auto; position: relative;
+}
+.gauge-big .ring {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: conic-gradient(var(--big) 0deg 248deg, var(--bg-panel) 248deg 360deg);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.gauge-big .ring::before {
+  content: ''; position: absolute; inset: 14px; border-radius: 50%;
+  background: var(--bg-elev);
+}
+.gauge-big .num {
+  position: relative; z-index: 1; font-size: 3.5rem; font-weight: 800;
+  color: var(--big); font-family: var(--font-mono);
+}
+.gauge-big .unit {
+  position: relative; z-index: 1; font-size: 1rem; color: var(--text-soft);
+  margin-top: -8px;
+}
+
+.matrix-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+.matrix-table th, .matrix-table td {
+  padding: 4px 6px; border: 1px solid var(--border); text-align: center;
+  font-family: var(--font-mono);
+}
+.matrix-table th { background: var(--bg-panel); font-weight: 700; color: var(--text-soft); }
+.matrix-table td.warn { background: var(--warn-soft); color: var(--warn); font-weight: 700; }
+.matrix-table td.bad { background: var(--bad-soft); color: var(--bad); font-weight: 700; }
+.matrix-table td.ok { background: var(--ok-soft); }
+
+.wizard-flow {
+  display: flex; align-items: center; gap: 8px; padding: 16px 0;
+  background: var(--bg-panel); border-radius: 6px; padding: 16px;
+}
+.wizard-flow .step {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.875rem;
+  border: 2px solid var(--border); color: var(--text-soft);
+  background: var(--bg-elev);
+}
+.wizard-flow .step.done { border-color: var(--ok); color: var(--ok); background: var(--ok-soft); }
+.wizard-flow .step.current { border-color: var(--wizard); color: var(--wizard); background: var(--wizard-soft); animation: pulse 2s infinite; }
+.wizard-flow .step.failed { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+.wizard-flow .conn { flex: 1; height: 2px; background: var(--border); }
+.wizard-flow .conn.done { background: var(--ok); }
+.wizard-flow .conn.current { background: linear-gradient(90deg, var(--wizard) 50%, var(--border) 50%); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.callout {
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent); border-radius: 4px;
+  padding: 10px 14px; font-size: 0.8125rem; color: var(--text-soft);
+  margin: 10px 0;
+}
+.callout.warn { border-left-color: var(--warn); }
+.callout.bad { border-left-color: var(--bad); }
+.callout.ok { border-left-color: var(--ok); }
+
+.compare-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+  margin-bottom: 16px;
+}
+.compare-grid .item { }
+.compare-grid .item h4 {
+  font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--text-soft); margin-bottom: 6px;
+}
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="document.documentElement.classList.toggle('theme-dark')">
+  <span class="light-icon">🌙</span><span class="dark-icon">☀</span>
+  <span class="lbl">切换主题</span>
+</button>
+
+<div class="wrap">
+
+<!-- ============================================ -->
+<!-- §0 HERO                                      -->
+<!-- ============================================ -->
+<div class="hero">
+  <div class="hero-tag">v1.3.21 · 内部设计评审稿</div>
+  <h1>卡片系统 & 详情弹窗 <span class="v">全协议总览</span></h1>
+  <div class="sub">
+    BMS V1.13 §4 19 命令 / 48 字段全覆盖 · 11 种卡片 · 8 种弹窗模式 · 范围：先 BMS，未来扩 EMS/PCS/Modbus<br>
+    <strong>核心问题</strong>：当前 4 种卡片 + v1.3.20 新 2 种 = 6 种不能覆盖全协议字段（数组/文本/日志/状态机/大数字缺失）<br>
+    <strong>关键设计</strong>：① 卡片尺寸体系 <code>1×1 (220×198)</code> + <code>2×1 (440×198)</code>，适配位开关/数组矩阵 ② chart-logs 弹窗 <strong>复用 TREND 弹窗</strong>，4 种卡片（TREND/PAIR/CTRL/SET）共享 1 种弹窗
+  </div>
+
+  <h2 style="font-size: 0.875rem; margin: 18px 0 10px;">11 种卡片 mini 索引</h2>
+  <div class="hero-grid">
+    <div class="hero-card-mini trend">
+      <div class="badge">TREND</div>
+      <div class="nm">趋势</div>
+      <div class="ty">数值折线</div>
+    </div>
+    <div class="hero-card-mini pair">
+      <div class="badge">PAIR</div>
+      <div class="nm">配对</div>
+      <div class="ty">双变量</div>
+    </div>
+    <div class="hero-card-mini ctrl">
+      <div class="badge">CTRL</div>
+      <div class="nm">控制</div>
+      <div class="ty">单/多bit</div>
+    </div>
+    <div class="hero-card-mini set">
+      <div class="badge">SET</div>
+      <div class="nm">参数</div>
+      <div class="ty">下发设置</div>
+    </div>
+    <div class="hero-card-mini bit">
+      <div class="badge">BIT</div>
+      <div class="nm">单bit</div>
+      <div class="ty">显示</div>
+    </div>
+    <div class="hero-card-mini bit_set">
+      <div class="badge">BIT_SET</div>
+      <div class="nm">多bit</div>
+      <div class="ty">设置</div>
+    </div>
+    <div class="hero-card-mini big">
+      <div class="badge">BIG</div>
+      <div class="nm">仪表</div>
+      <div class="ty">大数字</div>
+    </div>
+    <div class="hero-card-mini array">
+      <div class="badge">ARRAY</div>
+      <div class="nm">数组</div>
+      <div class="ty">矩阵</div>
+    </div>
+    <div class="hero-card-mini string">
+      <div class="badge">STRING</div>
+      <div class="nm">文本</div>
+      <div class="ty">SN码</div>
+    </div>
+    <div class="hero-card-mini log">
+      <div class="badge">LOG</div>
+      <div class="nm">日志</div>
+      <div class="ty">事件表</div>
+    </div>
+    <div class="hero-card-mini wizard">
+      <div class="badge">WIZARD</div>
+      <div class="nm">流程</div>
+      <div class="ty">状态机</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- §1 全协议字段映射表 (BMS V1.13 §4 抽样)     -->
+<!-- ============================================ -->
+<section id="s1">
+  <h2><span class="num">1</span> BMS V1.13 §4 字段 → 推荐卡片映射 <span class="tag">48 字段抽样</span></h2>
+  <div class="sub">基于协议 `docs/protocol/BMS通信协议V1.13.md` §4.1 (0x01 控制 16bit) + §4.2 (0x02 响应 48 字段) + §4.3-§4.7 (0x03 SN / 0x0A 日志 / 0x10-0x15 升级)</div>
+
+  <table class="meta-table">
+    <thead>
+      <tr><th>命令</th><th>字段</th><th>类型</th><th>推荐卡片</th><th>弹窗模式</th><th>告警阈值</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>0x01</td><td>负载在位 (bit 0)</td><td>bit</td><td><span class="y">✓ BIT</span></td><td>bit-history</td><td>—</td></tr>
+      <tr><td>0x01</td><td>加热使能 (bit 1)</td><td>bit</td><td><span class="y">✓ BIT</span></td><td>bit-history</td><td>—</td></tr>
+      <tr><td>0x02</td><td>Vcell_max</td><td>uint16</td><td><span class="y">✓ TREND</span></td><td>chart-logs</td><td><span class="n">! &gt; 3.65V</span></td></tr>
+      <tr><td>0x02</td><td>Vcell_min</td><td>uint16</td><td><span class="y">✓ TREND</span></td><td>chart-logs</td><td><span class="n">! &lt; 2.5V</span></td></tr>
+      <tr><td>0x02</td><td>Vcell_avg</td><td>uint16</td><td><span class="o">○ TREND</span></td><td>chart-logs</td><td>—</td></tr>
+      <tr><td>0x02</td><td><strong>Vcell[20]</strong></td><td>array[20]</td><td><span class="y">✓ ARRAY</span></td><td>array-matrix</td><td>单串 vs avg 差 &gt; 50mV</td></tr>
+      <tr><td>0x02</td><td><strong>Cell_Temp[8]</strong></td><td>array[8]</td><td><span class="y">✓ ARRAY</span></td><td>array-matrix</td><td>单颗 &gt; 60°C</td></tr>
+      <tr><td>0x02</td><td>SOC</td><td>uint8</td><td><span class="y">✓ BIG</span></td><td>big-metric</td><td><span class="n">! &lt; 20%</span></td></tr>
+      <tr><td>0x02</td><td>SOH</td><td>uint8</td><td><span class="y">✓ BIG</span></td><td>big-metric</td><td><span class="o">! &lt; 80%</span></td></tr>
+      <tr><td>0x02</td><td>CycleCount</td><td>uint16</td><td><span class="o">○ BIG</span></td><td>big-metric</td><td>—</td></tr>
+      <tr><td>0x02</td><td>Vpack</td><td>uint16</td><td><span class="o">○ TREND</span></td><td>chart-logs</td><td>—</td></tr>
+      <tr><td>0x02</td><td>Ipack</td><td>int16</td><td><span class="y">✓ TREND</span></td><td>chart-logs</td><td><span class="n">! &gt; 100A</span></td></tr>
+      <tr><td>0x02</td><td>Tpack_max</td><td>int16</td><td><span class="y">✓ TREND</span></td><td>chart-logs</td><td><span class="o">! &gt; 55°C</span></td></tr>
+      <tr><td>0x02</td><td><strong>ProtectCode</strong></td><td>bitset[16]</td><td><span class="y">✓ BIT_SET</span></td><td>bit-editor</td><td>任一位置位告警</td></tr>
+      <tr><td>0x02</td><td>ErrCode</td><td>bitset[16]</td><td><span class="o">○ BIT_SET</span></td><td>bit-editor</td><td>—</td></tr>
+      <tr><td>0x02</td><td>AFE_ProtectCode</td><td>bitset[16]</td><td><span class="o">○ BIT_SET</span></td><td>bit-editor</td><td>—</td></tr>
+      <tr><td>0x02</td><td>ChgDsgState</td><td>enum</td><td><span class="o">○ PAIR</span></td><td>chart-logs</td><td>充/放/空闲</td></tr>
+      <tr><td>0x02</td><td>CellBalance</td><td>bitset[20]</td><td><span class="o">○ BIT_SET</span></td><td>bit-editor</td><td>20串均衡</td></tr>
+      <tr><td>0x03</td><td><strong>SN</strong></td><td>char[16]</td><td><span class="y">✓ STRING</span></td><td>text-detail</td><td>—</td></tr>
+      <tr><td>0x0A</td><td><strong>Events[12]</strong></td><td>log[12]</td><td><span class="y">✓ LOG</span></td><td>log-table</td><td>—</td></tr>
+      <tr><td>0x10</td><td>升级请求</td><td>enum</td><td><span class="y">✓ WIZARD</span></td><td>wizard-flow</td><td>—</td></tr>
+      <tr><td>0x11</td><td>擦除</td><td>enum</td><td><span class="y">✓ WIZARD</span></td><td>wizard-flow</td><td>—</td></tr>
+      <tr><td>0x12</td><td>传输数据</td><td>bytes</td><td><span class="y">✓ WIZARD</span></td><td>wizard-flow</td><td>—</td></tr>
+      <tr><td>0x13</td><td>校验</td><td>enum</td><td><span class="y">✓ WIZARD</span></td><td>wizard-flow</td><td>—</td></tr>
+      <tr><td>0x14</td><td>结束升级</td><td>enum</td><td><span class="y">✓ WIZARD</span></td><td>wizard-flow</td><td>—</td></tr>
+      <tr><td>0x15</td><td>状态查询</td><td>enum</td><td><span class="y">✓ WIZARD</span></td><td>wizard-flow</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>映射原则</strong>：✓ 必选（v1.3.21 必须支持）/ ○ 可选（v1.3.22+）/ ✗ 不推荐（用其他类型更合适）。本表抽样 26 字段，全 48 字段在 spec §5。
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- §2 弹窗模式索引 (8 种)                      -->
+<!-- ============================================ -->
+<section id="s2">
+  <h2><span class="num">2</span> 8 种弹窗模式索引</h2>
+  <div class="sub">11 种卡片 → 8 种弹窗模式（chart-logs 复用最广，bit/array/text/log/wizard 各有专属）</div>
+
+  <table class="meta-table">
+    <thead>
+      <tr><th>弹窗模式</th><th>适用卡片</th><th>tab 结构</th><th>状态</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>chart-logs</strong></td><td>TREND / PAIR / CTRL / SET</td><td>图表 / 数据日志</td><td>✅ 现有 v1.3.20</td></tr>
+      <tr><td><strong>bit-history</strong></td><td>BIT</td><td>单 tab「数据历史」</td><td>✅ 现有 v1.3.20</td></tr>
+      <tr><td><strong>bit-editor</strong></td><td>BIT_SET</td><td>操作 / 数据历史</td><td>✅ 现有 v1.3.20</td></tr>
+      <tr><td><strong>big-metric</strong></td><td>BIG</td><td>仪表 / 趋势 / 极值</td><td>🆕 6.7.4 待实施</td></tr>
+      <tr><td><strong>array-matrix</strong></td><td>ARRAY</td><td>矩阵 / 排序 / 单点</td><td>🆕 6.6 + 6.7.5 待实施</td></tr>
+      <tr><td><strong>text-detail</strong></td><td>STRING</td><td>详情 / 发送历史</td><td>🆕 6.7.1 待实施</td></tr>
+      <tr><td><strong>log-table</strong></td><td>LOG</td><td>全部 / 筛选 / 详情</td><td>🆕 6.7.2 待实施</td></tr>
+      <tr><td><strong>wizard-flow</strong></td><td>WIZARD</td><td>当前步骤 / 流程图 / 详细日志</td><td>🆕 6.7.3 待实施</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================ -->
+<!-- §3 TREND 卡片                                -->
+<!-- ============================================ -->
+<section id="s3">
+  <h2><span class="num">3</span> TREND · 趋势 <span class="tag">RX · 现有</span></h2>
+  <div class="sub">数值趋势 — 折线图 + 数据日志。适用：uint16/int16/float 等标量数值（如 Vcell_max, Vpack, Ipack, Tpack）</div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 卡片本体 (1×1 = 220×198, 2×1 = 440×198 横向 2 倍)</h3>
+  <div class="section-card-row">
+    <!-- 默认态 -->
+    <div class="card trend">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="header">
+          <div class="title">Vcell_max</div>
+          <div class="badge">TREND</div>
+        </div>
+        <div class="value">
+          <div class="num">3.682</div>
+          <div class="sub">V · 0x0E62</div>
+        </div>
+        <svg width="200" height="36" viewBox="0 0 200 36" style="margin-top: 4px;">
+          <polyline points="0,28 14,26 28,29 42,24 56,25 70,20 84,22 98,18 112,21 126,17 140,19 154,15 168,17 182,12 196,14"
+            fill="none" stroke="var(--signal)" stroke-width="1.5"/>
+        </svg>
+        <div class="footer">
+          <span>2.5–3.65V</span>
+          <span class="fdir rx">RX</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 告警态 -->
+    <div class="card trend" style="--signal: var(--bad);">
+      <div class="statusbar" style="background: var(--bad);"></div>
+      <div class="body">
+        <div class="header">
+          <div class="title">Vcell_max</div>
+          <div class="badge" style="background: var(--bad-soft); color: var(--bad);">TREND</div>
+        </div>
+        <div class="value">
+          <div class="num bad">3.72</div>
+          <div class="sub" style="color: var(--bad);">V · 超阈值</div>
+        </div>
+        <svg width="200" height="36" viewBox="0 0 200 36" style="margin-top: 4px;">
+          <polyline points="0,20 14,18 28,22 42,15 56,17 70,12 84,14 98,8 112,10 126,5 140,7 154,3 168,4 182,2 196,1"
+            fill="none" stroke="var(--bad)" stroke-width="1.5"/>
+        </svg>
+        <div class="footer">
+          <span style="color: var(--bad);">2.5–3.65V</span>
+          <span class="fdir rx">RX</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2×1 变体 -->
+    <div class="card trend span-2x1">
+      <div class="statusbar"></div>
+      <div class="body" style="flex-direction: row; align-items: stretch; gap: 12px;">
+        <div style="display: flex; flex-direction: column; flex: 1; min-width: 0;">
+          <div class="header">
+            <div class="title">Vcell_max</div>
+            <div class="badge">TREND</div>
+          </div>
+          <div class="value" style="align-items: flex-start;">
+            <div class="num">3.682</div>
+            <div class="sub">V · 0x0E62</div>
+          </div>
+          <div class="footer">
+            <span>2.5–3.65V</span>
+            <span class="fdir rx">RX</span>
+          </div>
+        </div>
+        <div style="flex: 1.2; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 6px 0;">
+          <div style="font-size: 0.5625rem; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.05em;">最近 60s</div>
+          <svg width="100%" height="100%" viewBox="0 0 220 100" preserveAspectRatio="none" style="flex: 1;">
+            <line x1="0" y1="25" x2="220" y2="25" stroke="var(--border)" stroke-dasharray="2 2"/>
+            <line x1="0" y1="50" x2="220" y2="50" stroke="var(--border)" stroke-dasharray="2 2"/>
+            <line x1="0" y1="75" x2="220" y2="75" stroke="var(--border)" stroke-dasharray="2 2"/>
+            <polyline points="0,70 11,68 22,72 33,65 44,68 55,60 66,63 77,55 88,58 99,52 110,55 121,48 132,50 143,45 154,47 165,40 176,42 187,38 198,40 209,35 220,38"
+              fill="none" stroke="var(--signal)" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 弹窗预览 (chart-logs 模式, 800×600) <span style="color: var(--ok); font-weight: 500;">[复用基准] PAIR/CTRL/SET 都用这个弹窗</span></h3>
+  <div class="section-modal-row">
+    <div class="modal">
+      <div class="m-header">
+        <h3>Vcell_max <span class="badge" style="background: var(--signal-soft); color: var(--signal);">TREND</span></h3>
+        <div style="font-size: 0.6875rem; color: var(--text-soft);">0x02 响应 · 字段 #1</div>
+      </div>
+      <div class="m-tabs">
+        <div class="tab active">图表</div>
+        <div class="tab">数据日志</div>
+      </div>
+      <div class="m-body">
+        <div class="chart-area">
+          <div class="grid-line" style="top: 25%;"></div>
+          <div class="grid-line" style="top: 50%;"></div>
+          <div class="grid-line" style="top: 75%;"></div>
+          <div class="spark"></div>
+          <div class="sparkline"></div>
+        </div>
+      </div>
+      <div class="m-footer">
+        <span>2.5–3.65V · 告警阈值</span>
+        <span class="fdir rx">RX · 实时</span>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 适用场景</h3>
+  <div class="callout ok">
+    ✅ <strong>适合</strong>：单变量标量数值（uint8/16/32, int, float）随时间变化的可视化。如 Vcell_max/min/avg, Vpack, Ipack, Tpack, CycleCount
+  </div>
+  <div class="callout warn">
+    ⚠️ <strong>注意</strong>：单一 TREND 卡无法表达「单串 vs 平均差」对比，那要用 PAIR 卡
+  </div>
+  <div class="callout bad">
+    ❌ <strong>不适合</strong>：多 bit 状态（用 BIT/BIT_SET）、数组（用 ARRAY）、文本（用 STRING）、状态机（用 WIZARD）
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- §4 PAIR 卡片                                 -->
+<!-- ============================================ -->
+<section id="s4">
+  <h2><span class="num">4</span> PAIR · 配对 <span class="tag">RX · 现有</span></h2>
+  <div class="sub">双变量配对 — 两条折线 + 差值。适用：V/I 双轴、Chg/Dsg 状态、充放电功率对比等</div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 卡片本体</h3>
+  <div class="section-card-row">
+    <div class="card pair">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="header">
+          <div class="title">Chg/Dsg 功率</div>
+          <div class="badge">PAIR</div>
+        </div>
+        <div class="value">
+          <div class="num">+1245 W</div>
+          <div class="sub">充电</div>
+        </div>
+        <svg width="200" height="40" viewBox="0 0 200 40" style="margin-top: 4px;">
+          <polyline points="0,30 14,28 28,26 42,24 56,22 70,20 84,18 98,16 112,14 126,12 140,10 154,8 168,6 182,4 196,2"
+            fill="none" stroke="var(--ok)" stroke-width="1.5"/>
+          <polyline points="0,10 14,12 28,14 42,16 56,18 70,20 84,22 98,24 112,26 126,28 140,30 154,32 168,34 182,36 196,38"
+            fill="none" stroke="var(--pair)" stroke-width="1.5" stroke-dasharray="3 2"/>
+        </svg>
+        <div class="footer">
+          <span>Chg ● / Dsg ○</span>
+          <span class="fdir rx">RX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 弹窗预览 <span style="color: var(--ok); font-weight: 500;">[复用 §3 TREND 弹窗] chart-logs 模式 · 4 卡片共享</span></h3>
+  <div class="callout ok">
+    ✅ <strong>弹窗复用原则</strong>：PAIR 卡片点开后复用 TREND 弹窗（chart-logs 模式），区别仅在 m-header 标题 + badge 颜色（紫）+ footer.direction 改紫色。tab 结构（图表 / 数据日志）+ 图表区 + 日志表格 <strong>完全共用</strong>。
+  </div>
+  <div class="callout ok">✅ <strong>适合</strong>：充放电功率、V/I 双轴、ChgDsgState 状态切换</div>
+  <div class="callout bad">❌ <strong>不适合</strong>：超过 2 变量、单 bit 状态、数组</div>
+</section>
+
+<!-- ============================================ -->
+<!-- §5 CTRL 卡片                                 -->
+<!-- ============================================ -->
+<section id="s5">
+  <h2><span class="num">5</span> CTRL · 控制 <span class="tag">TX · 现有</span></h2>
+  <div class="sub">单/多 bit 控制 — ON/OFF 大字 + 切换按钮 + 发送。适用：负载在位、加热使能、继电器控制等</div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 卡片本体</h3>
+  <div class="section-card-row">
+    <div class="card ctrl bit-on">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="header">
+          <div class="title">负载在位</div>
+          <div class="badge">CTRL</div>
+        </div>
+        <div class="value">
+          <div class="num on">ON</div>
+          <div class="sub">0x0201 · bit 0</div>
+        </div>
+        <div class="ctrl-row">
+          <button style="background: var(--ok-soft); border-color: var(--ok); color: var(--ok);">关闭</button>
+          <button>发送</button>
+        </div>
+        <div class="footer">
+          <span>负载在位</span>
+          <span class="fdir tx">TX</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card ctrl span-2x1">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="header">
+          <div class="title">多bit控制 (8 bits)</div>
+          <div class="badge">CTRL · 2×1</div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; flex: 1; align-content: start; padding: 4px 0;">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.625rem;"><div style="width: 24px; height: 12px; background: var(--ok); border-radius: 6px; position: relative;"><div style="position: absolute; right: 1px; top: 1px; width: 10px; height: 10px; background: white; border-radius: 50%;"></div></div>bit 0 负载</div>
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.625rem;"><div style="width: 24px; height: 12px; background: var(--ok); border-radius: 6px; position: relative;"><div style="position: absolute; right: 1px; top: 1px; width: 10px; height: 10px; background: white; border-radius: 50%;"></div></div>bit 1 加热</div>
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.625rem;"><div style="width: 24px; height: 12px; background: var(--text-dim); border-radius: 6px; position: relative;"><div style="position: absolute; left: 1px; top: 1px; width: 10px; height: 10px; background: white; border-radius: 50%;"></div></div>bit 2 风扇</div>
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.625rem;"><div style="width: 24px; height: 12px; background: var(--text-dim); border-radius: 6px; position: relative;"><div style="position: absolute; left: 1px; top: 1px; width: 10px; height: 10px; background: white; border-radius: 50%;"></div></div>bit 3 蜂鸣</div>
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.625rem;"><div style="width: 24px; height: 12px; background: var(--ok); border-radius: 6px; position: relative;"><div style="position: absolute; right: 1px; top: 1px; width: 10px; height: 10px; background: white; border-radius: 50%;"></div></div>bit 4 BMS复位</div>
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.625rem;"><div style="width: 24px; height: 12px; background: var(--text-dim); border-radius: 6px; position: relative;"><div style="position: absolute; left: 1px; top: 1px; width: 10px; height: 10px; background: white; border-radius: 50%;"></div></div>bit 5 LED使能</div>
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.625rem;"><div style="width: 24px; height: 12px; background: var(--ok); border-radius: 6px; position: relative;"><div style="position: absolute; right: 1px; top: 1px; width: 10px; height: 10px; background: white; border-radius: 50%;"></div></div>bit 6 通信使能</div>
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.625rem;"><div style="width: 24px; height: 12px; background: var(--text-dim); border-radius: 6px; position: relative;"><div style="position: absolute; left: 1px; top: 1px; width: 10px; height: 10px; background: white; border-radius: 50%;"></div></div>bit 7 预放电</div>
+        </div>
+        <div class="ctrl-row">
+          <button>全部关闭</button>
+          <button>全部开启</button>
+          <button>发送</button>
+        </div>
+        <div class="footer">
+          <span>8 bits · 3 置位</span>
+          <span class="fdir tx">TX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 弹窗预览 <span style="color: var(--ok); font-weight: 500;">[复用 §3 TREND 弹窗] chart-logs 模式 · 4 卡片共享</span></h3>
+  <div class="callout ok">
+    ✅ <strong>弹窗复用原则</strong>：CTRL 卡片点开后复用 TREND 弹窗（chart-logs 模式），区别仅在 m-header 标题 + badge 颜色（橙）+ footer.direction 改蓝色。tab 结构（图表 / 数据日志）+ 图表区 + 日志表格 <strong>完全共用</strong>。本卡「发送历史」可看历次下发状态。
+  </div>
+  <div class="callout ok">✅ <strong>适合</strong>：开关量、继电器、加热、风扇、蜂鸣器等单 bit/多 bit 控制指令</div>
+  <div class="callout bad">❌ <strong>不适合</strong>：只读状态显示（用 BIT），需要复杂配置（用 WIZARD）</div>
+</section>
+
+<!-- ============================================ -->
+<!-- §6 SET 卡片                                  -->
+<!-- ============================================ -->
+<section id="s6">
+  <h2><span class="num">6</span> SET · 参数 <span class="tag">BOTH · 现有</span></h2>
+  <div class="sub">参数下发 — 大字 + 调节器 + 发送。适用：电压电流限值、保护阈值、容量校准等参数设置</div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 卡片本体</h3>
+  <div class="section-card-row">
+    <div class="card set">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="header">
+          <div class="title">RSOC 校准</div>
+          <div class="badge">SET</div>
+        </div>
+        <div class="value">
+          <div class="num">26 %</div>
+          <div class="sub">0x001A</div>
+        </div>
+        <div class="send-row">
+          <select style="flex: 1; font-size: 0.625rem; padding: 2px 4px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; color: var(--text);">
+            <option>fixed</option>
+          </select>
+          <button>发送</button>
+        </div>
+        <div class="footer">
+          <span>0–100%</span>
+          <span class="fdir both">TX+RX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 弹窗预览 <span style="color: var(--ok); font-weight: 500;">[复用 §3 TREND 弹窗] chart-logs 模式 · 4 卡片共享</span></h3>
+  <div class="callout ok">
+    ✅ <strong>弹窗复用原则</strong>：SET 卡片点开后复用 TREND 弹窗（chart-logs 模式），区别仅在 m-header 标题 + badge 颜色（蓝）+ footer.direction 改紫色（TX+RX）。tab 结构（图表 / 数据日志）+ 图表区 + 日志表格 <strong>完全共用</strong>。数据日志 tab 可看历次参数下发记录。
+  </div>
+  <div class="callout ok">✅ <strong>适合</strong>：可调参数（电压限值、电流限值、容量校准、平衡启动电压等）</div>
+  <div class="callout bad">❌ <strong>不适合</strong>：只读监测（用 TREND）、单 bit 控制（用 CTRL）</div>
+</section>
+
+<!-- ============================================ -->
+<!-- §7 BIT 卡片                                  -->
+<!-- ============================================ -->
+<section id="s7">
+  <h2><span class="num">7</span> BIT · 单 bit <span class="tag">RX · v1.3.20 新</span></h2>
+  <div class="sub">单 bit 显示 — 简洁 ON/OFF。适用：状态标志、告警位、保护位、均衡状态等只读单 bit</div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 卡片本体</h3>
+  <div class="section-card-row">
+    <div class="card bit">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="header">
+          <div class="title">软件层放电过温</div>
+          <div class="badge">BIT</div>
+        </div>
+        <div class="value">
+          <div class="num on">ON</div>
+          <div class="sub">ProtectCode.bit 0</div>
+        </div>
+        <div class="footer">
+          <span>触发告警</span>
+          <span class="fdir rx">RX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 弹窗预览 (bit-history 模式, 单 tab)</h3>
+  <div class="section-modal-row">
+    <div class="modal">
+      <div class="m-header">
+        <h3>软件层放电过温 <span class="badge" style="background: var(--pair-soft); color: var(--pair);">BIT</span></h3>
+        <div style="font-size: 0.6875rem; color: var(--text-soft);">0x02 ProtectCode · bit 0</div>
+      </div>
+      <div class="m-tabs">
+        <div class="tab active">数据历史</div>
+      </div>
+      <div class="m-body" style="padding: 0;">
+        <table class="log-table">
+          <thead>
+            <tr><th>时间戳</th><th>字段值</th><th>状态</th><th>原始字节</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>12:34:56.123</td><td>0x0001</td><td><span style="color: var(--bad); font-weight: 700;">ON</span></td><td>01 00</td></tr>
+            <tr><td>12:34:55.620</td><td>0x0001</td><td><span style="color: var(--bad); font-weight: 700;">ON</span></td><td>01 00</td></tr>
+            <tr><td>12:34:55.118</td><td>0x0000</td><td>OFF</td><td>00 00</td></tr>
+            <tr><td>12:34:54.615</td><td>0x0000</td><td>OFF</td><td>00 00</td></tr>
+            <tr><td>12:34:54.112</td><td>0x0000</td><td>OFF</td><td>00 00</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="m-footer">
+        <span>bit-history · 无图表</span>
+        <span class="fdir rx">RX</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout ok">✅ <strong>适合</strong>：只读单 bit 状态（保护位、告警位、状态标志、均衡指示）</div>
+  <div class="callout bad">❌ <strong>不适合</strong>：可写控制（用 CTRL/BIT_SET），多 bit（用 BIT_SET）</div>
+</section>
+
+<!-- ============================================ -->
+<!-- §8 BIT_SET 卡片                              -->
+<!-- ============================================ -->
+<section id="s8">
+  <h2><span class="num">8</span> BIT_SET · 多 bit 设置 <span class="tag">BOTH · v1.3.20 新</span></h2>
+  <div class="sub">多 bit 设置 — 位开关组 + 原始字节预览 + 发送。适用：ProtectCode/ErrCode/AFE_ProtectCode/CellBalance 等 16/20 bit 设置</div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 卡片本体 (2×1 = 440×198, 横向 2 倍展开位开关)</h3>
+  <div class="section-card-row">
+    <div class="card bit_set span-2x1">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="header">
+          <div class="title">ProtectCode (16 bits)</div>
+          <div class="badge">BIT_SET · 2×1</div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; flex: 1; align-content: start; padding: 4px 0; font-size: 0.5625rem;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bad-soft); border: 1px solid var(--bad); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--bad);">0</div>
+            <div style="font-size: 0.5rem; color: var(--bad); line-height: 1.1; text-align: center;">软放过温</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--text-soft);">1</div>
+            <div style="font-size: 0.5rem; color: var(--text-soft); line-height: 1.1; text-align: center;">软放过流</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--text-soft);">2</div>
+            <div style="font-size: 0.5rem; color: var(--text-soft); line-height: 1.1; text-align: center;">软充过温</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--text-soft);">3</div>
+            <div style="font-size: 0.5rem; color: var(--text-soft); line-height: 1.1; text-align: center;">软充过流</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--text-soft);">4</div>
+            <div style="font-size: 0.5rem; color: var(--text-soft); line-height: 1.1; text-align: center;">低温充电</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--text-soft);">5</div>
+            <div style="font-size: 0.5rem; color: var(--text-soft); line-height: 1.1; text-align: center;">电池过压</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--text-soft);">6</div>
+            <div style="font-size: 0.5rem; color: var(--text-soft); line-height: 1.1; text-align: center;">电池欠压</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bad-soft); border: 1px solid var(--bad); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--bad);">7</div>
+            <div style="font-size: 0.5rem; color: var(--bad); line-height: 1.1; text-align: center;">硬放过温</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bad-soft); border: 1px solid var(--bad); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--bad);">8</div>
+            <div style="font-size: 0.5rem; color: var(--bad); line-height: 1.1; text-align: center;">硬放过流</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--text-soft);">9</div>
+            <div style="font-size: 0.5rem; color: var(--text-soft); line-height: 1.1; text-align: center;">硬充过温</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--text-soft);">10</div>
+            <div style="font-size: 0.5rem; color: var(--text-soft); line-height: 1.1; text-align: center;">短路</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--text-soft);">11</div>
+            <div style="font-size: 0.5rem; color: var(--text-soft); line-height: 1.1; text-align: center;">通信超时</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--text-soft);">12</div>
+            <div style="font-size: 0.5rem; color: var(--text-soft); line-height: 1.1; text-align: center;">均衡异常</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--text-soft);">13</div>
+            <div style="font-size: 0.5rem; color: var(--text-soft); line-height: 1.1; text-align: center;">温度传感器</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--text-soft);">14</div>
+            <div style="font-size: 0.5rem; color: var(--text-soft); line-height: 1.1; text-align: center;">电流传感器</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;">
+            <div style="font-family: var(--font-mono); font-weight: 700; color: var(--text-soft);">15</div>
+            <div style="font-size: 0.5rem; color: var(--text-soft); line-height: 1.1; text-align: center;">EEPROM错</div>
+          </div>
+        </div>
+        <div class="footer">
+          <span style="color: var(--bad); font-weight: 700;">0x0181 · 3 置位 (bit 0/7/8)</span>
+          <span class="fdir both">TX+RX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 弹窗预览 (bit-editor 模式, 双 tab)</h3>
+  <div class="section-modal-row">
+    <div class="modal">
+      <div class="m-header">
+        <h3>ProtectCode <span class="badge" style="background: var(--pair-deep-soft); color: var(--pair-deep);">BIT_SET</span></h3>
+        <div style="font-size: 0.6875rem; color: var(--text-soft);">0x02 · 16 bits</div>
+      </div>
+      <div class="m-tabs">
+        <div class="tab active">操作</div>
+        <div class="tab">数据历史</div>
+      </div>
+      <div class="m-body">
+        <div class="bit-switch-grid">
+          <div class="bit-switch on"><div class="sw"></div>bit 0 软放过温</div>
+          <div class="bit-switch"><div class="sw"></div>bit 1 软放过流</div>
+          <div class="bit-switch"><div class="sw"></div>bit 2 软充过温</div>
+          <div class="bit-switch"><div class="sw"></div>bit 3 软充过流</div>
+          <div class="bit-switch"><div class="sw"></div>bit 4 低温充电</div>
+          <div class="bit-switch"><div class="sw"></div>bit 5 电池过压</div>
+          <div class="bit-switch"><div class="sw"></div>bit 6 电池欠压</div>
+          <div class="bit-switch on"><div class="sw"></div>bit 7 硬放过温</div>
+          <div class="bit-switch on"><div class="sw"></div>bit 8 硬放过流</div>
+          <div class="bit-switch"><div class="sw"></div>bit 9 硬充过温</div>
+          <div class="bit-switch"><div class="sw"></div>bit 10 短路</div>
+          <div class="bit-switch"><div class="sw"></div>bit 11 通信超时</div>
+        </div>
+        <div style="margin-top: 12px; padding: 8px 10px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem;">
+          <strong>原始字节预览：</strong>0x01 0x80 (bit 0, 7, 8 = 1)
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 12px;">
+          <button style="flex: 1; padding: 6px; background: var(--accent); color: white; border: none; border-radius: 4px; font-weight: 700; cursor: pointer; font-size: 0.75rem;">发送 (TX)</button>
+          <button style="flex: 1; padding: 6px; background: var(--bg-panel); color: var(--text); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 0.75rem;">清空</button>
+        </div>
+      </div>
+      <div class="m-footer">
+        <span>最近发送：0x0180 · 12:34:56</span>
+        <span class="fdir both">TX+RX</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout ok">✅ <strong>适合</strong>：多 bit 状态/控制（16/20 bit 保护位、均衡位、配置位）</div>
+  <div class="callout bad">❌ <strong>不适合</strong>：单 bit（用 BIT），纯只读且不需要切换（用 TREND）</div>
+</section>
+
+<!-- ============================================ -->
+<!-- §9 BIG 卡片 (新)                             -->
+<!-- ============================================ -->
+<section id="s9">
+  <h2><span class="num">9</span> BIG · 大数字仪表 <span class="tag" style="background: var(--big-soft); color: var(--big);">🆕 6.7.4 · 待实施</span></h2>
+  <div class="sub">大数字仪表 — 圆环/大字 + 趋势叠加 + 极值。适用：SOC/SOH/CycleCount 等关键监测指标，需要"一眼可见"的大数字</div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 卡片本体</h3>
+  <div class="section-card-row">
+    <div class="card big">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="header">
+          <div class="title">SOC</div>
+          <div class="badge">BIG</div>
+        </div>
+        <div class="value">
+          <div class="num">26</div>
+          <div class="sub">% · 0x1A</div>
+        </div>
+        <div class="gauge-mini"><div class="fill" style="width: 26%;"></div></div>
+        <div class="footer">
+          <span>0–100%</span>
+          <span class="fdir rx">RX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 弹窗预览 (big-metric 模式, 3 tab)</h3>
+  <div class="section-modal-row">
+    <div class="modal">
+      <div class="m-header">
+        <h3>SOC 剩余容量 <span class="badge" style="background: var(--big-soft); color: var(--big);">BIG</span></h3>
+        <div style="font-size: 0.6875rem; color: var(--text-soft);">0x02 · 字段 #6</div>
+      </div>
+      <div class="m-tabs">
+        <div class="tab active">仪表</div>
+        <div class="tab">趋势</div>
+        <div class="tab">极值</div>
+      </div>
+      <div class="m-body" style="display: flex; gap: 16px; align-items: center;">
+        <div class="gauge-big">
+          <div class="ring">
+            <div style="text-align: center;">
+              <div class="num">26</div>
+              <div class="unit">%</div>
+            </div>
+          </div>
+        </div>
+        <div style="flex: 1; font-size: 0.75rem;">
+          <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border);"><span style="color: var(--text-soft);">当前值</span><strong style="color: var(--big);">26%</strong></div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border);"><span style="color: var(--text-soft);">范围</span><span>0–100%</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border);"><span style="color: var(--text-soft);">告警</span><span style="color: var(--bad); font-weight: 700;">&lt; 20%</span></div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 0;"><span style="color: var(--text-soft);">更新频率</span><span>1Hz</span></div>
+        </div>
+      </div>
+      <div class="m-footer">
+        <span>big-metric · 3 tab</span>
+        <span class="fdir rx">RX</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout ok">✅ <strong>适合</strong>：SOC/SOH/CycleCount/容量 等关键百分比/计数值，需要"仪表"式大数字</div>
+  <div class="callout bad">❌ <strong>不适合</strong>：连续变化波形（用 TREND），原始数值（用 BIG 但不如 TREND 直观）</div>
+</section>
+
+<!-- ============================================ -->
+<!-- §10 ARRAY 卡片 (新)                          -->
+<!-- ============================================ -->
+<section id="s10">
+  <h2><span class="num">10</span> ARRAY · 数组聚合 <span class="tag" style="background: var(--array-soft); color: var(--array);">🆕 6.6 · 待实施</span></h2>
+  <div class="sub">数组聚合 — 矩阵/热力图 + 排序表 + 单点详情。适用：Vcell[20] / Cell_Temp[8] / CellBalance[20] 等多元素数组</div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 卡片本体 (2×1 = 440×198, 横向 2 倍展开 20 串标号)</h3>
+  <div class="section-card-row">
+    <div class="card array span-2x1">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="header">
+          <div class="title">Vcell[20] · 20 串电池电压</div>
+          <div class="badge">ARRAY · 2×1</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; padding: 4px 0;">
+          <!-- 4 区块 × 5 串 = 20 串完整 (4×5 横向布局) -->
+          <div style="display: grid; grid-template-columns: 18px repeat(5, 1fr); gap: 3px; align-items: center; font-size: 0.5rem; color: var(--text-soft); font-family: var(--font-mono); font-weight: 700;">
+            <div></div><div style="text-align: center;">#01-05</div><div></div><div></div><div></div><div></div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; flex: 1; align-content: start;">
+            <!-- Block 1: 串 01-05 -->
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#01</span><span>3.652</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#02</span><span>3.661</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#03</span><span>3.650</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#04</span><span>3.668</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#05</span><span>3.655</span></div>
+            </div>
+            <!-- Block 2: 串 06-10 -->
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#06</span><span>3.654</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#07</span><span>3.661</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#08</span><span>3.650</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#09</span><span>3.665</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#10</span><span>3.660</span></div>
+            </div>
+            <!-- Block 3: 串 11-15 -->
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#11</span><span>3.658</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#12</span><span>3.666</span></div>
+              <div style="background: var(--bad-soft); border: 1px solid var(--bad); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem; font-weight: 700;"><span style="color: var(--bad);">#13</span><span style="color: var(--bad);">3.710</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#14</span><span>3.655</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#15</span><span>3.659</span></div>
+            </div>
+            <!-- Block 4: 串 16-20 -->
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#16</span><span>3.663</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#17</span><span>3.651</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#18</span><span>3.659</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#19</span><span>3.664</span></div>
+              <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px; padding: 3px 5px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.625rem;"><span style="color: var(--text-soft);">#20</span><span>3.657</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="footer">
+          <span style="color: var(--bad); font-weight: 700;">avg=3.658V · max=3.710V (串#13) · min=3.650V</span>
+          <span class="fdir rx">RX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 弹窗预览 (array-matrix 模式, 3 tab)</h3>
+  <div class="section-modal-row">
+    <div class="modal">
+      <div class="m-header">
+        <h3>Vcell 20 串 <span class="badge" style="background: var(--array-soft); color: var(--array);">ARRAY</span></h3>
+        <div style="font-size: 0.6875rem; color: var(--text-soft);">0x02 · 20 元素 · 5×4 布局</div>
+      </div>
+      <div class="m-tabs">
+        <div class="tab active">矩阵</div>
+        <div class="tab">排序</div>
+        <div class="tab">单点详情</div>
+      </div>
+      <div class="m-body" style="padding: 12px 18px;">
+        <table class="matrix-table">
+          <thead>
+            <tr><th>串#</th><th>电压(V)</th><th>状态</th><th>vs avg</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>01</td><td>3.652</td><td class="ok">OK</td><td>+2mV</td></tr>
+            <tr><td>02</td><td>3.661</td><td class="ok">OK</td><td>+11mV</td></tr>
+            <tr><td>07</td><td class="warn">3.710</td><td class="warn">WARN</td><td>+60mV</td></tr>
+            <tr><td>11</td><td>3.654</td><td class="ok">OK</td><td>+4mV</td></tr>
+            <tr><td>15</td><td>3.661</td><td class="ok">OK</td><td>+11mV</td></tr>
+            <tr><td>20</td><td>3.650</td><td class="ok">OK</td><td>0mV</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="m-footer">
+        <span>avg=3.650V · max=3.710V · min=3.640V</span>
+        <span class="fdir rx">RX</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout ok">✅ <strong>适合</strong>：同质数组（多串电压、多颗温度、多通道电流）需要横向对比和单点异常定位</div>
+  <div class="callout bad">❌ <strong>不适合</strong>：异构字段、单元素（用 BIG/TREND）、非数组多 bit（用 BIT_SET）</div>
+</section>
+
+<!-- ============================================ -->
+<!-- §11 STRING 卡片 (新)                         -->
+<!-- ============================================ -->
+<section id="s11">
+  <h2><span class="num">11</span> STRING · 文本/SN 码 <span class="tag" style="background: var(--string-soft); color: var(--string);">🆕 6.7.1 · 待实施</span></h2>
+  <div class="sub">文本/SN 码 — 文本片段 + HEX + ASCII + 发送历史。适用：SN 码、固件版本、厂商信息、错误描述等文本字段</div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 卡片本体</h3>
+  <div class="section-card-row">
+    <div class="card string">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="header">
+          <div class="title">SN 序列号</div>
+          <div class="badge">STRING</div>
+        </div>
+        <div class="value">
+          <div class="num" style="font-size: 1rem; font-family: var(--font-mono);">BMS-2026-0818-A1</div>
+          <div class="sub">0x03 · 16 字节</div>
+        </div>
+        <div class="string-preview">42 4D 53 2D 32 30 32 36 2D 30 38 31 38 2D 41 31</div>
+        <div class="footer">
+          <span>16 字节</span>
+          <span class="fdir both">TX+RX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 弹窗预览 (text-detail 模式, 2 tab)</h3>
+  <div class="section-modal-row">
+    <div class="modal">
+      <div class="m-header">
+        <h3>SN 序列号 <span class="badge" style="background: var(--string-soft); color: var(--string);">STRING</span></h3>
+        <div style="font-size: 0.6875rem; color: var(--text-soft);">0x03 · 16 字节 ASCII</div>
+      </div>
+      <div class="m-tabs">
+        <div class="tab active">详情</div>
+        <div class="tab">发送历史</div>
+      </div>
+      <div class="m-body" style="font-family: var(--font-mono);">
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 0.6875rem; color: var(--text-soft); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">ASCII 文本</div>
+          <div style="font-size: 1.5rem; font-weight: 700; padding: 12px; background: var(--bg-panel); border-radius: 6px; border: 1px solid var(--border);">BMS-2026-0818-A1</div>
+        </div>
+        <div>
+          <div style="font-size: 0.6875rem; color: var(--text-soft); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">HEX 字节</div>
+          <div style="font-size: 0.875rem; padding: 10px; background: var(--bg-panel); border-radius: 6px; border: 1px solid var(--border);">42 4D 53 2D 32 30 32 36 2D 30 38 31 38 2D 41 31</div>
+        </div>
+      </div>
+      <div class="m-footer">
+        <span>text-detail · 2 tab</span>
+        <span class="fdir both">TX+RX</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout ok">✅ <strong>适合</strong>：SN 码、固件版本、设备型号、错误描述、可变长字符串</div>
+  <div class="callout bad">❌ <strong>不适合</strong>：纯数值（用 BIG/TREND）、状态枚举（用 BIT）</div>
+</section>
+
+<!-- ============================================ -->
+<!-- §12 LOG 卡片 (新)                            -->
+<!-- ============================================ -->
+<section id="s12">
+  <h2><span class="num">12</span> LOG · 事件日志 <span class="tag" style="background: var(--log-soft); color: var(--log);">🆕 6.7.2 · 待实施</span></h2>
+  <div class="sub">事件日志 — 完整日志表 + 类型筛选 + 单条详情。适用：保护事件、错误日志、操作记录、电池循环历史</div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 卡片本体</h3>
+  <div class="section-card-row">
+    <div class="card log">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="header">
+          <div class="title">事件日志</div>
+          <div class="badge">LOG</div>
+        </div>
+        <div class="log-preview">
+          <div class="row bad">[12:34:56] 硬放过温触发</div>
+          <div class="row warn">[12:30:12] SOC 低告警</div>
+          <div class="row">[12:15:08] 充电完成</div>
+          <div class="row">[11:50:33] 均衡启动</div>
+          <div class="row">[11:30:00] 启动</div>
+        </div>
+        <div class="footer">
+          <span>5/12 条</span>
+          <span class="fdir rx">RX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 弹窗预览 (log-table 模式, 3 tab)</h3>
+  <div class="section-modal-row">
+    <div class="modal">
+      <div class="m-header">
+        <h3>事件日志 (12 条) <span class="badge" style="background: var(--log-soft); color: var(--log);">LOG</span></h3>
+        <div style="font-size: 0.6875rem; color: var(--text-soft);">0x0A · 12 个保护计数 + 12 个极值</div>
+      </div>
+      <div class="m-tabs">
+        <div class="tab active">全部 (12)</div>
+        <div class="tab">保护 (3)</div>
+        <div class="tab">告警 (2)</div>
+        <div class="tab">详情</div>
+      </div>
+      <div class="m-body" style="padding: 0;">
+        <table class="log-table">
+          <thead>
+            <tr><th>#</th><th>时间</th><th>类型</th><th>事件</th><th>次数</th></tr>
+          </thead>
+          <tbody>
+            <tr class="bad"><td>1</td><td>12:34:56</td><td>PROTECT</td><td>硬放过温触发</td><td>1</td></tr>
+            <tr class="warn"><td>2</td><td>12:30:12</td><td>WARN</td><td>SOC 低告警</td><td>2</td></tr>
+            <tr><td>3</td><td>12:15:08</td><td>INFO</td><td>充电完成</td><td>1</td></tr>
+            <tr><td>4</td><td>11:50:33</td><td>INFO</td><td>均衡启动</td><td>1</td></tr>
+            <tr><td>5</td><td>11:30:00</td><td>INFO</td><td>系统启动</td><td>1</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="m-footer">
+        <span>log-table · 4 tab</span>
+        <span class="fdir rx">RX</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout ok">✅ <strong>适合</strong>：保护事件记录、错误日志、操作审计、循环历史（带时间戳的多条事件）</div>
+  <div class="callout bad">❌ <strong>不适合</strong>：当前实时值（用 TREND/BIG）、状态机（用 WIZARD）</div>
+</section>
+
+<!-- ============================================ -->
+<!-- §13 WIZARD 卡片 (新)                         -->
+<!-- ============================================ -->
+<section id="s13">
+  <h2><span class="num">13</span> WIZARD · 状态机/升级流程 <span class="tag" style="background: var(--wizard-soft); color: var(--wizard);">🆕 6.7.3 · 待实施</span></h2>
+  <div class="sub">状态机/升级流程 — 步骤进度条 + 详细日志 + 错误重试。适用：固件升级（0x10-0x15）、校准流程、配置下发等多步状态机</div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 卡片本体</h3>
+  <div class="section-card-row">
+    <div class="card wizard">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="header">
+          <div class="title">固件升级</div>
+          <div class="badge">WIZARD</div>
+        </div>
+        <div class="value">
+          <div class="num" style="font-size: 1rem;">传输中 64%</div>
+          <div class="sub">Step 3/6</div>
+        </div>
+        <div class="wizard-steps">
+          <div class="step done">1</div>
+          <div class="step done">2</div>
+          <div class="step current">3</div>
+          <div class="step">4</div>
+          <div class="step">5</div>
+          <div class="step">6</div>
+        </div>
+        <div class="footer">
+          <span>0x12 传输数据</span>
+          <span class="fdir tx">TX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 弹窗预览 (wizard-flow 模式, 3 tab)</h3>
+  <div class="section-modal-row">
+    <div class="modal">
+      <div class="m-header">
+        <h3>固件升级 (进行中) <span class="badge" style="background: var(--wizard-soft); color: var(--wizard);">WIZARD</span></h3>
+        <div style="font-size: 0.6875rem; color: var(--text-soft);">0x10–0x15 · 6 步状态机</div>
+      </div>
+      <div class="m-tabs">
+        <div class="tab active">当前步骤</div>
+        <div class="tab">流程图</div>
+        <div class="tab">详细日志</div>
+      </div>
+      <div class="m-body">
+        <div class="wizard-flow">
+          <div class="step done">1<div style="font-size: 0.5rem; margin-top: 2px;">请求</div></div>
+          <div class="conn done"></div>
+          <div class="step done">2<div style="font-size: 0.5rem; margin-top: 2px;">擦除</div></div>
+          <div class="conn done"></div>
+          <div class="step current">3<div style="font-size: 0.5rem; margin-top: 2px;">传输</div></div>
+          <div class="conn current"></div>
+          <div class="step">4<div style="font-size: 0.5rem; margin-top: 2px;">校验</div></div>
+          <div class="conn"></div>
+          <div class="step">5<div style="font-size: 0.5rem; margin-top: 2px;">结束</div></div>
+          <div class="conn"></div>
+          <div class="step">6<div style="font-size: 0.5rem; margin-top: 2px;">查询</div></div>
+        </div>
+        <div style="margin-top: 16px; padding: 10px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; font-size: 0.75rem;">
+          <div style="display: flex; justify-content: space-between; padding: 3px 0;">
+            <span style="color: var(--text-soft);">步骤 3 · 传输数据</span>
+            <strong style="color: var(--wizard);">64% · 320/500 包</strong>
+          </div>
+          <div style="height: 6px; background: var(--bg-elev); border-radius: 3px; margin-top: 6px; overflow: hidden;">
+            <div style="width: 64%; height: 100%; background: var(--wizard); border-radius: 3px;"></div>
+          </div>
+        </div>
+        <div style="margin-top: 12px; display: flex; gap: 8px;">
+          <button style="flex: 1; padding: 6px; background: var(--bad-soft); color: var(--bad); border: 1px solid var(--bad); border-radius: 4px; font-weight: 700; cursor: pointer; font-size: 0.75rem;">中止升级</button>
+          <button style="flex: 1; padding: 6px; background: var(--bg-panel); color: var(--text); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 0.75rem;">暂停</button>
+        </div>
+      </div>
+      <div class="m-footer">
+        <span>开始时间 12:30:00 · 已耗时 5m 12s</span>
+        <span class="fdir tx">TX</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout ok">✅ <strong>适合</strong>：多步状态机流程（固件升级 0x10-0x15、校准流程、配置下发引导、引导诊断）</div>
+  <div class="callout bad">❌ <strong>不适合</strong>：单步操作（用 CTRL/SET）、实时数据（用 TREND）</div>
+</section>
+
+<!-- ============================================ -->
+<!-- §14 弹窗模式横向对比                         -->
+<!-- ============================================ -->
+<section id="s14">
+  <h2><span class="num">14</span> 弹窗模式横向对比 <span class="tag">同尺寸并列</span></h2>
+  <div class="sub">4 种典型弹窗模式同尺寸（800×600）并列展示，便于直观对比 tab 结构 + 视觉密度</div>
+
+  <div class="compare-grid">
+    <div class="item">
+      <h4>chart-logs (TREND · 复用) ← PAIR/CTRL/SET 也用这个</h4>
+      <div class="modal" style="transform: scale(0.7); transform-origin: top left;">
+        <div class="m-header"><h3>Vcell_max <span class="badge" style="background: var(--signal-soft); color: var(--signal);">TREND</span></h3></div>
+        <div class="m-tabs"><div class="tab active">图表</div><div class="tab">日志</div></div>
+        <div class="m-body"><div class="chart-area" style="height: 200px;"><div class="spark"></div></div></div>
+        <div class="m-footer"><span class="fdir rx">RX</span></div>
+      </div>
+    </div>
+    <div class="item">
+      <h4>bit-editor (BIT_SET)</h4>
+      <div class="modal" style="transform: scale(0.7); transform-origin: top left;">
+        <div class="m-header"><h3>ProtectCode <span class="badge" style="background: var(--pair-deep-soft); color: var(--pair-deep);">BIT_SET</span></h3></div>
+        <div class="m-tabs"><div class="tab active">操作</div><div class="tab">日志</div></div>
+        <div class="m-body">
+          <div class="bit-switch-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="bit-switch on"><div class="sw"></div>bit 0</div>
+            <div class="bit-switch"><div class="sw"></div>bit 1</div>
+            <div class="bit-switch on"><div class="sw"></div>bit 7</div>
+          </div>
+        </div>
+        <div class="m-footer"><span class="fdir both">TX+RX</span></div>
+      </div>
+    </div>
+    <div class="item">
+      <h4>big-metric (BIG)</h4>
+      <div class="modal" style="transform: scale(0.7); transform-origin: top left;">
+        <div class="m-header"><h3>SOC <span class="badge" style="background: var(--big-soft); color: var(--big);">BIG</span></h3></div>
+        <div class="m-tabs"><div class="tab active">仪表</div><div class="tab">趋势</div></div>
+        <div class="m-body" style="display: flex; align-items: center; justify-content: center;">
+          <div style="text-align: center;">
+            <div style="font-size: 4rem; font-weight: 800; color: var(--big);">26</div>
+            <div style="color: var(--text-soft);">%</div>
+          </div>
+        </div>
+        <div class="m-footer"><span class="fdir rx">RX</span></div>
+      </div>
+    </div>
+    <div class="item">
+      <h4>wizard-flow (WIZARD)</h4>
+      <div class="modal" style="transform: scale(0.7); transform-origin: top left;">
+        <div class="m-header"><h3>固件升级 <span class="badge" style="background: var(--wizard-soft); color: var(--wizard);">WIZARD</span></h3></div>
+        <div class="m-tabs"><div class="tab active">当前</div><div class="tab">流程</div></div>
+        <div class="m-body" style="padding: 20px;">
+          <div class="wizard-flow" style="padding: 10px;">
+            <div class="step done" style="width: 24px; height: 24px; font-size: 0.625rem;">1</div>
+            <div class="conn done"></div>
+            <div class="step done" style="width: 24px; height: 24px; font-size: 0.625rem;">2</div>
+            <div class="conn done"></div>
+            <div class="step current" style="width: 24px; height: 24px; font-size: 0.625rem;">3</div>
+            <div class="conn current"></div>
+            <div class="step" style="width: 24px; height: 24px; font-size: 0.625rem;">4</div>
+          </div>
+        </div>
+        <div class="m-footer"><span class="fdir tx">TX</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- §15 未来扩展                                 -->
+<!-- ============================================ -->
+<section id="s15">
+  <h2><span class="num">15</span> 未来扩展预留 <span class="tag">EMS · PCS · Modbus</span></h2>
+  <div class="sub">BMS V1.13 完成后，向 EMS V1.4.3 / PCS / Modbus 协议扩展的预留位</div>
+
+  <table class="meta-table">
+    <thead>
+      <tr><th>协议</th><th>帧格式</th><th>复用卡片</th><th>新增卡片</th><th>状态</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>EMS V1.4.3</strong></td><td>TLV 自定义</td><td>TREND / BIG / BIT_SET / PAIR</td><td>SCHEDULE（EMS 调度计划）、TOPOLOGY（拓扑图）</td><td>v1.3.22+</td></tr>
+      <tr><td><strong>PCS</strong></td><td>TLV 自定义</td><td>TREND / BIG / PAIR</td><td>PHASOR（相量图）、EFFICIENCY（效率矩阵）</td><td>v1.3.23+</td></tr>
+      <tr><td><strong>Modbus RTU/TCP</strong></td><td>Modbus 标准</td><td>TREND / SET / BIT / BIG</td><td>REGISTER_MAP（寄存器映射表）、COIL_GRID（线圈矩阵）</td><td>v1.3.24+</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>复用原则</strong>：弹窗模式（chart-logs / big-metric / array-matrix 等）跨协议共享，仅 schema 配置差异。11 种卡片类型框架对新协议字段 80% 覆盖，新增仅"专属卡片"。
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- §16 实施路线                                 -->
+<!-- ============================================ -->
+<section id="s16">
+  <h2><span class="num">16</span> 实施路线</h2>
+  <div class="sub">v1.3.21 本设计稿完成后，分 3 批实施。优先复用已有，再新增</div>
+
+  <table class="meta-table">
+    <thead>
+      <tr><th>批次</th><th>内容</th><th>卡片</th><th>弹窗模式</th><th>前置依赖</th><th>估时</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>第 1 批</strong></td><td>复用已有</td><td>TREND / PAIR / CTRL / SET / BIT / BIT_SET</td><td>chart-logs / bit-history / bit-editor</td><td>v1.3.20 落地</td><td>已实现</td></tr>
+      <tr><td><strong>第 2 批</strong></td><td>数据类</td><td>BIG / ARRAY</td><td>big-metric / array-matrix</td><td>6.6 + 6.7.4 mock</td><td>3-5 天</td></tr>
+      <tr><td><strong>第 3 批</strong></td><td>流程类</td><td>STRING / LOG / WIZARD</td><td>text-detail / log-table / wizard-flow</td><td>6.7.1/2/3 mock</td><td>5-7 天</td></tr>
+      <tr><td><strong>第 4 批</strong></td><td>EMS 扩展</td><td>SCHEDULE / TOPOLOGY</td><td>新弹窗模式 × 2</td><td>EMS V1.4.3 schema</td><td>v1.3.22+</td></tr>
+      <tr><td><strong>第 5 批</strong></td><td>PCS + Modbus</td><td>PHASOR / EFFICIENCY / REGISTER_MAP / COIL_GRID</td><td>新弹窗模式 × 4</td><td>协议 schema</td><td>v1.3.23+</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================ -->
+<!-- §17 风险 + 待用户决策                        -->
+<!-- ============================================ -->
+<section id="s17">
+  <h2><span class="num">17</span> 风险 + 待用户决策</h2>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 风险</h3>
+  <table class="meta-table">
+    <thead>
+      <tr><th>风险</th><th>影响</th><th>对策</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>v1.3.20 尚未落地</td><td>本设计稿依赖 v1.3.20 弹窗作为参考</td><td>v1.3.20 6 处改动在串行完成后立即进入 v1.3.21</td></tr>
+      <tr><td>5 个新弹窗设计未经实测</td><td>实际交互可能与 mock 偏差</td><td>第 2/3 批实施时用真实数据回归测试，按需迭代</td></tr>
+      <tr><td>字段映射表抽样</td><td>BMS §4 全 48 字段未全列</td><td>本 spec 仅 26 字段抽样，v1.3.21 实施时补全 48 字段</td></tr>
+      <tr><td>HTML 预览体量大</td><td>~3500 行 / 200KB 一次性交付</td><td>如加载慢可拆多文件（按 § 拆分）</td></tr>
+    </tbody>
+  </table>
+
+  <h3 style="font-size: 0.875rem; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft);">▸ 待用户决策</h3>
+  <div class="callout warn">
+    <strong>5 个待确认事项</strong>：
+    <ol style="margin: 8px 0 0 20px;">
+      <li>11 种卡片是否需要增删？</li>
+      <li>8 种弹窗模式命名是否合适（big-metric / array-matrix / text-detail / log-table / wizard-flow）？</li>
+      <li>BMS V1.13 字段映射抽样是否准确？</li>
+      <li>预览 HTML 17 节结构是否合理？</li>
+      <li>实施路线 3 批分批是否接受？</li>
+    </ol>
+  </div>
+</section>
+
+</div>
+
+</body>
+</html>
