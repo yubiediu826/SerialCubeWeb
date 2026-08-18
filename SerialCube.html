@@ -6123,7 +6123,7 @@
     /* v1.3.6 P3: control 卡 (主机模式 — ctrl 位切换 + 发送 + 响应遥测) */
     .dashboard-host     .card-default.control .card-statusbar { background: #d97706; }
     .dashboard-host     .card-default.control .ctrl-bits {
-      flex: 1; min-height: 0; overflow-y: auto;
+      flex: 1; min-height: 0; max-height: 100px; overflow-y: auto;  /* v1.3.20: 16 bit + 中文长名多 bit 卡不再撑破 198px 卡片 */
       display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start;
       padding: 2px 0;
     }
@@ -6296,6 +6296,46 @@
     }
     .dashboard-host     .card-default.bit-set .card-value .num.on { color: #22c55e; }
     .dashboard-host     .card-default.bit-set .card-value { padding-bottom: 4px; }
+
+    /* v1.3.20: bit / bit_set 详情弹窗分支样式 */
+    .detail-bit-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+      font-size: 0.75rem; font-weight: 700; color: var(--pair);
+      background: var(--bg-subtle);
+    }
+    .detail-bit-title { color: var(--pair); }
+    .detail-bit-meta { color: var(--text-soft); font-size: 0.6875rem; font-weight: 500; font-family: var(--font-mono); }
+    .detail-page-editor {
+      display: flex; flex-direction: column; padding: 16px; gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .bit-editor-panel {
+      background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 6px;
+      padding: 12px 14px;
+    }
+    .bit-editor-title {
+      font-size: 0.8125rem; font-weight: 700; color: var(--pair);
+      margin-bottom: 10px;
+    }
+    .bit-editor-row {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .bit-editor-toggle { min-width: 96px; }
+    .bit-editor-state {
+      font-size: 1.25rem; font-weight: 800; color: var(--text-soft);
+      padding: 2px 8px; min-width: 48px; text-align: center;
+    }
+    .bit-editor-state.on { color: var(--ok); }
+    .bit-editor-raw {
+      font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-soft);
+      padding: 3px 8px; background: var(--bg); border-radius: 3px; border: 1px solid var(--border);
+    }
+    .bit-editor-spacer { flex: 1; }
+    .bit-editor-hint {
+      margin-top: 8px; font-size: 0.6875rem; color: var(--text-soft);
+      font-family: var(--font-mono);
+    }
     .dashboard-host     .card-default .card-footer .footer-range { color: #98989f; }
     .dashboard-host     .card-default .card-footer .footer-status {
       font-weight: 700; display: inline-flex; align-items: center; gap: 3px;
@@ -8854,6 +8894,14 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         <div class="version-changelog">
           <div class="version-changelog-title">更新日志</div>
           <div class="version-release">
+            <strong>1.3.20 版本 · 26-8-18</strong>
+            <ul>
+              <li>新增: 位卡 (bit) 详情弹窗单 tab "数据历史" (时间戳/字段值/状态/原始字节, 无图表)</li>
+              <li>新增: 位控制卡 (bit_set) 详情弹窗双 tab "操作 / 数据历史" (位开关组 + 原始字节预览 + 发送 + 历史), 改 dir: rx → both 紫色</li>
+              <li>优化: control 多 bit 卡片 (.ctrl-bits) 加 max-height 100px + overflow-y auto, 16 bit 长名卡片不再撑破 198px</li>
+            </ul>
+          </div>
+          <div class="version-release">
             <strong>1.3.19 版本 · 26-8-17</strong>
             <ul>
               <li>新增: 0x01 控制与常规数据 卡片补全 (BMS V1.13 §4 全部字段) — Device set 12 → 34 字段 (温度 5/电流校准 3/ASOC/容量统计 4/Vcell 辅 3/AdapterVolt/断开原因 2/容量 3), bitset +SignalSource (5 张)</li>
@@ -9141,7 +9189,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
 
   <script>
     (() => {
-      const VERSION = '1.3.19';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.11: trackSerialWebView 跳过本地; v1.3.10: 日志换行/卡片分组与角色区分/控制卡去RSOC/方向both/帧预览换行与预览值/字段下拉分组; v1.3.9: 单一协议+双向命令)
+      const VERSION = '1.3.20';  // 同步 README/PRODUCT/About 弹窗版本号 (v1.3.20: 位卡 + 详情弹窗分支 3 模式 chart-logs/bit-history/bit-editor + control 多 bit 滚动; v1.3.11: trackSerialWebView 跳过本地; v1.3.10: 日志换行/卡片分组与角色区分/控制卡去RSOC/方向both/帧预览换行与预览值/字段下拉分组; v1.3.9: 单一协议+双向命令)
       const ONLINE_VERSION_URL = 'https://yubiediu826.github.io/SerialCubeWeb/';
       const VERSION_MODAL_SEEN_KEY = 'serialweb:version-modal-seen';
       const MAX_DERIVED_LOG_LINES = 320;
@@ -18001,7 +18049,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             card.classList.toggle('bit-on', on);
             const offsetBytes = c.startBit != null ? Math.floor(c.startBit / 8) : null;
             const bitLen = c.bitLen != null ? c.bitLen : 1;
-            const dir = c.dir || 'rx';
+            // v1.3.20: bit_set 卡方向 fallback 改 both (从机控制位, 既要看也要发, 不是纯 RX 显示)
+            const dir = c.dir || 'both';
             const dirLabel = dir === 'tx' ? 'TX' : dir === 'rx' ? 'RX' : 'TX+RX';
             const rawHex = '0x' + (raw >>> 0).toString(16).toUpperCase().padStart(4, '0');
             card.innerHTML =
@@ -18583,13 +18632,23 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           document.getElementById('dh-detail-backdrop').classList.add('open');
           document.getElementById('dh-detail-modal').classList.add('open');
           NS._updateDetailTimerangeInfo();
-          NS._renderDetailBody();
+          // v1.3.20: 3 弹窗模式分支 (chart-logs / bit-history / bit-editor) - 默认页按 card.type 决定
+          if (card.type === 'bit') {
+            NS._detailPage = 'logs';           // bit 卡: 单 tab 数据历史 (无图表)
+            NS._renderBitHistoryDetail(card);
+          } else if (card.type === 'bit_set') {
+            NS._detailPage = 'editor';         // bit_set 卡: 双 tab 操作 + 数据历史
+            NS._renderBitEditorDetail(card);
+          } else {
+            NS._detailPage = 'chart';          // 现状: trend / pair / control / set 走 chart-logs
+            NS._renderDetailBody();
+          }
         };
         // 详情 modal 当前页 ('chart' | 'logs')
         NS._detailPage = 'chart';
         // 切换页 + 重 render
         NS._switchDetailPage = function (page) {
-          if (page !== 'chart' && page !== 'logs') return;
+          if (page !== 'chart' && page !== 'logs' && page !== 'editor') return;
           NS._detailPage = page;
           // 同步 tab 状态
           document.querySelectorAll('.detail-page-tab').forEach((b) => b.classList.toggle('active', b.dataset.page === page));
@@ -18600,7 +18659,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           const body = document.getElementById('dh-detail-body');
           if (body) {
             body.querySelectorAll('.detail-page-chart').forEach((el) => el.style.display = (page === 'chart') ? 'flex' : 'none');
-            body.querySelectorAll('.detail-page-logs').forEach((el) => el.style.display = (page === 'logs') ? 'flex' : 'none');
+            body.querySelectorAll('.detail-page-logs').forEach((el) => el.style.display = (page === 'logs' || page === 'editor') ? 'flex' : 'none');
+            body.querySelectorAll('.detail-page-editor').forEach((el) => el.style.display = (page === 'editor') ? 'flex' : 'none');
           }
           // 切到 logs 页: 立即滚到底 (如果有跟随)
           if (page === 'logs') {
@@ -18616,6 +18676,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           const id = NS._detailCardId;
           const card = NS.CARDS.find((c) => c.id === id);
           if (!card) return;
+          // v1.3.20: bit / bit_set 已在 __openDetail dispatch 走专用渲染, 这里走 chart-logs 路径
+          if (card.type === 'bit' || card.type === 'bit_set') return;
           // 取消上一帧 rAF, 防重入 (连续 wheel 缩放 + reset 时不打架)
           if (NS._renderRafId) cancelAnimationFrame(NS._renderRafId);
           const body = document.getElementById('dh-detail-body');
@@ -18697,6 +18759,91 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             NS._updateDetailZoomInfo(card, data);
             // 切到当前页 (新开 modal 默认 chart, 但开时已设了)
             NS._switchDetailPage(NS._detailPage);
+          });
+        };
+
+        // v1.3.20: bit 卡单 tab 数据历史弹窗 (无图表, 4 列日志: 时间戳/字段值/状态/原始字节)
+        NS._renderBitHistoryDetail = function (card) {
+          if (!card) return;
+          const body = document.getElementById('dh-detail-body');
+          if (!body) return;
+          if (NS._renderRafId) cancelAnimationFrame(NS._renderRafId);
+          const offsetBytes = card.startBit != null ? Math.floor(card.startBit / 8) : null;
+          const bitLen = card.bitLen != null ? card.bitLen : 1;
+          body.innerHTML = '<div class="detail-page-logs detail-bit-only">'
+            + '<div class="detail-bit-header">'
+            + '<span class="detail-bit-title">位状态历史 · ' + NS.escapeHtml(card.title) + ' (bit ' + card.bit + ')</span>'
+            + '<span class="detail-bit-meta">byte ' + offsetBytes + ' · ' + bitLen + 'bit · dir ' + (card.dir || 'rx').toUpperCase() + '</span>'
+            + '</div>'
+            + '<div class="detail-logs-panel">'
+            + '<div class="detail-logs-header">'
+            + '<span class="detail-logs-title">数据历史 (时间戳 / 字段值 / 状态 / 原始字节)</span>'
+            + '<span class="detail-logs-spacer"></span>'
+            + '<span class="detail-logs-count" id="dh-detail-logs-count">0 条</span>'
+            + '<button class="detail-logs-jump-btn active" id="dh-detail-logs-jump" title="新数据自动滚到底部"><svg viewBox="0 0 16 16" class="icon-svg" style="width:11px; height:11px; vertical-align:-1px; margin-right:3px;"><path d="M8 2 V11 M4 7 L8 11 L12 7 M2 14 H14" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>跟随</button>'
+            + '</div>'
+            + '<div class="detail-logs-table" id="dh-detail-logs-table"></div>'
+            + '</div>'
+            + '</div>';
+          NS._renderRafId = requestAnimationFrame(() => {
+            NS._renderRafId = null;
+            NS._renderDetailLogs(card);
+            NS._switchDetailPage('logs');
+          });
+        };
+
+        // v1.3.20: bit_set 卡双 tab 弹窗 (操作 + 数据历史)
+        //   操作 tab: 切换按钮 + 状态大字 + 原始字节预览 + 发送按钮 (从机模式仿真)
+        //   数据历史 tab: 复用 .detail-logs-table 4 列日志
+        NS._renderBitEditorDetail = function (card) {
+          if (!card) return;
+          const body = document.getElementById('dh-detail-body');
+          if (!body) return;
+          if (NS._renderRafId) cancelAnimationFrame(NS._renderRafId);
+          const fieldVal = NS.currentVals[card.field] != null ? NS.currentVals[card.field] : 0;
+          const bitOn = ((fieldVal >> card.bit) & 1) === 1;
+          const rawHex = '0x' + (fieldVal >>> 0).toString(16).toUpperCase().padStart(4, '0');
+          body.innerHTML = '<div class="detail-page-editor">'
+            + '<div class="bit-editor-panel">'
+            + '<div class="bit-editor-title">位控制 · ' + NS.escapeHtml(card.title) + ' (bit ' + card.bit + ' · ' + NS.escapeHtml(card.bitName || ('bit' + card.bit)) + ')</div>'
+            + '<div class="bit-editor-row">'
+            + '<button type="button" class="ctrl-send bit-editor-toggle" data-action="bit-toggle">' + (bitOn ? '关闭 (OFF)' : '开启 (ON)') + '</button>'
+            + '<span class="bit-editor-state ' + (bitOn ? 'on' : '') + '">' + (bitOn ? 'ON' : 'OFF') + '</span>'
+            + '<span class="bit-editor-raw" id="bit-editor-raw-hex">' + rawHex + '</span>'
+            + '<span class="bit-editor-spacer"></span>'
+            + '<button type="button" class="ctrl-send" data-action="bit-send">发送 (TX)</button>'
+            + '</div>'
+            + '<div class="bit-editor-hint">从机模式: 修改后点"发送"模拟 CB 响应 · field = ' + NS.escapeHtml(card.field) + '</div>'
+            + '</div>'
+            + '</div>'
+            + '<div class="detail-page-logs">'
+            + '<div class="detail-logs-panel">'
+            + '<div class="detail-logs-header">'
+            + '<span class="detail-logs-title">数据历史</span>'
+            + '<span class="detail-logs-spacer"></span>'
+            + '<span class="detail-logs-count" id="dh-detail-logs-count">0 条</span>'
+            + '<button class="detail-logs-jump-btn active" id="dh-detail-logs-jump" title="新数据自动滚到底部"><svg viewBox="0 0 16 16" class="icon-svg" style="width:11px; height:11px; vertical-align:-1px; margin-right:3px;"><path d="M8 2 V11 M4 7 L8 11 L12 7 M2 14 H14" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>跟随</button>'
+            + '</div>'
+            + '<div class="detail-logs-table" id="dh-detail-logs-table"></div>'
+            + '</div>'
+            + '</div>';
+          // 绑定按钮 (切换 / 发送)
+          body.querySelectorAll('[data-action]').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const act = btn.getAttribute('data-action');
+              if (act === 'bit-toggle') {
+                NS._toggleControlBit(card, { bit: card.bit, name: card.bitName });
+                NS._renderBitEditorDetail(card);  // 重渲染 (按钮文字 + 状态色 + 原始字节)
+              } else if (act === 'bit-send') {
+                NS._sendBitSetFrame(card);
+              }
+            });
+          });
+          NS._renderRafId = requestAnimationFrame(() => {
+            NS._renderRafId = null;
+            NS._renderDetailLogs(card);
+            NS._switchDetailPage('editor');
           });
         };
 
@@ -21369,7 +21516,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 if (!Array.isArray(f.bits)) return;
                 f.bits.forEach((b) => {
                   if (typeof b.bit !== 'number') return;
-                  cards.push({ id: protoId + '_bit_set_' + f.name + '_' + b.bit, type: 'bit_set', cmd: 0x01, dir: 'rx',
+                  cards.push({ id: protoId + '_bit_set_' + f.name + '_' + b.bit, type: 'bit_set', cmd: 0x01, dir: 'both',
                     field: f.name, bit: b.bit, bitName: b.name, bitsetField: f.name,
                     startBit: (f.startBit || 0) + b.bit, bitLen: 1,
                     title: b.name || ('bit' + b.bit), unit: '', precision: 0,
