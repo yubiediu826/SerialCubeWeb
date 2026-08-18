@@ -11,6 +11,10 @@
 
 ## 📑 子文件索引
 
+### 2026-08-18
+
+- [`changelog/2026-08-18-v1.3.20-detail-modal-branches.md`](changelog/2026-08-18-v1.3.20-detail-modal-branches.md) — **v1.3.20**: 位卡 + 详情弹窗分支 — 3 弹窗模式 (chart-logs / bit-history / bit-editor) 按 card.type 分流 + bit_set dir rx→both 修复 (footer 改深紫) + control 多 bit 卡 max-height:100px 滚动; 新增 _renderBitHistoryDetail / _renderBitEditorDetail / .detail-bit-header / .bit-editor-* CSS; 3 files / +197 / -8; commit `3ce9ad8`
+
 ### 2026-08-17
 
 - [`changelog/2026-08-17-v1.3.19-0x01-full-fields.md`](changelog/2026-08-17-v1.3.19-0x01-full-fields.md) — **v1.3.19**: 0x01 控制与常规数据 卡片补全 (BMS V1.13 §4 全部字段) — Device set 12→34 字段 + bitset +SignalSource (5 张) + Host trend 6→12 字段; JSON 字段命名 BackupPowerVoltage→AdapterVolt (协议修订对齐) + SignalSource type u8→bitset
