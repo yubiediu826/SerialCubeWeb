@@ -6501,6 +6501,66 @@
     .dashboard-host     .big-meta .meta-threshold.bad { background: var(--bad-soft, rgba(224, 87, 94, 0.14)); color: var(--bad); }
     .dashboard-host     .big-meta .meta-threshold.warn { background: var(--warn-soft, rgba(217, 119, 6, 0.14)); color: var(--warn); }
 
+    /* v1.3.21: STRING 卡片 (Task 8) — 文本片段 (SN 码/固件版本) + HEX 预览
+       适用字段: SN (0x03) / 固件版本 / 设备型号
+       数据: c.value (string) + c.bytes (16 元素 array, 原始字节)
+       弹窗模式: text-detail (2 tab: 详情/发送历史 — 当前实现仅详情 view) */
+    .dashboard-host     .card-default.string .card-statusbar { background: var(--string); }
+    .dashboard-host     .card-default.string .type-badge {
+      background: var(--string-soft); color: var(--string);
+      text-transform: none; padding: 1px 6px; font-size: 0.625rem; font-weight: 700;
+    }
+    .dashboard-host     .card-default.string .card-value .num {
+      font-size: 0.875rem; font-weight: 700; color: var(--text);
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      line-height: 1.2;
+      word-break: break-all; max-width: 100%;
+    }
+    .dashboard-host     .card-default.string .card-value .unit {
+      font-size: 0.625rem; color: var(--text-soft);
+    }
+    .dashboard-host     .card-default.string .string-preview {
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-size: 0.5625rem; line-height: 1.5;
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: 3px; padding: 4px 6px; margin: 4px 0 0;
+      word-break: break-all; max-height: 32px; overflow: hidden;
+      color: var(--text-soft);
+    }
+    .dashboard-host     .card-default.string .card-footer .footer-direction.both {
+      color: var(--string);
+    }
+
+    /* v1.3.21: STRING 弹窗文本详情 (text-detail 详情 view) */
+    .dashboard-host     .detail-body .detail-text-content { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .dashboard-host     .text-detail-wrap { display: flex; flex-direction: column; gap: 14px; }
+    .dashboard-host     .text-section { display: flex; flex-direction: column; gap: 6px; }
+    .dashboard-host     .text-section-label {
+      font-size: 0.625rem; color: var(--text-soft);
+      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700;
+    }
+    .dashboard-host     .text-ascii-box {
+      font-size: 1.5rem; font-weight: 800; color: var(--text);
+      padding: 12px 16px; background: var(--bg-subtle); border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      word-break: break-all; line-height: 1.3;
+    }
+    .dashboard-host     .text-hex-box {
+      background: var(--bg-subtle); border: 1px solid var(--border);
+      border-radius: 6px; padding: 10px 14px;
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+    }
+    .dashboard-host     .text-hex-line {
+      font-size: 0.75rem; line-height: 1.5; color: var(--text);
+      letter-spacing: 0.02em;
+    }
+    .dashboard-host     .text-ascii-col {
+      font-size: 0.875rem; color: var(--text);
+      padding: 8px 12px; background: var(--bg-subtle); border: 1px solid var(--border);
+      border-radius: 4px; word-break: break-all; line-height: 1.4;
+    }
+    .dashboard-host     .text-ascii-col.mono { font-family: "Cascadia Code", Consolas, monospace; }
 
     /* v1.3.20: bit / bit_set 详情弹窗分支样式 */
     .detail-bit-header {
@@ -18369,6 +18429,78 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             card.addEventListener('click', () => NS.__openDetail(c.id));
             return card;
           } else if (c.type === 'string') {
+            // v1.3.21 Task 8: STRING 卡片 — 文本片段 (SN 码/固件版本) + HEX 预览
+            //   适用字段: SN (0x03) / 固件版本 / 设备型号
+            //   数据: c.value (string) + c.bytes (16 元素 array, 原始字节)
+            //   弹窗模式: text-detail (2 tab: 详情/发送历史 — 当前实现仅详情)
+            //   通用渲染, 不 hardcode 任何 schema 字段
+            card.classList.add('string');
+            const text = (c.value != null) ? String(c.value) : '';
+            const bytes = Array.isArray(c.bytes) ? c.bytes : [];
+            const dir = c.dir || 'both';
+            const dirLabel = dir === 'tx' ? 'TX' : dir === 'rx' ? 'RX' : 'TX+RX';
+            // HEX 预览: 前 32 字节, 8 字节一行 (卡片有限空间)
+            const previewBytes = bytes.slice(0, 32);
+            const hexPreview = previewBytes.map((b) => ('00' + (b & 0xFF).toString(16).toUpperCase()).slice(-2)).join(' ');
+            card.innerHTML =
+              '<div class="card-statusbar"></div>'
+              + '<div class="card-body">'
+              + '<div class="card-header">'
+              + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="type-badge">STRING</span>'
+              + '</div>'
+              + '<div class="card-value" data-action="detail">'
+              + '<span class="num">' + NS.escapeHtml(text || '—') + '</span>'
+              + '<span class="unit">' + bytes.length + ' 字节</span>'
+              + '</div>'
+              + '<div class="string-preview">' + NS.escapeHtml(hexPreview || '—') + '</div>'
+              + '<div class="card-footer">'
+              + '<span class="footer-range">' + (text ? text.length + ' 字符' : '空') + ' · ' + bytes.length + ' 字节</span>'
+              + '<span class="footer-direction ' + dir + '">' + dirLabel + '</span>'
+              + '</div>'
+              + '</div>'
+              + (NS.editMode ? '<div class="card-actions">'
+                + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                + '</div>' : '');
+            card.querySelectorAll('[data-action]').forEach((btn) => {
+              btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const act = btn.getAttribute('data-action');
+                if (act === 'edit') NS.openCardEdit(c.id);
+                else if (act === 'detail') NS.__openDetail(c.id);
+              });
+            });
+            card.addEventListener('click', () => NS.__openDetail(c.id));
+            return card;
+          } else if (c.type === 'bit') {
+            // v1.3.19.1.2: bit 状态卡 — bitset 单 bit 专属 (不用 rx 数值卡模板)
+            //   离散 ON/OFF, 不需图表/单位/范围, 紧凑布局
+            //   标题 = 位名, 大字 ON/OFF, footer = "byte N · bit N · Nbit"
+            card.classList.add('bit');
+            const rawV = NS.currentVals[c.bitsetField] != null ? NS.currentVals[c.bitsetField] : 0;
+            const on = ((rawV >> c.bit) & 1) === 1;
+            card.classList.toggle('bit-on', on);
+            const offsetBytes = c.startBit != null ? Math.floor(c.startBit / 8) : null;
+            const bitLen = c.bitLen != null ? c.bitLen : 1;
+            const dirStatusExtra = '';  // bit 卡无 alert (离散 0/1 无 range)
+            card.innerHTML =
+              '<div class="card-statusbar"></div>'
+              + '<div class="card-body">'
+              + '<div class="card-header">'
+              + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="type-badge bit">BIT</span>'
+              + '</div>'
+              + '<div class="card-value" data-action="detail">'
+              + '<span class="num">' + (on ? 'ON' : 'OFF') + '</span>'
+              + '</div>'
+              + '<div class="card-footer">'
+              + '<span class="footer-range"></span>'
+              + '<span class="footer-direction rx">' + 'byte ' + offsetBytes + ' · bit ' + c.bit + ' · ' + bitLen + 'bit' + dirStatusExtra + '</span>'
+              + '</div>'
+              + '</div>'
+              + (NS.editMode ? '<div class="card-actions">'
+                + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                + '</div>' : '');
           } else if (c.type === 'bit_set') {
             // v1.3.19.1.3: bit_set 控制卡 — 从机模式 CB bitset 按位控制 (跟 'bit' 显示卡区分)
             //   视觉跟 control 单bit 卡类似: 大字 ON/OFF + "开启"按钮 + "发送"按钮 + TX direction
@@ -19230,6 +19362,60 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             + '</div>'
             + '</div>';
           // 设置 active tab + 显隐 (page='big' 隐藏 chart tools)
+          NS._switchDetailPage(NS._detailPage);
+        };
+        // v1.3.21: STRING 卡片文本详情弹窗 (Task 8) — 详情视图 (后续扩展发送历史)
+        //   ASCII 大字 + 完整 HEX 字节流, 数据从 card.value (string) + card.bytes (16 元素 array) 读
+        //   2 tab 计划 (详情/发送历史), 当前实现仅详情 — 复用 modal chart page slot
+        NS.renderTextDetailBody = function (card) {
+          if (!card) return;
+          if (NS._renderRafId) cancelAnimationFrame(NS._renderRafId);
+          const body = document.getElementById('dh-detail-body');
+          if (!body) return;
+          const text = (card.value != null) ? String(card.value) : '';
+          const bytes = Array.isArray(card.bytes) ? card.bytes : [];
+          // HEX 格式化: 16 字节 → 2 字符大写 + 空格分隔
+          const hexStr = bytes.map((b) => ('00' + (b & 0xFF).toString(16).toUpperCase()).slice(-2)).join(' ');
+          // 4 字节一行 (16 字节 = 4 行), 每行带 offset 标签 (e.g. 0x00, 0x04, 0x08, 0x0C)
+          const linesPerRow = 4;
+          const hexLines = [];
+          for (let i = 0; i < bytes.length; i += linesPerRow) {
+            const slice = bytes.slice(i, i + linesPerRow);
+            const lineHex = slice.map((b) => ('00' + (b & 0xFF).toString(16).toUpperCase()).slice(-2)).join(' ');
+            const offset = ('0x' + i.toString(16).toUpperCase().padStart(2, '0'));
+            hexLines.push(offset + '  ' + lineHex);
+          }
+          // ASCII 列 (可打印字符显示, 不可打印替换 .)
+          const asciiRepr = bytes.map((b) => (b >= 0x20 && b <= 0x7E) ? String.fromCharCode(b) : '.').join('');
+          body.innerHTML = '<div class="detail-page-chart detail-text-content">'
+            + '<div class="text-detail-wrap">'
+            + '<div class="text-section">'
+            + '<div class="text-section-label">ASCII 文本</div>'
+            + '<div class="text-ascii-box">' + NS.escapeHtml(text) + '</div>'
+            + '</div>'
+            + '<div class="text-section">'
+            + '<div class="text-section-label">完整 HEX 字节流 · ' + bytes.length + ' 字节</div>'
+            + '<div class="text-hex-box">'
+            + hexLines.map((line) => '<div class="text-hex-line">' + NS.escapeHtml(line) + '</div>').join('')
+            + '</div>'
+            + '</div>'
+            + '<div class="text-section">'
+            + '<div class="text-section-label">ASCII 列 (可打印字符显示, 不可打印替换 .)</div>'
+            + '<div class="text-ascii-col mono">' + NS.escapeHtml(asciiRepr) + '</div>'
+            + '</div>'
+            + '</div>'
+            // === 日志页 (复用 chart-logs 模式, 简单版 — 暂无历史数据可显示) ===
+            + '<div class="detail-page-logs">'
+            + '<div class="detail-logs-panel">'
+            + '<div class="detail-logs-header">'
+            + '<span class="detail-logs-title">发送历史</span>'
+            + '<span class="detail-logs-spacer"></span>'
+            + '<span class="detail-logs-count" id="dh-detail-logs-count">0 条</span>'
+            + '</div>'
+            + '<div style="padding: 20px; text-align: center; color: var(--text-mute); font-size: 0.6875rem;">STRING 文本暂未启用发送历史 (后续 Task 8+ 扩展)</div>'
+            + '</div>'
+            + '</div>';
+          // 设置 active tab + 显隐 (page='text' 隐藏 chart tools)
           NS._switchDetailPage(NS._detailPage);
         };
         NS._renderDetailBody = function () {
