@@ -6413,6 +6413,8 @@
     .dashboard-host     .card-default.array.span-2x1 .cell.bad .idx { color: var(--danger); font-weight: 700; }
     .dashboard-host     .card-default.array.span-2x1 .cell.bad .val { color: var(--danger); }
 
+
+
     /* v1.3.20: bit / bit_set 详情弹窗分支样式 */
     .detail-bit-header {
       display: flex; justify-content: space-between; align-items: center;
@@ -6693,6 +6695,13 @@ body.edit-mode .dashboard-host .list-card .lc-actions { opacity: 1 !important; }
 .dashboard-host     .modal-header.detail-header { gap: 10px; flex-wrap: wrap; height: 48px; flex-shrink: 0; }
 .dashboard-host     .detail-cmd-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.625rem; font-weight: 700; font-family: var(--font-mono); background: var(--signal-soft); color: var(--signal); letter-spacing: 0.04em; }
 .dashboard-host     .detail-cmd-badge.tx { background: var(--accent-soft); color: var(--accent-strong); }
+/* v1.3.21: 5 新 type 颜色修饰 — 弹窗 m-header badge 按 card.type 变 */
+.dashboard-host     .detail-cmd-badge.big { background: var(--big-soft); color: var(--big); }
+.dashboard-host     .detail-cmd-badge.string { background: var(--string-soft); color: var(--string); }
+.dashboard-host     .detail-cmd-badge.array { background: var(--array-soft); color: var(--array); }
+.dashboard-host     .detail-cmd-badge.log { background: var(--log-soft); color: var(--log); }
+.dashboard-host     .detail-cmd-badge.wizard { background: var(--wizard-soft); color: var(--wizard); }
+.dashboard-host     .detail-cmd-badge.bit { background: rgba(124, 58, 237, 0.14); color: var(--pair); }
 .dashboard-host     .detail-range { font-size: 0.6875rem; color: var(--text-soft); }
 .dashboard-host     .detail-status { font-size: 0.6875rem; font-weight: 600; padding: 1px 6px; border-radius: 3px; background: var(--success-soft, rgba(34, 197, 94, 0.14)); color: var(--success); }
 
@@ -18217,35 +18226,8 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             });
             card.addEventListener('click', () => NS.__openDetail(c.id));
             return card;
-          } else if (c.type === 'bit') {
-            // v1.3.19.1.2: bit 状态卡 — bitset 单 bit 专属 (不用 rx 数值卡模板)
-            //   离散 ON/OFF, 不需图表/单位/范围, 紧凑布局
-            //   标题 = 位名, 大字 ON/OFF, footer = "byte N · bit N · Nbit"
-            card.classList.add('bit');
-            const rawV = NS.currentVals[c.bitsetField] != null ? NS.currentVals[c.bitsetField] : 0;
-            const on = ((rawV >> c.bit) & 1) === 1;
-            card.classList.toggle('bit-on', on);
-            const offsetBytes = c.startBit != null ? Math.floor(c.startBit / 8) : null;
-            const bitLen = c.bitLen != null ? c.bitLen : 1;
-            const dirStatusExtra = '';  // bit 卡无 alert (离散 0/1 无 range)
-            card.innerHTML =
-              '<div class="card-statusbar"></div>'
-              + '<div class="card-body">'
-              + '<div class="card-header">'
-              + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
-              + '<span class="type-badge bit">BIT</span>'
-              + '</div>'
-              + '<div class="card-value" data-action="detail">'
-              + '<span class="num">' + (on ? 'ON' : 'OFF') + '</span>'
-              + '</div>'
-              + '<div class="card-footer">'
-              + '<span class="footer-range"></span>'
-              + '<span class="footer-direction rx">' + 'byte ' + offsetBytes + ' · bit ' + c.bit + ' · ' + bitLen + 'bit' + dirStatusExtra + '</span>'
-              + '</div>'
-              + '</div>'
-              + (NS.editMode ? '<div class="card-actions">'
-                + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
-                + '</div>' : '');
+          } else if (c.type === 'big') {
+          } else if (c.type === 'string') {
           } else if (c.type === 'bit_set') {
             // v1.3.19.1.3: bit_set 控制卡 — 从机模式 CB bitset 按位控制 (跟 'bit' 显示卡区分)
             //   视觉跟 control 单bit 卡类似: 大字 ON/OFF + "开启"按钮 + "发送"按钮 + TX direction
@@ -18885,6 +18867,20 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         // 5 种图表: line / bar / area / scatter / histogram (chart type 切换, real+wave 同步)
         // pair 卡 (c9): 3 列 SET/ACT/Δ 大数字 + SET 虚线 + ACT 实线 双线图表
         NS._detailCardId = null;
+        // v1.3.21: 11 卡片 → 8 弹窗模式映射 (Task 6 引入, 后续 Task 7-10 扩展)
+        //   chart-logs: 4 卡片共享 (trend / pair / ctrl / set) — 实时图表 + 历史日志
+        //   bit-history: 单 tab 数据历史 (v1.3.20)
+        //   bit-editor: 双 tab 操作 + 数据历史 (v1.3.20)
+        //   big-metric: Task 7 新增 — 大数字仪表
+        //   array-matrix: 已有 ARRAY 卡片 (Task 5), 弹窗待实现
+        //   text-detail: Task 8 新增 — SN 码 / 固件版本
+        //   log-table / wizard-flow: Task 9-10 占位
+        NS.DETAIL_MODES = {
+          trend: 'chart-logs', pair: 'chart-logs', control: 'chart-logs', set: 'chart-logs',
+          bit: 'bit-history', bit_set: 'bit-editor',
+          big: 'big-metric', array: 'array-matrix', string: 'text-detail',
+          log: 'log-table', wizard: 'wizard-flow'
+        };
         NS.__openDetail = function (id) {
           const card = NS.CARDS.find((c) => c.id === id);
           if (!card) return;
@@ -18896,11 +18892,27 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           document.getElementById('dh-detail-title').textContent = card.title;
           const cmdHex = card.cmd ? card.cmd.toString(16).padStart(2, '0').toUpperCase() : '00';
           const cmdEl = document.getElementById('dh-detail-cmd');
+          // v1.3.21: m-header badge 颜色按 card.type 变 — 5 新 type (big/string/log/wizard) 各自独立 color class
+          //   chart-logs (trend/control/pair/set): 跟原来一样, 蓝/橙/紫/蓝 (由 dir 决定 tx 类)
+          //   big-metric / text-detail / log-table / wizard-flow: 绿/灰/棕/青 (新 type 标识)
+          const typeColorClass = (function () {
+            const t = card.type;
+            if (t === 'big') return ' big';
+            if (t === 'string') return ' string';
+            if (t === 'log') return ' log';
+            if (t === 'wizard') return ' wizard';
+            if (t === 'array') return ' array';
+            if (t === 'bit' || t === 'bit_set') return ' bit';
+            return card.dir === 'tx' ? ' tx' : '';
+          })();
           cmdEl.textContent = cmdHex + ' ' + (card.dir || 'tx').toUpperCase();
-          cmdEl.className = 'detail-cmd-badge' + (card.dir === 'tx' ? ' tx' : '');
+          cmdEl.className = 'detail-cmd-badge' + typeColorClass;
+          // v1.3.21: footer.direction 颜色按 card.type 变 — 仅作用于 dashboard 卡片 footer (在 renderCard 各分支已实现)
+          //   modal m-header 的 cmd badge 已经按 card.type 加 typeColorClass (上面), footer 不在 modal 中渲染
+          //   (原计划想在 modal 加 dh-detail-direction, 但 modal HTML 没此元素, 跳过 — 实际效果: 卡片 footer 已按 type 变色)
           document.getElementById('dh-detail-range').textContent = card.range
             ? '范围 ' + card.range[0] + ' - ' + card.range[1] + (card.unit || '')
-            : (card.type === 'pair' ? 'SET vs ACT' : '');
+            : (card.type === 'pair' ? 'SET vs ACT' : (card.type === 'big' ? '大数字仪表' : (card.type === 'string' ? '文本片段' : '')));
           document.getElementById('dh-detail-status').textContent = card.fromOtherCmd ? 'RX-only' : '正常';
           // 重置 time-range chip 状态
           document.querySelectorAll('.detail-timerange-chip').forEach((b) => b.classList.toggle('active', b.dataset.range === 'realtime'));
@@ -18914,15 +18926,25 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
           document.getElementById('dh-detail-backdrop').classList.add('open');
           document.getElementById('dh-detail-modal').classList.add('open');
           NS._updateDetailTimerangeInfo();
-          // v1.3.20: 3 弹窗模式分支 (chart-logs / bit-history / bit-editor) - 默认页按 card.type 决定
-          if (card.type === 'bit') {
-            NS._detailPage = 'logs';           // bit 卡: 单 tab 数据历史 (无图表)
+          // v1.3.21: 8 弹窗模式 dispatch — DETAIL_MODES 映射表
+          const mode = NS.DETAIL_MODES[card.type] || 'chart-logs';
+          if (mode === 'bit-history') {
+            NS._detailPage = 'logs';
             NS._renderBitHistoryDetail(card);
-          } else if (card.type === 'bit_set') {
-            NS._detailPage = 'editor';         // bit_set 卡: 双 tab 操作 + 数据历史
+          } else if (mode === 'bit-editor') {
+            NS._detailPage = 'editor';
             NS._renderBitEditorDetail(card);
+          } else if (mode === 'big-metric') {
+            // Task 7: 大数字仪表 — 仪表 view, page='big' 隐藏 chart tools (缩放/图表类型)
+            NS._detailPage = 'big';
+            NS.renderBigMetricBody(card);
+          } else if (mode === 'text-detail') {
+            // Task 8: 文本详情 — 详情 view, page='text' 隐藏 chart tools
+            NS._detailPage = 'text';
+            NS.renderTextDetailBody(card);
           } else {
-            NS._detailPage = 'chart';          // 现状: trend / pair / control / set 走 chart-logs
+            // chart-logs: trend / pair / control / set 共用
+            NS._detailPage = 'chart';
             NS._renderDetailBody();
           }
         };
@@ -18930,17 +18952,20 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         NS._detailPage = 'chart';
         // 切换页 + 重 render
         NS._switchDetailPage = function (page) {
-          if (page !== 'chart' && page !== 'logs' && page !== 'editor') return;
+          // v1.3.21: 扩展支持 'big' / 'text' (BIG/STRING 弹窗主页面)
+          if (page !== 'chart' && page !== 'logs' && page !== 'editor' && page !== 'big' && page !== 'text') return;
           NS._detailPage = page;
-          // 同步 tab 状态
-          document.querySelectorAll('.detail-page-tab').forEach((b) => b.classList.toggle('active', b.dataset.page === page));
+          // 同步 tab 状态: 'big' / 'text' 仍对应 "图表" tab active (BIG/STRING 主内容在 chart slot)
+          const activeTab = (page === 'big' || page === 'text') ? 'chart' : page;
+          document.querySelectorAll('.detail-page-tab').forEach((b) => b.classList.toggle('active', b.dataset.page === activeTab));
           // 同步 page-tabs 容器 data-page (用于 .detail-chart-tools 显隐)
+          //   'big' / 'text' 不用 'chart' 避免 chart tools (缩放按钮) 显示 — BIG/STRING 无图表可缩放
           const tabs = document.querySelector('.detail-page-tabs');
           if (tabs) tabs.setAttribute('data-page', page);
           // 显隐 body 子页
           const body = document.getElementById('dh-detail-body');
           if (body) {
-            body.querySelectorAll('.detail-page-chart').forEach((el) => el.style.display = (page === 'chart') ? 'flex' : 'none');
+            body.querySelectorAll('.detail-page-chart').forEach((el) => el.style.display = (page === 'chart' || page === 'big' || page === 'text') ? 'flex' : 'none');
             body.querySelectorAll('.detail-page-logs').forEach((el) => el.style.display = (page === 'logs' || page === 'editor') ? 'flex' : 'none');
             body.querySelectorAll('.detail-page-editor').forEach((el) => el.style.display = (page === 'editor') ? 'flex' : 'none');
           }
@@ -18954,23 +18979,19 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             }
           }
         };
-        NS._renderDetailBody = function () {
-          const id = NS._detailCardId;
-          const card = NS.CARDS.find((c) => c.id === id);
-          if (!card) return;
-          // v1.3.20: bit / bit_set 已在 __openDetail dispatch 走专用渲染, 这里走 chart-logs 路径
-          if (card.type === 'bit' || card.type === 'bit_set') return;
-          // 取消上一帧 rAF, 防重入 (连续 wheel 缩放 + reset 时不打架)
-          if (NS._renderRafId) cancelAnimationFrame(NS._renderRafId);
-          const body = document.getElementById('dh-detail-body');
-          const chartType = document.getElementById('dh-detail-chart-type').value;
-          // 拆成两页 (chart / logs), 通过 NS._detailPage 切换
+        // v1.3.21: chart-logs 弹窗 body 渲染 (4 卡片共用: trend / pair / control / set)
+        //   提取自原 _renderDetailBody, 走 mode = 'chart-logs' 时调用 — 跟 v1.3.20 _renderBitHistoryDetail / _renderBitEditorDetail 模式一致
+        //   返回 HTML 字符串, 调用方负责写入 body.innerHTML
+        NS.renderChartLogsBody = function (card) {
           // pair 卡 顶部多一段 SET/ACT/Δ 3 列 (放在 chart 页)
           let pairGridHtml = '';
           if (card.type === 'pair') {
             let set = 0, act = 0;
             if (card.pairId === 'charge_v') {
               set = NS.currentVals.charge_v_set || 0;
+              act = (NS.currentVals.pack_v_avg || 0) * 15;
+            } else if (card.pairId === 'discharge_v') {
+              set = NS.currentVals.discharge_v_set || 0;
               act = (NS.currentVals.pack_v_avg || 0) * 15;
             } else {
               set = NS.currentVals[card.pairId + '_set'] || 0;
@@ -18984,7 +19005,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               + '<div class="detail-pair-cell delta"><div class="plabel">Δ</div><div class="pvalue ' + dCls + '">' + (delta > 0 ? '+' : '') + delta.toFixed(1) + '<span class="punit">' + (card.unit || 'V') + '</span></div></div>'
               + '</div>';
           }
-          body.innerHTML = pairGridHtml
+          return pairGridHtml
             // === 图表页 ===
             + '<div class="detail-page-chart">'
             + '<div class="chart-area" id="dh-chart-area">'
@@ -19008,6 +19029,19 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             + '<div class="detail-logs-table" id="dh-detail-logs-table"></div>'
             + '</div>'
             + '</div>';
+        };
+        NS._renderDetailBody = function () {
+          const id = NS._detailCardId;
+          const card = NS.CARDS.find((c) => c.id === id);
+          if (!card) return;
+          // v1.3.20: bit / bit_set 已在 __openDetail dispatch 走专用渲染, 这里走 chart-logs 路径
+          if (card.type === 'bit' || card.type === 'bit_set') return;
+          // 取消上一帧 rAF, 防重入 (连续 wheel 缩放 + reset 时不打架)
+          if (NS._renderRafId) cancelAnimationFrame(NS._renderRafId);
+          const body = document.getElementById('dh-detail-body');
+          const chartType = document.getElementById('dh-detail-chart-type').value;
+          // v1.3.21: 4 卡片共用 renderChartLogsBody 渲染 body (trend / pair / control / set)
+          body.innerHTML = NS.renderChartLogsBody(card);
           // chart-area 装饰 (tooltip + marker + zoom-selection) — 只在 chart 页需要
           // zoom-hint 删掉 (跟 X 轴 tick 文字重叠, 顶部 tabs 已有 [−][+][↺] 暗示)
           const ca = body.querySelector('#dh-chart-area');
