@@ -6531,6 +6531,171 @@
       color: var(--string);
     }
 
+    /* v1.3.21: LOG 卡片 (Task 9) — 事件日志 (最近 5 条预览, type 颜色化)
+       适用字段: 0x0A 事件日志 (12 保护计数 + 12 极值), 错误日志, 操作审计
+       数据: c.events[] = [{ time, type, message, count }] type ∈ {INFO, WARN, PROTECT}
+       弹窗模式: log-table (4 tab: 全部/保护/告警/详情 — 当前实现仅全部 tab) */
+    .dashboard-host     .card-default.log .card-statusbar { background: var(--log); }
+    .dashboard-host     .card-default.log .type-badge {
+      background: var(--log-soft); color: var(--log);
+      text-transform: none; padding: 1px 6px; font-size: 0.625rem; font-weight: 700;
+    }
+    .dashboard-host     .card-default.log .log-preview {
+      flex: 1; font-size: 0.5625rem; line-height: 1.45;
+      max-height: 72px; overflow: hidden;
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: 3px; padding: 4px 6px; margin: 4px 0;
+      display: flex; flex-direction: column; gap: 1px;
+    }
+    .dashboard-host     .card-default.log .log-preview .row {
+      padding: 1px 0; border-bottom: 1px dashed var(--border);
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      color: var(--text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .dashboard-host     .card-default.log .log-preview .row:last-child { border-bottom: none; }
+    .dashboard-host     .card-default.log .log-preview .row.warn { color: var(--warning); font-weight: 600; }
+    .dashboard-host     .card-default.log .log-preview .row.bad { color: var(--danger); font-weight: 700; }
+    .dashboard-host     .card-default.log .card-footer .footer-direction.rx { color: var(--log); }
+    /* v1.3.21: log-table 弹窗表格样式 (4 tab: 全部/保护/告警/详情) */
+    .dashboard-host     .detail-body .detail-log-content { padding: 0; }
+    .dashboard-host     .log-table {
+      width: 100%; border-collapse: collapse;
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-size: 0.6875rem;
+    }
+    .dashboard-host     .log-table thead th {
+      background: var(--bg-subtle); color: var(--text-soft);
+      padding: 6px 10px; text-align: left; font-weight: 700;
+      font-size: 0.5625rem; text-transform: uppercase; letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1;
+    }
+    .dashboard-host     .log-table tbody td {
+      padding: 5px 10px; border-bottom: 1px solid var(--border);
+      color: var(--text); line-height: 1.4;
+    }
+    .dashboard-host     .log-table tbody tr:hover { background: var(--bg-subtle); }
+    .dashboard-host     .log-table tbody tr.warn td { color: var(--warning); }
+    .dashboard-host     .log-table tbody tr.bad td { color: var(--danger); font-weight: 600; }
+    .dashboard-host     .log-table tbody tr.warn td:first-child::before,
+    .dashboard-host     .log-table tbody tr.bad td:first-child::before { content: '● '; }
+    .dashboard-host     .log-table .col-idx { width: 36px; color: var(--text-soft); }
+    .dashboard-host     .log-table .col-time { width: 84px; }
+    .dashboard-host     .log-table .col-type { width: 64px; font-weight: 700; }
+    .dashboard-host     .log-table .col-count { width: 48px; text-align: right; color: var(--text-soft); }
+
+    /* v1.3.21: WIZARD 卡片 (Task 10) — 状态机/升级流程 (步骤条 + 进度)
+       适用字段: 0x10-0x15 升级流程 6 步 / 校准流程 / 配置下发等多步状态机
+       数据: c.steps[] = [{ name, state }] state ∈ {done, current, pending, failed}
+             c.currentStep (1-based), c.totalSteps, c.progress (0-1)
+       弹窗模式: wizard-flow (3 tab: 当前步骤/流程图/详细日志 — 当前实现仅当前步骤) */
+    .dashboard-host     .card-default.wizard .card-statusbar { background: var(--wizard); }
+    .dashboard-host     .card-default.wizard .type-badge {
+      background: var(--wizard-soft); color: var(--wizard);
+      text-transform: none; padding: 1px 6px; font-size: 0.625rem; font-weight: 700;
+    }
+    .dashboard-host     .card-default.wizard .card-value {
+      display: flex; flex-direction: column; gap: 2px; padding: 2px 0 0;
+    }
+    .dashboard-host     .card-default.wizard .card-value .num {
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-variant-numeric: tabular-nums; line-height: 1.1;
+    }
+    .dashboard-host     .card-default.wizard .card-value .unit {
+      font-size: 0.625rem; color: var(--text-soft);
+    }
+    .dashboard-host     .card-default.wizard .wizard-steps {
+      display: flex; align-items: center; gap: 3px;
+      padding: 6px 0 4px; flex: 1;
+    }
+    .dashboard-host     .card-default.wizard .wizard-steps .step {
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--bg-panel); border: 1px solid var(--border);
+      font-size: 0.5625rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-soft); flex-shrink: 0;
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+    }
+    .dashboard-host     .card-default.wizard .wizard-steps .step.done {
+      background: var(--success-soft, rgba(34, 197, 94, 0.14));
+      border-color: var(--success, #22c55e); color: var(--success, #22c55e);
+    }
+    .dashboard-host     .card-default.wizard .wizard-steps .step.current {
+      background: var(--wizard-soft); border-color: var(--wizard);
+      color: var(--wizard); animation: wizardPulse 2s ease-in-out infinite;
+    }
+    .dashboard-host     .card-default.wizard .wizard-steps .step.failed {
+      background: var(--bad-soft); border-color: var(--danger);
+      color: var(--danger);
+    }
+    .dashboard-host     .card-default.wizard .wizard-steps .conn {
+      flex: 1; height: 1px; background: var(--border);
+      min-width: 4px;
+    }
+    .dashboard-host     .card-default.wizard .wizard-steps .conn.done { background: var(--success, #22c55e); }
+    .dashboard-host     .card-default.wizard .wizard-steps .conn.current {
+      background: linear-gradient(90deg, var(--wizard) 50%, var(--border) 50%);
+    }
+    .dashboard-host     .card-default.wizard .card-footer .footer-direction.tx { color: var(--wizard); }
+    @keyframes wizardPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.65; transform: scale(0.92); }
+    }
+
+    /* v1.3.21: wizard-flow 弹窗大圆环 (3 tab: 当前步骤/流程图/详细日志 — 当前实现仅当前步骤)
+       大圆环 36px 步骤 + 2px 连接线 + pulse 动画 on current step */
+    .dashboard-host     .detail-body .detail-wizard-content { padding: 0; }
+    .dashboard-host     .wizard-flow-wrap { display: flex; flex-direction: column; gap: 4px; }
+    .dashboard-host     .wizard-flow {
+      display: flex; align-items: center; gap: 6px;
+      padding: 16px; background: var(--bg-subtle);
+      border: 1px solid var(--border); border-radius: 6px;
+      overflow-x: auto;
+    }
+    .dashboard-host     .wizard-flow .step {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      width: 56px; flex-shrink: 0;
+    }
+    .dashboard-host     .wizard-flow .step .step-num {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.9375rem;
+      border: 2px solid var(--border); color: var(--text-soft);
+      background: var(--bg); font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+    }
+    .dashboard-host     .wizard-flow .step .step-name {
+      font-size: 0.5625rem; color: var(--text-soft);
+      text-align: center; line-height: 1.2;
+      max-width: 56px; word-break: break-all;
+    }
+    .dashboard-host     .wizard-flow .step.done .step-num {
+      border-color: var(--success, #22c55e); color: var(--success, #22c55e);
+      background: var(--success-soft, rgba(34, 197, 94, 0.14));
+    }
+    .dashboard-host     .wizard-flow .step.done .step-name { color: var(--success, #22c55e); font-weight: 600; }
+    .dashboard-host     .wizard-flow .step.current .step-num {
+      border-color: var(--wizard); color: var(--wizard);
+      background: var(--wizard-soft);
+      animation: wizardPulse 1.5s ease-in-out infinite;
+      box-shadow: 0 0 0 4px var(--wizard-soft);
+    }
+    .dashboard-host     .wizard-flow .step.current .step-name { color: var(--wizard); font-weight: 700; }
+    .dashboard-host     .wizard-flow .step.failed .step-num {
+      border-color: var(--danger); color: var(--danger);
+      background: var(--bad-soft);
+    }
+    .dashboard-host     .wizard-flow .step.failed .step-name { color: var(--danger); font-weight: 700; }
+    .dashboard-host     .wizard-flow .conn {
+      flex: 1; height: 2px; background: var(--border);
+      min-width: 12px; align-self: flex-start; margin-top: 17px;
+    }
+    .dashboard-host     .wizard-flow .conn.done { background: var(--success, #22c55e); }
+    .dashboard-host     .wizard-flow .conn.current {
+      background: linear-gradient(90deg, var(--wizard) 50%, var(--border) 50%);
+    }
+    .dashboard-host     .wizard-current-panel {
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+    }
+
     /* v1.3.21: STRING 弹窗文本详情 (text-detail 详情 view) */
     .dashboard-host     .detail-body .detail-text-content { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
     .dashboard-host     .text-detail-wrap { display: flex; flex-direction: column; gap: 14px; }
@@ -18594,6 +18759,115 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               });
             });
             return card;
+          } else if (c.type === 'log') {
+            // v1.3.21 Task 9: LOG 卡片 — 事件日志 (最近 5 条预览, type 颜色化)
+            //   适用字段: 0x0A 事件日志 (12 保护计数 + 12 极值), 错误日志, 操作审计
+            //   数据: c.events[] = [{ time, type, message, count }] type ∈ {INFO, WARN, PROTECT}
+            //   弹窗模式: log-table (4 tab: 全部/保护/告警/详情 — 当前实现仅全部 tab)
+            //   通用渲染, 不 hardcode 任何 schema 字段 (保持 v1.3.21+ 扩展性)
+            card.classList.add('log');
+            const events = Array.isArray(c.events) ? c.events : [];
+            // 最近 5 条预览 (按数组顺序, 假设已排序: 最新在前)
+            const last5 = events.slice(0, 5);
+            const rowsHtml = last5.map((e) => {
+              const t = (e.type || 'INFO').toLowerCase();
+              const cls = (t === 'protect' || t === 'bad') ? 'bad' : (t === 'warn' ? 'warn' : '');
+              const time = NS.escapeHtml(e.time || '');
+              const msg = NS.escapeHtml(e.message || '');
+              return '<div class="row ' + cls + '">[' + time + '] ' + msg + '</div>';
+            }).join('');
+            const dir = c.dir || 'rx';
+            const dirLabel = dir === 'tx' ? 'TX' : dir === 'rx' ? 'RX' : 'TX+RX';
+            const total = events.length;
+            const protectCount = events.filter((e) => (e.type || '').toLowerCase() === 'protect' || (e.type || '').toLowerCase() === 'bad').length;
+            const warnCount = events.filter((e) => (e.type || '').toLowerCase() === 'warn').length;
+            const summary = '共 ' + total + ' 条'
+              + (protectCount ? ' · DANGER ' + protectCount : '')
+              + (warnCount ? ' · WARN ' + warnCount : '');
+            card.innerHTML =
+              '<div class="card-statusbar"></div>'
+              + '<div class="card-body">'
+              + '<div class="card-header">'
+              + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="type-badge">LOG</span>'
+              + '</div>'
+              + '<div class="log-preview">' + (rowsHtml || '<div class="row">暂无事件</div>') + '</div>'
+              + '<div class="card-footer">'
+              + '<span class="footer-range">' + NS.escapeHtml(summary) + '</span>'
+              + '<span class="footer-direction ' + dir + '">' + dirLabel + '</span>'
+              + '</div>'
+              + '</div>'
+              + (NS.editMode ? '<div class="card-actions">'
+                + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                + '</div>' : '');
+            card.querySelectorAll('[data-action]').forEach((btn) => {
+              btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const act = btn.getAttribute('data-action');
+                if (act === 'edit') NS.openCardEdit(c.id);
+                else if (act === 'detail') NS.__openDetail(c.id);
+              });
+            });
+            card.addEventListener('click', () => NS.__openDetail(c.id));
+            return card;
+          } else if (c.type === 'wizard') {
+            // v1.3.21 Task 10: WIZARD 卡片 — 状态机/升级流程 (步骤条 + 进度)
+            //   适用字段: 0x10-0x15 升级流程 6 步 / 校准流程 / 配置下发等多步状态机
+            //   数据: c.steps[] = [{ name, state }] state ∈ {done, current, pending, failed}
+            //         c.currentStep (number, 1-based), c.totalSteps (number), c.progress (0-1)
+            //   弹窗模式: wizard-flow (3 tab: 当前步骤/流程图/详细日志 — 当前实现仅当前步骤)
+            //   通用渲染, 不 hardcode 任何 schema 字段 (保持 v1.3.21+ 扩展性)
+            card.classList.add('wizard');
+            const steps = Array.isArray(c.steps) ? c.steps : [];
+            const currentStep = c.currentStep || 1;
+            const totalSteps = c.totalSteps || steps.length || 1;
+            const progress = (typeof c.progress === 'number') ? Math.max(0, Math.min(1, c.progress)) : (currentStep - 1) / totalSteps;
+            const progressPct = Math.round(progress * 100);
+            // 步骤条 HTML: step + conn 交替
+            const stepsHtml = steps.map((s, i) => {
+              const state = s.state || (i + 1 < currentStep ? 'done' : (i + 1 === currentStep ? 'current' : 'pending'));
+              let connBefore = '';
+              if (i > 0) {
+                const prevState = steps[i - 1].state || (i < currentStep ? 'done' : (i === currentStep ? 'current' : 'pending'));
+                const connCls = (prevState === 'done') ? 'done' : (prevState === 'current' ? 'current' : '');
+                connBefore = '<div class="conn ' + connCls + '"></div>';
+              }
+              return connBefore + '<div class="step ' + state + '" title="' + NS.escapeHtml(s.name || ('Step ' + (i + 1))) + '">' + (i + 1) + '</div>';
+            }).join('');
+            const curStepObj = steps[currentStep - 1] || { name: '—' };
+            const curStepName = NS.escapeHtml(curStepObj.name || ('Step ' + currentStep));
+            const dir = c.dir || 'tx';
+            const dirLabel = dir === 'tx' ? 'TX' : dir === 'rx' ? 'RX' : 'TX+RX';
+            card.innerHTML =
+              '<div class="card-statusbar"></div>'
+              + '<div class="card-body">'
+              + '<div class="card-header">'
+              + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="type-badge">WIZARD</span>'
+              + '</div>'
+              + '<div class="card-value" data-action="detail">'
+              + '<span class="num" style="font-size: 1rem; font-weight: 700; color: var(--wizard);">' + curStepName + ' ' + progressPct + '%</span>'
+              + '<span class="unit">Step ' + currentStep + '/' + totalSteps + '</span>'
+              + '</div>'
+              + '<div class="wizard-steps">' + stepsHtml + '</div>'
+              + '<div class="card-footer">'
+              + '<span class="footer-range">' + curStepName + '</span>'
+              + '<span class="footer-direction ' + dir + '">' + dirLabel + '</span>'
+              + '</div>'
+              + '</div>'
+              + (NS.editMode ? '<div class="card-actions">'
+                + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                + '</div>' : '');
+            card.querySelectorAll('[data-action]').forEach((btn) => {
+              btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const act = btn.getAttribute('data-action');
+                if (act === 'edit') NS.openCardEdit(c.id);
+                else if (act === 'detail') NS.__openDetail(c.id);
+              });
+            });
+            card.addEventListener('click', () => NS.__openDetail(c.id));
+            return card;
           } else if (c.type === 'rx') {
             // v1.3.19.1: rx 卡 — 从机响应数据, 纯显示 (无开启/发送按钮, 不能编辑+发送)
             //   v1.3.19.1.1: 标题单行 (只显示位名/字段名), badge 显示 "RX NNbit" (类型化),
@@ -19215,30 +19489,39 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             // Task 8: 文本详情 — 详情 view, page='text' 隐藏 chart tools
             NS._detailPage = 'text';
             NS.renderTextDetailBody(card);
+          } else if (mode === 'log-table') {
+            // Task 9: 事件日志 — 表格 view, page='log' 隐藏 chart tools
+            NS._detailPage = 'log';
+            NS.renderLogTableBody(card);
+          } else if (mode === 'wizard-flow') {
+            // Task 10: 状态机/升级流程 — 流程图 view, page='wizard' 隐藏 chart tools
+            NS._detailPage = 'wizard';
+            NS.renderWizardFlowBody(card);
           } else {
             // chart-logs: trend / pair / control / set 共用
             NS._detailPage = 'chart';
             NS._renderDetailBody();
           }
         };
-        // 详情 modal 当前页 ('chart' | 'logs')
+        // 详情 modal 当前页 ('chart' | 'logs' | 'editor' | 'big' | 'text' | 'log' | 'wizard')
         NS._detailPage = 'chart';
         // 切换页 + 重 render
         NS._switchDetailPage = function (page) {
           // v1.3.21: 扩展支持 'big' / 'text' (BIG/STRING 弹窗主页面)
-          if (page !== 'chart' && page !== 'logs' && page !== 'editor' && page !== 'big' && page !== 'text') return;
+          //   Task 9-10: 增 'log' (LOG 表格) / 'wizard' (WIZARD 流程图)
+          if (page !== 'chart' && page !== 'logs' && page !== 'editor' && page !== 'big' && page !== 'text' && page !== 'log' && page !== 'wizard') return;
           NS._detailPage = page;
-          // 同步 tab 状态: 'big' / 'text' 仍对应 "图表" tab active (BIG/STRING 主内容在 chart slot)
-          const activeTab = (page === 'big' || page === 'text') ? 'chart' : page;
+          // 同步 tab 状态: 'big' / 'text' / 'log' / 'wizard' 仍对应 "图表" tab active (BIG/STRING/LOG/WIZARD 主内容在 chart slot)
+          const activeTab = (page === 'big' || page === 'text' || page === 'log' || page === 'wizard') ? 'chart' : page;
           document.querySelectorAll('.detail-page-tab').forEach((b) => b.classList.toggle('active', b.dataset.page === activeTab));
           // 同步 page-tabs 容器 data-page (用于 .detail-chart-tools 显隐)
-          //   'big' / 'text' 不用 'chart' 避免 chart tools (缩放按钮) 显示 — BIG/STRING 无图表可缩放
+          //   'big' / 'text' / 'log' / 'wizard' 不用 'chart' 避免 chart tools (缩放按钮) 显示 — 无图表可缩放
           const tabs = document.querySelector('.detail-page-tabs');
           if (tabs) tabs.setAttribute('data-page', page);
           // 显隐 body 子页
           const body = document.getElementById('dh-detail-body');
           if (body) {
-            body.querySelectorAll('.detail-page-chart').forEach((el) => el.style.display = (page === 'chart' || page === 'big' || page === 'text') ? 'flex' : 'none');
+            body.querySelectorAll('.detail-page-chart').forEach((el) => el.style.display = (page === 'chart' || page === 'big' || page === 'text' || page === 'log' || page === 'wizard') ? 'flex' : 'none');
             body.querySelectorAll('.detail-page-logs').forEach((el) => el.style.display = (page === 'logs' || page === 'editor') ? 'flex' : 'none');
             body.querySelectorAll('.detail-page-editor').forEach((el) => el.style.display = (page === 'editor') ? 'flex' : 'none');
           }
@@ -19416,6 +19699,173 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             + '</div>'
             + '</div>';
           // 设置 active tab + 显隐 (page='text' 隐藏 chart tools)
+          NS._switchDetailPage(NS._detailPage);
+        };
+        // v1.3.21: LOG 卡片日志表弹窗 (Task 9) — 表格视图
+        //   4 tab 计划 (全部/保护/告警/详情), 当前实现仅全部 tab (table 渲染全 events 列表)
+        //   后续 Task 9+ 扩展: 保护/告警 tab 按 type 过滤, 详情 tab 展示单条 raw + 描述
+        //   复用 modal chart page slot (跟 BIG/STRING 一致)
+        NS.renderLogTableBody = function (card) {
+          if (!card) return;
+          const body = document.getElementById('dh-detail-body');
+          if (!body) return;
+          const events = Array.isArray(card.events) ? card.events : [];
+          // 4 tab 计数
+          const protectCount = events.filter((e) => {
+            const t = (e.type || '').toLowerCase();
+            return t === 'protect' || t === 'bad';
+          }).length;
+          const warnCount = events.filter((e) => (e.type || '').toLowerCase() === 'warn').length;
+          // 限制最大显示 50 条 (避免超长事件列表撑爆 modal)
+          const maxRows = 50;
+          const rows = events.slice(0, maxRows);
+          const rowsHtml = rows.map((e, i) => {
+            const t = (e.type || 'INFO').toLowerCase();
+            const cls = (t === 'protect' || t === 'bad') ? 'bad' : (t === 'warn' ? 'warn' : '');
+            return '<tr class="' + cls + '">'
+              + '<td class="col-idx">' + (i + 1) + '</td>'
+              + '<td class="col-time">' + NS.escapeHtml(e.time || '') + '</td>'
+              + '<td class="col-type">' + NS.escapeHtml((e.type || 'INFO').toUpperCase()) + '</td>'
+              + '<td class="col-msg">' + NS.escapeHtml(e.message || '') + '</td>'
+              + '<td class="col-count">' + NS.escapeHtml(String(e.count != null ? e.count : 1)) + '</td>'
+              + '</tr>';
+          }).join('');
+          const moreHint = events.length > maxRows
+            ? '<div style="padding: 8px 12px; text-align: center; color: var(--text-soft); font-size: 0.625rem; background: var(--bg-subtle);">仅显示前 ' + maxRows + ' 条 / 共 ' + events.length + ' 条</div>'
+            : '';
+          body.innerHTML = '<div class="detail-page-chart detail-log-content">'
+            + '<div style="display: flex; gap: 4px; padding: 8px 12px; background: var(--bg-subtle); border-bottom: 1px solid var(--border); font-size: 0.625rem;">'
+            + '<div class="detail-page-tab active" data-page="log-all" data-log-filter="all">全部 (' + events.length + ')</div>'
+            + '<div class="detail-page-tab" data-page="log-protect" data-log-filter="protect">保护 (' + protectCount + ')</div>'
+            + '<div class="detail-page-tab" data-page="log-warn" data-log-filter="warn">告警 (' + warnCount + ')</div>'
+            + '<div class="detail-page-tab" data-page="log-detail" data-log-filter="detail">详情</div>'
+            + '</div>'
+            + '<div class="log-table-wrap" style="max-height: 380px; overflow-y: auto;">'
+            + '<table class="log-table">'
+            + '<thead><tr><th class="col-idx">#</th><th class="col-time">时间</th><th class="col-type">类型</th><th class="col-msg">事件</th><th class="col-count">次数</th></tr></thead>'
+            + '<tbody>' + (rowsHtml || '<tr><td colspan="5" style="padding: 20px; text-align: center; color: var(--text-soft);">暂无事件</td></tr>') + '</tbody>'
+            + '</table>'
+            + moreHint
+            + '</div>'
+            + '<div style="padding: 10px 14px; font-size: 0.625rem; color: var(--text-soft); background: var(--bg-subtle); border-top: 1px solid var(--border);">'
+            + 'log-table 模式 · 4 tab (当前显示全部) · 后续扩展按 type 过滤 + 单条详情'
+            + '</div>'
+            + '</div>'
+            // === 4 tab 各自的 page 容器 (占位, 当前仅 all 有内容) ===
+            + '<div class="detail-page-logs">'
+            + '<div class="detail-logs-panel">'
+            + '<div class="detail-logs-header">'
+            + '<span class="detail-logs-title">保护/告警/详情 tab 暂未实现 (后续 Task 9+ 扩展)</span>'
+            + '</div>'
+            + '<div style="padding: 20px; text-align: center; color: var(--text-mute); font-size: 0.6875rem;">当前实现仅 "全部" tab, 保护/告警/详情 tab 计划 v1.3.22+</div>'
+            + '</div>'
+            + '</div>';
+          // 绑定 tab 切换 (点击切 active class, 后续扩展切换表格内容)
+          body.querySelectorAll('[data-log-filter]').forEach((tab) => {
+            tab.addEventListener('click', (e) => {
+              e.stopPropagation();
+              body.querySelectorAll('[data-log-filter]').forEach((t) => t.classList.remove('active'));
+              tab.classList.add('active');
+              // 占位: 切换时仅 console.log, 不实际过滤 (后续扩展)
+              // eslint-disable-next-line no-console
+              console.log('[log-table] switch to tab:', tab.getAttribute('data-log-filter'));
+            });
+          });
+          // 设置 active tab + 显隐 (page='log' 隐藏 chart tools)
+          NS._switchDetailPage(NS._detailPage);
+        };
+        // v1.3.21: WIZARD 卡片状态机/升级流程弹窗 (Task 10) — 流程图视图
+        //   3 tab 计划 (当前步骤/流程图/详细日志), 当前实现仅当前步骤 tab
+        //   大圆环 36px 流程图 (wizard-flow) + 进度条 + abort/pause 按钮
+        //   复用 modal chart page slot (跟 BIG/STRING/LOG 一致)
+        NS.renderWizardFlowBody = function (card) {
+          if (!card) return;
+          const body = document.getElementById('dh-detail-body');
+          if (!body) return;
+          const steps = Array.isArray(card.steps) ? card.steps : [];
+          const currentStep = card.currentStep || 1;
+          const totalSteps = card.totalSteps || steps.length || 1;
+          const progress = (typeof card.progress === 'number') ? Math.max(0, Math.min(1, card.progress)) : (currentStep - 1) / totalSteps;
+          // 3 tab 计划 (后续扩展流程图/详细日志 tab 实际内容)
+          // 当前仅当前步骤 tab 实现, 大圆环 + 进度条 + abort/pause 按钮
+          // 流程图 HTML (大圆环 36px 步骤 + 2px 连接线 + pulse 动画 on current)
+          const flowHtml = steps.map((s, i) => {
+            const state = s.state || (i + 1 < currentStep ? 'done' : (i + 1 === currentStep ? 'current' : 'pending'));
+            const stepName = NS.escapeHtml(s.name || ('Step ' + (i + 1)));
+            // 当前 step 前的 conn 状态: 前一个 step done → conn done, 当前 step → conn current (渐变)
+            let connBefore = '';
+            if (i > 0) {
+              const prevState = steps[i - 1].state || (i < currentStep ? 'done' : (i === currentStep ? 'current' : 'pending'));
+              const connCls = (prevState === 'done') ? 'done' : (prevState === 'current' ? 'current' : '');
+              connBefore = '<div class="conn ' + connCls + '"></div>';
+            }
+            return connBefore
+              + '<div class="step ' + state + '" title="' + stepName + '">'
+              + '<div class="step-num">' + (i + 1) + '</div>'
+              + '<div class="step-name">' + stepName + '</div>'
+              + '</div>';
+          }).join('');
+          // 当前步骤详情 (current step name + progress + 进度条)
+          const curStepObj = steps[currentStep - 1] || { name: '—' };
+          const curStepName = NS.escapeHtml(curStepObj.name || ('Step ' + currentStep));
+          const curStepState = curStepObj.state || 'current';
+          const progressPct = Math.round(progress * 100);
+          // 步骤条状态色 (失败/告警)
+          const stepStateColor = curStepState === 'failed' ? 'var(--danger)' : (curStepState === 'done' ? 'var(--success, #22c55e)' : 'var(--wizard)');
+          body.innerHTML = '<div class="detail-page-chart detail-wizard-content">'
+            + '<div style="display: flex; gap: 4px; padding: 8px 12px; background: var(--bg-subtle); border-bottom: 1px solid var(--border); font-size: 0.625rem;">'
+            + '<div class="detail-page-tab active" data-page="wizard-current">当前步骤</div>'
+            + '<div class="detail-page-tab" data-page="wizard-flow">流程图</div>'
+            + '<div class="detail-page-tab" data-page="wizard-logs">详细日志</div>'
+            + '</div>'
+            + '<div class="wizard-flow-wrap" style="padding: 16px;">'
+            + '<div class="wizard-flow">' + flowHtml + '</div>'
+            + '<div class="wizard-current-panel" style="margin-top: 16px; padding: 12px 14px; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 6px;">'
+            + '<div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 0.75rem;">'
+            + '<span style="color: var(--text-soft);">步骤 ' + currentStep + ' / ' + totalSteps + ' · ' + curStepName + '</span>'
+            + '<strong style="color: ' + stepStateColor + ';">' + progressPct + '%</strong>'
+            + '</div>'
+            + '<div style="height: 6px; background: var(--bg); border-radius: 3px; margin-top: 8px; overflow: hidden;">'
+            + '<div style="width: ' + progressPct + '%; height: 100%; background: ' + stepStateColor + '; border-radius: 3px; transition: width 0.3s ease;"></div>'
+            + '</div>'
+            + '<div style="display: flex; gap: 8px; margin-top: 12px;">'
+            + '<button type="button" class="wizard-btn wizard-btn-abort" style="flex: 1; padding: 7px 10px; background: var(--bad-soft); color: var(--danger); border: 1px solid var(--danger); border-radius: 4px; font-weight: 700; cursor: pointer; font-size: 0.75rem;">中止升级</button>'
+            + '<button type="button" class="wizard-btn wizard-btn-pause" style="flex: 1; padding: 7px 10px; background: var(--bg-panel); color: var(--text); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 0.75rem;">暂停</button>'
+            + '</div>'
+            + '</div>'
+            + '</div>'
+            + '<div style="padding: 8px 14px; font-size: 0.625rem; color: var(--text-soft); background: var(--bg-subtle); border-top: 1px solid var(--border);">'
+            + 'wizard-flow 模式 · 3 tab (当前显示当前步骤) · 后续扩展流程图/详细日志 tab'
+            + '</div>'
+            + '</div>'
+            // === 流程图/详细日志 tab 占位 ===
+            + '<div class="detail-page-logs">'
+            + '<div class="detail-logs-panel">'
+            + '<div class="detail-logs-header">'
+            + '<span class="detail-logs-title">流程图/详细日志 tab 暂未实现 (后续 Task 10+ 扩展)</span>'
+            + '</div>'
+            + '<div style="padding: 20px; text-align: center; color: var(--text-mute); font-size: 0.6875rem;">当前实现仅 "当前步骤" tab, 流程图/详细日志 tab 计划 v1.3.22+</div>'
+            + '</div>'
+            + '</div>';
+          // 绑定 tab 切换 (占位, 后续扩展)
+          body.querySelectorAll('.detail-page-tab').forEach((tab) => {
+            tab.addEventListener('click', (e) => {
+              e.stopPropagation();
+              body.querySelectorAll('.detail-page-tab').forEach((t) => t.classList.remove('active'));
+              tab.classList.add('active');
+              // eslint-disable-next-line no-console
+              console.log('[wizard-flow] switch to tab:', tab.textContent);
+            });
+          });
+          // abort/pause 按钮 (占位, 后续扩展实际功能)
+          body.querySelectorAll('.wizard-btn').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const isAbort = btn.classList.contains('wizard-btn-abort');
+              NS.toast(isAbort ? '中止升级 (占位)' : '暂停 (占位)', 'info');
+            });
+          });
+          // 设置 active tab + 显隐 (page='wizard' 隐藏 chart tools)
           NS._switchDetailPage(NS._detailPage);
         };
         NS._renderDetailBody = function () {
