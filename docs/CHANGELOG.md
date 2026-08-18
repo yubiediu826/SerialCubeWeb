@@ -13,6 +13,7 @@
 
 ### 2026-08-18
 
+- [`changelog/2026-08-18-v1.3.21-card-system.md`](changelog/2026-08-18-v1.3.21-card-system.md) — **v1.3.21**: 卡片系统基础 — 1×1/2×1 尺寸体系 (.card-default.span-2x1 变体 440×198) + 5 个新 type 颜色变量 (--big 绿 / --array 蓝紫 / --string 灰 / --log 棕 / --wizard 青, 含 -soft 半透明 + 浅深主题双套) + TREND 卡片支持 2×1 变体 (card.span='2x1' 触发, 左侧大字 + 右侧 sparkline mini chart); 为后续 Task 3-5 (CTRL/BIT_SET/ARRAY 2×1) + Task 7-10 (BIG/STRING/LOG/WIZARD 弹窗) 铺底; VERSION bump 1.3.20 → 1.3.21; 3 files / ~150 / -X
 - [`changelog/2026-08-18-v1.3.20-detail-modal-branches.md`](changelog/2026-08-18-v1.3.20-detail-modal-branches.md) — **v1.3.20**: 位卡 + 详情弹窗分支 — 3 弹窗模式 (chart-logs / bit-history / bit-editor) 按 card.type 分流 + bit_set dir rx→both 修复 (footer 改深紫) + control 多 bit 卡 max-height:100px 滚动; 新增 _renderBitHistoryDetail / _renderBitEditorDetail / .detail-bit-header / .bit-editor-* CSS; 3 files / +197 / -8; commit `3ce9ad8`
 
 ### 2026-08-17
