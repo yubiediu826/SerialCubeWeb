@@ -6347,6 +6347,36 @@
     }
     .dashboard-host     .card-default.bit-set .card-value .num.on { color: #22c55e; }
     .dashboard-host     .card-default.bit-set .card-value { padding-bottom: 4px; }
+    /* v1.3.21: bit_set 2×1 变体 — 8 列 × N 行网格展示 16 bits 完整
+       触发条件: renderCard bit_set 分支开头检测 c.bits && c.bits.length > 1
+       置位的 bit 红框高亮 (--bad) */
+    .dashboard-host     .card-default.bit-set.span-2x1 .bits-grid {
+      display: grid; gap: 4px; flex: 1; align-content: start;
+      padding: 4px 0;
+      grid-template-columns: repeat(8, 1fr);
+      font-size: 0.5625rem;
+    }
+    .dashboard-host     .card-default.bit-set.span-2x1 .bit-cell {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 3px 2px;
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: 3px; min-height: 38px;
+    }
+    .dashboard-host     .card-default.bit-set.span-2x1 .bit-cell.on {
+      background: var(--bad-soft); border-color: var(--bad);
+    }
+    .dashboard-host     .card-default.bit-set.span-2x1 .bit-cell .bit-num {
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-weight: 700; color: var(--text-soft);
+    }
+    .dashboard-host     .card-default.bit-set.span-2x1 .bit-cell.on .bit-num { color: var(--bad); }
+    .dashboard-host     .card-default.bit-set.span-2x1 .bit-cell .bit-name {
+      font-size: 0.5rem; color: var(--text-soft);
+      line-height: 1.1; text-align: center;
+      overflow: hidden; text-overflow: ellipsis; width: 100%;
+      white-space: nowrap;
+    }
+    .dashboard-host     .card-default.bit-set.span-2x1 .bit-cell.on .bit-name { color: var(--bad); font-weight: 600; }
 
     /* v1.3.20: bit / bit_set 详情弹窗分支样式 */
     .detail-bit-header {
@@ -18112,6 +18142,10 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             //   但 badge 用 'BIT_SET' (紫色背景, 跟橙 CTRL 区分, 也跟紫色 BIT 区分开)
             //   从机主动修改 currentVals 的对应位, 然后主机查询时返回新值
             card.classList.add('bit-set');
+            // v1.3.21: bit_set 强制 2×1 (8×2 网格展示 16 bits 完整) — 仅当 c.bits[] 提供时
+            //   旧 per-bit 卡 (无 c.bits[] 数组) 保持 1×1 单 bit 渲染 (避免 5 bitsets × 16 = 80 张 2×1 占满屏)
+            const isBitsetFull = c.bits && Array.isArray(c.bits) && c.bits.length > 1;
+            if (isBitsetFull) card.classList.add('span-2x1');
             const raw = NS.currentVals[c.field] != null ? NS.currentVals[c.field] : 0;
             const on = ((raw >> c.bit) & 1) === 1;
             card.classList.toggle('bit-on', on);
@@ -18121,6 +18155,42 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const dir = c.dir || 'both';
             const dirLabel = dir === 'tx' ? 'TX' : dir === 'rx' ? 'RX' : 'TX+RX';
             const rawHex = '0x' + (raw >>> 0).toString(16).toUpperCase().padStart(4, '0');
+            // v1.3.21: 完整 16 bits 8×2 网格分支 (c.bits[] 提供时) — 数字编号 + 中文名 + 置位红框
+            if (isBitsetFull) {
+              card.innerHTML =
+                '<div class="card-statusbar"></div>'
+                + '<div class="card-body">'
+                + '<div class="card-header">'
+                + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+                + '<span class="type-badge bit-set">BIT_SET</span>'
+                + '</div>'
+                + '<div class="bits-grid">'
+                + c.bits.slice(0, 16).map((b, i) => {
+                    const bv = ((raw >> (b.bit != null ? b.bit : i)) & 1) === 1;
+                    return '<div class="bit-cell' + (bv ? ' on' : '') + '" data-bit="' + (b.bit != null ? b.bit : i) + '">'
+                      + '<div class="bit-num">' + (b.bit != null ? b.bit : i) + '</div>'
+                      + '<div class="bit-name">' + NS.escapeHtml(b.name || '') + '</div>'
+                      + '</div>';
+                  }).join('')
+                + '</div>'
+                + '<div class="card-footer">'
+                + '<span class="footer-range">0x' + (raw >>> 0).toString(16).toUpperCase().padStart(4, '0') + ' · ' + c.bits.length + ' bits</span>'
+                + '<span class="footer-direction ' + dir + '">' + dirLabel + '</span>'
+                + '</div>'
+                + '</div>'
+                + (NS.editMode ? '<div class="card-actions">'
+                  + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                  + '</div>' : '');
+              card.querySelectorAll('[data-action]').forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  const act = btn.getAttribute('data-action');
+                  if (act === 'edit') NS.openCardEdit(c.id);
+                });
+              });
+              card.addEventListener('click', () => NS.__openDetail(c.id));
+              return card;
+            }
             card.innerHTML =
               '<div class="card-statusbar"></div>'
               + '<div class="card-body">'
