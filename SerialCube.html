@@ -148,6 +148,12 @@
       /* version-modal close 按钮 ring fill (浅色: 蓝灰透明, 8% base + 18% hover 柔和加深, 不变白底) */
       --version-modal-close-ring-fill: rgba(42, 61, 82, 0.08);
       --version-modal-close-hover-ring-fill: rgba(42, 61, 82, 0.18);
+      /* v1.3.21: 5 新卡片 type 颜色 token (Task 7-10 BIG/ARRAY/STRING/LOG/WIZARD 卡片用, 含 -soft 半透明用于 badge/底色) */
+      --big: #16a34a;       --big-soft: rgba(22, 163, 74, 0.14);     /* 绿 — BIG 卡片 (SOC/SOH/CycleCount 等大数值) */
+      --array: #5b21b6;     --array-soft: rgba(91, 33, 182, 0.12);   /* 蓝紫 — ARRAY 卡片 (Vcell[20] / Cell_Temp[8] 数组) */
+      --string: #67676c;    --string-soft: rgba(103, 103, 108, 0.14); /* 灰 — STRING 卡片 (设备名/序列号文本) */
+      --log: #92400e;       --log-soft: rgba(146, 64, 14, 0.14);     /* 棕 — LOG 卡片 (历史日志) */
+      --wizard: #0891b2;    --wizard-soft: rgba(8, 145, 178, 0.14);  /* 青 — WIZARD 卡片 (设置向导流程) */
     }
 
     /* v1.3.6 P3: 仪表盘 token 别名 — 消除 9 个未定义的 CSS 变量引用 (原 27 处使用静默失效, 样式错乱根因之一)
@@ -254,7 +260,13 @@
       --scrollbar-thumb: rgba(129, 140, 248, 0.48);
       --scrollbar-thumb-hover: rgba(99, 102, 241, 0.7);
       --signal-soft: rgba(99, 102, 241, 0.16);
-    
+      /* v1.3.21: 暗色 5 新 type 颜色 — 亮一档色阶, 16% soft 不透明度 (vs 浅色 12-14%, 暗背景需稍高) */
+      --big: #22c55e;       --big-soft: rgba(34, 197, 94, 0.16);
+      --array: #a78bfa;     --array-soft: rgba(167, 139, 250, 0.14);
+      --string: #98989f;    --string-soft: rgba(152, 152, 159, 0.16);
+      --log: #f59e0b;       --log-soft: rgba(245, 158, 11, 0.16);
+      --wizard: #22d3ee;    --wizard-soft: rgba(34, 211, 238, 0.16);
+
       /* 自动生成的 3 线原则 token (按 REVIEW.md P2 #6) */
   --secondary-btn-------body-theme-dark--icon-btn-------body-theme-dark--mini-btn-background: rgba(18, 28, 37, 0.92);
   --floating-menu--menu-config-line-button-background: rgba(18, 28, 37, 0.72);
@@ -6028,6 +6040,14 @@
       transition: box-shadow 0.18s ease;
     }
     .dashboard-host     .card-default:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10); }
+    /* v1.3.21: 1×1/2×1 卡片尺寸体系 — 2×1 变体横向 2 倍宽 (440px), 给 sparkline/位开关 4 列网格/数组完整展示更多空间
+       1×1 默认 220px (上面 .card-default { width:220px }) 不变, 仅在卡片添加 .span-2x1 class 触发 */
+    .dashboard-host     .card-default.span-2x1 { width: 440px; max-width: 440px; }
+    .dashboard-host     .card-default.span-2x1 .card-body { padding: 10px 14px 8px; gap: 4px; }
+    .dashboard-host     .card-default.span-2x1 .card-title { font-size: 0.8125rem; }  /* 0.6875 → 0.8125, 双倍空间大标题 */
+    .dashboard-host     .card-default.span-2x1 .card-value .num { font-size: 1.75rem; } /* 2 → 1.75, 2×1 有 sparkline, 数字略小均衡 */
+    .dashboard-host     .card-default.span-2x1 .card-value .unit { font-size: 0.8125rem; }
+    .dashboard-host     .card-default.span-2x1 .card-footer { font-size: 0.625rem; }
     /* widget: 顶部 3px 状态色条 — 卡片整体状态一目了然 */
     .dashboard-host     .card-default .card-statusbar {
       height: 3px; width: 100%; flex-shrink: 0;
