@@ -6048,6 +6048,13 @@
     .dashboard-host     .card-default.span-2x1 .card-value .num { font-size: 1.75rem; } /* 2 → 1.75, 2×1 有 sparkline, 数字略小均衡 */
     .dashboard-host     .card-default.span-2x1 .card-value .unit { font-size: 0.8125rem; }
     .dashboard-host     .card-default.span-2x1 .card-footer { font-size: 0.625rem; }
+    /* v1.3.21: TREND 2×1 内部布局 — flex row, 左大字 + 右 sparkline mini chart
+       复用现有 NS.renderSparkline (canvas, 60s 数据 NS.trendData[key]) 渲染右上 mini chart */
+    .dashboard-host     .card-default.trend.span-2x1 .card-body { flex-direction: row; align-items: stretch; gap: 12px; }
+    .dashboard-host     .card-default.trend.span-2x1 .left-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .dashboard-host     .card-default.trend.span-2x1 .right-col { flex: 1.2; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 6px 0; }
+    .dashboard-host     .card-default.trend.span-2x1 .mini-chart { flex: 1; width: 100%; }
+    .dashboard-host     .card-default.trend.span-2x1 .mini-chart-label { font-size: 0.5625rem; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
     /* widget: 顶部 3px 状态色条 — 卡片整体状态一目了然 */
     .dashboard-host     .card-default .card-statusbar {
       height: 3px; width: 100%; flex-shrink: 0;
@@ -18199,6 +18206,40 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const dirTrendLabel = dirTrend === 'tx' ? 'TX' : dirTrend === 'rx' ? 'RX' : 'TX+RX';
             const dirStatusExtra = sev === 'danger' ? ' · DANGER' : (sev === 'warning' ? ' · WARN' : '');
             const trendBadgeCls = sev === 'danger' ? 'trend danger' : (sev === 'warning' ? 'trend warn' : 'trend');
+            // v1.3.21: TREND 2×1 变体 — 早返回, 左侧大字 + 右侧 sparkline 60s mini chart
+            // 复用现有 NS.renderSparkline 在 mini-chart canvas 上画线 (data: NS.trendData[cmdHex.field])
+            if (c.span === '2x1') {
+              card.classList.add('span-2x1');
+              card.classList.add('trend');  // 让 .card-default.trend.span-2x1 内部布局 CSS 命中
+              card.innerHTML =
+                '<div class="card-statusbar"></div>'
+                + '<div class="card-body">'
+                + '<div class="left-col">'
+                + '<div class="card-header">'
+                + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+                + '<span class="type-badge ' + trendBadgeCls + '">TREND</span>'
+                + '</div>'
+                + '<div class="card-value' + flashClass + '" data-action="detail">'
+                + '<span class="num' + numCls + '">' + v.toFixed(c.precision || 2) + '</span>'
+                + '<span class="unit">' + NS.escapeHtml(c.unit || '') + '</span>'
+                + '</div>'
+                + '<div class="card-footer">'
+                + '<span class="footer-range">' + rangeText + '</span>'
+                + '<span class="footer-direction ' + dirTrend + (sev === 'danger' ? ' danger' : '') + '">' + dirTrendLabel + dirStatusExtra + '</span>'
+                + '</div>'
+                + '</div>'
+                + '<div class="right-col">'
+                + '<span class="mini-chart-label">最近 60s</span>'
+                + '<canvas class="mini-chart" id="dh-trend-' + c.id + '"></canvas>'
+                + '</div>'
+                + '</div>'
+                + (NS.editMode ? '<div class="card-actions">'
+                  + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                  + '</div>' : '');
+              setTimeout(() => { const cv = document.getElementById('dh-trend-' + c.id); if (cv && cv.clientWidth) NS.renderSparkline(cv, c); }, 60);
+              setTimeout(() => { const v2 = card.querySelector('.card-value'); if (v2) v2.classList.remove('flash'); }, 400);
+              return card;
+            }
             card.innerHTML =
               '<div class="card-statusbar"></div>'
               + '<div class="card-body">'
