@@ -6196,6 +6196,30 @@
       background: var(--bg-subtle); color: var(--text); font-family: inherit;
     }
     .dashboard-host     .card-default.control.bit-on .ctrl-single-toggle { background: rgba(82, 196, 26, 0.16); border-color: #52c41a; color: #52c41a; }
+    /* v1.3.21: control 多 bit 卡片 2×1 变体 — 4 列网格, 每行 1 个 switch + bit 编号 + 名称
+       触发条件: c.bits && c.bits.length > 1 或 c.bitCount > 8 (renderCard control 分支开头 auto 检测) */
+    .dashboard-host     .card-default.control.span-2x1 .bits-grid {
+      display: grid; gap: 6px; flex: 1; align-content: start;
+      padding: 4px 0;
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .dashboard-host     .card-default.control.span-2x1 .bit-row {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.625rem; color: var(--text-soft);
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+    }
+    .dashboard-host     .card-default.control.span-2x1 .bit-row .switch {
+      width: 24px; height: 12px; background: var(--text-dim);
+      border-radius: 6px; position: relative; flex-shrink: 0;
+    }
+    .dashboard-host     .card-default.control.span-2x1 .bit-row .switch.on { background: var(--ok); }
+    .dashboard-host     .card-default.control.span-2x1 .bit-row .switch::after {
+      content: ''; width: 10px; height: 10px; border-radius: 50%;
+      background: var(--bg-elev); position: absolute; top: 1px; left: 1px;
+      transition: all 0.2s;
+    }
+    .dashboard-host     .card-default.control.span-2x1 .bit-row .switch.on::after { left: 13px; }
+    .dashboard-host     .card-default.control.span-2x1 .bit-row .bit-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     /* v1.3.8: set 卡 (从机模式 — 参数值设置, 无图表) */
     .dashboard-host     .card-default.set .card-statusbar { background: #3a5ccc; }
     .dashboard-host     .card-default.set .set-src-badge {
@@ -17893,9 +17917,18 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             }
             // 多位 ctrl 卡 (兼容旧; v1.3.10: 不再显示 respField 响应值)
             const bits = NS._controlCardBits(c);
+            // v1.3.21: 多 bit (bits.length > 8) 自动 span 2×1 + 4 列网格 (开关 + 编号 + 名称)
+            const isMultiBit = bits.length > 8;
+            if (isMultiBit) card.classList.add('span-2x1');
             const bitsHtml = bits.length
               ? bits.filter((b) => !/^Reserved/i.test(b.name)).map((b) => {
                   const on = (raw >> b.bit) & 1;
+                  if (isMultiBit) {
+                    return '<div class="bit-row">'
+                      + '<div class="switch' + (on ? ' on' : '') + '"></div>'
+                      + '<span class="bit-label">bit ' + b.bit + (b.name ? ' · ' + NS.escapeHtml(b.name) : '') + '</span>'
+                      + '</div>';
+                  }
                   return '<button type="button" class="ctrl-bit' + (on ? ' on' : '') + '" data-bit="' + b.bit + '" title="' + NS.escapeHtml(b.name) + '">' + NS.escapeHtml(b.name) + '</button>';
                 }).join('')
               : '<span style="font-size:11px;color:var(--text-soft);">无位定义</span>';
@@ -17906,7 +17939,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
               + '<span class="type-badge ctrl">CTRL</span>'
               + '</div>'
-              + '<div class="ctrl-bits">' + bitsHtml + '</div>'
+              + '<div class="' + (isMultiBit ? 'bits-grid' : 'ctrl-bits') + '">' + bitsHtml + '</div>'
               + '<div class="ctrl-row">'
               + '<span class="ctrl-raw">ctrl=0x' + (raw >>> 0).toString(16).toUpperCase().padStart(4, '0') + '</span>'
               + '<button type="button" class="ctrl-send" data-action="send">发送</button>'
