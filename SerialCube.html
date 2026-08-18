@@ -6377,6 +6377,41 @@
       white-space: nowrap;
     }
     .dashboard-host     .card-default.bit-set.span-2x1 .bit-cell.on .bit-name { color: var(--bad); font-weight: 600; }
+    /* v1.3.21: ARRAY 2×1 变体 — 4 区块 × 5 串 = 20 串完整, 阈值告警 warn/bad 高亮
+       数据: c.values[] (20 元素数组), c.threshold = { warn, bad }, c.unit
+       类型化 badge: ARRAY 紫色 (#5b21b6 --array) */
+    .dashboard-host     .card-default.array .card-statusbar { background: var(--array); }
+    .dashboard-host     .card-default.array .type-badge {
+      background: rgba(91, 33, 182, 0.16); color: var(--array);
+      text-transform: none; padding: 1px 6px; font-size: 0.625rem; font-weight: 700;
+    }
+    .dashboard-host     .card-default.array.span-2x1 .array-grid {
+      display: grid; gap: 6px; flex: 1; align-content: start;
+      padding: 4px 0;
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .dashboard-host     .card-default.array.span-2x1 .array-block {
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .dashboard-host     .card-default.array.span-2x1 .cell {
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: 3px; padding: 3px 6px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-size: 0.625rem;
+    }
+    .dashboard-host     .card-default.array.span-2x1 .cell .idx { color: var(--text-soft); }
+    .dashboard-host     .card-default.array.span-2x1 .cell .val { color: var(--text); font-weight: 700; }
+    .dashboard-host     .card-default.array.span-2x1 .cell.warn {
+      background: rgba(217, 119, 6, 0.14); border-color: var(--warning);
+    }
+    .dashboard-host     .card-default.array.span-2x1 .cell.warn .idx { color: var(--warning); font-weight: 700; }
+    .dashboard-host     .card-default.array.span-2x1 .cell.warn .val { color: var(--warning); }
+    .dashboard-host     .card-default.array.span-2x1 .cell.bad {
+      background: rgba(224, 87, 94, 0.16); border-color: var(--danger);
+    }
+    .dashboard-host     .card-default.array.span-2x1 .cell.bad .idx { color: var(--danger); font-weight: 700; }
+    .dashboard-host     .card-default.array.span-2x1 .cell.bad .val { color: var(--danger); }
 
     /* v1.3.20: bit / bit_set 详情弹窗分支样式 */
     .detail-bit-header {
@@ -18106,6 +18141,81 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 if (act === 'edit') NS.openCardEdit(c.id);
               });
             });
+            return card;
+          } else if (c.type === 'array') {
+            // v1.3.21: ARRAY 数组聚合卡 (新类型) — Vcell[20] / Cell_Temp[8] / CellBalance[20] 等
+            //   强制 2×1 (4 区块 × 5 串 = 20 串完整), 阈值告警 warn/bad 高亮
+            //   数据从 c.values[] (20 元素) 读, 阈值从 c.threshold = { warn, bad } 读, 单元从 c.unit 读
+            //   footer 显示 avg/max/min + 告警位置 (#13 黄色 warn, #15 红色 bad)
+            //   通用渲染, 不 hardcode 任何 schema 字段 (保持 v1.3.21+ 扩展性)
+            card.classList.add('array');
+            card.classList.add('span-2x1');  // 强制 2×1
+            const vals = Array.isArray(c.values) ? c.values : [];
+            const thr = c.threshold || { warn: Infinity, bad: Infinity };
+            const unit = c.unit || '';
+            const dir = c.dir || 'rx';
+            const dirLabel = dir === 'tx' ? 'TX' : dir === 'rx' ? 'RX' : 'TX+RX';
+            // 4 区块 × 5 串 (按 vals.length 推算, 兼容 8/16/20 元素)
+            const blockSize = 5;
+            const blockCount = Math.max(1, Math.ceil(vals.length / blockSize));
+            let cellsHtml = '';
+            for (let blk = 0; blk < blockCount; blk++) {
+              cellsHtml += '<div class="array-block">';
+              for (let j = 0; j < blockSize; j++) {
+                const idx = blk * blockSize + j;
+                if (idx >= vals.length) break;
+                const v = vals[idx];
+                const status = (typeof v === 'number' && v >= thr.bad) ? 'bad' : (typeof v === 'number' && v >= thr.warn) ? 'warn' : '';
+                const vStr = (typeof v === 'number') ? v.toFixed(c.precision != null ? c.precision : 3) : (v != null ? String(v) : '—');
+                cellsHtml += '<div class="cell ' + status + '">'
+                  + '<span class="idx">#' + String(idx + 1).padStart(2, '0') + '</span>'
+                  + '<span class="val">' + NS.escapeHtml(vStr) + (unit ? ' ' + NS.escapeHtml(unit) : '') + '</span>'
+                  + '</div>';
+              }
+              cellsHtml += '</div>';
+            }
+            // 统计: avg / max / min / 告警位置
+            const numVals = vals.filter((x) => typeof x === 'number');
+            const avg = numVals.length ? (numVals.reduce((a, b) => a + b, 0) / numVals.length) : null;
+            const max = numVals.length ? Math.max.apply(null, numVals) : null;
+            const min = numVals.length ? Math.min.apply(null, numVals) : null;
+            const warnIdxs = [];
+            const badIdxs = [];
+            vals.forEach((v, i) => {
+              if (typeof v !== 'number') return;
+              if (v >= thr.bad) badIdxs.push(i + 1);
+              else if (v >= thr.warn) warnIdxs.push(i + 1);
+            });
+            const fmtN = (n, p) => n == null ? '—' : n.toFixed(p != null ? p : 3);
+            const statsText = 'avg ' + fmtN(avg) + ' · max ' + fmtN(max) + ' · min ' + fmtN(min) + (unit ? ' ' + unit : '');
+            const alertText = (warnIdxs.length || badIdxs.length)
+              ? (badIdxs.length ? ' DANGER #' + badIdxs.join(',#') : '') + (warnIdxs.length ? ' WARN #' + warnIdxs.join(',#') : '')
+              : '';
+            card.innerHTML =
+              '<div class="card-statusbar"></div>'
+              + '<div class="card-body">'
+              + '<div class="card-header">'
+              + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="type-badge">ARRAY</span>'
+              + '</div>'
+              + '<div class="array-grid">' + cellsHtml + '</div>'
+              + '<div class="card-footer">'
+              + '<span class="footer-range">' + NS.escapeHtml(statsText) + NS.escapeHtml(alertText) + '</span>'
+              + '<span class="footer-direction ' + dir + '">' + dirLabel + '</span>'
+              + '</div>'
+              + '</div>'
+              + (NS.editMode ? '<div class="card-actions">'
+                + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                + '</div>' : '');
+            card.querySelectorAll('[data-action]').forEach((btn) => {
+              btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const act = btn.getAttribute('data-action');
+                if (act === 'edit') NS.openCardEdit(c.id);
+                else if (act === 'detail') NS.__openDetail(c.id);
+              });
+            });
+            card.addEventListener('click', () => NS.__openDetail(c.id));
             return card;
           } else if (c.type === 'bit') {
             // v1.3.19.1.2: bit 状态卡 — bitset 单 bit 专属 (不用 rx 数值卡模板)
