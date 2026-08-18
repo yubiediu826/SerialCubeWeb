@@ -19162,7 +19162,13 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
               c.type === 'bit' ? 'bit' :
               c.type === 'rx' ? 'rx' :
               c.type === 'set' ? 'set' :
-              c.type === 'trend' ? 'resp' : 'resp'
+              c.type === 'pair' ? 'pair' :
+              c.type === 'big' ? 'big' :
+              c.type === 'array' ? 'array' :
+              c.type === 'string' ? 'string' :
+              c.type === 'log' ? 'log' :
+              c.type === 'wizard' ? 'wizard' :
+              'resp'
             );
             const groupLabel = (k) => {
               const [cmdNum, seg] = k.split('|');
@@ -22186,7 +22192,7 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             row.className = 'card-edit-item';
             const idHex = c.cmd ? c.cmd.toString(16).padStart(2, '0').toUpperCase() : '—';
             row.innerHTML = `
-              <span class="ce-type">${c.type === 'pair' ? 'PAIR' : c.type === 'control' ? 'CTRL' : c.type === 'set' ? 'SET' : 'TREND'}</span>
+              <span class="ce-type">${c.type === 'pair' ? 'PAIR' : c.type === 'control' ? 'CTRL' : c.type === 'set' ? 'SET' : c.type === 'bit' ? 'BIT' : c.type === 'bit_set' ? 'BIT_SET' : c.type === 'big' ? 'BIG' : c.type === 'array' ? 'ARRAY' : c.type === 'string' ? 'STRING' : c.type === 'log' ? 'LOG' : c.type === 'wizard' ? 'WIZARD' : c.type === 'rx' ? 'RX' : 'TREND'}</span>
               <span class="ce-cmd">0x${idHex}</span>
               <span class="ce-title">${NS.escapeHtml(c.title || c.field || c.id)}</span>
               <span class="ce-unit">${NS.escapeHtml(c.unit || '')}</span>
@@ -23712,7 +23718,19 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             const globalIdx = (NS.CARDS || []).indexOf(c);
             const rangeStr = c.range ? c.range[0] + ' - ' + c.range[1] : '—';
             // v1.3.13 修: 4 类都判 (v1.3.10 旧版只判 pair, control/set 都掉到 TREND, 用户反馈卡片全显示"TREND 趋势")
-            const typeStr = c.type === 'pair' ? '<span class="pill pcs">PAIR 对比</span>' : c.type === 'control' ? '<span class="pill warn">CTRL 控制</span>' : c.type === 'set' ? '<span class="pill bms">SET 参数</span>' : '<span class="pill info">TREND 趋势</span>';
+            // v1.3.21 扩: 11 元 (trend/pair/control/set/bit/bit_set/big/array/string/log/wizard) — 之前 7 新 type 全部掉到默认 TREND
+            const _typePill = (cls, lbl) => '<span class="pill ' + cls + '">' + lbl + '</span>';
+            const typeStr = c.type === 'pair' ? _typePill('pcs', 'PAIR 对比')
+              : c.type === 'control' ? _typePill('warn', 'CTRL 控制')
+              : c.type === 'set' ? _typePill('bms', 'SET 参数')
+              : c.type === 'bit' ? _typePill('warn', 'BIT 单 bit')
+              : c.type === 'bit_set' ? _typePill('pcs', 'BIT_SET 多 bit')
+              : c.type === 'big' ? _typePill('ok', 'BIG 大数字')
+              : c.type === 'array' ? _typePill('info', 'ARRAY 数组')
+              : c.type === 'string' ? _typePill('bms', 'STRING 文本')
+              : c.type === 'log' ? _typePill('warn', 'LOG 日志')
+              : c.type === 'wizard' ? _typePill('pcs', 'WIZARD 流程')
+              : _typePill('info', 'TREND 趋势');
             const protoId = c.protocol || 'proto_bms';
             return '<tr data-card-index="' + globalIdx + '">' +
               '<td><code>' + NS.escapeHtml(c.id || '—') + '</code></td>' +
