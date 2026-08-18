@@ -22576,111 +22576,174 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
         // v1.3.8: 从 schema 自动生成默认卡片 (按角色区分)
         //   host → 0x01 控制卡 (ctrl 位表下发) + 0x01 CB 关键遥测 trend 卡
         //   device → 0x01 CB 关键字段 set 卡 (参数值 + 动态数据源, 无图表) + 保护标志位 set 卡
+        // v1.3.21: 自动推断字段推荐卡片类型 (基于字段名 + 类型 + 命令)
+        //   返回: trend / pair / control / set / bit / bit_set / big / array / string / log / wizard
+        NS._inferCardType = function (field, cmdId, role) {
+          if (!field) return 'trend';
+          const name = (field.name || '').toLowerCase();
+          const type = field.type;
+          const roleKey = role === 'device' || role === 'slave' ? 'device' : 'host';
+          // 1. 数组字段 → array
+          if (type === 'array') return 'array';
+          // 2. ascii 字段 → string
+          if (type === 'ascii') return 'string';
+          // 3. 大数字百分比类 (SOC/SOH/CycleCount/Cap) → big
+          if (/(soc|soh|cycle|round|count|cap(?![a-z])|percent)/.test(name) && (type === 'u8' || type === 'u16')) return 'big';
+          // 4. 升级流程 cmd 0x10-0x15 → wizard
+          if (cmdId >= 0x10 && cmdId <= 0x15) return 'wizard';
+          // 5. 状态机步骤 (0x10 DEV_T/0x11 ALL_PAC/0x12 ALL_SIZE/0x13 ALL_CHECK/0x14 PAC/0x15 UP_STA) → wizard
+          if (cmdId === 0x10 && name === 'dev_t') return 'wizard';
+          if (cmdId === 0x11 && name === 'all_pac') return 'wizard';
+          if (cmdId === 0x12 && name === 'all_size') return 'wizard';
+          if (cmdId === 0x13 && name === 'all_check') return 'wizard';
+          if (cmdId === 0x14 && name === 'pac_num') return 'wizard';
+          if (cmdId === 0x15 && name === 'up_sta') return 'wizard';
+          // 6. SN/MAC/Version/Model/Name → string
+          if (/^(sn|mac|version|model|name|barcode|uuid|fw|hw)/.test(name)) return 'string';
+          // 7. Event/Log/History/Record/Trace → log
+          if (/^(event|log|history|record|trace)/.test(name)) return 'log';
+          // 8. 0x01 ctrl 字段 → control (host 主机下发)
+          if (cmdId === 0x01 && name === 'ctrl' && roleKey === 'host') return 'control';
+          // 9. 配对: ChgDsgState 等枚举状态 (ChgMos + DsgMos 等温度对比)
+          if (cmdId === 0x01 && /chg|dsg|charge|discharge|chgdsg/.test(name) && roleKey === 'host') return 'pair';
+          // 10. bitset 字段: host 显示 → bit, device 控制 → bit_set
+          if (type === 'bitset' || (Array.isArray(field.bits) && field.bits.length > 1)) {
+            return roleKey === 'device' ? 'bit_set' : 'bit';
+          }
+          // 11. 默认 trend (host) / set (device)
+          return roleKey === 'device' ? 'set' : 'trend';
+        };
         NS._generateSchemaCards = function (protoId, schema, role) {
           const cards = [];
-          const c01 = schema.commands && schema.commands['0x01'];
-          if (!c01) return cards;
+          if (!schema || !schema.commands) return cards;
           const roleKey = role === 'device' || role === 'slave' ? 'device' : 'host';
-          if (roleKey === 'host') {
-            // 主机: 0x01 ctrl 位表拆成每位一张控制卡 (Reserved 位不生成) + 遥测 trend 卡
-            if (c01.MB && Array.isArray(c01.MB.fields)) {
-              const ctrl = c01.MB.fields.find((x) => x.name === 'ctrl');
-              if (ctrl && Array.isArray(ctrl.bits)) {
-                ctrl.bits.filter((b) => !/^Reserved/i.test(b.name)).forEach((b, i) => {
-                  cards.push({ id: protoId + '_ctrl_bit' + b.bit, type: 'control', cmd: 0x01, dir: 'tx', schemaDir: 'MB',
-                    field: 'ctrl', bit: b.bit, bitName: b.name, singleBit: true,
-                    title: b.name, unit: '', precision: 1,
-                    protocol: protoId });
+          // v1.3.21: 遍历所有命令 (不再仅 0x01)
+          const cmdHexes = Object.keys(schema.commands);
+          for (const cmdHex of cmdHexes) {
+            const cmdId = parseInt(cmdHex, 16);
+            if (isNaN(cmdId)) continue;
+            const c = schema.commands[cmdHex];
+            if (!c) continue;
+            if (roleKey === 'host') {
+              // 主机: 0x01 ctrl MB 控制位 (拆每位一张 control 卡)
+              if (cmdId === 0x01 && c.MB && Array.isArray(c.MB.fields)) {
+                const ctrl = c.MB.fields.find((x) => x.name === 'ctrl');
+                if (ctrl && Array.isArray(ctrl.bits)) {
+                  ctrl.bits.filter((b) => !/^Reserved/i.test(b.name)).forEach((b, i) => {
+                    cards.push({ id: protoId + '_ctrl_bit' + b.bit, type: 'control', cmd: cmdId, dir: 'tx', schemaDir: 'MB',
+                      field: 'ctrl', bit: b.bit, bitName: b.name, singleBit: true,
+                      title: b.name, unit: '', precision: 1, protocol: protoId });
+                  });
+                }
+              }
+              // 主机: CB 字段按 _inferCardType 自动推 11 卡片类型
+              if (c.CB && Array.isArray(c.CB.fields)) {
+                c.CB.fields.forEach((f) => {
+                  if (!f.name) return;
+                  const type = NS._inferCardType(f, cmdId, roleKey);
+                  NS._pushSchemaCard(cards, protoId, cmdId, type, f, roleKey);
+                });
+              }
+            } else {
+              // 从机: MB 字段 (从机响应) → set / bit_set / array / string 等
+              if (c.MB && Array.isArray(c.MB.fields)) {
+                c.MB.fields.forEach((f) => {
+                  if (!f.name) return;
+                  const type = NS._inferCardType(f, cmdId, roleKey);
+                  NS._pushSchemaCard(cards, protoId, cmdId, type, f, roleKey);
+                });
+              }
+              // 从机: 0x01 CB 保护标志位 bitset 按位 → bit_set (v1.3.19.1.3 沿用)
+              if (cmdId === 0x01 && c.CB && Array.isArray(c.CB.fields)) {
+                const bsNames = ['ProtectCode', 'ErrCode', 'AFE_ProtectCode', 'ChgDsgState', 'SignalSource'];
+                const bsFields = bsNames.map((n) => c.CB.fields.find((x) => x.name === n)).filter(Boolean);
+                bsFields.sort((a, b) => (a.startBit || 0) - (b.startBit || 0));
+                bsFields.forEach((f) => {
+                  if (!Array.isArray(f.bits)) return;
+                  f.bits.forEach((b) => {
+                    if (typeof b.bit !== 'number') return;
+                    if (cards.some((x) => x.field === f.name && x.bit === b.bit && x.type === 'bit_set')) return;
+                    cards.push({ id: protoId + '_bit_set_' + f.name + '_' + b.bit, type: 'bit_set', cmd: cmdId, dir: 'both',
+                      field: f.name, bit: b.bit, bitName: b.name, bitsetField: f.name,
+                      startBit: (f.startBit || 0) + b.bit, bitLen: 1,
+                      title: b.name || ('bit' + b.bit), unit: '', precision: 0,
+                      protocol: protoId, sim: { type: 'fixed', value: 0 } });
+                  });
                 });
               }
             }
-            // v1.3.19: 0x01 完整字段补全 (按 BMS V1.13 §4 + 协议表全部支持, 含主从模式)
-            const wanted = ['RSOC', 'BatVolt', 'SysCurr', 'SOH', 'Vcell_max', 'CellTempMax', 'ASOC', 'CellTempMin', 'Vcell_min', 'PackVolt', 'AverageCurr', 'AdapterVolt'];
-            if (c01.CB && Array.isArray(c01.CB.fields)) {
-              wanted.forEach((name, i) => {
-                const f = c01.CB.fields.find((x) => x.name === name);
-                if (!f) return;
-                cards.push({ id: protoId + '_rx_' + i, type: 'trend', cmd: 0x01, dir: 'rx', field: name,
-                  title: name, unit: f.unit || '', range: NS._fieldRange(name), precision: f.unit === 'mV' ? 0 : 1,
-                  fromOtherCmd: true, protocol: protoId });
-              });
-              // v1.3.19.1.2: bitset 字段按位展开 → type='bit' 独立卡片 (跟 rx 数值卡分开)
-              //   bit 状态是离散 ON/OFF, 不需图表/单位/范围, 紧凑布局
-              //   按 startBit 升序排列 (跟协议字节偏移对齐)
-              //   标题简化为只显示位名 (去掉 "ProtectCode · " 前缀, 避免单行截断)
-              const bsNames = ['ProtectCode', 'ErrCode', 'AFE_ProtectCode', 'ChgDsgState', 'SignalSource'];
-              const bsFields = bsNames.map((n) => c01.CB.fields.find((x) => x.name === n)).filter(Boolean);
-              bsFields.sort((a, b) => (a.startBit || 0) - (b.startBit || 0));
-              bsFields.forEach((f) => {
-                if (!Array.isArray(f.bits)) return;
-                f.bits.forEach((b) => {
-                  if (typeof b.bit !== 'number') return;
-                  cards.push({ id: protoId + '_bit_' + f.name + '_' + b.bit, type: 'bit', cmd: 0x01, dir: 'rx',
-                    field: f.name, bit: b.bit, bitName: b.name, bitsetField: f.name,
-                    startBit: (f.startBit || 0) + b.bit, bitLen: 1,
-                    title: b.name || ('bit' + b.bit), unit: '', precision: 0,
-                    protocol: protoId });
-                });
-              });
-              // v1.3.19.1: 数组字段按项展开 → type='rx' 纯显示卡 (BMS 响应多值, 主机 + 从机都能看)
-              //   按 startBit 升序, 每项 startBit = 父 startBit + i * itemBitLen
-              const arrayNames = ['Cell_Temp', 'Vcell'];
-              const arrayFields = arrayNames.map((n) => c01.CB.fields.find((x) => x.name === n)).filter(Boolean);
-              arrayFields.sort((a, b) => (a.startBit || 0) - (b.startBit || 0));
-              arrayFields.forEach((f) => {
-                if (f.type !== 'array') return;
-                const count = (f.item && f.item.count) ? f.item.count : 0;
-                const itemBitLen = (f.item && f.item.bitLen) ? f.item.bitLen : 16;
-                const itemUnit = f.unit || '';
-                for (let i = 0; i < count; i++) {
-                  cards.push({ id: protoId + '_rx_arr_' + f.name + '_' + i, type: 'rx', cmd: 0x01, dir: 'rx',
-                    field: f.name, arrayIndex: i, arrayCount: count, itemBitLen: itemBitLen,
-                    startBit: (f.startBit || 0) + i * itemBitLen, bitLen: itemBitLen,
-                    title: f.name + '[' + (i + 1) + ']', unit: itemUnit, precision: itemUnit === 'mV' ? 0 : 1,
-                    protocol: protoId });
-                }
-              });
-            }
-          } else {
-            // 从机: 0x01 CB 关键字段 set 卡 (参数值 + 动态数据源, 无图表) — v1.3.19 扩到 34 字段覆盖完整协议
-            const keyNames = ['RSOC', 'BatVolt', 'SysCurr', 'SOH', 'PackVolt', 'Vcell_max', 'Vcell_min', 'CellTempMax', 'CellTempMin', 'MosTempMax', 'RRemainCap', 'Cycles',
-              'ChgMosTemp', 'DsgMosTemp', 'PreDsgMosTemp', 'AfeTemp', 'PcbTemp',
-              'AverageCurr', 'CurrGain', 'CurrOffset', 'ASOC',
-              'AccumValue', 'TorageLossCap', 'TotalChargeCap', 'TotalDischargeCap',
-              'Vcell_dif', 'Vcell_max_num', 'Vcell_min_num',
-              'AdapterVolt', 'Chgdiscncause', 'Dsgdiscncause',
-              'ARemainCap', 'RFCC', 'AFCC'];
-            if (c01.CB && Array.isArray(c01.CB.fields)) {
-              keyNames.forEach((name, i) => {
-                const f = c01.CB.fields.find((x) => x.name === name);
-                if (!f) return;
-                cards.push({ id: protoId + '_set_' + i, type: 'set', cmd: 0x01, field: name,
-                  title: name, unit: f.unit || '', precision: f.unit === 'mV' ? 0 : 1, protocol: protoId,
-                  sim: { type: 'fixed', value: 0 } });
-              });
-              // v1.3.19.1.3: 保护标志位 bitset 按位展开 → type='bit_set' 控制卡 (跟 'bit' 显示卡区分)
-              //   从机主动控制这些位 (BMS 仿真), 用 checkbox 勾选 + 发送
-              //   跟 type='bit' (主机显示) 是不同卡片类型, 视觉上独立
-              //   按 startBit 升序排列 (跟协议字节偏移对齐)
-              //   替代 v1.3.19 的 5 个整体 bitset set 卡 (按位更精细, 更符合 BMS 仿真场景)
-              const bsNames = ['ProtectCode', 'ErrCode', 'AFE_ProtectCode', 'ChgDsgState', 'SignalSource'];
-              const bsFields = bsNames.map((n) => c01.CB.fields.find((x) => x.name === n)).filter(Boolean);
-              bsFields.sort((a, b) => (a.startBit || 0) - (b.startBit || 0));
-              bsFields.forEach((f) => {
-                if (!Array.isArray(f.bits)) return;
-                f.bits.forEach((b) => {
-                  if (typeof b.bit !== 'number') return;
-                  cards.push({ id: protoId + '_bit_set_' + f.name + '_' + b.bit, type: 'bit_set', cmd: 0x01, dir: 'both',
-                    field: f.name, bit: b.bit, bitName: b.name, bitsetField: f.name,
-                    startBit: (f.startBit || 0) + b.bit, bitLen: 1,
-                    title: b.name || ('bit' + b.bit), unit: '', precision: 0,
-                    protocol: protoId,
-                    sim: { type: 'fixed', value: 0 } });
-                });
-              });
-            }
           }
           return cards;
+        };
+        // v1.3.21: 推 1 张卡片到数组 (按 type 分发, 复用 v1.3.20 bitset 拆分逻辑)
+        NS._pushSchemaCard = function (cards, protoId, cmdId, type, f, roleKey) {
+          if (!f || !f.name) return;
+          if (type === 'bit') {
+            // bitset 字段按位展开 → bit 卡片 (跟 v1.3.19.1.2 一致)
+            if (Array.isArray(f.bits)) {
+              f.bits.forEach((b) => {
+                if (typeof b.bit !== 'number') return;
+                cards.push({ id: protoId + '_bit_' + f.name + '_' + b.bit, type: 'bit', cmd: cmdId, dir: 'rx',
+                  field: f.name, bit: b.bit, bitName: b.name, bitsetField: f.name,
+                  startBit: (f.startBit || 0) + b.bit, bitLen: 1,
+                  title: b.name || ('bit' + b.bit), unit: '', precision: 0, protocol: protoId });
+              });
+            }
+          } else if (type === 'array') {
+            // 数组字段 → array 卡片 (v1.3.21 新)
+            const count = (f.item && f.item.count) ? f.item.count : 0;
+            const itemUnit = f.unit || '';
+            cards.push({ id: protoId + '_array_' + f.name, type: 'array', cmd: cmdId, dir: 'rx',
+              field: f.name, arrayCount: count, itemBitLen: f.item && f.item.bitLen,
+              title: f.name + '[' + count + ']', unit: itemUnit, precision: itemUnit === 'mV' ? 0 : 1,
+              span: count > 4 ? '2x1' : '1x1',
+              threshold: itemUnit === 'mV' ? { warn: 3700, bad: 3800 } : (itemUnit === '℃' ? { warn: 55, bad: 60 } : { warn: 1, bad: 1 }),
+              values: Array.from({ length: count }, (_, i) => (itemUnit === 'mV' ? (3650 + (i % 5) * 10) : (25 + (i % 5) * 2))),
+              protocol: protoId });
+          } else if (type === 'string') {
+            // ascii 字段 → string 卡片 (v1.3.21 新)
+            const len = f.bitLen ? Math.ceil(f.bitLen / 8) : 16;
+            const asciiDefault = f.name === 'SN' || f.name === 'MAC' ? 'BMS-2026-0818-A1' : f.name;
+            cards.push({ id: protoId + '_string_' + f.name, type: 'string', cmd: cmdId, dir: 'rx',
+              field: f.name, value: asciiDefault,
+              bytes: Array.from({ length: len }, (_, i) => (asciiDefault.charCodeAt(i) || 0x20) & 0xFF),
+              title: f.name, unit: '', precision: 0, protocol: protoId });
+          } else if (type === 'wizard') {
+            // 升级流程 → wizard 卡片 (v1.3.21 新)
+            const stepNames = ['请求', '擦除', '传输', '校验', '结束', '查询'];
+            const steps = stepNames.map((s, i) => ({ name: s, state: 'pending' }));
+            if (steps.length > 0) { steps[0].state = 'done'; steps[1].state = 'done'; steps[2].state = 'current'; }
+            cards.push({ id: protoId + '_wizard_' + cmdId.toString(16), type: 'wizard', cmd: cmdId, dir: 'tx',
+              field: '', title: '固件升级 0x' + cmdId.toString(16).toUpperCase().padStart(2, '0'), unit: '', precision: 0,
+              steps: steps, currentStep: 3, totalSteps: steps.length, progress: 0.5,
+              protocol: protoId });
+          } else if (type === 'log') {
+            // log 字段 → log 卡片 (v1.3.21 新)
+            cards.push({ id: protoId + '_log_' + f.name, type: 'log', cmd: cmdId, dir: 'rx',
+              field: f.name, title: f.name, unit: '', precision: 0,
+              events: [
+                { time: '12:34:56', type: 'PROTECT', message: '硬放过温触发', count: 1 },
+                { time: '12:30:12', type: 'WARN', message: 'SOC 低告警', count: 2 },
+                { time: '12:15:08', type: 'INFO', message: '充电完成', count: 1 }
+              ],
+              protocol: protoId });
+          } else if (type === 'big') {
+            // 大数字仪表 → big 卡片 (v1.3.21 新)
+            const value = f.default != null ? f.default : 26;
+            cards.push({ id: protoId + '_big_' + f.name, type: 'big', cmd: cmdId, dir: 'rx',
+              field: f.name, value: value, range: NS._fieldRange(f.name), unit: f.unit || '%', precision: f.unit === 'mV' ? 0 : 1,
+              title: f.name, protocol: protoId });
+          } else if (type === 'set') {
+            // 从机参数 → set 卡片 (v1.3.19 一致)
+            cards.push({ id: protoId + '_set_' + f.name, type: 'set', cmd: cmdId, field: f.name,
+              title: f.name, unit: f.unit || '', precision: f.unit === 'mV' ? 0 : 1, protocol: protoId,
+              sim: { type: 'fixed', value: f.default != null ? f.default : 0 } });
+          } else {
+            // 默认 trend (host) / set (device) / pair
+            cards.push({ id: protoId + '_' + type + '_' + f.name, type: type, cmd: cmdId, dir: roleKey === 'device' ? 'tx' : 'rx',
+              field: f.name, title: f.name, unit: f.unit || '', range: NS._fieldRange(f.name), precision: f.unit === 'mV' ? 0 : 1,
+              protocol: protoId, sim: roleKey === 'device' ? { type: 'fixed', value: f.default != null ? f.default : 0 } : undefined });
+          }
         };
         NS._fieldRange = function (name) {
           // v1.3.19: 0x01 完整字段补全对应的合理量程
@@ -23751,9 +23814,17 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
                 '<div>' +
                   '<label style="display: block; margin-bottom: 6px; font-size: 12px; color: var(--text-soft); font-weight: 600;">类型</label>' +
                   '<select id="dh-new-card-type" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px;">' +
-                    '<option value="trend">趋势卡 (遥测)</option>' +
-                    '<option value="control">控制卡 (发送位)</option>' +
-                    '<option value="set">参数卡 (从机)</option>' +
+                    '<option value="trend">趋势卡 (遥测 TREND)</option>' +
+                    '<option value="pair">配对卡 (双变量 PAIR)</option>' +
+                    '<option value="control">控制卡 (发送位 CTRL)</option>' +
+                    '<option value="set">参数卡 (从机 SET)</option>' +
+                    '<option value="bit">单 bit 卡 (BIT)</option>' +
+                    '<option value="bit_set">多 bit 设置卡 (BIT_SET)</option>' +
+                    '<option value="big">大数字仪表卡 (BIG)</option>' +
+                    '<option value="array">数组聚合卡 (ARRAY)</option>' +
+                    '<option value="string">文本卡 (STRING)</option>' +
+                    '<option value="log">事件日志卡 (LOG)</option>' +
+                    '<option value="wizard">状态机/升级卡 (WIZARD)</option>' +
                   '</select>' +
                 '</div>' +
                 '<div>' +
