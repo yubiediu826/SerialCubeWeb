@@ -6413,6 +6413,93 @@
     .dashboard-host     .card-default.array.span-2x1 .cell.bad .idx { color: var(--danger); font-weight: 700; }
     .dashboard-host     .card-default.array.span-2x1 .cell.bad .val { color: var(--danger); }
 
+    /* v1.3.21: BIG 卡片 (Task 7) — 大字 2.5rem + mini 进度条
+       适用字段: SOC / SOH / CycleCount (BMS V1.13 6/7/8)
+       数据: c.value (number) + c.range [min, max] + c.unit (string) + c.threshold { warn, bad }
+       弹窗模式: big-metric (3 tab: 仪表/趋势/极值 — 当前实现仅仪表 view) */
+    .dashboard-host     .card-default.big .card-statusbar { background: var(--big); }
+    .dashboard-host     .card-default.big .type-badge {
+      background: var(--big-soft); color: var(--big);
+      text-transform: none; padding: 1px 6px; font-size: 0.625rem; font-weight: 700;
+    }
+    .dashboard-host     .card-default.big .card-value .num {
+      font-size: 2.5rem; font-weight: 800; color: var(--big);
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-variant-numeric: tabular-nums; line-height: 1;
+    }
+    .dashboard-host     .card-default.big .card-value .unit {
+      font-size: 0.75rem; color: var(--text-soft);
+      margin-left: 2px;
+    }
+    .dashboard-host     .card-default.big .gauge-mini {
+      width: 100%; height: 6px; background: var(--bg-panel);
+      border-radius: 3px; margin-top: 6px; overflow: hidden;
+    }
+    .dashboard-host     .card-default.big .gauge-mini .fill {
+      height: 100%; background: var(--big); border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .dashboard-host     .card-default.big.alert-warning .gauge-mini .fill { background: var(--warn); }
+    .dashboard-host     .card-default.big.alert-danger .gauge-mini .fill { background: var(--bad); }
+    .dashboard-host     .card-default.big.alert-warning .card-statusbar { background: var(--warn); }
+    .dashboard-host     .card-default.big.alert-danger .card-statusbar { background: var(--bad); }
+
+    /* v1.3.21: BIG 弹窗大圆环 (big-metric 仪表 view) */
+    .dashboard-host     .detail-body .detail-big-content { padding: 16px; display: flex; gap: 24px; align-items: center; }
+    .dashboard-host     .gauge-big {
+      width: 200px; height: 200px; flex-shrink: 0;
+      position: relative; margin: 0 auto;
+    }
+    .dashboard-host     .gauge-big .ring {
+      width: 100%; height: 100%; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .dashboard-host     .gauge-big .ring::before {
+      content: ''; position: absolute; inset: 14px; border-radius: 50%;
+      background: var(--bg-elev);
+    }
+    .dashboard-host     .gauge-big .ring-inner {
+      position: relative; z-index: 1; text-align: center;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .dashboard-host     .gauge-big .num {
+      font-size: 3rem; font-weight: 800; color: var(--big);
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-variant-numeric: tabular-nums; line-height: 1;
+    }
+    .dashboard-host     .gauge-big .unit {
+      font-size: 0.875rem; color: var(--text-soft);
+      margin-top: 2px;
+    }
+    .dashboard-host     .big-meta {
+      flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;
+      font-size: 0.75rem;
+    }
+    .dashboard-host     .big-meta .meta-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 6px 0; border-bottom: 1px solid var(--border);
+    }
+    .dashboard-host     .big-meta .meta-row:last-child { border-bottom: none; }
+    .dashboard-host     .big-meta .meta-label {
+      flex-shrink: 0; min-width: 64px;
+      font-size: 0.625rem; color: var(--text-soft);
+      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700;
+    }
+    .dashboard-host     .big-meta .meta-value {
+      flex: 1; min-width: 0; color: var(--text);
+    }
+    .dashboard-host     .big-meta .meta-value strong { font-size: 1rem; font-weight: 800; }
+    .dashboard-host     .big-meta .meta-value.ok strong { color: var(--big); }
+    .dashboard-host     .big-meta .meta-value.warning strong { color: var(--warn); }
+    .dashboard-host     .big-meta .meta-value.danger strong { color: var(--bad); }
+    .dashboard-host     .big-meta .meta-value.mono { font-family: "Cascadia Code", Consolas, monospace; font-size: 0.6875rem; }
+    .dashboard-host     .big-meta .meta-threshold {
+      display: inline-block; padding: 1px 6px; border-radius: 3px;
+      font-family: "Cascadia Code", Consolas, monospace; font-size: 0.6875rem;
+    }
+    .dashboard-host     .big-meta .meta-threshold.bad { background: var(--bad-soft, rgba(224, 87, 94, 0.14)); color: var(--bad); }
+    .dashboard-host     .big-meta .meta-threshold.warn { background: var(--warn-soft, rgba(217, 119, 6, 0.14)); color: var(--warn); }
 
 
     /* v1.3.20: bit / bit_set 详情弹窗分支样式 */
@@ -18227,6 +18314,60 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             card.addEventListener('click', () => NS.__openDetail(c.id));
             return card;
           } else if (c.type === 'big') {
+            // v1.3.21 Task 7: BIG 卡片 — 大字 2.5rem + mini 进度条 (大数字仪表)
+            //   适用字段: SOC / SOH / CycleCount (BMS V1.13 §4 字段 6/7/8)
+            //   数据: c.value (number) + c.range [min, max] + c.unit (string) + c.threshold { warn, bad }
+            //   弹窗模式: big-metric (3 tab: 仪表/趋势/极值 — 当前实现仅仪表)
+            //   通用渲染, 不 hardcode 任何 schema 字段 (保持 v1.3.21+ 扩展性)
+            card.classList.add('big');
+            const v = (typeof c.value === 'number') ? c.value : 0;
+            const range = c.range || [0, 100];
+            const unit = c.unit || '';
+            const thr = c.threshold || { warn: range[0], bad: range[0] };
+            const dir = c.dir || 'rx';
+            const dirLabel = dir === 'tx' ? 'TX' : dir === 'rx' ? 'RX' : 'TX+RX';
+            // 进度条百分比: 0-100% 钳制, 范围相同时 fallback 0
+            const pct = (range[1] > range[0]) ? Math.max(0, Math.min(100, ((v - range[0]) / (range[1] - range[0])) * 100)) : 0;
+            // 告警色: 跟 v1.3.21 卡片主色保持一致 (绿/黄/红), BAD ≤ thr.bad / WARN ≤ thr.warn
+            let statusCls = '';
+            let statusLabel = 'OK';
+            if (typeof v === 'number') {
+              if (v <= thr.bad) { statusCls = 'alert-danger'; statusLabel = 'DANGER'; }
+              else if (v <= thr.warn) { statusCls = 'alert-warning'; statusLabel = 'WARN'; }
+            }
+            if (statusCls) card.classList.add(statusCls);
+            const prec = c.precision != null ? c.precision : 0;
+            const hexStr = (typeof v === 'number') ? ('0x' + (v >>> 0).toString(16).toUpperCase().padStart(4, '0')) : '';
+            card.innerHTML =
+              '<div class="card-statusbar"></div>'
+              + '<div class="card-body">'
+              + '<div class="card-header">'
+              + '<span class="card-title">' + NS.escapeHtml(c.title) + '</span>'
+              + '<span class="type-badge">BIG</span>'
+              + '</div>'
+              + '<div class="card-value" data-action="detail">'
+              + '<span class="num">' + (typeof v === 'number' ? v.toFixed(prec) : '—') + '</span>'
+              + '<span class="unit">' + NS.escapeHtml(unit) + (hexStr ? ' · ' + hexStr : '') + '</span>'
+              + '</div>'
+              + '<div class="gauge-mini"><div class="fill" style="width: ' + pct.toFixed(1) + '%;"></div></div>'
+              + '<div class="card-footer">'
+              + '<span class="footer-range">' + range[0] + '–' + range[1] + NS.escapeHtml(unit) + ' · ' + statusLabel + '</span>'
+              + '<span class="footer-direction ' + dir + '">' + dirLabel + '</span>'
+              + '</div>'
+              + '</div>'
+              + (NS.editMode ? '<div class="card-actions">'
+                + '<button aria-label="编辑" class="card-action" title="编辑" data-action="edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z M10 3 L13 6"/></svg></button>'
+                + '</div>' : '');
+            card.querySelectorAll('[data-action]').forEach((btn) => {
+              btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const act = btn.getAttribute('data-action');
+                if (act === 'edit') NS.openCardEdit(c.id);
+                else if (act === 'detail') NS.__openDetail(c.id);
+              });
+            });
+            card.addEventListener('click', () => NS.__openDetail(c.id));
+            return card;
           } else if (c.type === 'string') {
           } else if (c.type === 'bit_set') {
             // v1.3.19.1.3: bit_set 控制卡 — 从机模式 CB bitset 按位控制 (跟 'bit' 显示卡区分)
@@ -19029,6 +19170,67 @@ body.theme-dark     .pill.danger { background: rgba(248, 113, 113, 0.18); color:
             + '<div class="detail-logs-table" id="dh-detail-logs-table"></div>'
             + '</div>'
             + '</div>';
+        };
+        // v1.3.21: BIG 卡片大数字仪表弹窗 (Task 7) — 仪表视图 (后续扩展趋势/极值)
+        //   圆环 conic-gradient + 大字 + 右侧 metadata (当前值/范围/告警阈值)
+        //   3 tab 计划 (仪表/趋势/极值), 当前实现仅仪表 — 复用 modal chart page slot
+        NS.renderBigMetricBody = function (card) {
+          if (!card) return;
+          // 取消上一帧 rAF, 防重入
+          if (NS._renderRafId) cancelAnimationFrame(NS._renderRafId);
+          const body = document.getElementById('dh-detail-body');
+          if (!body) return;
+          const v = (card.value != null) ? card.value : 0;
+          const range = card.range || [0, 100];
+          const unit = card.unit || '';
+          const pct = range[1] > range[0] ? Math.max(0, Math.min(100, ((v - range[0]) / (range[1] - range[0])) * 100)) : 0;
+          const pctDeg = pct * 3.6;
+          const thr = card.threshold || { warn: range[0], bad: range[0] };
+          // 仪表状态: 良好 (绿) / 警告 (黄) / 危险 (红), 跟 BIG 卡片主色保持绿系, 阈值判断用 warn/bad
+          let ringColor = 'var(--big)';
+          let statusLabel = '正常';
+          let statusCls = 'ok';
+          if (typeof v === 'number') {
+            if (v <= thr.bad) { ringColor = 'var(--bad)'; statusLabel = 'DANGER'; statusCls = 'danger'; }
+            else if (v <= thr.warn) { ringColor = 'var(--warn)'; statusLabel = 'WARN'; statusCls = 'warning'; }
+          }
+          // 数值精度: card.precision 否则 0 (整数百分比 / 循环次数)
+          const prec = card.precision != null ? card.precision : 0;
+          const hexStr = (typeof v === 'number') ? ('0x' + (v >>> 0).toString(16).toUpperCase().padStart(4, '0')) : '—';
+          body.innerHTML = '<div class="detail-page-chart detail-big-content">'
+            + '<div class="big-metric-wrap">'
+            + '<div class="gauge-big">'
+            + '<div class="ring" style="background: conic-gradient(' + ringColor + ' 0deg ' + pctDeg + 'deg, var(--bg-panel) ' + pctDeg + 'deg 360deg);">'
+            + '<div class="ring-inner">'
+            + '<div class="num">' + v.toFixed(prec) + '</div>'
+            + '<div class="unit">' + NS.escapeHtml(unit) + '</div>'
+            + '</div>'
+            + '</div>'
+            + '</div>'
+            + '<div class="big-meta">'
+            + '<div class="meta-row"><span class="meta-label">当前值</span><span class="meta-value ' + statusCls + '"><strong>' + v.toFixed(prec) + '</strong> ' + NS.escapeHtml(unit) + ' · ' + statusLabel + '</span></div>'
+            + '<div class="meta-row"><span class="meta-label">范围</span><span class="meta-value">' + range[0] + ' – ' + range[1] + ' ' + NS.escapeHtml(unit) + '</span></div>'
+            + '<div class="meta-row"><span class="meta-label">告警阈值</span><span class="meta-value">'
+            + '<span class="meta-threshold bad">BAD ≤ ' + thr.bad + NS.escapeHtml(unit) + '</span> · '
+            + '<span class="meta-threshold warn">WARN ≤ ' + thr.warn + NS.escapeHtml(unit) + '</span>'
+            + '</span></div>'
+            + '<div class="meta-row"><span class="meta-label">原始字节</span><span class="meta-value mono">' + hexStr + '</span></div>'
+            + '<div class="meta-row"><span class="meta-label">占比</span><span class="meta-value mono">' + pct.toFixed(1) + '% (' + pctDeg.toFixed(1) + '°)</span></div>'
+            + '</div>'
+            + '</div>'
+            // === 日志页 (复用 chart-logs 模式, 简单版 — 暂无历史数据可显示) ===
+            + '<div class="detail-page-logs">'
+            + '<div class="detail-logs-panel">'
+            + '<div class="detail-logs-header">'
+            + '<span class="detail-logs-title">数据日志</span>'
+            + '<span class="detail-logs-spacer"></span>'
+            + '<span class="detail-logs-count" id="dh-detail-logs-count">0 条</span>'
+            + '</div>'
+            + '<div style="padding: 20px; text-align: center; color: var(--text-mute); font-size: 0.6875rem;">BIG 仪表暂未启用历史日志 (后续 Task 7+ 扩展)</div>'
+            + '</div>'
+            + '</div>';
+          // 设置 active tab + 显隐 (page='big' 隐藏 chart tools)
+          NS._switchDetailPage(NS._detailPage);
         };
         NS._renderDetailBody = function () {
           const id = NS._detailCardId;
